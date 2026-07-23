@@ -38,7 +38,6 @@
   const FUTURE_DIVS = Object.keys(FUTURES.divisions);
   const BASE_TABS = [...FUTURE_DIVS, 'RODDY', 'FA CUP', 'ECL', 'H2H', 'MY BETS'];
   function currentTabs(){ return state.user && state.user.isAdmin ? [...BASE_TABS, 'ADMIN'] : BASE_TABS; }
-  state.h2hSubTab = FUTURE_DIVS[0];
 
   let state = {
     screen:'login', user:null, error:'',
@@ -46,7 +45,7 @@
     activeTab:'H2H',
     futureMarketTab: FUTURE_DIVS.length ? Object.keys(FUTURES.market_labels)[0] : null,
     teamA:'', teamB:'', h2hRound:1, h2hMarket:null,
-    h2hSubTab: null, h2hFixtureMarket: null,
+    h2hSubTab: FUTURE_DIVS[0], h2hFixtureMarket: null,
     slip:[], stake:50, betMode:'multi',
     myBets:null,
     adminPunters:null, adminBets:null,
