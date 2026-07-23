@@ -524,13 +524,19 @@
         }
       }
 
-      // H2H: covering a favourite's handicap already guarantees the moneyline win on
-      // the same side, so pairing them is a double-dip, not two separate risks.
+      // H2H: a favourite's handicap cover strictly implies they won outright. That
+      // makes it NESTED with their own moneyline pick (double-dip, already handled),
+      // but CONTRARY with the other side's moneyline or a draw (literally impossible
+      // together) -- both directions need checking, not just the matching side.
       if(np.type==='h2h' && ep.type==='h2h' && np.roundTag===ep.roundTag && np.teamA===ep.teamA && np.teamB===ep.teamB){
         const resPick = np.kind==='res' ? np : (ep.kind==='res' ? ep : null);
         const hcapPick = np.kind==='hcap' ? np : (ep.kind==='hcap' ? ep : null);
-        if(resPick && hcapPick && resPick.side===hcapPick.side && hcapPick.favTag==='fav'){
-          return { reason:'nested', msg: `covering a favourite's handicap already means they won outright, so pairing that with the moneyline just double-dips the same result` };
+        if(resPick && hcapPick && hcapPick.favTag==='fav'){
+          if(resPick.side === hcapPick.side){
+            return { reason:'nested', msg: `covering a favourite's handicap already means they won outright, so pairing that with the moneyline just double-dips the same result` };
+          } else {
+            return { reason:'contrary', msg: `that handicap result requires ${hcapPick.side==='a'?np.teamA||ep.teamA:np.teamB||ep.teamB} to win outright, which rules out your other selection on this match` };
+          }
         }
       }
     }
@@ -679,4 +685,45 @@
     const totalStake = stakes.reduce((a,b)=>a+b,0);
     if(totalStake > state.user.balance){ alert("You don't have enough clams to cover all of those singles."); return; }
     const u = await getUser(state.user.username);
-    u.balance -= tot
+    u.balance -= totalStake;
+    await saveUser(u);
+    state.user = u;
+    for(const item of state.slip){
+      const stake = Math.max(1, item.singleStake||0);
+      const bet = { id: uid(), username: u.username, selections: [item], stake, combinedOdds: item.odds,
+                    potentialReturn: Math.round(stake*item.odds), timestamp: Date.now(), status: 'PENDING' };
+      await sset('bilbbet2_bet:'+bet.id, bet);
+      await addToIndex('bilbbet2_bets_index_' + u.username.toLowerCase(), bet.id);
+      await addToIndex('bilbbet2_all_bets_index', bet.id);
+    }
+    const count = state.slip.length;
+    state.slip = []; state.stake = 50;
+    render();
+    alert('Placed ' + count + ' single bets totalling ' + totalStake + ' clams staked. Check "My Bets" to track them.');
+  }
+
+  async function doLogin(){
+    const username = state.username.trim(), pin = state.pin.trim();
+    if(!username || !pin){ state.error='Enter a username and PIN.'; render(); return; }
+    const u = await getUser(username);
+    if(!u){ state.error='No account with that username. Try "create account" below.'; render(); return; }
+    if(u.pinHash !== simpleHash(pin)){ state.error='Wrong PIN.'; render(); return; }
+    state.user = u; state.error=''; state.username=''; state.pin=''; state.screen='main'; render();
+  }
+
+  async function doRegister(){
+    const username = state.username.trim(), pin = state.pin.trim();
+    if(!username || pin.length<4){ state.error='Pick a username and a PIN of at least 4 digits.'; render(); return; }
+    const existing = await getUser(username);
+    if(existing){ state.error='That username is taken. Log in instead.'; render(); return; }
+    const isFirstEver = (await getIndex('bilbbet2_users_index')).length === 0;
+    const u = { username, pinHash: simpleHash(pin), balance: 1000, isAdmin: isFirstEver };
+    const saved = await sset('bilbbet2_user:' + username.toLowerCase(), u);
+    if(!saved){ state.error='Could not save your account (storage unavailable). Try reloading.'; render(); return; }
+    await addToIndex('bilbbet2_users_index', username);
+    state.user = u; state.error=''; state.username=''; state.pin=''; state.screen='main'; render();
+  }
+
+  render();
+})();
+</script>
