@@ -1,0 +1,580 @@
+<div id="app" style="max-width:820px;margin:0 auto;font-family:var(--font-sans,sans-serif);color:#eae3d3;padding-bottom:180px;"></div>
+
+<style>
+  #app{color:#eae3d3;}
+  .bb-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 16px;border-radius:8px;border:1px solid #2b6e63;background:#1f5c52;color:#f4ede1;font-size:14px;font-weight:500;cursor:pointer;}
+  .bb-btn:hover{background:#276b5f;}
+  .bb-btn:disabled{opacity:0.5;cursor:not-allowed;}
+  .bb-btn.ghost{background:transparent;color:#e8c98a;border:1px solid #4a4636;}
+  .bb-btn.ghost:hover{background:#2e2c22;}
+  .bb-input,.bb-select{width:100%;box-sizing:border-box;padding:9px 12px;border-radius:8px;border:1px solid #3a3729;background:#1c1b16;font-size:14px;color:#eae3d3;}
+  .bb-input:focus,.bb-select:focus{outline:none;border-color:#1f5c52;box-shadow:0 0 0 2px rgba(31,92,82,0.25);}
+  .bb-card{background:#221f18;border:1px solid #3a3729;border-radius:12px;padding:16px 18px;}
+  .bb-tab{padding:8px 14px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:1px solid transparent;color:#c9bfa8;}
+  .bb-tab.active{background:#1f5c52;color:#f4ede1;border-color:#2b6e63;}
+  .bb-tab:hover:not(.active){background:#2e2c22;}
+  .bb-outcome{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border-radius:8px;border:1px solid #3a3729;cursor:pointer;margin-bottom:6px;}
+  .bb-outcome:hover{background:#2a271e;}
+  .bb-outcome.selected{background:#2a4640;border-color:#3f8a76;}
+  .bb-odds{font-weight:600;color:#e8c98a;min-width:44px;text-align:right;}
+  .bb-slip{position:fixed;bottom:0;left:0;right:0;background:#181712;border-top:1px solid #3a3729;padding:12px 16px;z-index:50;}
+  .bb-slip-inner{max-width:820px;margin:0 auto;}
+  table.bb-table{width:100%;border-collapse:collapse;font-size:13px;}
+  table.bb-table th{text-align:left;color:#8a8270;font-weight:500;padding:6px 8px;border-bottom:1px solid #3a3729;}
+  table.bb-table td{padding:8px;border-bottom:1px solid #2a2820;vertical-align:top;}
+  .bb-pill{display:inline-block;font-size:11px;padding:2px 9px;border-radius:99px;font-weight:500;}
+</style>
+
+<script>
+(function(){
+  const DATA = {"futures": {"market_labels": {"win_div_pct": "Win Division", "top3_pct": "Top 3 Finish", "top_half_pct": "Top Half Finish", "bottom_half_pct": "Bottom Half Finish", "relegation_pct": "Relegation Zone", "wooden_spoon_pct": "Wooden Spoon"}, "roddy_labels": {"roddy_win_pct": "Win the Roddy", "roddy_top3_pct": "Top 3 Roddy Finish", "roddy_top5_pct": "Top 5 Roddy Finish", "roddy_top10_pct": "Top 10 Roddy Finish"}, "divisions": {"ELIZA CUP (D1)": {"win_div_pct": [{"team": "BC UNITED ZEBRAS", "odds": 5.49, "suspended": false}, {"team": "STAIRWAY TO EVANS", "odds": 5.62, "suspended": false}, {"team": "HARVEY FREKES", "odds": 9.82, "suspended": false}, {"team": "KALLO FC", "odds": 11.71, "suspended": false}, {"team": "DW ABOUT IT FC", "odds": 12.87, "suspended": false}, {"team": "ALASKAN BULL WORMS", "odds": 12.99, "suspended": false}, {"team": "JARVIS ZEBRAS", "odds": 15.28, "suspended": false}, {"team": "BIG MAC FC", "odds": 15.7, "suspended": false}, {"team": "FROGBERT FOOTBALL", "odds": 15.96, "suspended": false}, {"team": "GIVE US WANG", "odds": 17.11, "suspended": false}, {"team": "SAUCE FC", "odds": 18.67, "suspended": false}, {"team": "NANISTATE", "odds": 34.42, "suspended": false}, {"team": "VICTORYRULES", "odds": 74.21, "suspended": false}, {"team": "TOP KUOLITY", "odds": 571.43, "suspended": false}], "top3_pct": [{"team": "BC UNITED ZEBRAS", "odds": 2.32, "suspended": false}, {"team": "STAIRWAY TO EVANS", "odds": 2.33, "suspended": false}, {"team": "HARVEY FREKES", "odds": 3.3, "suspended": false}, {"team": "KALLO FC", "odds": 3.66, "suspended": false}, {"team": "ALASKAN BULL WORMS", "odds": 4.03, "suspended": false}, {"team": "DW ABOUT IT FC", "odds": 4.06, "suspended": false}, {"team": "FROGBERT FOOTBALL", "odds": 4.52, "suspended": false}, {"team": "JARVIS ZEBRAS", "odds": 4.55, "suspended": false}, {"team": "GIVE US WANG", "odds": 4.87, "suspended": false}, {"team": "BIG MAC FC", "odds": 4.88, "suspended": false}, {"team": "SAUCE FC", "odds": 5.51, "suspended": false}, {"team": "NANISTATE", "odds": 8.79, "suspended": false}, {"team": "VICTORYRULES", "odds": 15.83, "suspended": false}, {"team": "TOP KUOLITY", "odds": 116.62, "suspended": false}], "top_half_pct": [{"team": "STAIRWAY TO EVANS", "odds": 1.28, "suspended": false}, {"team": "BC UNITED ZEBRAS", "odds": 1.29, "suspended": false}, {"team": "HARVEY FREKES", "odds": 1.53, "suspended": false}, {"team": "KALLO FC", "odds": 1.58, "suspended": false}, {"team": "ALASKAN BULL WORMS", "odds": 1.67, "suspended": false}, {"team": "DW ABOUT IT FC", "odds": 1.71, "suspended": false}, {"team": "FROGBERT FOOTBALL", "odds": 1.78, "suspended": false}, {"team": "BIG MAC FC", "odds": 1.85, "suspended": false}, {"team": "JARVIS ZEBRAS", "odds": 1.86, "suspended": false}, {"team": "GIVE US WANG", "odds": 1.9, "suspended": false}, {"team": "SAUCE FC", "odds": 2.02, "suspended": false}, {"team": "NANISTATE", "odds": 2.62, "suspended": false}, {"team": "VICTORYRULES", "odds": 4.27, "suspended": false}, {"team": "TOP KUOLITY", "odds": 18.14, "suspended": false}], "bottom_half_pct": [{"team": "TOP KUOLITY", "odds": 1.01, "suspended": false}, {"team": "VICTORYRULES", "odds": 1.23, "suspended": false}, {"team": "NANISTATE", "odds": 1.5, "suspended": false}, {"team": "SAUCE FC", "odds": 1.8, "suspended": false}, {"team": "GIVE US WANG", "odds": 1.91, "suspended": false}, {"team": "JARVIS ZEBRAS", "odds": 1.95, "suspended": false}, {"team": "BIG MAC FC", "odds": 1.96, "suspended": false}, {"team": "FROGBERT FOOTBALL", "odds": 2.05, "suspended": false}, {"team": "DW ABOUT IT FC", "odds": 2.14, "suspended": false}, {"team": "ALASKAN BULL WORMS", "odds": 2.22, "suspended": false}, {"team": "KALLO FC", "odds": 2.39, "suspended": false}, {"team": "HARVEY FREKES", "odds": 2.53, "suspended": false}, {"team": "BC UNITED ZEBRAS", "odds": 3.62, "suspended": false}, {"team": "STAIRWAY TO EVANS", "odds": 3.69, "suspended": false}], "relegation_pct": [{"team": "TOP KUOLITY", "odds": 1.13, "suspended": false}, {"team": "VICTORYRULES", "odds": 1.79, "suspended": false}, {"team": "NANISTATE", "odds": 2.49, "suspended": false}, {"team": "SAUCE FC", "odds": 3.38, "suspended": false}, {"team": "GIVE US WANG", "odds": 3.69, "suspended": false}, {"team": "JARVIS ZEBRAS", "odds": 3.74, "suspended": false}, {"team": "BIG MAC FC", "odds": 3.79, "suspended": false}, {"team": "FROGBERT FOOTBALL", "odds": 4.23, "suspended": false}, {"team": "DW ABOUT IT FC", "odds": 4.56, "suspended": false}, {"team": "ALASKAN BULL WORMS", "odds": 4.68, "suspended": false}, {"team": "KALLO FC", "odds": 5.16, "suspended": false}, {"team": "HARVEY FREKES", "odds": 5.54, "suspended": false}, {"team": "BC UNITED ZEBRAS", "odds": 9.48, "suspended": false}, {"team": "STAIRWAY TO EVANS", "odds": 9.52, "suspended": false}], "wooden_spoon_pct": [{"team": "TOP KUOLITY", "odds": 2.01, "suspended": false}, {"team": "VICTORYRULES", "odds": 7.46, "suspended": false}, {"team": "NANISTATE", "odds": 12.53, "suspended": false}, {"team": "SAUCE FC", "odds": 20.26, "suspended": false}, {"team": "GIVE US WANG", "odds": 25.17, "suspended": false}, {"team": "BIG MAC FC", "odds": 25.62, "suspended": false}, {"team": "JARVIS ZEBRAS", "odds": 25.62, "suspended": false}, {"team": "FROGBERT FOOTBALL", "odds": 26.21, "suspended": false}, {"team": "DW ABOUT IT FC", "odds": 31.06, "suspended": false}, {"team": "ALASKAN BULL WORMS", "odds": 31.4, "suspended": false}, {"team": "KALLO FC", "odds": 39.68, "suspended": false}, {"team": "HARVEY FREKES", "odds": 46.46, "suspended": false}, {"team": "BC UNITED ZEBRAS", "odds": 89.29, "suspended": false}, {"team": "STAIRWAY TO EVANS", "odds": 96.85, "suspended": false}]}, "DIVISION 2A": {"win_div_pct": [{"team": "AFC BIG RED PORT", "odds": 2.46, "suspended": false}, {"team": "ALBANIAN BOARS", "odds": 5.13, "suspended": false}, {"team": "REAPERS FC", "odds": 6.27, "suspended": false}, {"team": "LALAS LEVEN", "odds": 6.45, "suspended": false}, {"team": "THE WAINE TRAIN", "odds": 14.61, "suspended": false}, {"team": "CARNEGIE DACHSHUNDS FC", "odds": 42.33, "suspended": false}, {"team": "BALLERS", "odds": 76.19, "suspended": false}, {"team": "MANCHESTHAIR UTD", "odds": 95.24, "suspended": false}, {"team": "BEST OF A BAD BENCH", "odds": 109.89, "suspended": false}, {"team": "3DOGS", "odds": 285.71, "suspended": false}, {"team": "ROTORUA UNITED", "odds": 300.75, "suspended": false}, {"team": "INTER MILANOVIC", "odds": 476.19, "suspended": false}], "top3_pct": [{"team": "AFC BIG RED PORT", "odds": 1.26, "suspended": false}, {"team": "ALBANIAN BOARS", "odds": 1.75, "suspended": false}, {"team": "LALAS LEVEN", "odds": 2.0, "suspended": false}, {"team": "REAPERS FC", "odds": 2.0, "suspended": false}, {"team": "THE WAINE TRAIN", "odds": 3.3, "suspended": false}, {"team": "CARNEGIE DACHSHUNDS FC", "odds": 7.8, "suspended": false}, {"team": "BALLERS", "odds": 9.64, "suspended": false}, {"team": "MANCHESTHAIR UTD", "odds": 12.21, "suspended": false}, {"team": "BEST OF A BAD BENCH", "odds": 15.83, "suspended": false}, {"team": "3DOGS", "odds": 21.89, "suspended": false}, {"team": "ROTORUA UNITED", "odds": 29.3, "suspended": false}, {"team": "INTER MILANOVIC", "odds": 45.71, "suspended": false}], "top_half_pct": [{"team": "AFC BIG RED PORT", "odds": 1.005, "suspended": false}, {"team": "ALBANIAN BOARS", "odds": 1.12, "suspended": false}, {"team": "LALAS LEVEN", "odds": 1.17, "suspended": false}, {"team": "REAPERS FC", "odds": 1.17, "suspended": false}, {"team": "THE WAINE TRAIN", "odds": 1.41, "suspended": false}, {"team": "CARNEGIE DACHSHUNDS FC", "odds": 2.25, "suspended": false}, {"team": "BALLERS", "odds": 2.56, "suspended": false}, {"team": "MANCHESTHAIR UTD", "odds": 3.06, "suspended": false}, {"team": "BEST OF A BAD BENCH", "odds": 3.46, "suspended": false}, {"team": "3DOGS", "odds": 4.39, "suspended": false}, {"team": "ROTORUA UNITED", "odds": 5.12, "suspended": false}, {"team": "INTER MILANOVIC", "odds": 8.7, "suspended": false}], "bottom_half_pct": [{"team": "INTER MILANOVIC", "odds": 1.07, "suspended": false}, {"team": "ROTORUA UNITED", "odds": 1.17, "suspended": false}, {"team": "3DOGS", "odds": 1.22, "suspended": false}, {"team": "BEST OF A BAD BENCH", "odds": 1.31, "suspended": false}, {"team": "MANCHESTHAIR UTD", "odds": 1.38, "suspended": false}, {"team": "BALLERS", "odds": 1.52, "suspended": false}, {"team": "CARNEGIE DACHSHUNDS FC", "odds": 1.65, "suspended": false}, {"team": "THE WAINE TRAIN", "odds": 2.94, "suspended": false}, {"team": "LALAS LEVEN", "odds": 5.03, "suspended": false}, {"team": "REAPERS FC", "odds": 5.21, "suspended": false}, {"team": "ALBANIAN BOARS", "odds": 6.41, "suspended": false}, {"team": "AFC BIG RED PORT", "odds": 18.8, "suspended": false}], "relegation_pct": [{"team": "INTER MILANOVIC", "odds": 1.52, "suspended": false}, {"team": "ROTORUA UNITED", "odds": 1.86, "suspended": false}, {"team": "3DOGS", "odds": 2.16, "suspended": false}, {"team": "BEST OF A BAD BENCH", "odds": 2.56, "suspended": false}, {"team": "MANCHESTHAIR UTD", "odds": 2.85, "suspended": false}, {"team": "BALLERS", "odds": 3.56, "suspended": false}, {"team": "CARNEGIE DACHSHUNDS FC", "odds": 3.94, "suspended": false}, {"team": "THE WAINE TRAIN", "odds": 10.54, "suspended": false}, {"team": "LALAS LEVEN", "odds": 23.61, "suspended": false}, {"team": "REAPERS FC", "odds": 23.81, "suspended": false}, {"team": "ALBANIAN BOARS", "odds": 34.42, "suspended": false}, {"team": "AFC BIG RED PORT", "odds": 150.38, "suspended": false}], "wooden_spoon_pct": [{"team": "INTER MILANOVIC", "odds": 3.33, "suspended": false}, {"team": "ROTORUA UNITED", "odds": 4.79, "suspended": false}, {"team": "3DOGS", "odds": 6.26, "suspended": false}, {"team": "BEST OF A BAD BENCH", "odds": 9.03, "suspended": false}, {"team": "MANCHESTHAIR UTD", "odds": 9.65, "suspended": false}, {"team": "BALLERS", "odds": 14.43, "suspended": false}, {"team": "CARNEGIE DACHSHUNDS FC", "odds": 15.87, "suspended": false}, {"team": "THE WAINE TRAIN", "odds": 63.49, "suspended": false}, {"team": "LALAS LEVEN", "odds": 136.05, "suspended": false}, {"team": "ALBANIAN BOARS", "odds": 178.57, "suspended": false}, {"team": "REAPERS FC", "odds": 178.57, "suspended": false}, {"team": "AFC BIG RED PORT", "odds": 1001, "suspended": false}]}, "DIVISION 2B": {"win_div_pct": [{"team": "SILVERMAN'S XI", "odds": 1.41, "suspended": false}, {"team": "THE D GENREAU", "odds": 6.01, "suspended": false}, {"team": "SPOONERS FC", "odds": 14.14, "suspended": false}, {"team": "ZEN GARDEN C.F", "odds": 14.29, "suspended": false}, {"team": "JUSTICEFORMOON FC", "odds": 129.87, "suspended": false}, {"team": "TBD PROMOTED TEAM B", "odds": 142.86, "suspended": false}, {"team": "TBD PROMOTED TEAM A", "odds": 173.16, "suspended": false}, {"team": "ZEN PIJ FC", "odds": 238.1, "suspended": false}, {"team": "DINKIN CRFC", "odds": 336.13, "suspended": false}, {"team": "ROYAL KC UNITED FC", "odds": 380.95, "suspended": false}, {"team": "CASUAL APPROACH", "odds": 439.56, "suspended": false}, {"team": "JERRY THE PAINTER", "odds": 1001, "suspended": false}], "top3_pct": [{"team": "SILVERMAN'S XI", "odds": 1.01, "suspended": false}, {"team": "THE D GENREAU", "odds": 1.39, "suspended": false}, {"team": "ZEN GARDEN C.F", "odds": 2.1, "suspended": false}, {"team": "SPOONERS FC", "odds": 2.19, "suspended": false}, {"team": "TBD PROMOTED TEAM A", "odds": 10.04, "suspended": false}, {"team": "JUSTICEFORMOON FC", "odds": 10.17, "suspended": false}, {"team": "TBD PROMOTED TEAM B", "odds": 10.74, "suspended": false}, {"team": "DINKIN CRFC", "odds": 13.38, "suspended": false}, {"team": "ZEN PIJ FC", "odds": 15.32, "suspended": false}, {"team": "ROYAL KC UNITED FC", "odds": 25.62, "suspended": false}, {"team": "CASUAL APPROACH", "odds": 28.01, "suspended": false}, {"team": "JERRY THE PAINTER", "odds": 1001, "suspended": false}], "top_half_pct": [{"team": "THE D GENREAU", "odds": 1.02, "suspended": false}, {"team": "SPOONERS FC", "odds": 1.14, "suspended": false}, {"team": "ZEN GARDEN C.F", "odds": 1.14, "suspended": false}, {"team": "TBD PROMOTED TEAM A", "odds": 2.26, "suspended": false}, {"team": "JUSTICEFORMOON FC", "odds": 2.32, "suspended": false}, {"team": "TBD PROMOTED TEAM B", "odds": 2.34, "suspended": false}, {"team": "DINKIN CRFC", "odds": 2.65, "suspended": false}, {"team": "ZEN PIJ FC", "odds": 2.84, "suspended": false}, {"team": "CASUAL APPROACH", "odds": 4.17, "suspended": false}, {"team": "ROYAL KC UNITED FC", "odds": 4.29, "suspended": false}, {"team": "JERRY THE PAINTER", "odds": 73.26, "suspended": false}, {"team": "SILVERMAN'S XI", "odds": null, "suspended": true}], "bottom_half_pct": [{"team": "ROYAL KC UNITED FC", "odds": 1.22, "suspended": false}, {"team": "CASUAL APPROACH", "odds": 1.23, "suspended": false}, {"team": "ZEN PIJ FC", "odds": 1.43, "suspended": false}, {"team": "DINKIN CRFC", "odds": 1.49, "suspended": false}, {"team": "JUSTICEFORMOON FC", "odds": 1.61, "suspended": false}, {"team": "TBD PROMOTED TEAM B", "odds": 1.61, "suspended": false}, {"team": "TBD PROMOTED TEAM A", "odds": 1.65, "suspended": false}, {"team": "ZEN GARDEN C.F", "odds": 5.73, "suspended": false}, {"team": "SPOONERS FC", "odds": 5.8, "suspended": false}, {"team": "THE D GENREAU", "odds": 15.32, "suspended": false}, {"team": "SILVERMAN'S XI", "odds": 219.78, "suspended": false}, {"team": "JERRY THE PAINTER", "odds": null, "suspended": true}], "relegation_pct": [{"team": "JERRY THE PAINTER", "odds": 1.05, "suspended": false}, {"team": "ROYAL KC UNITED FC", "odds": 2.29, "suspended": false}, {"team": "CASUAL APPROACH", "odds": 2.37, "suspended": false}, {"team": "ZEN PIJ FC", "odds": 3.28, "suspended": false}, {"team": "DINKIN CRFC", "odds": 3.6, "suspended": false}, {"team": "TBD PROMOTED TEAM B", "odds": 4.2, "suspended": false}, {"team": "JUSTICEFORMOON FC", "odds": 4.35, "suspended": false}, {"team": "TBD PROMOTED TEAM A", "odds": 4.46, "suspended": false}, {"team": "SPOONERS FC", "odds": 32.28, "suspended": false}, {"team": "ZEN GARDEN C.F", "odds": 32.28, "suspended": false}, {"team": "THE D GENREAU", "odds": 178.57, "suspended": false}, {"team": "SILVERMAN'S XI", "odds": 1001, "suspended": false}], "wooden_spoon_pct": [{"team": "JERRY THE PAINTER", "odds": 1.51, "suspended": false}, {"team": "ROYAL KC UNITED FC", "odds": 10.84, "suspended": false}, {"team": "CASUAL APPROACH", "odds": 11.64, "suspended": false}, {"team": "ZEN PIJ FC", "odds": 19.37, "suspended": false}, {"team": "DINKIN CRFC", "odds": 21.24, "suspended": false}, {"team": "JUSTICEFORMOON FC", "odds": 26.46, "suspended": false}, {"team": "TBD PROMOTED TEAM B", "odds": 28.15, "suspended": false}, {"team": "TBD PROMOTED TEAM A", "odds": 29.76, "suspended": false}, {"team": "ZEN GARDEN C.F", "odds": 336.13, "suspended": false}, {"team": "SPOONERS FC", "odds": 439.56, "suspended": false}, {"team": "SILVERMAN'S XI", "odds": 1001, "suspended": false}, {"team": "THE D GENREAU", "odds": 1001, "suspended": false}]}, "DIVISION 3A": {"win_div_pct": [{"team": "GARRY WALLAH UNITED FC", "odds": 2.02, "suspended": false}, {"team": "CAG'S INVESTORS", "odds": 5.27, "suspended": false}, {"team": "LOAVES AND FISHES", "odds": 6.15, "suspended": false}, {"team": "FOR VUCK'S SAKE FC", "odds": 15.0, "suspended": false}, {"team": "LOLLEY POP MAN", "odds": 25.17, "suspended": false}, {"team": "MELBCITYGUY", "odds": 27.61, "suspended": false}, {"team": "LIMSIM UNITED", "odds": 30.08, "suspended": false}, {"team": "AARONGURDWOODREICH", "odds": 68.85, "suspended": false}, {"team": "LINDON-CHEVELLA FC", "odds": 168.07, "suspended": false}, {"team": "DOG GOES WOOF, PAYNE GOES MEOW", "odds": 178.57, "suspended": false}, {"team": "BREXIT LADS", "odds": 1001, "suspended": false}, {"team": "FC TIKITOKA", "odds": 1001, "suspended": false}], "top3_pct": [{"team": "GARRY WALLAH UNITED FC", "odds": 1.15, "suspended": false}, {"team": "CAG'S INVESTORS", "odds": 1.63, "suspended": false}, {"team": "LOAVES AND FISHES", "odds": 1.87, "suspended": false}, {"team": "FOR VUCK'S SAKE FC", "odds": 3.09, "suspended": false}, {"team": "LOLLEY POP MAN", "odds": 4.62, "suspended": false}, {"team": "MELBCITYGUY", "odds": 4.68, "suspended": false}, {"team": "LIMSIM UNITED", "odds": 5.49, "suspended": false}, {"team": "AARONGURDWOODREICH", "odds": 10.45, "suspended": false}, {"team": "LINDON-CHEVELLA FC", "odds": 17.86, "suspended": false}, {"team": "DOG GOES WOOF, PAYNE GOES MEOW", "odds": 23.42, "suspended": false}, {"team": "BREXIT LADS", "odds": 634.92, "suspended": false}, {"team": "FC TIKITOKA", "odds": 1001, "suspended": false}], "top_half_pct": [{"team": "CAG'S INVESTORS", "odds": 1.07, "suspended": false}, {"team": "LOAVES AND FISHES", "odds": 1.12, "suspended": false}, {"team": "FOR VUCK'S SAKE FC", "odds": 1.33, "suspended": false}, {"team": "MELBCITYGUY", "odds": 1.59, "suspended": false}, {"team": "LOLLEY POP MAN", "odds": 1.65, "suspended": false}, {"team": "LIMSIM UNITED", "odds": 1.74, "suspended": false}, {"team": "AARONGURDWOODREICH", "odds": 2.73, "suspended": false}, {"team": "LINDON-CHEVELLA FC", "odds": 3.61, "suspended": false}, {"team": "DOG GOES WOOF, PAYNE GOES MEOW", "odds": 4.36, "suspended": false}, {"team": "BREXIT LADS", "odds": 67.23, "suspended": false}, {"team": "FC TIKITOKA", "odds": 300.75, "suspended": false}, {"team": "GARRY WALLAH UNITED FC", "odds": null, "suspended": true}], "bottom_half_pct": [{"team": "DOG GOES WOOF, PAYNE GOES MEOW", "odds": 1.22, "suspended": false}, {"team": "LINDON-CHEVELLA FC", "odds": 1.29, "suspended": false}, {"team": "AARONGURDWOODREICH", "odds": 1.46, "suspended": false}, {"team": "LIMSIM UNITED", "odds": 2.1, "suspended": false}, {"team": "LOLLEY POP MAN", "odds": 2.25, "suspended": false}, {"team": "MELBCITYGUY", "odds": 2.36, "suspended": false}, {"team": "FOR VUCK'S SAKE FC", "odds": 3.35, "suspended": false}, {"team": "LOAVES AND FISHES", "odds": 6.43, "suspended": false}, {"team": "CAG'S INVESTORS", "odds": 8.89, "suspended": false}, {"team": "GARRY WALLAH UNITED FC", "odds": 32.1, "suspended": false}, {"team": "BREXIT LADS", "odds": null, "suspended": true}, {"team": "FC TIKITOKA", "odds": null, "suspended": true}], "relegation_pct": [{"team": "BREXIT LADS", "odds": 1.1, "suspended": false}, {"team": "DOG GOES WOOF, PAYNE GOES MEOW", "odds": 2.81, "suspended": false}, {"team": "LINDON-CHEVELLA FC", "odds": 3.27, "suspended": false}, {"team": "AARONGURDWOODREICH", "odds": 4.49, "suspended": false}, {"team": "LIMSIM UNITED", "odds": 10.54, "suspended": false}, {"team": "LOLLEY POP MAN", "odds": 10.78, "suspended": false}, {"team": "MELBCITYGUY", "odds": 11.32, "suspended": false}, {"team": "FOR VUCK'S SAKE FC", "odds": 20.7, "suspended": false}, {"team": "LOAVES AND FISHES", "odds": 62.11, "suspended": false}, {"team": "CAG'S INVESTORS", "odds": 76.19, "suspended": false}, {"team": "GARRY WALLAH UNITED FC", "odds": 1001, "suspended": false}, {"team": "FC TIKITOKA", "odds": null, "suspended": true}], "wooden_spoon_pct": [{"team": "FC TIKITOKA", "odds": 1.55, "suspended": false}, {"team": "BREXIT LADS", "odds": 3.13, "suspended": false}, {"team": "DOG GOES WOOF, PAYNE GOES MEOW", "odds": 28.43, "suspended": false}, {"team": "LINDON-CHEVELLA FC", "odds": 46.46, "suspended": false}, {"team": "AARONGURDWOODREICH", "odds": 78.28, "suspended": false}, {"team": "LOLLEY POP MAN", "odds": 211.64, "suspended": false}, {"team": "MELBCITYGUY", "odds": 219.78, "suspended": false}, {"team": "LIMSIM UNITED", "odds": 317.46, "suspended": false}, {"team": "FOR VUCK'S SAKE FC", "odds": 952.38, "suspended": false}, {"team": "CAG'S INVESTORS", "odds": 1001, "suspended": false}, {"team": "GARRY WALLAH UNITED FC", "odds": 1001, "suspended": false}, {"team": "LOAVES AND FISHES", "odds": 1001, "suspended": false}]}, "DIVISION 3B": {"win_div_pct": [{"team": "TSATAS DIP", "odds": 1.07, "suspended": false}, {"team": "ZOUMA KICKS TIM PAYNE", "odds": 11.16, "suspended": false}, {"team": "VICTORY", "odds": 51.95, "suspended": false}, {"team": "X2 STRANGE", "odds": 317.46, "suspended": false}, {"team": "MONGREL GARDEN", "odds": 1001, "suspended": false}, {"team": "NUKEFORREST NUKES", "odds": 1001, "suspended": false}, {"team": "PAYNE IN THE NECK", "odds": 1001, "suspended": false}, {"team": "SHANENIGANS", "odds": 1001, "suspended": false}, {"team": "THE 2ND JARV ADMINISTRATION", "odds": 1001, "suspended": false}, {"team": "THE MALTESE KNIGHTS", "odds": 1001, "suspended": false}, {"team": "NEW PLAYER 1", "odds": 1001, "suspended": false}, {"team": "NEW PLAYER 2", "odds": 1001, "suspended": false}], "top3_pct": [{"team": "ZOUMA KICKS TIM PAYNE", "odds": 1.06, "suspended": false}, {"team": "VICTORY", "odds": 1.45, "suspended": false}, {"team": "X2 STRANGE", "odds": 4.49, "suspended": false}, {"team": "NEW PLAYER 2", "odds": 10.43, "suspended": false}, {"team": "NEW PLAYER 1", "odds": 12.11, "suspended": false}, {"team": "MONGREL GARDEN", "odds": 16.1, "suspended": false}, {"team": "THE 2ND JARV ADMINISTRATION", "odds": 519.48, "suspended": false}, {"team": "NUKEFORREST NUKES", "odds": 1001, "suspended": false}, {"team": "PAYNE IN THE NECK", "odds": 1001, "suspended": false}, {"team": "SHANENIGANS", "odds": 1001, "suspended": false}, {"team": "THE MALTESE KNIGHTS", "odds": 1001, "suspended": false}, {"team": "TSATAS DIP", "odds": null, "suspended": true}], "top_half_pct": [{"team": "X2 STRANGE", "odds": 1.08, "suspended": false}, {"team": "NEW PLAYER 2", "odds": 1.33, "suspended": false}, {"team": "NEW PLAYER 1", "odds": 1.37, "suspended": false}, {"team": "MONGREL GARDEN", "odds": 1.58, "suspended": false}, {"team": "THE 2ND JARV ADMINISTRATION", "odds": 9.6, "suspended": false}, {"team": "NUKEFORREST NUKES", "odds": 82.82, "suspended": false}, {"team": "PAYNE IN THE NECK", "odds": 142.86, "suspended": false}, {"team": "SHANENIGANS", "odds": 219.78, "suspended": false}, {"team": "THE MALTESE KNIGHTS", "odds": 248.45, "suspended": false}, {"team": "TSATAS DIP", "odds": null, "suspended": true}, {"team": "VICTORY", "odds": null, "suspended": true}, {"team": "ZOUMA KICKS TIM PAYNE", "odds": null, "suspended": true}], "bottom_half_pct": [{"team": "THE 2ND JARV ADMINISTRATION", "odds": 1.06, "suspended": false}, {"team": "MONGREL GARDEN", "odds": 2.4, "suspended": false}, {"team": "NEW PLAYER 1", "odds": 3.13, "suspended": false}, {"team": "NEW PLAYER 2", "odds": 3.37, "suspended": false}, {"team": "X2 STRANGE", "odds": 8.04, "suspended": false}, {"team": "VICTORY", "odds": 45.71, "suspended": false}, {"team": "ZOUMA KICKS TIM PAYNE", "odds": 714.29, "suspended": false}, {"team": "TSATAS DIP", "odds": 1001, "suspended": false}, {"team": "NUKEFORREST NUKES", "odds": null, "suspended": true}, {"team": "PAYNE IN THE NECK", "odds": null, "suspended": true}, {"team": "SHANENIGANS", "odds": null, "suspended": true}, {"team": "THE MALTESE KNIGHTS", "odds": null, "suspended": true}], "relegation_pct": [{"team": "SHANENIGANS", "odds": 1.25, "suspended": false}, {"team": "THE MALTESE KNIGHTS", "odds": 1.25, "suspended": false}, {"team": "PAYNE IN THE NECK", "odds": 1.4, "suspended": false}, {"team": "NUKEFORREST NUKES", "odds": 1.63, "suspended": false}, {"team": "THE 2ND JARV ADMINISTRATION", "odds": 5.32, "suspended": false}, {"team": "MONGREL GARDEN", "odds": 72.33, "suspended": false}, {"team": "NEW PLAYER 1", "odds": 102.04, "suspended": false}, {"team": "NEW PLAYER 2", "odds": 146.52, "suspended": false}, {"team": "X2 STRANGE", "odds": 571.43, "suspended": false}, {"team": "TSATAS DIP", "odds": 1001, "suspended": false}, {"team": "VICTORY", "odds": 1001, "suspended": false}, {"team": "ZOUMA KICKS TIM PAYNE", "odds": 1001, "suspended": false}], "wooden_spoon_pct": [{"team": "SHANENIGANS", "odds": 3.18, "suspended": false}, {"team": "THE MALTESE KNIGHTS", "odds": 3.22, "suspended": false}, {"team": "PAYNE IN THE NECK", "odds": 4.26, "suspended": false}, {"team": "NUKEFORREST NUKES", "odds": 6.2, "suspended": false}, {"team": "THE 2ND JARV ADMINISTRATION", "odds": 36.63, "suspended": false}, {"team": "MONGREL GARDEN", "odds": 952.38, "suspended": false}, {"team": "TSATAS DIP", "odds": 1001, "suspended": false}, {"team": "VICTORY", "odds": 1001, "suspended": false}, {"team": "X2 STRANGE", "odds": 1001, "suspended": false}, {"team": "ZOUMA KICKS TIM PAYNE", "odds": 1001, "suspended": false}, {"team": "NEW PLAYER 1", "odds": 1001, "suspended": false}, {"team": "NEW PLAYER 2", "odds": 1001, "suspended": false}]}}, "roddy": {"roddy_win_pct": [{"team": "SILVERMAN'S XI", "odds": 3.48, "suspended": false}, {"team": "BC UNITED ZEBRAS", "odds": 3.84, "suspended": false}, {"team": "STAIRWAY TO EVANS", "odds": 7.22, "suspended": false}, {"team": "JARVIS ZEBRAS", "odds": 14.69, "suspended": false}, {"team": "SAUCE FC", "odds": 16.33, "suspended": false}, {"team": "KALLO FC", "odds": 16.61, "suspended": false}, {"team": "DW ABOUT IT FC", "odds": 19.84, "suspended": false}, {"team": "NANISTATE", "odds": 32.28, "suspended": false}, {"team": "ALASKAN BULL WORMS", "odds": 39.68, "suspended": false}, {"team": "HARVEY FREKES", "odds": 48.43, "suspended": false}, {"team": "FROGBERT FOOTBALL", "odds": 84.03, "suspended": false}, {"team": "LALAS LEVEN", "odds": 100.25, "suspended": false}, {"team": "GIVE US WANG", "odds": 109.89, "suspended": false}, {"team": "SPOONERS FC", "odds": 142.86, "suspended": false}, {"team": "TSATAS DIP", "odds": 285.71, "suspended": false}, {"team": "THE WAINE TRAIN", "odds": 380.95, "suspended": false}, {"team": "BIG MAC FC", "odds": 714.29, "suspended": false}, {"team": "TOP KUOLITY", "odds": 1001, "suspended": false}, {"team": "VICTORYRULES", "odds": 1001, "suspended": false}, {"team": "3DOGS", "odds": 1001, "suspended": false}, {"team": "AFC BIG RED PORT", "odds": 1001, "suspended": false}, {"team": "ALBANIAN BOARS", "odds": 1001, "suspended": false}, {"team": "BALLERS", "odds": 1001, "suspended": false}, {"team": "BEST OF A BAD BENCH", "odds": 1001, "suspended": false}, {"team": "CARNEGIE DACHSHUNDS FC", "odds": 1001, "suspended": false}, {"team": "INTER MILANOVIC", "odds": 1001, "suspended": false}, {"team": "MANCHESTHAIR UTD", "odds": 1001, "suspended": false}, {"team": "REAPERS FC", "odds": 1001, "suspended": false}, {"team": "ROTORUA UNITED", "odds": 1001, "suspended": false}, {"team": "CASUAL APPROACH", "odds": 1001, "suspended": false}, {"team": "DINKIN CRFC", "odds": 1001, "suspended": false}, {"team": "JERRY THE PAINTER", "odds": 1001, "suspended": false}, {"team": "JUSTICEFORMOON FC", "odds": 1001, "suspended": false}, {"team": "ROYAL KC UNITED FC", "odds": 1001, "suspended": false}, {"team": "THE D GENREAU", "odds": 1001, "suspended": false}, {"team": "ZEN GARDEN C.F", "odds": 1001, "suspended": false}, {"team": "ZEN PIJ FC", "odds": 1001, "suspended": false}, {"team": "TBD PROMOTED TEAM A", "odds": 1001, "suspended": false}, {"team": "TBD PROMOTED TEAM B", "odds": 1001, "suspended": false}, {"team": "AARONGURDWOODREICH", "odds": 1001, "suspended": false}, {"team": "BREXIT LADS", "odds": 1001, "suspended": false}, {"team": "CAG'S INVESTORS", "odds": 1001, "suspended": false}, {"team": "DOG GOES WOOF, PAYNE GOES MEOW", "odds": 1001, "suspended": false}, {"team": "FC TIKITOKA", "odds": 1001, "suspended": false}, {"team": "FOR VUCK'S SAKE FC", "odds": 1001, "suspended": false}, {"team": "GARRY WALLAH UNITED FC", "odds": 1001, "suspended": false}, {"team": "LIMSIM UNITED", "odds": 1001, "suspended": false}, {"team": "LINDON-CHEVELLA FC", "odds": 1001, "suspended": false}, {"team": "LOAVES AND FISHES", "odds": 1001, "suspended": false}, {"team": "LOLLEY POP MAN", "odds": 1001, "suspended": false}, {"team": "MELBCITYGUY", "odds": 1001, "suspended": false}, {"team": "MONGREL GARDEN", "odds": 1001, "suspended": false}, {"team": "NUKEFORREST NUKES", "odds": 1001, "suspended": false}, {"team": "PAYNE IN THE NECK", "odds": 1001, "suspended": false}, {"team": "SHANENIGANS", "odds": 1001, "suspended": false}, {"team": "THE 2ND JARV ADMINISTRATION", "odds": 1001, "suspended": false}, {"team": "THE MALTESE KNIGHTS", "odds": 1001, "suspended": false}, {"team": "VICTORY", "odds": 1001, "suspended": false}, {"team": "X2 STRANGE", "odds": 1001, "suspended": false}, {"team": "ZOUMA KICKS TIM PAYNE", "odds": 1001, "suspended": false}, {"team": "NEW PLAYER 1", "odds": 1001, "suspended": false}, {"team": "NEW PLAYER 2", "odds": 1001, "suspended": false}], "roddy_top3_pct": [{"team": "SILVERMAN'S XI", "odds": 1.53, "suspended": false}, {"team": "BC UNITED ZEBRAS", "odds": 1.77, "suspended": false}, {"team": "STAIRWAY TO EVANS", "odds": 2.52, "suspended": false}, {"team": "KALLO FC", "odds": 4.21, "suspended": false}, {"team": "JARVIS ZEBRAS", "odds": 4.73, "suspended": false}, {"team": "SAUCE FC", "odds": 4.75, "suspended": false}, {"team": "DW ABOUT IT FC", "odds": 5.75, "suspended": false}, {"team": "ALASKAN BULL WORMS", "odds": 6.95, "suspended": false}, {"team": "NANISTATE", "odds": 7.97, "suspended": false}, {"team": "HARVEY FREKES", "odds": 10.3, "suspended": false}, {"team": "FROGBERT FOOTBALL", "odds": 12.34, "suspended": false}, {"team": "GIVE US WANG", "odds": 15.79, "suspended": false}, {"team": "SPOONERS FC", "odds": 18.43, "suspended": false}, {"team": "LALAS LEVEN", "odds": 22.06, "suspended": false}, {"team": "TSATAS DIP", "odds": 38.1, "suspended": false}, {"team": "BIG MAC FC", "odds": 46.46, "suspended": false}, {"team": "THE WAINE TRAIN", "odds": 69.69, "suspended": false}, {"team": "ALBANIAN BOARS", "odds": 146.52, "suspended": false}, {"team": "REAPERS FC", "odds": 154.44, "suspended": false}, {"team": "AFC BIG RED PORT", "odds": 178.57, "suspended": false}, {"team": "DINKIN CRFC", "odds": 259.74, "suspended": false}, {"team": "ZEN GARDEN C.F", "odds": 380.95, "suspended": false}, {"team": "VICTORYRULES", "odds": 439.56, "suspended": false}, {"team": "TOP KUOLITY", "odds": 1001, "suspended": false}, {"team": "3DOGS", "odds": 1001, "suspended": false}, {"team": "BALLERS", "odds": 1001, "suspended": false}, {"team": "BEST OF A BAD BENCH", "odds": 1001, "suspended": false}, {"team": "CARNEGIE DACHSHUNDS FC", "odds": 1001, "suspended": false}, {"team": "INTER MILANOVIC", "odds": 1001, "suspended": false}, {"team": "MANCHESTHAIR UTD", "odds": 1001, "suspended": false}, {"team": "ROTORUA UNITED", "odds": 1001, "suspended": false}, {"team": "CASUAL APPROACH", "odds": 1001, "suspended": false}, {"team": "JERRY THE PAINTER", "odds": 1001, "suspended": false}, {"team": "JUSTICEFORMOON FC", "odds": 1001, "suspended": false}, {"team": "ROYAL KC UNITED FC", "odds": 1001, "suspended": false}, {"team": "THE D GENREAU", "odds": 1001, "suspended": false}, {"team": "ZEN PIJ FC", "odds": 1001, "suspended": false}, {"team": "TBD PROMOTED TEAM A", "odds": 1001, "suspended": false}, {"team": "TBD PROMOTED TEAM B", "odds": 1001, "suspended": false}, {"team": "AARONGURDWOODREICH", "odds": 1001, "suspended": false}, {"team": "BREXIT LADS", "odds": 1001, "suspended": false}, {"team": "CAG'S INVESTORS", "odds": 1001, "suspended": false}, {"team": "DOG GOES WOOF, PAYNE GOES MEOW", "odds": 1001, "suspended": false}, {"team": "FC TIKITOKA", "odds": 1001, "suspended": false}, {"team": "FOR VUCK'S SAKE FC", "odds": 1001, "suspended": false}, {"team": "GARRY WALLAH UNITED FC", "odds": 1001, "suspended": false}, {"team": "LIMSIM UNITED", "odds": 1001, "suspended": false}, {"team": "LINDON-CHEVELLA FC", "odds": 1001, "suspended": false}, {"team": "LOAVES AND FISHES", "odds": 1001, "suspended": false}, {"team": "LOLLEY POP MAN", "odds": 1001, "suspended": false}, {"team": "MELBCITYGUY", "odds": 1001, "suspended": false}, {"team": "MONGREL GARDEN", "odds": 1001, "suspended": false}, {"team": "NUKEFORREST NUKES", "odds": 1001, "suspended": false}, {"team": "PAYNE IN THE NECK", "odds": 1001, "suspended": false}, {"team": "SHANENIGANS", "odds": 1001, "suspended": false}, {"team": "THE 2ND JARV ADMINISTRATION", "odds": 1001, "suspended": false}, {"team": "THE MALTESE KNIGHTS", "odds": 1001, "suspended": false}, {"team": "VICTORY", "odds": 1001, "suspended": false}, {"team": "X2 STRANGE", "odds": 1001, "suspended": false}, {"team": "ZOUMA KICKS TIM PAYNE", "odds": 1001, "suspended": false}, {"team": "NEW PLAYER 1", "odds": 1001, "suspended": false}, {"team": "NEW PLAYER 2", "odds": 1001, "suspended": false}], "roddy_top5_pct": [{"team": "SILVERMAN'S XI", "odds": 1.21, "suspended": false}, {"team": "BC UNITED ZEBRAS", "odds": 1.36, "suspended": false}, {"team": "STAIRWAY TO EVANS", "odds": 1.7, "suspended": false}, {"team": "KALLO FC", "odds": 2.3, "suspended": false}, {"team": "SAUCE FC", "odds": 2.81, "suspended": false}, {"team": "JARVIS ZEBRAS", "odds": 2.85, "suspended": false}, {"team": "DW ABOUT IT FC", "odds": 3.19, "suspended": false}, {"team": "ALASKAN BULL WORMS", "odds": 3.3, "suspended": false}, {"team": "NANISTATE", "odds": 4.06, "suspended": false}, {"team": "HARVEY FREKES", "odds": 4.83, "suspended": false}, {"team": "FROGBERT FOOTBALL", "odds": 4.94, "suspended": false}, {"team": "GIVE US WANG", "odds": 6.12, "suspended": false}, {"team": "SPOONERS FC", "odds": 6.97, "suspended": false}, {"team": "LALAS LEVEN", "odds": 10.62, "suspended": false}, {"team": "TSATAS DIP", "odds": 12.13, "suspended": false}, {"team": "BIG MAC FC", "odds": 14.84, "suspended": false}, {"team": "THE WAINE TRAIN", "odds": 33.03, "suspended": false}, {"team": "ALBANIAN BOARS", "odds": 42.02, "suspended": false}, {"team": "AFC BIG RED PORT", "odds": 47.62, "suspended": false}, {"team": "REAPERS FC", "odds": 48.02, "suspended": false}, {"team": "DINKIN CRFC", "odds": 74.21, "suspended": false}, {"team": "ZEN GARDEN C.F", "odds": 96.85, "suspended": false}, {"team": "VICTORYRULES", "odds": 100.25, "suspended": false}, {"team": "THE D GENREAU", "odds": 380.95, "suspended": false}, {"team": "ZOUMA KICKS TIM PAYNE", "odds": 634.92, "suspended": false}, {"team": "TOP KUOLITY", "odds": 1001, "suspended": false}, {"team": "3DOGS", "odds": 1001, "suspended": false}, {"team": "BALLERS", "odds": 1001, "suspended": false}, {"team": "BEST OF A BAD BENCH", "odds": 1001, "suspended": false}, {"team": "CARNEGIE DACHSHUNDS FC", "odds": 1001, "suspended": false}, {"team": "INTER MILANOVIC", "odds": 1001, "suspended": false}, {"team": "MANCHESTHAIR UTD", "odds": 1001, "suspended": false}, {"team": "ROTORUA UNITED", "odds": 1001, "suspended": false}, {"team": "CASUAL APPROACH", "odds": 1001, "suspended": false}, {"team": "JERRY THE PAINTER", "odds": 1001, "suspended": false}, {"team": "JUSTICEFORMOON FC", "odds": 1001, "suspended": false}, {"team": "ROYAL KC UNITED FC", "odds": 1001, "suspended": false}, {"team": "ZEN PIJ FC", "odds": 1001, "suspended": false}, {"team": "TBD PROMOTED TEAM A", "odds": 1001, "suspended": false}, {"team": "TBD PROMOTED TEAM B", "odds": 1001, "suspended": false}, {"team": "AARONGURDWOODREICH", "odds": 1001, "suspended": false}, {"team": "BREXIT LADS", "odds": 1001, "suspended": false}, {"team": "CAG'S INVESTORS", "odds": 1001, "suspended": false}, {"team": "DOG GOES WOOF, PAYNE GOES MEOW", "odds": 1001, "suspended": false}, {"team": "FC TIKITOKA", "odds": 1001, "suspended": false}, {"team": "FOR VUCK'S SAKE FC", "odds": 1001, "suspended": false}, {"team": "GARRY WALLAH UNITED FC", "odds": 1001, "suspended": false}, {"team": "LIMSIM UNITED", "odds": 1001, "suspended": false}, {"team": "LINDON-CHEVELLA FC", "odds": 1001, "suspended": false}, {"team": "LOAVES AND FISHES", "odds": 1001, "suspended": false}, {"team": "LOLLEY POP MAN", "odds": 1001, "suspended": false}, {"team": "MELBCITYGUY", "odds": 1001, "suspended": false}, {"team": "MONGREL GARDEN", "odds": 1001, "suspended": false}, {"team": "NUKEFORREST NUKES", "odds": 1001, "suspended": false}, {"team": "PAYNE IN THE NECK", "odds": 1001, "suspended": false}, {"team": "SHANENIGANS", "odds": 1001, "suspended": false}, {"team": "THE 2ND JARV ADMINISTRATION", "odds": 1001, "suspended": false}, {"team": "THE MALTESE KNIGHTS", "odds": 1001, "suspended": false}, {"team": "VICTORY", "odds": 1001, "suspended": false}, {"team": "X2 STRANGE", "odds": 1001, "suspended": false}, {"team": "NEW PLAYER 1", "odds": 1001, "suspended": false}, {"team": "NEW PLAYER 2", "odds": 1001, "suspended": false}], "roddy_top10_pct": [{"team": "BC UNITED ZEBRAS", "odds": 1.06, "suspended": false}, {"team": "STAIRWAY TO EVANS", "odds": 1.15, "suspended": false}, {"team": "KALLO FC", "odds": 1.25, "suspended": false}, {"team": "ALASKAN BULL WORMS", "odds": 1.42, "suspended": false}, {"team": "SAUCE FC", "odds": 1.55, "suspended": false}, {"team": "JARVIS ZEBRAS", "odds": 1.58, "suspended": false}, {"team": "DW ABOUT IT FC", "odds": 1.59, "suspended": false}, {"team": "NANISTATE", "odds": 1.77, "suspended": false}, {"team": "FROGBERT FOOTBALL", "odds": 1.78, "suspended": false}, {"team": "HARVEY FREKES", "odds": 1.96, "suspended": false}, {"team": "GIVE US WANG", "odds": 2.1, "suspended": false}, {"team": "SPOONERS FC", "odds": 2.14, "suspended": false}, {"team": "TSATAS DIP", "odds": 2.81, "suspended": false}, {"team": "BIG MAC FC", "odds": 3.2, "suspended": false}, {"team": "LALAS LEVEN", "odds": 3.77, "suspended": false}, {"team": "AFC BIG RED PORT", "odds": 7.02, "suspended": false}, {"team": "THE WAINE TRAIN", "odds": 8.82, "suspended": false}, {"team": "ALBANIAN BOARS", "odds": 9.07, "suspended": false}, {"team": "REAPERS FC", "odds": 9.23, "suspended": false}, {"team": "VICTORYRULES", "odds": 10.93, "suspended": false}, {"team": "ZEN GARDEN C.F", "odds": 13.02, "suspended": false}, {"team": "DINKIN CRFC", "odds": 15.61, "suspended": false}, {"team": "THE D GENREAU", "odds": 40.24, "suspended": false}, {"team": "ZOUMA KICKS TIM PAYNE", "odds": 62.11, "suspended": false}, {"team": "TOP KUOLITY", "odds": 380.95, "suspended": false}, {"team": "TBD PROMOTED TEAM B", "odds": 519.48, "suspended": false}, {"team": "CARNEGIE DACHSHUNDS FC", "odds": 571.43, "suspended": false}, {"team": "TBD PROMOTED TEAM A", "odds": 714.29, "suspended": false}, {"team": "3DOGS", "odds": 1001, "suspended": false}, {"team": "BALLERS", "odds": 1001, "suspended": false}, {"team": "BEST OF A BAD BENCH", "odds": 1001, "suspended": false}, {"team": "INTER MILANOVIC", "odds": 1001, "suspended": false}, {"team": "MANCHESTHAIR UTD", "odds": 1001, "suspended": false}, {"team": "ROTORUA UNITED", "odds": 1001, "suspended": false}, {"team": "CASUAL APPROACH", "odds": 1001, "suspended": false}, {"team": "JERRY THE PAINTER", "odds": 1001, "suspended": false}, {"team": "JUSTICEFORMOON FC", "odds": 1001, "suspended": false}, {"team": "ROYAL KC UNITED FC", "odds": 1001, "suspended": false}, {"team": "ZEN PIJ FC", "odds": 1001, "suspended": false}, {"team": "AARONGURDWOODREICH", "odds": 1001, "suspended": false}, {"team": "BREXIT LADS", "odds": 1001, "suspended": false}, {"team": "CAG'S INVESTORS", "odds": 1001, "suspended": false}, {"team": "DOG GOES WOOF, PAYNE GOES MEOW", "odds": 1001, "suspended": false}, {"team": "FC TIKITOKA", "odds": 1001, "suspended": false}, {"team": "FOR VUCK'S SAKE FC", "odds": 1001, "suspended": false}, {"team": "GARRY WALLAH UNITED FC", "odds": 1001, "suspended": false}, {"team": "LIMSIM UNITED", "odds": 1001, "suspended": false}, {"team": "LINDON-CHEVELLA FC", "odds": 1001, "suspended": false}, {"team": "LOAVES AND FISHES", "odds": 1001, "suspended": false}, {"team": "LOLLEY POP MAN", "odds": 1001, "suspended": false}, {"team": "MELBCITYGUY", "odds": 1001, "suspended": false}, {"team": "MONGREL GARDEN", "odds": 1001, "suspended": false}, {"team": "NUKEFORREST NUKES", "odds": 1001, "suspended": false}, {"team": "PAYNE IN THE NECK", "odds": 1001, "suspended": false}, {"team": "SHANENIGANS", "odds": 1001, "suspended": false}, {"team": "THE 2ND JARV ADMINISTRATION", "odds": 1001, "suspended": false}, {"team": "THE MALTESE KNIGHTS", "odds": 1001, "suspended": false}, {"team": "VICTORY", "odds": 1001, "suspended": false}, {"team": "X2 STRANGE", "odds": 1001, "suspended": false}, {"team": "NEW PLAYER 1", "odds": 1001, "suspended": false}, {"team": "NEW PLAYER 2", "odds": 1001, "suspended": false}, {"team": "SILVERMAN'S XI", "odds": null, "suspended": true}]}, "fa_cup": [{"team": "SILVERMAN'S XI", "odds": 6.91, "suspended": false}, {"team": "STAIRWAY TO EVANS", "odds": 8.17, "suspended": false}, {"team": "HARVEY FREKES", "odds": 13.37, "suspended": false}, {"team": "BC UNITED ZEBRAS", "odds": 13.41, "suspended": false}, {"team": "JARVIS ZEBRAS", "odds": 14.38, "suspended": false}, {"team": "SAUCE FC", "odds": 15.74, "suspended": false}, {"team": "FROGBERT FOOTBALL", "odds": 16.78, "suspended": false}, {"team": "KALLO FC", "odds": 17.64, "suspended": false}, {"team": "ALASKAN BULL WORMS", "odds": 23.96, "suspended": false}, {"team": "AFC BIG RED PORT", "odds": 25.06, "suspended": false}, {"team": "THE WAINE TRAIN", "odds": 28.43, "suspended": false}, {"team": "DW ABOUT IT FC", "odds": 32.01, "suspended": false}, {"team": "TSATAS DIP", "odds": 34.32, "suspended": false}, {"team": "NANISTATE", "odds": 36.63, "suspended": false}, {"team": "LALAS LEVEN", "odds": 44.3, "suspended": false}, {"team": "SPOONERS FC", "odds": 56.02, "suspended": false}, {"team": "GIVE US WANG", "odds": 62.45, "suspended": false}, {"team": "REAPERS FC", "odds": 63.49, "suspended": false}, {"team": "THE D GENREAU", "odds": 74.7, "suspended": false}, {"team": "DINKIN CRFC", "odds": 77.75, "suspended": false}, {"team": "CARNEGIE DACHSHUNDS FC", "odds": 79.37, "suspended": false}, {"team": "BIG MAC FC", "odds": 81.05, "suspended": false}, {"team": "VICTORYRULES", "odds": 82.82, "suspended": false}, {"team": "ZEN GARDEN C.F", "odds": 146.52, "suspended": false}, {"team": "MANCHESTHAIR UTD", "odds": 152.38, "suspended": false}, {"team": "ZOUMA KICKS TIM PAYNE", "odds": 158.73, "suspended": false}, {"team": "ALBANIAN BOARS", "odds": 200.5, "suspended": false}, {"team": "TBD PROMOTED TEAM A", "odds": 380.95, "suspended": false}, {"team": "CASUAL APPROACH", "odds": 423.28, "suspended": false}, {"team": "JUSTICEFORMOON FC", "odds": 423.28, "suspended": false}, {"team": "TBD PROMOTED TEAM B", "odds": 476.19, "suspended": false}, {"team": "TOP KUOLITY", "odds": 634.92, "suspended": false}, {"team": "BALLERS", "odds": 634.92, "suspended": false}, {"team": "BEST OF A BAD BENCH", "odds": 761.9, "suspended": false}, {"team": "3DOGS", "odds": 952.38, "suspended": false}, {"team": "ROTORUA UNITED", "odds": 952.38, "suspended": false}, {"team": "INTER MILANOVIC", "odds": 1001, "suspended": false}, {"team": "JERRY THE PAINTER", "odds": 1001, "suspended": false}, {"team": "ROYAL KC UNITED FC", "odds": 1001, "suspended": false}, {"team": "ZEN PIJ FC", "odds": 1001, "suspended": false}, {"team": "AARONGURDWOODREICH", "odds": 1001, "suspended": false}, {"team": "BREXIT LADS", "odds": 1001, "suspended": false}, {"team": "CAG'S INVESTORS", "odds": 1001, "suspended": false}, {"team": "DOG GOES WOOF, PAYNE GOES MEOW", "odds": 1001, "suspended": false}, {"team": "FC TIKITOKA", "odds": 1001, "suspended": false}, {"team": "FOR VUCK'S SAKE FC", "odds": 1001, "suspended": false}, {"team": "GARRY WALLAH UNITED FC", "odds": 1001, "suspended": false}, {"team": "LIMSIM UNITED", "odds": 1001, "suspended": false}, {"team": "LINDON-CHEVELLA FC", "odds": 1001, "suspended": false}, {"team": "LOAVES AND FISHES", "odds": 1001, "suspended": false}, {"team": "LOLLEY POP MAN", "odds": 1001, "suspended": false}, {"team": "MELBCITYGUY", "odds": 1001, "suspended": false}, {"team": "MONGREL GARDEN", "odds": 1001, "suspended": false}, {"team": "NUKEFORREST NUKES", "odds": 1001, "suspended": false}, {"team": "PAYNE IN THE NECK", "odds": 1001, "suspended": false}, {"team": "SHANENIGANS", "odds": 1001, "suspended": false}, {"team": "THE 2ND JARV ADMINISTRATION", "odds": 1001, "suspended": false}, {"team": "THE MALTESE KNIGHTS", "odds": 1001, "suspended": false}, {"team": "VICTORY", "odds": 1001, "suspended": false}, {"team": "X2 STRANGE", "odds": 1001, "suspended": false}, {"team": "NEW PLAYER 1", "odds": 1001, "suspended": false}, {"team": "NEW PLAYER 2", "odds": 1001, "suspended": false}], "ecl": [{"team": "SILVERMAN'S XI", "odds": 5.81, "suspended": false}, {"team": "STAIRWAY TO EVANS", "odds": 6.16, "suspended": false}, {"team": "JARVIS ZEBRAS", "odds": 6.6, "suspended": false}, {"team": "BC UNITED ZEBRAS", "odds": 7.17, "suspended": false}, {"team": "GIVE US WANG", "odds": 8.21, "suspended": false}, {"team": "SAUCE FC", "odds": 9.2, "suspended": false}, {"team": "KALLO FC", "odds": 10.16, "suspended": false}, {"team": "FROGBERT FOOTBALL", "odds": 10.44, "suspended": false}], "ecl_field": ["BC UNITED ZEBRAS", "KALLO FC", "STAIRWAY TO EVANS", "SILVERMAN'S XI", "JARVIS ZEBRAS", "FROGBERT FOOTBALL", "GIVE US WANG", "SAUCE FC"]}, "h2h_history": {"ALASKAN BULL WORMS": [70.0, 72.0, 59.0, 55.0, 59.0, 60.0, 62.0, 57.0, 63.0, 39.0, 99.0, 71.0, 43.0, 52.0, 49.0, 64.0, 87.0, 76.0, 79.0, 62.0, 81.0, 51.0, 82.0, 63.0, 73.0, 61.0], "BC UNITED ZEBRAS": [74.0, 75.0, 59.0, 63.0, 64.0, 50.0, 56.0, 55.0, 60.0, 32.0, 105.0, 60.0, 42.0, 56.0, 49.0, 51.0, 82.0, 80.0, 113.0, 61.0, 89.0, 62.0, 90.0, 70.0, 59.0, 69.0], "DINKIN CRFC": [67.0, 55.0, 54.0, 55.0, 76.0, 56.0, 61.0, 66.0, 51.0, 40.0, 82.0, 60.0, 34.0, 57.0, 45.0, 46.0, 74.0, 87.0, 106.0, 53.0, 85.0, 49.0, 58.0, 61.0, 50.0, 59.0], "DW ABOUT IT FC": [70.0, 53.0, 69.0, 64.0, 64.0, 51.0, 59.0, 62.0, 69.0, 37.0, 106.0, 52.0, 36.0, 55.0, 49.0, 51.0, 73.0, 78.0, 99.0, 62.0, 88.0, 51.0, 94.0, 85.0, 78.0, 57.0], "FROGBERT FOOTBALL": [66.0, 56.0, 65.0, 80.0, 65.0, 46.0, 61.0, 63.0, 59.0, 34.0, 80.0, 67.0, 53.0, 51.0, 36.0, 70.0, 69.0, 92.0, 74.0, 60.0, 79.0, 63.0, 93.0, 74.0, 61.0, 50.0], "GIVE US WANG": [65.0, 60.0, 49.0, 66.0, 69.0, 36.0, 58.0, 71.0, 58.0, 37.0, 85.0, 67.0, 42.0, 50.0, 52.0, 46.0, 63.0, 91.0, 76.0, 78.0, 76.0, 56.0, 84.0, 66.0, 77.0, 76.0], "INTER MILANOVIC": [69.0, 61.0, 42.0, 55.0, 37.0, 58.0, 53.0, 68.0, 60.0, 38.0, 65.0, 66.0, 39.0, 79.0, 45.0, 58.0, 47.0, 84.0, 73.0, 59.0, 68.0, 73.0, 49.0, 41.0, 57.0, 44.0], "KALLO FC": [68.0, 58.0, 60.0, 63.0, 70.0, 49.0, 61.0, 60.0, 66.0, 35.0, 98.0, 62.0, 37.0, 53.0, 49.0, 51.0, 72.0, 79.0, 75.0, 70.0, 80.0, 60.0, 77.0, 93.0, 51.0, 66.0], "NANISTATE": [71.0, 76.0, 54.0, 65.0, 71.0, 38.0, 56.0, 61.0, 59.0, 40.0, 107.0, 50.0, 46.0, 56.0, 48.0, 50.0, 75.0, 72.0, 98.0, 64.0, 88.0, 54.0, 70.0, 76.0, 68.0, 58.0], "SAUCE FC": [70.0, 69.0, 65.0, 63.0, 57.0, 51.0, 63.0, 56.0, 70.0, 41.0, 115.0, 60.0, 40.0, 47.0, 36.0, 57.0, 71.0, 87.0, 84.0, 48.0, 84.0, 57.0, 104.0, 77.0, 68.0, 51.0], "SPOONERS FC": [85.0, 59.0, 50.0, 75.0, 61.0, 52.0, 56.0, 59.0, 70.0, 33.0, 86.0, 73.0, 49.0, 57.0, 39.0, 64.0, 68.0, 63.0, 61.0, 53.0, 72.0, 51.0, 84.0, 71.0, 77.0, 84.0], "STAIRWAY TO EVANS": [69.0, 66.0, 70.0, 60.0, 77.0, 54.0, 59.0, 59.0, 74.0, 27.0, 114.0, 65.0, 33.0, 62.0, 39.0, 58.0, 73.0, 83.0, 67.0, 73.0, 79.0, 59.0, 104.0, 58.0, 68.0, 65.0], "VICTORYRULES": [78.0, 62.0, 64.0, 60.0, 62.0, 58.0, 66.0, 66.0, 55.0, 39.0, 87.0, 47.0, 42.0, 59.0, 43.0, 60.0, 71.0, 72.0, 78.0, 57.0, 80.0, 50.0, 66.0, 57.0, 61.0, 66.0], "ZEN GARDEN C.F": [62.0, 63.0, 58.0, 56.0, 48.0, 30.0, 61.0, 56.0, 65.0, 33.0, 66.0, 59.0, 44.0, 72.0, 34.0, 52.0, 67.0, 87.0, 91.0, 68.0, 82.0, 68.0, 58.0, 69.0, 65.0, 69.0], "3DOGS": [67.0, 35.0, 40.0, 56.0, 51.0, 41.0, 62.0, 71.0, 80.0, 40.0, 92.0, 52.0, 30.0, 40.0, 54.0, 52.0, 62.0, 88.0, 75.0, 64.0, 59.0, 77.0, 63.0, 63.0, 50.0, 71.0], "AARONGURDWOODREICH": [69.0, 65.0, 51.0, 59.0, 50.0, 41.0, 54.0, 50.0, 61.0, 24.0, 50.0, 54.0, 46.0, 29.0, 33.0, 50.0, 58.0, 69.0, 58.0, 30.0, 46.0, 73.0, 45.0, 25.0, 30.0, 37.0], "ALBANIAN BOARS": [70.0, 64.0, 50.0, 55.0, 74.0, 35.0, 61.0, 49.0, 51.0, 46.0, 96.0, 79.0, 39.0, 67.0, 51.0, 70.0, 72.0, 64.0, 93.0, 70.0, 78.0, 56.0, 99.0, 69.0, 66.0, 66.0], "BEST OF A BAD BENCH": [59.0, 55.0, 53.0, 70.0, 46.0, 51.0, 72.0, 64.0, 55.0, 58.0, 82.0, 70.0, 36.0, 63.0, 47.0, 47.0, 72.0, 57.0, 78.0, 49.0, 71.0, 61.0, 40.0, 51.0, 39.0, 43.0], "GARRY WALLAH UNITED FC": [72.0, 63.0, 58.0, 58.0, 35.0, 54.0, 56.0, 58.0, 62.0, 29.0, 89.0, 33.0, 34.0, 54.0, 58.0, 66.0, 43.0, 66.0, 86.0, 49.0, 77.0, 68.0, 70.0, 56.0, 82.0, 71.0], "HARVEY FREKES": [71.0, 76.0, 57.0, 73.0, 69.0, 44.0, 61.0, 70.0, 60.0, 39.0, 103.0, 71.0, 43.0, 58.0, 50.0, 53.0, 84.0, 76.0, 100.0, 67.0, 79.0, 47.0, 68.0, 79.0, 62.0, 51.0], "HEILAN COOS": [65.0, 51.0, 46.0, 64.0, 60.0, 51.0, 57.0, 47.0, 57.0, 36.0, 70.0, 59.0, 26.0, 80.0, 57.0, 51.0, 57.0, 76.0, 62.0, 34.0, 59.0, 74.0, 40.0, 28.0, 32.0, 34.0], "LALAS LEVEN": [51.0, 82.0, 37.0, 73.0, 63.0, 39.0, 55.0, 60.0, 76.0, 34.0, 105.0, 55.0, 41.0, 76.0, 52.0, 66.0, 67.0, 99.0, 104.0, 55.0, 70.0, 71.0, 96.0, 74.0, 67.0, 59.0], "LOAVES AND FISHES": [72.0, 40.0, 61.0, 67.0, 48.0, 43.0, 53.0, 47.0, 59.0, 43.0, 69.0, 58.0, 43.0, 52.0, 41.0, 55.0, 34.0, 53.0, 93.0, 53.0, 79.0, 55.0, 52.0, 57.0, 63.0, 47.0], "MANCHESTHAIR UTD": [62.0, 62.0, 68.0, 69.0, 70.0, 56.0, 58.0, 71.0, 64.0, 44.0, 100.0, 55.0, 35.0, 46.0, 46.0, 56.0, 62.0, 63.0, 51.0, 44.0, 72.0, 64.0, 49.0, 61.0, 66.0, 59.0], "THE WAINE TRAIN": [79.0, 79.0, 50.0, 59.0, 54.0, 42.0, 51.0, 59.0, 57.0, 37.0, 104.0, 62.0, 47.0, 54.0, 57.0, 41.0, 87.0, 76.0, 116.0, 65.0, 79.0, 54.0, 74.0, 75.0, 64.0, 58.0], "TOP KUOLITY": [55.0, 79.0, 43.0, 45.0, 46.0, 47.0, 47.0, 63.0, 64.0, 42.0, 97.0, 65.0, 36.0, 44.0, 45.0, 55.0, 79.0, 67.0, 83.0, 65.0, 81.0, 58.0, 76.0, 83.0, 78.0, 66.0], "BIG MAC FC": [57.0, 84.0, 60.0, 64.0, 65.0, 53.0, 58.0, 66.0, 65.0, 48.0, 88.0, 73.0, 46.0, 52.0, 52.0, 59.0, 71.0, 80.0, 79.0, 73.0, 87.0, 53.0, 92.0, 62.0, 79.0, 64.0], "CASUAL APPROACH": [71.0, 91.0, 53.0, 56.0, 67.0, 51.0, 59.0, 39.0, 52.0, 38.0, 81.0, 64.0, 41.0, 49.0, 57.0, 53.0, 65.0, 53.0, 90.0, 47.0, 84.0, 48.0, 65.0, 61.0, 48.0, 70.0], "FOR VUCK'S SAKE FC": [65.0, 45.0, 50.0, 52.0, 51.0, 45.0, 84.0, 67.0, 54.0, 50.0, 68.0, 59.0, 29.0, 40.0, 32.0, 49.0, 58.0, 63.0, 84.0, 35.0, 55.0, 53.0, 64.0, 69.0, 56.0, 48.0], "JARVIS ZEBRAS": [81.0, 53.0, 62.0, 55.0, 65.0, 60.0, 62.0, 63.0, 58.0, 29.0, 105.0, 76.0, 35.0, 59.0, 56.0, 66.0, 60.0, 82.0, 102.0, 58.0, 107.0, 60.0, 93.0, 67.0, 58.0, 38.0], "JERRY THE PAINTER": [65.0, 72.0, 34.0, 45.0, 48.0, 47.0, 53.0, 63.0, 53.0, 36.0, 75.0, 81.0, 39.0, 66.0, 49.0, 58.0, 61.0, 52.0, 56.0, 43.0, 59.0, 71.0, 53.0, 55.0, 46.0, 59.0], "JUSTICEFORMOON FC": [71.0, 80.0, 62.0, 76.0, 74.0, 44.0, 47.0, 70.0, 54.0, 33.0, 82.0, 68.0, 37.0, 58.0, 53.0, 50.0, 79.0, 95.0, 89.0, 50.0, 78.0, 48.0, 56.0, 65.0, 59.0, 61.0], "MONGREL GARDEN": [60.0, 61.0, 44.0, 51.0, 36.0, 57.0, 69.0, 61.0, 66.0, 25.0, 56.0, 57.0, 56.0, 38.0, 47.0, 65.0, 42.0, 49.0, 68.0, 58.0, 72.0, 54.0, 38.0, 53.0, 44.0, 41.0], "NUKEFORREST NUKES": [67.0, 50.0, 55.0, 61.0, 54.0, 52.0, 67.0, 44.0, 53.0, 31.0, 58.0, 45.0, 44.0, 32.0, 40.0, 42.0, 30.0, 41.0, 33.0, 15.0, 55.0, 45.0, 57.0, 31.0, 32.0, 29.0], "ROYAL KC UNITED FC": [61.0, 29.0, 49.0, 62.0, 34.0, 44.0, 43.0, 64.0, 58.0, 41.0, 77.0, 63.0, 43.0, 61.0, 42.0, 55.0, 59.0, 79.0, 91.0, 57.0, 74.0, 64.0, 71.0, 72.0, 67.0, 76.0], "SILVERMAN'S XI": [72.0, 63.0, 69.0, 72.0, 60.0, 53.0, 67.0, 60.0, 66.0, 58.0, 99.0, 75.0, 41.0, 69.0, 48.0, 55.0, 74.0, 91.0, 111.0, 65.0, 78.0, 59.0, 92.0, 65.0, 61.0, 68.0], "TOBY'S TROOPS": [71.0, 45.0, 54.0, 71.0, 62.0, 48.0, 56.0, 51.0, 69.0, 42.0, 84.0, 64.0, 39.0, 59.0, 46.0, 47.0, 64.0, 79.0, 63.0, 45.0, 70.0, 59.0, 50.0, 77.0, 42.0, 59.0], "ZEN PIJ FC": [47.0, 47.0, 66.0, 66.0, 64.0, 49.0, 58.0, 63.0, 45.0, 53.0, 79.0, 79.0, 45.0, 63.0, 52.0, 52.0, 64.0, 69.0, 80.0, 48.0, 81.0, 52.0, 66.0, 82.0, 68.0, 58.0], "AFC BIG RED PORT": [77.0, 65.0, 59.0, 76.0, 47.0, 47.0, 66.0, 68.0, 69.0, 55.0, 88.0, 63.0, 37.0, 51.0, 69.0, 62.0, 67.0, 67.0, 106.0, 69.0, 81.0, 64.0, 73.0, 58.0, 65.0, 66.0], "BALLERS": [65.0, 69.0, 60.0, 64.0, 76.0, 48.0, 56.0, 66.0, 60.0, 32.0, 86.0, 61.0, 43.0, 53.0, 45.0, 72.0, 46.0, 62.0, 64.0, 61.0, 71.0, 76.0, 53.0, 76.0, 47.0, 65.0], "CAG'S INVESTORS": [69.0, 51.0, 31.0, 58.0, 71.0, 35.0, 51.0, 44.0, 84.0, 36.0, 94.0, 72.0, 38.0, 37.0, 52.0, 53.0, 56.0, 70.0, 65.0, 58.0, 63.0, 52.0, 48.0, 56.0, 41.0, 52.0], "DOG GOES WOOF, PAYNE GOES MEOW": [71.0, 47.0, 54.0, 37.0, 39.0, 53.0, 57.0, 45.0, 76.0, 34.0, 57.0, 67.0, 48.0, 35.0, 35.0, 40.0, 37.0, 64.0, 66.0, 30.0, 66.0, 53.0, 92.0, 39.0, 31.0, 40.0], "LIMSIM UNITED": [68.0, 56.0, 54.0, 67.0, 69.0, 56.0, 49.0, 61.0, 48.0, 36.0, 82.0, 47.0, 42.0, 51.0, 65.0, 59.0, 49.0, 38.0, 46.0, 40.0, 76.0, 61.0, 61.0, 56.0, 49.0, 40.0], "THE 2ND JARV ADMINISTRATION": [33.0, 50.0, 43.0, 48.0, 37.0, 54.0, 52.0, 41.0, 54.0, 45.0, 85.0, 52.0, 39.0, 28.0, 55.0, 37.0, 50.0, 48.0, 42.0, 52.0, 58.0, 78.0, 42.0, 46.0, 41.0, 48.0], "PAYNE IN THE NECK": [43.0, 44.0, 57.0, 50.0, 51.0, 40.0, 49.0, 45.0, 63.0, 30.0, 60.0, 48.0, 45.0, 34.0, 43.0, 35.0, 31.0, 47.0, 53.0, 31.0, 66.0, 59.0, 48.0, 35.0, 57.0, 33.0], "REAPERS FC": [79.0, 63.0, 55.0, 73.0, 65.0, 40.0, 49.0, 59.0, 67.0, 38.0, 88.0, 63.0, 37.0, 63.0, 49.0, 51.0, 76.0, 84.0, 102.0, 62.0, 79.0, 56.0, 89.0, 86.0, 55.0, 59.0], "ROTORUA UNITED": [53.0, 52.0, 59.0, 66.0, 35.0, 45.0, 53.0, 67.0, 82.0, 41.0, 83.0, 65.0, 43.0, 68.0, 51.0, 70.0, 64.0, 68.0, 92.0, 50.0, 71.0, 49.0, 47.0, 56.0, 49.0, 50.0], "SHANENIGANS": [56.0, 60.0, 46.0, 64.0, 57.0, 40.0, 47.0, 38.0, 47.0, 27.0, 55.0, 50.0, 34.0, 40.0, 30.0, 45.0, 31.0, 46.0, 51.0, 19.0, 49.0, 56.0, 61.0, 43.0, 43.0, 32.0], "TSATAS DIP": [64.0, 63.0, 72.0, 68.0, 66.0, 47.0, 52.0, 77.0, 64.0, 45.0, 98.0, 67.0, 44.0, 53.0, 59.0, 64.0, 70.0, 79.0, 79.0, 56.0, 82.0, 63.0, 78.0, 75.0, 69.0, 61.0], "ZOUMA KICKS TIM PAYNE": [51.0, 66.0, 59.0, 52.0, 43.0, 44.0, 57.0, 59.0, 56.0, 54.0, 94.0, 70.0, 34.0, 60.0, 53.0, 63.0, 82.0, 89.0, 88.0, 60.0, 73.0, 62.0, 101.0, 79.0, 56.0, 53.0], "BREXIT LADS": [73.0, 45.0, 29.0, 50.0, 35.0, 37.0, 43.0, 33.0, 47.0, 20.0, 49.0, 74.0, 33.0, 30.0, 22.0, 42.0, 41.0, 48.0, 66.0, 12.0, 73.0, 63.0, 40.0, 54.0, 57.0, 42.0], "CARNEGIE DACHSHUNDS FC": [78.0, 65.0, 61.0, 71.0, 66.0, 62.0, 53.0, 56.0, 55.0, 34.0, 93.0, 81.0, 46.0, 43.0, 51.0, 39.0, 57.0, 64.0, 70.0, 49.0, 68.0, 35.0, 102.0, 56.0, 98.0, 72.0], "DEER PARK UNITED": [76.0, 66.0, 58.0, 59.0, 65.0, 55.0, 59.0, 54.0, 47.0, 28.0, 64.0, 58.0, 40.0, 59.0, 56.0, 55.0, 50.0, 76.0, 65.0, 50.0, 91.0, 63.0, 45.0, 51.0, 59.0, 46.0], "FC TIKITOKA": [48.0, 55.0, 38.0, 55.0, 68.0, 60.0, 48.0, 45.0, 51.0, 33.0, 56.0, 52.0, 37.0, 22.0, 41.0, 47.0, 39.0, 46.0, 33.0, 20.0, 30.0, 55.0, 54.0, 36.0, 42.0, 28.0], "FREKEINTHESHEETS": [66.0, 57.0, 51.0, 78.0, 58.0, 46.0, 46.0, 63.0, 70.0, 35.0, 95.0, 54.0, 37.0, 54.0, 57.0, 58.0, 70.0, 80.0, 101.0, 56.0, 69.0, 69.0, 55.0, 69.0, 68.0, 64.0], "LINDON-CHEVELLA FC": [75.0, 81.0, 46.0, 58.0, 58.0, 57.0, 51.0, 42.0, 56.0, 28.0, 60.0, 63.0, 56.0, 43.0, 24.0, 38.0, 45.0, 47.0, 61.0, 30.0, 51.0, 55.0, 46.0, 41.0, 37.0, 53.0], "LOLLEY POP MAN": [65.0, 56.0, 51.0, 61.0, 68.0, 48.0, 38.0, 48.0, 62.0, 25.0, 84.0, 36.0, 32.0, 34.0, 45.0, 58.0, 49.0, 73.0, 64.0, 56.0, 65.0, 71.0, 61.0, 53.0, 48.0, 44.0], "MELBCITYGUY": [46.0, 48.0, 45.0, 61.0, 37.0, 58.0, 51.0, 63.0, 53.0, 31.0, 77.0, 56.0, 53.0, 49.0, 64.0, 43.0, 71.0, 61.0, 65.0, 31.0, 54.0, 46.0, 64.0, 50.0, 45.0, 35.0], "THE D GENREAU": [48.0, 74.0, 68.0, 65.0, 65.0, 48.0, 59.0, 58.0, 64.0, 47.0, 94.0, 64.0, 41.0, 50.0, 38.0, 55.0, 75.0, 78.0, 73.0, 73.0, 91.0, 82.0, 66.0, 62.0, 67.0, 74.0], "THE MALTESE KNIGHTS": [68.0, 59.0, 46.0, 45.0, 30.0, 52.0, 42.0, 32.0, 55.0, 24.0, 61.0, 55.0, 57.0, 45.0, 39.0, 32.0, 25.0, 46.0, 53.0, 28.0, 55.0, 55.0, 61.0, 43.0, 40.0, 60.0], "VICTORY": [66.0, 52.0, 60.0, 54.0, 44.0, 47.0, 53.0, 68.0, 64.0, 42.0, 87.0, 61.0, 31.0, 47.0, 43.0, 75.0, 47.0, 81.0, 85.0, 62.0, 85.0, 64.0, 73.0, 60.0, 57.0, 68.0], "X2 STRANGE": [73.0, 33.0, 55.0, 59.0, 62.0, 56.0, 59.0, 59.0, 61.0, 46.0, 56.0, 61.0, 37.0, 58.0, 50.0, 52.0, 49.0, 66.0, 68.0, 42.0, 79.0, 63.0, 63.0, 73.0, 50.0, 43.0]}, "h2h_divisions": {"ELIZA CUP (D1)": ["ALASKAN BULL WORMS", "BC UNITED ZEBRAS", "BIG MAC FC", "DW ABOUT IT FC", "FROGBERT FOOTBALL", "GIVE US WANG", "HARVEY FREKES", "JARVIS ZEBRAS", "KALLO FC", "NANISTATE", "SAUCE FC", "STAIRWAY TO EVANS", "TOP KUOLITY", "VICTORYRULES"], "DIVISION 2A": ["3DOGS", "AFC BIG RED PORT", "ALBANIAN BOARS", "BALLERS", "BEST OF A BAD BENCH", "CARNEGIE DACHSHUNDS FC", "INTER MILANOVIC", "LALAS LEVEN", "MANCHESTHAIR UTD", "REAPERS FC", "ROTORUA UNITED", "THE WAINE TRAIN"], "DIVISION 2B": ["CASUAL APPROACH", "DINKIN CRFC", "JERRY THE PAINTER", "JUSTICEFORMOON FC", "ROYAL KC UNITED FC", "SILVERMAN'S XI", "SPOONERS FC", "THE D GENREAU", "ZEN GARDEN C.F", "ZEN PIJ FC", "TBD PROMOTED TEAM A", "TBD PROMOTED TEAM B"], "DIVISION 3A": ["AARONGURDWOODREICH", "BREXIT LADS", "CAG'S INVESTORS", "DOG GOES WOOF, PAYNE GOES MEOW", "FC TIKITOKA", "FOR VUCK'S SAKE FC", "GARRY WALLAH UNITED FC", "LIMSIM UNITED", "LINDON-CHEVELLA FC", "LOAVES AND FISHES", "LOLLEY POP MAN", "MELBCITYGUY"], "DIVISION 3B": ["MONGREL GARDEN", "NUKEFORREST NUKES", "PAYNE IN THE NECK", "SHANENIGANS", "THE 2ND JARV ADMINISTRATION", "THE MALTESE KNIGHTS", "TSATAS DIP", "VICTORY", "X2 STRANGE", "ZOUMA KICKS TIM PAYNE", "NEW PLAYER 1", "NEW PLAYER 2"]}, "h2h_shift": {"ALASKAN BULL WORMS": 5.623, "BC UNITED ZEBRAS": 7.958, "BIG MAC FC": 3.574, "DW ABOUT IT FC": 5.845, "FROGBERT FOOTBALL": 5.528, "GIVE US WANG": 6.068, "HARVEY FREKES": 5.957, "JARVIS ZEBRAS": 5.671, "KALLO FC": 6.632, "NANISTATE": 5.226, "SAUCE FC": 5.83, "STAIRWAY TO EVANS": 6.87, "TOP KUOLITY": 0.461, "VICTORYRULES": 4.543, "3DOGS": -0.429, "AFC BIG RED PORT": 3.383, "ALBANIAN BOARS": 2.843, "BALLERS": 0.318, "BEST OF A BAD BENCH": 2.589, "CARNEGIE DACHSHUNDS FC": 0.159, "INTER MILANOVIC": 0.206, "LALAS LEVEN": 2.113, "MANCHESTHAIR UTD": 1.064, "REAPERS FC": 3.256, "ROTORUA UNITED": 0.365, "THE WAINE TRAIN": 2.399, "CASUAL APPROACH": -0.143, "DINKIN CRFC": 1.247, "JERRY THE PAINTER": -1.525, "JUSTICEFORMOON FC": -2.033, "ROYAL KC UNITED FC": 0.334, "SILVERMAN'S XI": 6.227, "SPOONERS FC": 3.121, "THE D GENREAU": 3.955, "ZEN GARDEN C.F": 4.503, "ZEN PIJ FC": -0.54, "TBD PROMOTED TEAM A": 0.0, "TBD PROMOTED TEAM B": 0.0, "AARONGURDWOODREICH": -1.43, "BREXIT LADS": -5.957, "CAG'S INVESTORS": -0.222, "DOG GOES WOOF, PAYNE GOES MEOW": -3.526, "FC TIKITOKA": -7.418, "FOR VUCK'S SAKE FC": -2.78, "GARRY WALLAH UNITED FC": -2.168, "LIMSIM UNITED": -4.861, "LINDON-CHEVELLA FC": -3.844, "LOAVES AND FISHES": -0.762, "LOLLEY POP MAN": -4.241, "MELBCITYGUY": -2.303, "MONGREL GARDEN": -1.382, "NUKEFORREST NUKES": -3.669, "PAYNE IN THE NECK": -6.131, "SHANENIGANS": -6.465, "THE 2ND JARV ADMINISTRATION": -3.304, "THE MALTESE KNIGHTS": -7.617, "TSATAS DIP": 4.622, "VICTORY": -0.842, "X2 STRANGE": -2.684, "ZOUMA KICKS TIM PAYNE": 1.414, "NEW PLAYER 1": 0.0, "NEW PLAYER 2": 0.0}};
+  const FUTURES = DATA.futures;
+  const H2H_HISTORY = DATA.h2h_history;
+  const H2H_DIVISIONS = DATA.h2h_divisions;
+  const H2H_SHIFT = DATA.h2h_shift;
+  const K = 8;
+
+  const FUTURE_DIVS = Object.keys(FUTURES.divisions);
+  const BASE_TABS = ['H2H', ...FUTURE_DIVS, 'RODDY', 'FA CUP', 'ECL', 'MY BETS'];
+  function currentTabs(){ return state.user && state.user.isAdmin ? [...BASE_TABS, 'ADMIN'] : BASE_TABS; }
+
+  let state = {
+    screen:'login', user:null, error:'',
+    username:'', pin:'',
+    activeTab:'H2H',
+    futureMarketTab: FUTURE_DIVS.length ? Object.keys(FUTURES.market_labels)[0] : null,
+    teamA:'', teamB:'', h2hRound:1, h2hMarket:null,
+    slip:[], stake:50,
+    myBets:null,
+    adminPunters:null, adminBets:null,
+  };
+
+  function esc(s){ return String(s).replace(/[&<>"'\x27]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function fmt(n){ return Number(n||0).toLocaleString(undefined,{maximumFractionDigits:2}); }
+  function fmtDate(ts){ const d=new Date(ts); return d.toLocaleDateString()+' '+d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); }
+  function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+  function simpleHash(s){ let h=0; for(let i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))|0;} return String(h); }
+
+  const memoryStore = {};
+  const hasRealStorage = typeof window !== 'undefined' && window.storage && typeof window.storage.get === 'function';
+  async function sget(key){
+    if(!hasRealStorage) return Object.prototype.hasOwnProperty.call(memoryStore,key) ? JSON.parse(memoryStore[key]) : null;
+    try{ const r = await window.storage.get(key, true); return r ? JSON.parse(r.value) : null; }catch(e){ return null; }
+  }
+  async function sset(key, val){
+    if(!hasRealStorage){ memoryStore[key] = JSON.stringify(val); return true; }
+    try{ await window.storage.set(key, JSON.stringify(val), true); return true; }catch(e){ return false; }
+  }
+  async function getIndex(name){ return (await sget(name)) || []; }
+  async function addToIndex(name, id){ const list = await getIndex(name); if(!list.includes(id)){ list.push(id); await sset(name, list); } }
+  async function getUser(u){ return await sget('bilbbet2_user:' + u.toLowerCase()); }
+  async function saveUser(u){ return await sset('bilbbet2_user:' + u.username.toLowerCase(), u); }
+
+  // ---------- H2H sampling model (bootstrap + shrinkage) ----------
+  function makeShiftedSampler(values, shift){
+    const shifted = values.map(v => Math.round(v + shift));
+    const n = shifted.length;
+    return function(count){ const out=new Array(count); for(let i=0;i<count;i++){ out[i]=shifted[Math.floor(Math.random()*n)]; } return out; };
+  }
+  const divSampler = {};
+  for(const div in H2H_DIVISIONS){
+    let pool = [];
+    for(const t of H2H_DIVISIONS[div]){ if(H2H_HISTORY[t]) pool = pool.concat(H2H_HISTORY[t]); }
+    divSampler[div] = makeShiftedSampler(pool.length ? pool : [60], 0);
+  }
+  let allPool = [];
+  for(const t in H2H_HISTORY){ allPool = allPool.concat(H2H_HISTORY[t]); }
+  const leagueSampler = makeShiftedSampler(allPool, 0);
+  const teamInfo = {};
+  for(const div in H2H_DIVISIONS){
+    for(const t of H2H_DIVISIONS[div]){
+      const shift = H2H_SHIFT[t] || 0;
+      if(H2H_HISTORY[t]){
+        const n = H2H_HISTORY[t].length;
+        teamInfo[t] = { own: makeShiftedSampler(H2H_HISTORY[t], shift), w: n/(n+K), baseline: divSampler[div] };
+      } else {
+        teamInfo[t] = { own: null, w: 0, baseline: makeShiftedSampler(allPool, shift) };
+      }
+    }
+  }
+  function sampleTeam(team, n){
+    const info = teamInfo[team];
+    const out = new Array(n);
+    for(let i=0;i<n;i++){ out[i] = (info.own && Math.random()<info.w) ? info.own(1)[0] : info.baseline(1)[0]; }
+    return out;
+  }
+  function median(arr){ const s=[...arr].sort((a,b)=>a-b); const m=Math.floor(s.length/2); return s.length%2 ? s[m] : (s[m-1]+s[m])/2; }
+  function percentile(sortedArr, p){
+    const idx = (sortedArr.length - 1) * p;
+    const lo = Math.floor(idx), hi = Math.ceil(idx);
+    if(lo === hi) return sortedArr[lo];
+    return sortedArr[lo] + (sortedArr[hi]-sortedArr[lo])*(idx-lo);
+  }
+  function computeH2HMarket(teamA, teamB, round, nSims){
+    nSims = nSims || 20000;
+    const a = sampleTeam(teamA,nSims), b = sampleTeam(teamB,nSims);
+    let aWin=0,bWin=0,draw=0; const margins=new Array(nSims);
+    for(let i=0;i<nSims;i++){ if(a[i]>b[i]) aWin++; else if(b[i]>a[i]) bWin++; else draw++; margins[i]=a[i]-b[i]; }
+    const expMargin = margins.reduce((s,x)=>s+x,0)/nSims;
+    const line = Math.floor(expMargin)+0.5;
+    let aCovers=0,bCovers=0;
+    for(const m of margins){ if(m>line) aCovers++; else bCovers++; }
+    // "viable range" -- the middle 50% of simulated outcomes (25th-75th percentile).
+    // A consistent team's range is narrow; a volatile team's is wide. Deliberately
+    // shown instead of one precise number so a punter has to weigh the shape of the
+    // range, not just compare two decimals.
+    const aSorted = [...a].sort((x,y)=>x-y), bSorted = [...b].sort((x,y)=>x-y);
+    const aRange = [Math.round(percentile(aSorted,0.25)), Math.round(percentile(aSorted,0.75))];
+    const bRange = [Math.round(percentile(bSorted,0.25)), Math.round(percentile(bSorted,0.75))];
+    return { teamA, teamB, round, aWinPct:aWin/nSims*100, bWinPct:bWin/nSims*100, drawPct:draw/nSims*100,
+      aRange, bRange, line, aCoversPct:aCovers/nSims*100, bCoversPct:bCovers/nSims*100 };
+  }
+  const ODDS_FLOOR = 1.005, ODDS_CAP = 1001, SUSPEND_BELOW = 1.0025;
+  function toOdds(pct){
+    const p = pct/100;
+    if(p<=0) return { odds: ODDS_CAP, suspended:false };
+    let raw = 1/(p*1.05);
+    if(raw < SUSPEND_BELOW) return { odds:null, suspended:true };
+    if(raw < ODDS_FLOOR) raw = ODDS_FLOOR;
+    if(raw > ODDS_CAP) raw = ODDS_CAP;
+    let odds = Math.round(raw*100)/100;
+    if(odds < ODDS_FLOOR) odds = ODDS_FLOOR;   // guards against float rounding (e.g. 1.005*100 !== 100.5 exactly)
+    if(odds > ODDS_CAP) odds = ODDS_CAP;
+    return { odds, suspended:false };
+  }
+
+  // ---------- rendering ----------
+  function render(){
+    document.getElementById('app').innerHTML = state.screen==='login' ? renderLogin() : renderMain();
+    attachHandlers();
+  }
+
+  function renderLogin(){
+    return `
+      <div style="padding:3rem 1rem;max-width:340px;margin:0 auto;">
+        <div style="text-align:center;margin-bottom:1.5rem;">
+          <h2 style="margin:0;letter-spacing:0.5px;">bilbbet</h2>
+          <p style="color:#8a8270;font-size:14px;margin:4px 0 0;">H2H, division &amp; Roddy markets &mdash; 26/27</p>
+        </div>
+        <form id="login-form" class="bb-card" style="display:flex;flex-direction:column;gap:10px;">
+          <div><span style="font-size:12px;color:#8a8270;display:block;margin-bottom:4px;">Username</span>
+            <input class="bb-input" id="f-user" autocomplete="off" value="${esc(state.username)}"/></div>
+          <div><span style="font-size:12px;color:#8a8270;display:block;margin-bottom:4px;">PIN</span>
+            <input class="bb-input" id="f-pin" type="password" inputmode="numeric" value="${esc(state.pin)}"/></div>
+          ${state.error ? `<div style="color:#c0604f;font-size:13px;">${esc(state.error)}</div>` : ''}
+          <button type="submit" class="bb-btn" id="login-submit" style="margin-top:4px;">Log in</button>
+          <button type="button" class="bb-btn ghost" id="register-submit">First time? Create account</button>
+        </form>
+        <p style="font-size:12px;color:#8a8270;text-align:center;margin-top:1rem;">Everyone starts with 1,000 clams.</p>
+        ${!hasRealStorage ? `<p style="font-size:12px;color:#c0604f;text-align:center;margin-top:0.5rem;">Running without persistent storage &mdash; open inside Claude's artifact panel for accounts to be saved between visits.</p>` : ''}
+      </div>`;
+  }
+
+  function header(){
+    return `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 4px;border-bottom:1px solid #3a3729;margin-bottom:1rem;">
+        <strong style="letter-spacing:0.5px;">bilbbet</strong>
+        <div style="display:flex;align-items:center;gap:14px;font-size:14px;">
+          <span>${fmt(state.user.balance)} clams</span>
+          <span style="color:#8a8270;">${esc(state.user.username)}</span>
+          <button class="bb-btn ghost" id="logout-btn" style="padding:6px 12px;">Log out</button>
+        </div>
+      </div>`;
+  }
+
+  function mainTabs(){
+    return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">' +
+      currentTabs().map(t => `<div class="bb-tab ${state.activeTab===t?'active':''}" data-tab="${esc(t)}">${t==='RODDY'?'The Roddy':(t==='MY BETS'?'My Bets':(t==='ADMIN'?'Admin':(t==='H2H'?'H2H':t.replace(' (D1)',''))))}</div>`).join('') +
+      '</div>';
+  }
+
+  function futuresMarketTabs(){
+    return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">' +
+      Object.entries(FUTURES.market_labels).map(([key,label]) =>
+        `<div class="bb-tab ${state.futureMarketTab===key?'active':''}" data-marketkey="${key}" style="font-size:12px;padding:6px 10px;">${esc(label)}</div>`
+      ).join('') + '</div>';
+  }
+  function roddyMarketTabs(){
+    return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">' +
+      Object.entries(FUTURES.roddy_labels).map(([key,label]) =>
+        `<div class="bb-tab ${state.futureMarketTab===key?'active':''}" data-marketkey="${key}" style="font-size:12px;padding:6px 10px;">${esc(label)}</div>`
+      ).join('') + '</div>';
+  }
+
+  function singleMarketOutcomesList(outcomes, tagPrefix, note){
+    if(!outcomes || !outcomes.length) return '<p style="color:#8a8270;">No outcomes in this market.</p>';
+    const list = outcomes.map(o => {
+      if(o.suspended){
+        return `<div class="bb-outcome" style="opacity:0.5;cursor:default;">
+          <span>${esc(o.team)}</span><span class="bb-odds" style="color:#8a8270;">suspended</span></div>`;
+      }
+      const selId = tagPrefix+'|'+o.team;
+      const selected = state.slip.some(s=>s.id===selId);
+      return `<div class="bb-outcome ${selected?'selected':''}" data-pick="${esc(selId)}" data-team="${esc(o.team)}" data-odds="${o.odds}" data-label="${esc(o.team)} (${tagPrefix})">
+        <span>${esc(o.team)}</span><span class="bb-odds">${o.odds.toFixed(2)}</span></div>`;
+    }).join('');
+    return (note ? `<p style="color:#8a8270;font-size:12px;margin-bottom:10px;">${note}</p>` : '') + list;
+  }
+
+  function futuresOutcomesList(div, marketKey){
+    const outcomes = div==='RODDY' ? FUTURES.roddy[marketKey] : FUTURES.divisions[div][marketKey];
+    if(!outcomes || !outcomes.length) return '<p style="color:#8a8270;">No outcomes in this market.</p>';
+    return outcomes.map(o => {
+      if(o.suspended){
+        return `<div class="bb-outcome" style="opacity:0.5;cursor:default;">
+          <span>${esc(o.team)}</span><span class="bb-odds" style="color:#8a8270;">suspended</span></div>`;
+      }
+      const selId = 'FUT|'+div+'|'+marketKey+'|'+o.team;
+      const selected = state.slip.some(s=>s.id===selId);
+      return `<div class="bb-outcome ${selected?'selected':''}" data-pick="${esc(selId)}" data-team="${esc(o.team)}" data-odds="${o.odds}" data-label="${esc(o.team)}">
+        <span>${esc(o.team)}</span><span class="bb-odds">${o.odds.toFixed(2)}</span></div>`;
+    }).join('');
+  }
+
+  function teamOptions(selected){
+    let html = `<option value="">Select a team&hellip;</option>`;
+    for(const div in H2H_DIVISIONS){
+      html += `<optgroup label="${esc(div)}">`;
+      for(const t of H2H_DIVISIONS[div]) html += `<option value="${esc(t)}" ${t===selected?'selected':''}>${esc(t)}</option>`;
+      html += `</optgroup>`;
+    }
+    return html;
+  }
+
+  function renderH2HMarket(m){
+    const winOdds = { a: toOdds(m.aWinPct), b: toOdds(m.bWinPct), draw: toOdds(m.drawPct) };
+    const hcapOdds = { a: toOdds(m.aCoversPct), b: toOdds(m.bCoversPct) };
+    const roundTag = 'R' + m.round;
+    function row(id, label, pct, oddsInfo){
+      if(oddsInfo.suspended){
+        return `<div class="bb-outcome" style="opacity:0.5;cursor:default;">
+          <span>${esc(label)} <span style="color:#8a8270;font-size:12px;">(${pct.toFixed(1)}%)</span></span>
+          <span class="bb-odds" style="color:#8a8270;">suspended</span></div>`;
+      }
+      const odds = oddsInfo.odds;
+      const selected = state.slip.some(s=>s.id===id);
+      return `<div class="bb-outcome ${selected?'selected':''}" data-pick="${id}" data-label="${esc(label)}" data-odds="${odds}">
+        <span>${esc(label)} <span style="color:#8a8270;font-size:12px;">(${pct.toFixed(1)}%)</span></span>
+        <span class="bb-odds">${odds.toFixed(2)}</span></div>`;
+    }
+    return `<div class="bb-card" style="margin-bottom:1rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <span class="bb-pill" style="background:#2a4640;color:#9fd8c4;">Round ${m.round}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:12px;">
+        <div><div style="font-size:12px;color:#8a8270;">${esc(m.teamA)} viable range</div><div style="font-size:20px;font-weight:600;">${m.aRange[0]}&ndash;${m.aRange[1]}</div></div>
+        <div style="text-align:right;"><div style="font-size:12px;color:#8a8270;">${esc(m.teamB)} viable range</div><div style="font-size:20px;font-weight:600;">${m.bRange[0]}&ndash;${m.bRange[1]}</div></div>
+      </div>
+      <h4 style="margin:0 0 8px;font-size:13px;color:#8a8270;">Match result</h4>
+      ${row('H2H|res-a|'+roundTag+'|'+m.teamA+'|'+m.teamB, 'R'+m.round+': '+m.teamA+' to win', m.aWinPct, winOdds.a)}
+      ${row('H2H|res-draw|'+roundTag+'|'+m.teamA+'|'+m.teamB, 'R'+m.round+': Draw', m.drawPct, winOdds.draw)}
+      ${row('H2H|res-b|'+roundTag+'|'+m.teamA+'|'+m.teamB, 'R'+m.round+': '+m.teamB+' to win', m.bWinPct, winOdds.b)}
+      <h4 style="margin:14px 0 8px;font-size:13px;color:#8a8270;">Handicap</h4>
+      ${row('H2H|hcap-a|'+roundTag+'|'+m.teamA+'|'+m.teamB, 'R'+m.round+': '+m.teamA+' '+(m.line>=0?'-':'+')+Math.abs(m.line).toFixed(1), m.aCoversPct, hcapOdds.a)}
+      ${row('H2H|hcap-b|'+roundTag+'|'+m.teamA+'|'+m.teamB, 'R'+m.round+': '+m.teamB+' '+(m.line>=0?'+':'-')+Math.abs(m.line).toFixed(1), m.bCoversPct, hcapOdds.b)}
+    </div>`;
+  }
+
+  function roundOptions(selected){
+    let html = '';
+    for(let r=1;r<=26;r++) html += `<option value="${r}" ${r===selected?'selected':''}>Round ${r}</option>`;
+    return html;
+  }
+
+  function renderH2HTab(){
+    return `<div class="bb-card" style="margin-bottom:1rem;">
+      <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+        <div style="flex:1;min-width:180px;"><span style="font-size:12px;color:#8a8270;display:block;margin-bottom:4px;">Team A</span>
+          <select class="bb-select" id="team-a">${teamOptions(state.teamA)}</select></div>
+        <div style="flex:1;min-width:180px;"><span style="font-size:12px;color:#8a8270;display:block;margin-bottom:4px;">Team B</span>
+          <select class="bb-select" id="team-b">${teamOptions(state.teamB)}</select></div>
+        <div style="width:130px;"><span style="font-size:12px;color:#8a8270;display:block;margin-bottom:4px;">Round</span>
+          <select class="bb-select" id="h2h-round">${roundOptions(state.h2hRound)}</select></div>
+        <button class="bb-btn" id="get-market" ${(!state.teamA||!state.teamB||state.teamA===state.teamB)?'disabled':''}>Get market</button>
+      </div>
+      ${state.teamA && state.teamB && state.teamA===state.teamB ? '<p style="color:#c0604f;font-size:13px;margin:8px 0 0;">Pick two different teams.</p>' : ''}
+      <p style="color:#8a8270;font-size:12px;margin:8px 0 0;">No official 26/27 fixture list yet, so this just labels which round a bet is for &mdash; odds don't change by round until real fixtures are confirmed.</p>
+    </div>${state.h2hMarket ? renderH2HMarket(state.h2hMarket) : ''}`;
+  }
+
+  function statusPill(status){
+    const colors = { PENDING: ['#efece3','#8a8270'], WON: ['#e1efe9','#1f5c52'], LOST: ['#f3ded9','#a3402f'] };
+    const [bg,fg] = colors[status] || colors.PENDING;
+    return `<span class="bb-pill" style="background:${bg};color:${fg};">${status.toLowerCase()}</span>`;
+  }
+
+  function renderMyBetsTab(){
+    if(state.myBets === null) return '<p style="color:#8a8270;">Loading&hellip;</p>';
+    const bets = state.myBets;
+    if(!bets.length) return '<p style="color:#8a8270;">No bets placed yet &mdash; head to any market tab and tap an outcome to get started.</p>';
+    const pending = bets.filter(b=>b.status==='PENDING').length;
+    const won = bets.filter(b=>b.status==='WON').length;
+    const lost = bets.filter(b=>b.status==='LOST').length;
+    const netFromSettled = bets.filter(b=>b.status!=='PENDING')
+      .reduce((s,b)=> s + (b.status==='WON' ? (b.potentialReturn - b.stake) : -b.stake), 0);
+    return `
+      <div class="bb-card" style="margin-bottom:1rem;display:flex;gap:20px;flex-wrap:wrap;">
+        <div><div style="font-size:12px;color:#8a8270;">Pending</div><div style="font-size:18px;font-weight:600;">${pending}</div></div>
+        <div><div style="font-size:12px;color:#8a8270;">Won</div><div style="font-size:18px;font-weight:600;color:#1f5c52;">${won}</div></div>
+        <div><div style="font-size:12px;color:#8a8270;">Lost</div><div style="font-size:18px;font-weight:600;color:#a3402f;">${lost}</div></div>
+        <div><div style="font-size:12px;color:#8a8270;">Net (settled bets)</div><div style="font-size:18px;font-weight:600;">${netFromSettled>=0?'+':''}${fmt(netFromSettled)}</div></div>
+      </div>
+      <div class="bb-card" style="padding:0;overflow-x:auto;">
+        <table class="bb-table">
+          <thead><tr><th>Placed</th><th>Selections</th><th>Stake</th><th>Odds</th><th>Potential return</th><th>Status</th></tr></thead>
+          <tbody>
+            ${bets.slice().sort((a,b)=>b.timestamp-a.timestamp).map(b => `
+              <tr>
+                <td>${fmtDate(b.timestamp)}</td>
+                <td>${b.selections.map(s=>esc(s.label)+' <span style="color:#6b6555;">('+s.odds.toFixed(2)+')</span>').join('<br/>')}</td>
+                <td>${fmt(b.stake)}</td>
+                <td>${b.combinedOdds.toFixed(2)}</td>
+                <td>${fmt(b.potentialReturn)}</td>
+                <td>${statusPill(b.status || 'PENDING')}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      <p style="font-size:12px;color:#8a8270;margin-top:10px;">
+        Every bet here is recorded as <strong>pending</strong> until the 26/27 season actually plays out and results come in &mdash;
+        this table is the template that will populate with won/lost once there's a way to resolve markets against real results.
+      </p>`;
+  }
+
+  function renderAdminTab(){
+    if(state.adminPunters === null || state.adminBets === null) return '<p style="color:#8a8270;">Loading&hellip;</p>';
+    const punters = state.adminPunters, bets = state.adminBets;
+    return `
+      <h3 style="margin-top:0;">Punters</h3>
+      <div class="bb-card" style="padding:0;overflow-x:auto;margin-bottom:1.5rem;">
+        <table class="bb-table">
+          <thead><tr><th>Username</th><th>Balance</th><th>Adjust</th></tr></thead>
+          <tbody>
+            ${punters.slice().sort((a,b)=>a.username.localeCompare(b.username)).map(u => `
+              <tr>
+                <td>${esc(u.username)}${u.isAdmin ? ' <span class="bb-pill" style="background:#e8c98a;color:#4a3a10;">admin</span>' : ''}</td>
+                <td>${fmt(u.balance)}</td>
+                <td style="display:flex;gap:6px;align-items:center;">
+                  <input class="bb-input" type="number" placeholder="+/- clams" id="adj-${esc(u.username)}" style="width:110px;padding:5px 8px;"/>
+                  <button class="bb-btn ghost" data-adjust-user="${esc(u.username)}" style="padding:5px 10px;font-size:12px;">Apply</button>
+                </td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      <h3>All registered bets</h3>
+      ${!bets.length ? '<p style="color:#8a8270;">No bets placed by anyone yet.</p>' : `
+      <div class="bb-card" style="padding:0;overflow-x:auto;">
+        <table class="bb-table">
+          <thead><tr><th>Placed</th><th>User</th><th>Selections</th><th>Stake</th><th>Odds</th><th>Potential return</th><th>Status</th><th>Override</th></tr></thead>
+          <tbody>
+            ${bets.slice().sort((a,b)=>b.timestamp-a.timestamp).map(b => `
+              <tr>
+                <td>${fmtDate(b.timestamp)}</td>
+                <td>${esc(b.username)}</td>
+                <td>${b.selections.map(s=>esc(s.label)+' <span style="color:#6b6555;">('+s.odds.toFixed(2)+')</span>').join('<br/>')}</td>
+                <td>${fmt(b.stake)}</td>
+                <td>${b.combinedOdds.toFixed(2)}</td>
+                <td>${fmt(b.potentialReturn)}</td>
+                <td>${statusPill(b.status || 'PENDING')}</td>
+                <td style="display:flex;gap:4px;flex-wrap:wrap;">
+                  <button class="bb-btn ghost" data-setstatus="${b.id}|WON" style="padding:4px 8px;font-size:11px;">Won</button>
+                  <button class="bb-btn ghost" data-setstatus="${b.id}|LOST" style="padding:4px 8px;font-size:11px;">Lost</button>
+                  <button class="bb-btn ghost" data-setstatus="${b.id}|PENDING" style="padding:4px 8px;font-size:11px;">Reset</button>
+                </td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`}
+      <p style="font-size:12px;color:#8a8270;margin-top:10px;">
+        Marking a bet Won credits its full potential return to that punter's balance; marking it Lost (or resetting to Pending
+        after a mistaken override) reverses that credit automatically, so balances always stay consistent with the bet's current status.
+      </p>`;
+  }
+
+  async function loadAdminData(){
+    const usernames = await getIndex('bilbbet2_users_index');
+    const users = (await Promise.all(usernames.map(getUser))).filter(Boolean);
+    const betIds = await getIndex('bilbbet2_all_bets_index');
+    const bets = (await Promise.all(betIds.map(id => sget('bilbbet2_bet:'+id)))).filter(Boolean);
+    state.adminPunters = users;
+    state.adminBets = bets;
+    render();
+  }
+
+  async function adjustPunterBalance(username, delta){
+    if(!delta){ return; }
+    const u = await getUser(username);
+    if(!u) return;
+    u.balance += delta;
+    await saveUser(u);
+    if(state.user.username.toLowerCase() === username.toLowerCase()) state.user = u;
+    await loadAdminData();
+  }
+
+  async function setBetStatus(betId, newStatus){
+    const bet = await sget('bilbbet2_bet:'+betId);
+    if(!bet) return;
+    const prevStatus = bet.status || 'PENDING';
+    if(prevStatus === newStatus){ return; }
+    const u = await getUser(bet.username);
+    if(u){
+      if(prevStatus === 'WON') u.balance -= bet.potentialReturn;   // undo previous credit
+      if(newStatus === 'WON') u.balance += bet.potentialReturn;    // apply new credit
+      await saveUser(u);
+      if(state.user.username.toLowerCase() === bet.username.toLowerCase()) state.user = u;
+    }
+    bet.status = newStatus;
+    await sset('bilbbet2_bet:'+betId, bet);
+    await loadAdminData();
+  }
+
+  function renderMain(){
+    let body = '';
+    if(state.activeTab === 'H2H'){
+      body = renderH2HTab();
+    } else if(state.activeTab === 'RODDY'){
+      body = roddyMarketTabs() + `<div id="outcomes-list">${futuresOutcomesList('RODDY', state.futureMarketTab)}</div>`;
+    } else if(state.activeTab === 'FA CUP'){
+      body = `<h3 style="margin-top:0;">Win the FA Cup</h3>` + singleMarketOutcomesList(FUTURES.fa_cup, 'FACUP',
+        'Open knockout, first half of the season -- single-elimination draw, so a bit of ceiling/spike ability matters as much as raw consistency.');
+    } else if(state.activeTab === 'ECL'){
+      body = `<h3 style="margin-top:0;">Win the ECL</h3>` + singleMarketOutcomesList(FUTURES.ecl, 'ECL',
+        'Qualifying field assumed as the 8 strongest sides by combined multi-season form (real 26/27 qualifiers not yet confirmed): ' + FUTURES.ecl_field.map(esc).join(', ') + '.');
+    } else if(state.activeTab === 'MY BETS'){
+      body = renderMyBetsTab();
+    } else if(state.activeTab === 'ADMIN'){
+      body = renderAdminTab();
+    } else {
+      body = futuresMarketTabs() + `<div id="outcomes-list">${futuresOutcomesList(state.activeTab, state.futureMarketTab)}</div>`;
+    }
+    return `<div>${header()}${mainTabs()}${body}</div>${state.activeTab==='ADMIN' ? '' : slipBar()}`;
+  }
+
+  function combinedOdds(){ return state.slip.reduce((acc,s)=>acc*s.odds,1); }
+
+  function slipBar(){
+    if(!state.slip.length) return `<div class="bb-slip"><div class="bb-slip-inner" style="color:#8a8270;font-size:13px;">Tap any outcome to build a bet slip.</div></div>`;
+    const combined = combinedOdds(), potential = state.stake*combined;
+    return `<div class="bb-slip"><div class="bb-slip-inner">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <strong style="font-size:13px;">${state.slip.length} selection${state.slip.length>1?'s':''}</strong>
+        <button class="bb-btn ghost" id="clear-slip" style="padding:4px 10px;font-size:12px;">Clear</button>
+      </div>
+      <div style="max-height:100px;overflow-y:auto;margin-bottom:8px;">
+        ${state.slip.map(s => `<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid #2a2820;">
+          <span style="color:#c9bfa8;">${esc(s.label)}</span>
+          <span style="display:flex;gap:8px;align-items:center;"><span class="bb-odds">${s.odds.toFixed(2)}</span>
+          <span data-remove="${esc(s.id)}" style="cursor:pointer;color:#8a8270;">&times;</span></span></div>`).join('')}
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <div style="flex:1;"><span style="font-size:11px;color:#8a8270;">Stake (clams)</span>
+          <input class="bb-input" id="stake-input" type="number" min="1" value="${state.stake}" style="padding:6px 10px;"/></div>
+        <div style="flex:1;"><span style="font-size:11px;color:#8a8270;">Combined odds</span>
+          <div style="font-weight:600;color:#e8c98a;padding:6px 0;">${combined.toFixed(2)}</div></div>
+        <div style="flex:1;"><span style="font-size:11px;color:#8a8270;">Potential return</span>
+          <div style="font-weight:600;padding:6px 0;">${fmt(Math.round(potential))}</div></div>
+        <button class="bb-btn" id="place-bet" style="align-self:flex-end;">Place bet</button>
+      </div>
+    </div></div>`;
+  }
+
+  async function loadMyBets(){
+    const ids = await getIndex('bilbbet2_bets_index_' + state.user.username.toLowerCase());
+    const bets = (await Promise.all(ids.map(id => sget('bilbbet2_bet:'+id)))).filter(Boolean);
+    state.myBets = bets;
+    render();
+  }
+
+  async function attachHandlers(){
+    const $ = sel => document.querySelector(sel);
+    if(state.screen==='login'){
+      $('#f-user').oninput = e => { state.username = e.target.value; };
+      $('#f-pin').oninput = e => { state.pin = e.target.value; };
+      $('#login-form').onsubmit = e => { e.preventDefault(); doLogin(); };
+      $('#register-submit').onclick = doRegister;
+      return;
+    }
+    $('#logout-btn').onclick = () => { state = {...state, screen:'login', user:null, username:'', pin:'', slip:[], h2hMarket:null, myBets:null, adminPunters:null, adminBets:null}; render(); };
+    document.querySelectorAll('[data-tab]').forEach(el => el.onclick = () => {
+      state.activeTab = el.dataset.tab;
+      if(state.activeTab === 'RODDY') state.futureMarketTab = Object.keys(FUTURES.roddy_labels)[0];
+      else if(!['H2H','MY BETS','FA CUP','ECL','ADMIN'].includes(state.activeTab)) state.futureMarketTab = Object.keys(FUTURES.market_labels)[0];
+      if(state.activeTab === 'MY BETS'){ state.myBets = null; render(); loadMyBets(); return; }
+      if(state.activeTab === 'ADMIN'){ state.adminPunters = null; state.adminBets = null; render(); loadAdminData(); return; }
+      render();
+    });
+    document.querySelectorAll('[data-marketkey]').forEach(el => el.onclick = () => { state.futureMarketTab = el.dataset.marketkey; render(); });
+    const teamAEl = $('#team-a'); if(teamAEl) teamAEl.onchange = e => { state.teamA=e.target.value; state.h2hMarket=null; render(); };
+    const teamBEl = $('#team-b'); if(teamBEl) teamBEl.onchange = e => { state.teamB=e.target.value; state.h2hMarket=null; render(); };
+    const roundEl = $('#h2h-round'); if(roundEl) roundEl.onchange = e => { state.h2hRound=parseInt(e.target.value,10); state.h2hMarket=null; render(); };
+    const getBtn = $('#get-market'); if(getBtn) getBtn.onclick = () => { state.h2hMarket = computeH2HMarket(state.teamA, state.teamB, state.h2hRound); render(); };
+    document.querySelectorAll('[data-pick]').forEach(el => el.onclick = () => {
+      const id = el.dataset.pick;
+      const existing = state.slip.findIndex(s=>s.id===id);
+      if(existing>=0) state.slip.splice(existing,1);
+      else state.slip.push({id, label: el.dataset.label || el.dataset.team, odds: parseFloat(el.dataset.odds)});
+      render();
+    });
+    const clearBtn = $('#clear-slip'); if(clearBtn) clearBtn.onclick = () => { state.slip=[]; render(); };
+    document.querySelectorAll('[data-remove]').forEach(el => el.onclick = e => { e.stopPropagation(); state.slip = state.slip.filter(s=>s.id!==el.dataset.remove); render(); });
+    const stakeInput = $('#stake-input'); if(stakeInput) stakeInput.oninput = e => { state.stake = Math.max(1, parseInt(e.target.value,10)||1); };
+    const placeBtn = $('#place-bet'); if(placeBtn) placeBtn.onclick = placeBet;
+    document.querySelectorAll('[data-adjust-user]').forEach(el => el.onclick = () => {
+      const username = el.dataset.adjustUser;
+      const input = document.getElementById('adj-'+username);
+      const delta = parseInt(input.value, 10);
+      if(!delta){ alert('Enter a non-zero amount to add or subtract.'); return; }
+      adjustPunterBalance(username, delta);
+    });
+    document.querySelectorAll('[data-setstatus]').forEach(el => el.onclick = () => {
+      const [betId, status] = el.dataset.setstatus.split('|');
+      setBetStatus(betId, status);
+    });
+  }
+
+  async function placeBet(){
+    const stakeInput = document.getElementById('stake-input');
+    const stake = Math.max(1, parseInt(stakeInput.value,10)||1);
+    if(!state.slip.length){ alert('Add at least one selection first.'); return; }
+    if(stake > state.user.balance){ alert("You don't have that many clams."); return; }
+    const combined = combinedOdds();
+    const u = await getUser(state.user.username);
+    u.balance -= stake;
+    await saveUser(u);
+    state.user = u;
+    const bet = { id: uid(), username: u.username, selections: state.slip, stake, combinedOdds: combined,
+                  potentialReturn: Math.round(stake*combined), timestamp: Date.now(), status: 'PENDING' };
+    await sset('bilbbet2_bet:'+bet.id, bet);
+    await addToIndex('bilbbet2_bets_index_' + u.username.toLowerCase(), bet.id);
+    await addToIndex('bilbbet2_all_bets_index', bet.id);
+    state.slip = []; state.stake = 50;
+    render();
+    alert('Bet placed: ' + stake + ' clams to win ' + fmt(bet.potentialReturn) + ' clams. Check "My Bets" to track it.');
+  }
+
+  async function doLogin(){
+    const username = state.username.trim(), pin = state.pin.trim();
+    if(!username || !pin){ state.error='Enter a username and PIN.'; render(); return; }
+    const u = await getUser(username);
+    if(!u){ state.error='No account with that username. Try "create account" below.'; render(); return; }
+    if(u.pinHash !== simpleHash(pin)){ state.error='Wrong PIN.'; render(); return; }
+    state.user = u; state.error=''; state.username=''; state.pin=''; state.screen='main'; render();
+  }
+
+  async function doRegister(){
+    const username = state.username.trim(), pin = state.pin.trim();
+    if(!username || pin.length<4){ state.error='Pick a username and a PIN of at least 4 digits.'; render(); return; }
+    const existing = await getUser(username);
+    if(existing){ state.error='That username is taken. Log in instead.'; render(); return; }
+    const isFirstEver = (await getIndex('bilbbet2_users_index')).length === 0;
+    const u = { username, pinHash: simpleHash(pin), balance: 1000, isAdmin: isFirstEver };
+    const saved = await sset('bilbbet2_user:' + username.toLowerCase(), u);
+    if(!saved){ state.error='Could not save your account (storage unavailable). Try reloading.'; render(); return; }
+    await addToIndex('bilbbet2_users_index', username);
+    state.user = u; state.error=''; state.username=''; state.pin=''; state.screen='main'; render();
+  }
+
+  render();
+})();
+</script>
