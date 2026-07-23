@@ -291,19 +291,44 @@
       '</div>';
   }
 
+  const fixtureMarketCache = {};
+  function getFixtureMarkets(div, round){
+    const key = div + '|' + round;
+    if(!fixtureMarketCache[key]){
+      fixtureMarketCache[key] = H2H_SCHEDULE[div][round-1].map(([a,b]) => computeH2HMarket(a, b, round));
+    }
+    return fixtureMarketCache[key];
+  }
+
+  function quickOddsButton(pickId, label, teamLabel, oddsInfo){
+    if(oddsInfo.suspended){
+      return `<span class="bb-btn ghost" style="padding:6px 10px;font-size:12px;opacity:0.5;cursor:default;">${esc(teamLabel)} susp.</span>`;
+    }
+    const selected = state.slip.some(s=>s.id===pickId);
+    return `<button class="bb-btn ${selected?'':'ghost'}" data-pick="${esc(pickId)}" data-label="${esc(label)}" data-odds="${oddsInfo.odds}" style="padding:6px 10px;font-size:12px;">${esc(teamLabel)} ${oddsInfo.odds.toFixed(2)}</button>`;
+  }
+
   function renderFixtureList(div){
-    const fixtures = H2H_SCHEDULE[div][state.h2hRound-1];
     if(state.h2hFixtureMarket){
       return `<button class="bb-btn ghost" id="back-to-fixtures" style="margin-bottom:10px;">&larr; Back to Round ${state.h2hRound} fixtures</button>` + renderH2HMarket(state.h2hFixtureMarket);
     }
+    const markets = getFixtureMarkets(div, state.h2hRound);
     return '<div class="bb-card" style="padding:0;overflow:hidden;">' +
-      fixtures.map(([teamA, teamB], i) => `
-        <div data-fixture="${esc(div)}|${i}" style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;cursor:pointer;${i<fixtures.length-1?'border-bottom:1px solid #3a3729;':''}">
-          <span>${esc(teamA)} <span style="color:#8a8270;">vs</span> ${esc(teamB)}</span>
-          <span class="bb-btn ghost" style="padding:5px 12px;font-size:12px;">View market</span>
-        </div>`).join('') +
+      markets.map((m, i) => {
+        const roundTag = 'R' + m.round;
+        const aId = 'H2H|res-a|'+roundTag+'|'+m.teamA+'|'+m.teamB;
+        const bId = 'H2H|res-b|'+roundTag+'|'+m.teamA+'|'+m.teamB;
+        return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;flex-wrap:wrap;${i<markets.length-1?'border-bottom:1px solid #3a3729;':''}">
+          <div style="display:flex;align-items:center;gap:8px;">
+            ${quickOddsButton(aId, roundTag+': '+m.teamA+' to win', m.teamA, toOdds(m.aWinPct))}
+            <span style="color:#8a8270;font-size:12px;">vs</span>
+            ${quickOddsButton(bId, roundTag+': '+m.teamB+' to win', m.teamB, toOdds(m.bWinPct))}
+          </div>
+          <span class="bb-btn ghost" data-fixture-expand="${esc(div)}|${i}" style="padding:5px 10px;font-size:11px;">Full market (draw &amp; handicap)</span>
+        </div>`;
+      }).join('') +
       '</div>' +
-      '<p style="color:#8a8270;font-size:12px;margin-top:10px;">Fixture list is a projected double round-robin, not an official 26/27 schedule \u2014 swap in the real one once fixtures are confirmed.</p>';
+      '<p style="color:#8a8270;font-size:12px;margin-top:10px;">Fixture list is a projected double round-robin, not an official 26/27 schedule \u2014 swap in the real one once fixtures are confirmed. Tap either team\'s price to back the moneyline directly, or open the full market for the draw and handicap.</p>';
   }
 
   function renderH2HTab(){
@@ -656,10 +681,9 @@
     const roundEl = $('#h2h-round'); if(roundEl) roundEl.onchange = e => { state.h2hRound=parseInt(e.target.value,10); state.h2hMarket=null; state.h2hFixtureMarket=null; render(); };
     const getBtn = $('#get-market'); if(getBtn) getBtn.onclick = () => { state.h2hMarket = computeH2HMarket(state.teamA, state.teamB, state.h2hRound); render(); };
     document.querySelectorAll('[data-h2hsubtab]').forEach(el => el.onclick = () => { state.h2hSubTab = el.dataset.h2hsubtab; state.h2hFixtureMarket=null; render(); });
-    document.querySelectorAll('[data-fixture]').forEach(el => el.onclick = () => {
-      const [div, idx] = el.dataset.fixture.split('|');
-      const [teamA, teamB] = H2H_SCHEDULE[div][state.h2hRound-1][parseInt(idx,10)];
-      state.h2hFixtureMarket = computeH2HMarket(teamA, teamB, state.h2hRound);
+    document.querySelectorAll('[data-fixture-expand]').forEach(el => el.onclick = () => {
+      const [div, idx] = el.dataset.fixtureExpand.split('|');
+      state.h2hFixtureMarket = getFixtureMarkets(div, state.h2hRound)[parseInt(idx,10)];
       render();
     });
     const backBtn = $('#back-to-fixtures'); if(backBtn) backBtn.onclick = () => { state.h2hFixtureMarket=null; render(); };
