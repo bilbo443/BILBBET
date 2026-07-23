@@ -44,7 +44,7 @@
     activeTab:'H2H',
     futureMarketTab: FUTURE_DIVS.length ? Object.keys(FUTURES.market_labels)[0] : null,
     teamA:'', teamB:'', h2hRound:1, h2hMarket:null,
-    slip:[], stake:50,
+    slip:[], stake:50, betMode:'multi',
     myBets:null,
     adminPunters:null, adminBets:null,
   };
@@ -270,8 +270,8 @@
       ${row('H2H|res-draw|'+roundTag+'|'+m.teamA+'|'+m.teamB, 'R'+m.round+': Draw', m.drawPct, winOdds.draw)}
       ${row('H2H|res-b|'+roundTag+'|'+m.teamA+'|'+m.teamB, 'R'+m.round+': '+m.teamB+' to win', m.bWinPct, winOdds.b)}
       <h4 style="margin:14px 0 8px;font-size:13px;color:#8a8270;">Handicap</h4>
-      ${row('H2H|hcap-a|'+roundTag+'|'+m.teamA+'|'+m.teamB, 'R'+m.round+': '+m.teamA+' '+(m.line>=0?'-':'+')+Math.abs(m.line).toFixed(1), m.aCoversPct, hcapOdds.a)}
-      ${row('H2H|hcap-b|'+roundTag+'|'+m.teamA+'|'+m.teamB, 'R'+m.round+': '+m.teamB+' '+(m.line>=0?'+':'-')+Math.abs(m.line).toFixed(1), m.bCoversPct, hcapOdds.b)}
+      ${row('H2H|hcap-a-'+(m.line>=0?'fav':'dog')+'|'+roundTag+'|'+m.teamA+'|'+m.teamB, 'R'+m.round+': '+m.teamA+' '+(m.line>=0?'-':'+')+Math.abs(m.line).toFixed(1), m.aCoversPct, hcapOdds.a)}
+      ${row('H2H|hcap-b-'+(m.line>=0?'dog':'fav')+'|'+roundTag+'|'+m.teamA+'|'+m.teamB, 'R'+m.round+': '+m.teamB+' '+(m.line>=0?'+':'-')+Math.abs(m.line).toFixed(1), m.bCoversPct, hcapOdds.b)}
     </div>`;
   }
 
@@ -453,14 +453,125 @@
 
   function combinedOdds(){ return state.slip.reduce((acc,s)=>acc*s.odds,1); }
 
+  // ---------- conflict detection ----------
+  // Two kinds of thing get blocked, for different reasons:
+  //  1. CONTRARY -- outcomes that literally cannot both happen (only one team wins a
+  //     division; a team can't finish both top half and bottom half).
+  //  2. NESTED/IMPLIED -- outcomes that CAN both be true, but one guarantees the other
+  //     (top 3 guarantees top 10; winning the division guarantees a top-3 finish;
+  //     covering a favourite's handicap guarantees the moneyline win too). These aren't
+  //     impossible together, but multiplying their odds pretends they're two independent
+  //     risks when really you're only ever taking the tighter one -- that's the "double
+  //     dip" to close off.
+  const UPPER_CHAIN = ['win_div_pct','top3_pct','top_half_pct'];       // each implies the next
+  const LOWER_CHAIN = ['wooden_spoon_pct','relegation_pct','bottom_half_pct'];
+  const RODDY_CHAIN = ['roddy_win_pct','roddy_top3_pct','roddy_top5_pct','roddy_top10_pct'];
+  const UPPER_SET = new Set(UPPER_CHAIN), LOWER_SET = new Set(LOWER_CHAIN);
+  const SINGLE_WINNER_FUT_MARKETS = new Set(['win_div_pct','wooden_spoon_pct','roddy_win_pct']);
+
+  function parsePick(id){
+    const parts = id.split('|');
+    if(parts[0]==='H2H'){
+      const [, kindRaw, roundTag, teamA, teamB] = parts;
+      const isRes = kindRaw.startsWith('res');
+      // hcap kind carries a fav/dog tag: 'hcap-a-fav' means team A is the side that
+      // needs to win outright to cover (so covering implies the moneyline); 'hcap-a-dog'
+      // means team A can cover while still losing (genuinely independent of the moneyline).
+      const side = kindRaw.startsWith('res-') ? kindRaw.slice(4) : (kindRaw.startsWith('hcap-') ? kindRaw.split('-')[1] : null);
+      const favTag = kindRaw.endsWith('-fav') ? 'fav' : (kindRaw.endsWith('-dog') ? 'dog' : null);
+      return { type:'h2h', kind: isRes ? 'res' : 'hcap', side, favTag, roundTag, teamA, teamB,
+        group: (isRes?'H2H-RES|':'H2H-HCAP|')+roundTag+'|'+teamA+'|'+teamB };
+    }
+    if(parts[0]==='FUT'){
+      const [, div, marketKey, team] = parts;
+      return { type:'fut', div, marketKey, team,
+        group: SINGLE_WINNER_FUT_MARKETS.has(marketKey) ? ('FUT-SINGLE|'+div+'|'+marketKey) : null };
+    }
+    if(parts[0]==='FACUP') return { type:'facup', team: parts[1], group: 'FACUP-SINGLE' };
+    if(parts[0]==='ECL') return { type:'ecl', team: parts[1], group: 'ECL-SINGLE' };
+    return { type:'unknown' };
+  }
+
+  function chainOf(marketKey){
+    if(UPPER_SET.has(marketKey)) return 'upper';
+    if(LOWER_SET.has(marketKey)) return 'lower';
+    if(RODDY_CHAIN.includes(marketKey)) return 'roddy';
+    return null;
+  }
+
+  function findConflict(newId){
+    const np = parsePick(newId);
+    for(const s of state.slip){
+      const ep = parsePick(s.id);
+
+      // same "only one outcome can be true" group, different specific outcome (CONTRARY)
+      if(np.group && ep.group && np.group === ep.group){
+        const npKey = np.team || np.side, epKey = ep.team || ep.side;
+        if(npKey !== epKey){
+          return { reason:'contrary', msg: `only one outcome in that market can actually happen (you already have ${ep.team || ep.side} in this slip)` };
+        }
+      }
+
+      // futures: same team, same division/scope, different market
+      if(np.type==='fut' && ep.type==='fut' && np.div===ep.div && np.team===ep.team && np.marketKey!==ep.marketKey){
+        const npChain = chainOf(np.marketKey), epChain = chainOf(ep.marketKey);
+        if(npChain && epChain){
+          if(npChain === epChain){
+            return { reason:'nested', msg: `those two finishes for ${np.team} aren't independent \u2014 one guarantees the other, so combining them just double-dips the same outcome` };
+          } else {
+            return { reason:'contrary', msg: `${np.team} can't finish both of those positions in the same season` };
+          }
+        }
+      }
+
+      // H2H: covering a favourite's handicap already guarantees the moneyline win on
+      // the same side, so pairing them is a double-dip, not two separate risks.
+      if(np.type==='h2h' && ep.type==='h2h' && np.roundTag===ep.roundTag && np.teamA===ep.teamA && np.teamB===ep.teamB){
+        const resPick = np.kind==='res' ? np : (ep.kind==='res' ? ep : null);
+        const hcapPick = np.kind==='hcap' ? np : (ep.kind==='hcap' ? ep : null);
+        if(resPick && hcapPick && resPick.side===hcapPick.side && hcapPick.favTag==='fav'){
+          return { reason:'nested', msg: `covering a favourite's handicap already means they won outright, so pairing that with the moneyline just double-dips the same result` };
+        }
+      }
+    }
+    return null;
+  }
+
   function slipBar(){
     if(!state.slip.length) return `<div class="bb-slip"><div class="bb-slip-inner" style="color:#8a8270;font-size:13px;">Tap any outcome to build a bet slip.</div></div>`;
-    const combined = combinedOdds(), potential = state.stake*combined;
-    return `<div class="bb-slip"><div class="bb-slip-inner">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+    const modeToggle = `
+      <div style="display:flex;gap:6px;margin-bottom:8px;">
+        <div class="bb-tab ${state.betMode==='multi'?'active':''}" data-betmode="multi" style="font-size:12px;padding:5px 10px;">Multi (one combined bet)</div>
+        <div class="bb-tab ${state.betMode==='singles'?'active':''}" data-betmode="singles" style="font-size:12px;padding:5px 10px;">Singles (bet each separately)</div>
+      </div>`;
+    const header = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
         <strong style="font-size:13px;">${state.slip.length} selection${state.slip.length>1?'s':''}</strong>
         <button class="bb-btn ghost" id="clear-slip" style="padding:4px 10px;font-size:12px;">Clear</button>
-      </div>
+      </div>`;
+
+    if(state.betMode === 'singles'){
+      const totalStake = state.slip.reduce((s,x)=>s+(x.singleStake||0),0);
+      const totalPotential = state.slip.reduce((s,x)=>s+Math.round((x.singleStake||0)*x.odds),0);
+      return `<div class="bb-slip"><div class="bb-slip-inner">
+        ${modeToggle}${header}
+        <div style="max-height:160px;overflow-y:auto;margin-bottom:8px;">
+          ${state.slip.map(s => `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;padding:5px 0;border-bottom:1px solid #2a2820;">
+            <span style="color:#c9bfa8;flex:1;">${esc(s.label)} <span class="bb-odds">${s.odds.toFixed(2)}</span></span>
+            <input class="bb-input" data-single-stake="${esc(s.id)}" type="number" min="1" value="${s.singleStake||50}" style="width:80px;padding:4px 6px;font-size:12px;"/>
+            <span style="color:#8a8270;width:56px;text-align:right;">&rarr;${fmt(Math.round((s.singleStake||0)*s.odds))}</span>
+            <span data-remove="${esc(s.id)}" style="cursor:pointer;color:#8a8270;">&times;</span>
+          </div>`).join('')}
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:12px;color:#8a8270;">Total stake ${fmt(totalStake)} &rarr; potential ${fmt(totalPotential)}</span>
+          <button class="bb-btn" id="place-singles">Place ${state.slip.length} single${state.slip.length>1?'s':''}</button>
+        </div>
+      </div></div>`;
+    }
+
+    const combined = combinedOdds(), potential = state.stake*combined;
+    return `<div class="bb-slip"><div class="bb-slip-inner">
+      ${modeToggle}${header}
       <div style="max-height:100px;overflow-y:auto;margin-bottom:8px;">
         ${state.slip.map(s => `<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid #2a2820;">
           <span style="color:#c9bfa8;">${esc(s.label)}</span>
@@ -495,7 +606,7 @@
       $('#register-submit').onclick = doRegister;
       return;
     }
-    $('#logout-btn').onclick = () => { state = {...state, screen:'login', user:null, username:'', pin:'', slip:[], h2hMarket:null, myBets:null, adminPunters:null, adminBets:null}; render(); };
+    $('#logout-btn').onclick = () => { state = {...state, screen:'login', user:null, username:'', pin:'', slip:[], betMode:'multi', h2hMarket:null, myBets:null, adminPunters:null, adminBets:null}; render(); };
     document.querySelectorAll('[data-tab]').forEach(el => el.onclick = () => {
       state.activeTab = el.dataset.tab;
       if(state.activeTab === 'RODDY') state.futureMarketTab = Object.keys(FUTURES.roddy_labels)[0];
@@ -512,14 +623,22 @@
     document.querySelectorAll('[data-pick]').forEach(el => el.onclick = () => {
       const id = el.dataset.pick;
       const existing = state.slip.findIndex(s=>s.id===id);
-      if(existing>=0) state.slip.splice(existing,1);
-      else state.slip.push({id, label: el.dataset.label || el.dataset.team, odds: parseFloat(el.dataset.odds)});
+      if(existing>=0){ state.slip.splice(existing,1); render(); return; }
+      const conflict = findConflict(id);
+      if(conflict){ alert("Can't add that selection \u2014 " + conflict.msg + "."); return; }
+      state.slip.push({id, label: el.dataset.label || el.dataset.team, odds: parseFloat(el.dataset.odds), singleStake: state.stake});
       render();
+    });
+    document.querySelectorAll('[data-betmode]').forEach(el => el.onclick = () => { state.betMode = el.dataset.betmode; render(); });
+    document.querySelectorAll('[data-single-stake]').forEach(el => el.oninput = e => {
+      const item = state.slip.find(s=>s.id===el.dataset.singleStake);
+      if(item) item.singleStake = Math.max(1, parseInt(e.target.value,10)||1);
     });
     const clearBtn = $('#clear-slip'); if(clearBtn) clearBtn.onclick = () => { state.slip=[]; render(); };
     document.querySelectorAll('[data-remove]').forEach(el => el.onclick = e => { e.stopPropagation(); state.slip = state.slip.filter(s=>s.id!==el.dataset.remove); render(); });
     const stakeInput = $('#stake-input'); if(stakeInput) stakeInput.oninput = e => { state.stake = Math.max(1, parseInt(e.target.value,10)||1); };
     const placeBtn = $('#place-bet'); if(placeBtn) placeBtn.onclick = placeBet;
+    const placeSinglesBtn = $('#place-singles'); if(placeSinglesBtn) placeSinglesBtn.onclick = placeBetsAsSingles;
     document.querySelectorAll('[data-adjust-user]').forEach(el => el.onclick = () => {
       const username = el.dataset.adjustUser;
       const input = document.getElementById('adj-'+username);
@@ -553,28 +672,11 @@
     alert('Bet placed: ' + stake + ' clams to win ' + fmt(bet.potentialReturn) + ' clams. Check "My Bets" to track it.');
   }
 
-  async function doLogin(){
-    const username = state.username.trim(), pin = state.pin.trim();
-    if(!username || !pin){ state.error='Enter a username and PIN.'; render(); return; }
-    const u = await getUser(username);
-    if(!u){ state.error='No account with that username. Try "create account" below.'; render(); return; }
-    if(u.pinHash !== simpleHash(pin)){ state.error='Wrong PIN.'; render(); return; }
-    state.user = u; state.error=''; state.username=''; state.pin=''; state.screen='main'; render();
-  }
-
-  async function doRegister(){
-    const username = state.username.trim(), pin = state.pin.trim();
-    if(!username || pin.length<4){ state.error='Pick a username and a PIN of at least 4 digits.'; render(); return; }
-    const existing = await getUser(username);
-    if(existing){ state.error='That username is taken. Log in instead.'; render(); return; }
-    const isFirstEver = (await getIndex('bilbbet2_users_index')).length === 0;
-    const u = { username, pinHash: simpleHash(pin), balance: 1000, isAdmin: isFirstEver };
-    const saved = await sset('bilbbet2_user:' + username.toLowerCase(), u);
-    if(!saved){ state.error='Could not save your account (storage unavailable). Try reloading.'; render(); return; }
-    await addToIndex('bilbbet2_users_index', username);
-    state.user = u; state.error=''; state.username=''; state.pin=''; state.screen='main'; render();
-  }
-
-  render();
-})();
-</script>
+  async function placeBetsAsSingles(){
+    if(!state.slip.length){ alert('Add at least one selection first.'); return; }
+    const stakes = state.slip.map(s => Math.max(1, s.singleStake||0));
+    if(stakes.some(s => !s)){ alert('Every selection needs a stake before placing as singles.'); return; }
+    const totalStake = stakes.reduce((a,b)=>a+b,0);
+    if(totalStake > state.user.balance){ alert("You don't have enough clams to cover all of those singles."); return; }
+    const u = await getUser(state.user.username);
+    u.balance -= tot
