@@ -1,7 +1,7 @@
 (async function(){
   const DATA = {};
   async function loadAllData(){
-    const files = ['futures','h2h_history','h2h_divisions','h2h_shift','h2h_schedule'];
+    const files = ['futures','h2h_history','h2h_divisions','h2h_shift','h2h_schedule','leading_at'];
     const results = await Promise.all(files.map(name => fetch('./data/' + name + '.json').then(r => r.json())));
     files.forEach((name, i) => { DATA[name] = results[i]; });
   }
@@ -9,6 +9,8 @@
   await loadAllData();
 
   const FUTURES = DATA.futures;
+  const LEADING_AT = DATA.leading_at.leading_at;
+  const RODDY_LEADING_AT = DATA.leading_at.roddy_leading_at;
   const H2H_HISTORY = DATA.h2h_history;
   const H2H_DIVISIONS = DATA.h2h_divisions;
   const H2H_SHIFT = DATA.h2h_shift;
@@ -29,6 +31,8 @@
     slip:[], stake:50, betMode:'multi',
     myBets:null,
     adminPunters:null, adminBets:null, novelty:null, statsData:null,
+    currentRound: 1,       // the next round yet to be played; anything before this is "past"
+    leadingAtRound: 1,
   };
 
   function esc(s){ return String(s).replace(/[&<>"'\x27]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -136,23 +140,23 @@
         <div style="max-width:340px;width:100%;">
           <div style="text-align:center;margin-bottom:1rem;">
             <h2 style="margin:0;letter-spacing:0.5px;">bilbbet</h2>
-            <p style="color:#8a8270;font-size:14px;margin:4px 0 0;">Log in to place a bet</p>
+            <p style="color:#9a9a9a;font-size:14px;margin:4px 0 0;">Log in to place a bet</p>
           </div>
           <form id="login-form" class="bb-card" style="display:flex;flex-direction:column;gap:10px;">
-            <div><span style="font-size:12px;color:#8a8270;display:block;margin-bottom:4px;">Your Eliza team</span>
+            <div><span style="font-size:12px;color:#9a9a9a;display:block;margin-bottom:4px;">Your Eliza team</span>
               <select class="bb-select" id="f-user">
                 <option value="admin" ${state.username==='admin'?'selected':''}>Admin login</option>
                 ${teamOptions(state.username)}
               </select></div>
-            <div><span style="font-size:12px;color:#8a8270;display:block;margin-bottom:4px;">PIN</span>
+            <div><span style="font-size:12px;color:#9a9a9a;display:block;margin-bottom:4px;">PIN</span>
               <input class="bb-input" id="f-pin" type="password" inputmode="numeric" value="${esc(state.pin)}"/></div>
             ${state.error ? `<div style="color:#c0604f;font-size:13px;">${esc(state.error)}</div>` : ''}
-            ${state.info ? `<div style="color:#9fd8c4;font-size:13px;">${esc(state.info)}</div>` : ''}
+            ${state.info ? `<div style="color:#7fbf8f;font-size:13px;">${esc(state.info)}</div>` : ''}
             <button type="submit" class="bb-btn" id="login-submit" style="margin-top:4px;">Log in</button>
             <button type="button" class="bb-btn ghost" id="register-submit">First time? Create account</button>
             <button type="button" class="bb-btn ghost" id="close-login-modal">Cancel</button>
           </form>
-          <p style="font-size:12px;color:#8a8270;text-align:center;margin-top:1rem;">Everyone starts with 1,000 clams once an admin approves your registration.</p>
+          <p style="font-size:12px;color:#9a9a9a;text-align:center;margin-top:1rem;">Everyone starts with 1,000 clams once an admin approves your registration.</p>
           ${!hasRealStorage ? `<p style="font-size:12px;color:#c0604f;text-align:center;margin-top:0.5rem;">Running without persistent storage &mdash; open inside Claude's artifact panel for accounts to be saved between visits.</p>` : ''}
         </div>
       </div>`;
@@ -161,25 +165,36 @@
   function header(){
     if(!state.user){
       return `
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 4px;border-bottom:1px solid #3a3729;margin-bottom:1rem;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 4px;border-bottom:1px solid #3d3d3d;margin-bottom:1rem;">
           <strong style="letter-spacing:0.5px;">bilbbet</strong>
           <button class="bb-btn" id="open-login-btn" style="padding:7px 14px;">Log in</button>
         </div>`;
     }
     return `
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 4px;border-bottom:1px solid #3a3729;margin-bottom:1rem;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 4px;border-bottom:1px solid #3d3d3d;margin-bottom:1rem;">
         <strong style="letter-spacing:0.5px;">bilbbet</strong>
         <div style="display:flex;align-items:center;gap:14px;font-size:14px;">
           <span>${fmt(state.user.balance)} clams</span>
-          <span style="color:#8a8270;">${esc(state.user.username)}</span>
+          <span style="color:#9a9a9a;">${esc(state.user.username)}</span>
           <button class="bb-btn ghost" id="logout-btn" style="padding:6px 12px;">Log out</button>
         </div>
       </div>`;
   }
 
+  function divColorClass(tabName){
+    if(tabName === 'ELIZA CUP (D1)') return 'div-eliza';
+    if(tabName === 'DIVISION 2A') return 'div-2a';
+    if(tabName === 'DIVISION 2B') return 'div-2b';
+    if(tabName === 'DIVISION 3A') return 'div-3a';
+    if(tabName === 'DIVISION 3B') return 'div-3b';
+    if(tabName === 'FA CUP') return 'div-facup';
+    if(tabName === 'ECL') return 'div-ecl';
+    return '';
+  }
+
   function mainTabs(){
     return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">' +
-      currentTabs().map(t => `<div class="bb-tab ${state.activeTab===t?'active':''}" data-tab="${esc(t)}">${t==='RODDY'?'The Roddy':(t==='MY BETS'?'My Bets':(t==='ADMIN'?'Admin':(t==='H2H'?'H2H':t.replace(' (D1)',''))))}</div>`).join('') +
+      currentTabs().map(t => `<div class="bb-tab ${state.activeTab===t?'active '+divColorClass(t):''}" data-tab="${esc(t)}">${t==='RODDY'?'The Roddy':(t==='MY BETS'?'My Bets':(t==='ADMIN'?'Admin':(t==='H2H'?'H2H':t.replace(' (D1)',''))))}</div>`).join('') +
       '</div>';
   }
 
@@ -187,13 +202,41 @@
     return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">' +
       Object.entries(FUTURES.market_labels).map(([key,label]) =>
         `<div class="bb-tab ${state.futureMarketTab===key?'active':''}" data-marketkey="${key}" style="font-size:12px;padding:6px 10px;">${esc(label)}</div>`
-      ).join('') + '</div>';
+      ).join('') +
+      `<div class="bb-tab ${state.futureMarketTab==='leading_at'?'active':''}" data-marketkey="leading_at" style="font-size:12px;padding:6px 10px;">To Be Leading At&hellip;</div>` +
+      '</div>';
   }
   function roddyMarketTabs(){
     return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">' +
       Object.entries(FUTURES.roddy_labels).map(([key,label]) =>
         `<div class="bb-tab ${state.futureMarketTab===key?'active':''}" data-marketkey="${key}" style="font-size:12px;padding:6px 10px;">${esc(label)}</div>`
-      ).join('') + '</div>';
+      ).join('') +
+      `<div class="bb-tab ${state.futureMarketTab==='leading_at'?'active':''}" data-marketkey="leading_at" style="font-size:12px;padding:6px 10px;">To Be Leading At&hellip;</div>` +
+      '</div>';
+  }
+
+  function renderLeadingAtMarket(scopeKey){
+    // scopeKey is a division name, or 'RODDY' for the open-field standings
+    const source = scopeKey === 'RODDY' ? RODDY_LEADING_AT : LEADING_AT[scopeKey];
+    const round = state.leadingAtRound;
+    const outcomes = source[round] || source[String(round)] || [];
+    const tagPrefix = 'LEADAT|' + scopeKey + '|' + round;
+    const list = !outcomes.length ? '<p style="color:#9a9a9a;">No outcomes in this market.</p>' : outcomes.map(o => {
+      if(o.suspended){
+        return `<div class="bb-outcome" style="opacity:0.5;cursor:default;">
+          <span>${esc(o.team)}</span><span class="bb-odds" style="color:#9a9a9a;">suspended</span></div>`;
+      }
+      const selId = tagPrefix + '|' + o.team;
+      const selected = state.slip.some(s=>s.id===selId);
+      return `<div class="bb-outcome ${selected?'selected':''}" data-pick="${esc(selId)}" data-team="${esc(o.team)}" data-odds="${o.odds}" data-label="${esc(o.team)} leading R${round} (${scopeKey==='RODDY'?'Roddy':scopeKey.replace(' (D1)','')})">
+        <span>${esc(o.team)}</span><span class="bb-odds">${o.odds.toFixed(2)}</span></div>`;
+    }).join('');
+    return `<div class="bb-card" style="margin-bottom:1rem;display:flex;align-items:center;gap:10px;">
+        <span style="font-size:12px;color:#9a9a9a;">Round</span>
+        <select class="bb-select" id="leadingat-round" style="width:170px;">${roundOptions(state.leadingAtRound)}</select>
+      </div>
+      <p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">Who's on top of the table after this specific round, not who wins the season.</p>
+      ${list}`;
   }
 
   function cupMarketTabs(labelsKey){
@@ -207,11 +250,11 @@
   function cupOutcomesList(marketsKey, marketKey){
     const cupTag = marketsKey === 'fa_cup_markets' ? 'FACUP' : 'ECL';
     const outcomes = FUTURES[marketsKey][marketKey];
-    if(!outcomes || !outcomes.length) return '<p style="color:#8a8270;">No outcomes in this market.</p>';
+    if(!outcomes || !outcomes.length) return '<p style="color:#9a9a9a;">No outcomes in this market.</p>';
     return outcomes.map(o => {
       if(o.suspended){
         return `<div class="bb-outcome" style="opacity:0.5;cursor:default;">
-          <span>${esc(o.team)}</span><span class="bb-odds" style="color:#8a8270;">suspended</span></div>`;
+          <span>${esc(o.team)}</span><span class="bb-odds" style="color:#9a9a9a;">suspended</span></div>`;
       }
       const selId = cupTag+'|'+marketKey+'|'+o.team;
       const selected = state.slip.some(s=>s.id===selId);
@@ -222,11 +265,11 @@
 
   function futuresOutcomesList(div, marketKey){
     const outcomes = div==='RODDY' ? FUTURES.roddy[marketKey] : FUTURES.divisions[div][marketKey];
-    if(!outcomes || !outcomes.length) return '<p style="color:#8a8270;">No outcomes in this market.</p>';
+    if(!outcomes || !outcomes.length) return '<p style="color:#9a9a9a;">No outcomes in this market.</p>';
     return outcomes.map(o => {
       if(o.suspended){
         return `<div class="bb-outcome" style="opacity:0.5;cursor:default;">
-          <span>${esc(o.team)}</span><span class="bb-odds" style="color:#8a8270;">suspended</span></div>`;
+          <span>${esc(o.team)}</span><span class="bb-odds" style="color:#9a9a9a;">suspended</span></div>`;
       }
       const selId = 'FUT|'+div+'|'+marketKey+'|'+o.team;
       const selected = state.slip.some(s=>s.id===selId);
@@ -252,28 +295,28 @@
     function row(id, label, pct, oddsInfo){
       if(oddsInfo.suspended){
         return `<div class="bb-outcome" style="opacity:0.5;cursor:default;">
-          <span>${esc(label)} <span style="color:#8a8270;font-size:12px;">(${pct.toFixed(1)}%)</span></span>
-          <span class="bb-odds" style="color:#8a8270;">suspended</span></div>`;
+          <span>${esc(label)} <span style="color:#9a9a9a;font-size:12px;">(${pct.toFixed(1)}%)</span></span>
+          <span class="bb-odds" style="color:#9a9a9a;">suspended</span></div>`;
       }
       const odds = oddsInfo.odds;
       const selected = state.slip.some(s=>s.id===id);
       return `<div class="bb-outcome ${selected?'selected':''}" data-pick="${id}" data-label="${esc(label)}" data-odds="${odds}">
-        <span>${esc(label)} <span style="color:#8a8270;font-size:12px;">(${pct.toFixed(1)}%)</span></span>
+        <span>${esc(label)} <span style="color:#9a9a9a;font-size:12px;">(${pct.toFixed(1)}%)</span></span>
         <span class="bb-odds">${odds.toFixed(2)}</span></div>`;
     }
     return `<div class="bb-card" style="margin-bottom:1rem;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <span class="bb-pill" style="background:#2a4640;color:#9fd8c4;">Round ${m.round}</span>
+        <span class="bb-pill" style="background:#4a3a10;color:#ffdd00;">Round ${m.round}</span>
       </div>
       <div style="display:flex;justify-content:space-between;margin-bottom:12px;">
-        <div><div style="font-size:12px;color:#8a8270;">${esc(m.teamA)} viable range</div><div style="font-size:20px;font-weight:600;">${m.aRange[0]}&ndash;${m.aRange[1]}</div></div>
-        <div style="text-align:right;"><div style="font-size:12px;color:#8a8270;">${esc(m.teamB)} viable range</div><div style="font-size:20px;font-weight:600;">${m.bRange[0]}&ndash;${m.bRange[1]}</div></div>
+        <div><div style="font-size:12px;color:#9a9a9a;">${esc(m.teamA)} viable range</div><div style="font-size:20px;font-weight:600;">${m.aRange[0]}&ndash;${m.aRange[1]}</div></div>
+        <div style="text-align:right;"><div style="font-size:12px;color:#9a9a9a;">${esc(m.teamB)} viable range</div><div style="font-size:20px;font-weight:600;">${m.bRange[0]}&ndash;${m.bRange[1]}</div></div>
       </div>
-      <h4 style="margin:0 0 8px;font-size:13px;color:#8a8270;">Match result</h4>
+      <h4 style="margin:0 0 8px;font-size:13px;color:#9a9a9a;">Match result</h4>
       ${row('H2H|res-a|'+roundTag+'|'+m.teamA+'|'+m.teamB, 'R'+m.round+': '+m.teamA+' to win', m.aWinPct, winOdds.a)}
       ${row('H2H|res-draw|'+roundTag+'|'+m.teamA+'|'+m.teamB, 'R'+m.round+': Draw', m.drawPct, winOdds.draw)}
       ${row('H2H|res-b|'+roundTag+'|'+m.teamA+'|'+m.teamB, 'R'+m.round+': '+m.teamB+' to win', m.bWinPct, winOdds.b)}
-      <h4 style="margin:14px 0 8px;font-size:13px;color:#8a8270;">Handicap</h4>
+      <h4 style="margin:14px 0 8px;font-size:13px;color:#9a9a9a;">Handicap</h4>
       ${row('H2H|hcap-a-'+(m.line>=0?'fav':'dog')+'|'+roundTag+'|'+m.teamA+'|'+m.teamB, 'R'+m.round+': '+m.teamA+' '+(m.line>=0?'-':'+')+Math.abs(m.line).toFixed(1), m.aCoversPct, hcapOdds.a)}
       ${row('H2H|hcap-b-'+(m.line>=0?'dog':'fav')+'|'+roundTag+'|'+m.teamA+'|'+m.teamB, 'R'+m.round+': '+m.teamB+' '+(m.line>=0?'+':'-')+Math.abs(m.line).toFixed(1), m.bCoversPct, hcapOdds.b)}
     </div>`;
@@ -281,7 +324,10 @@
 
   function roundOptions(selected){
     let html = '';
-    for(let r=1;r<=26;r++) html += `<option value="${r}" ${r===selected?'selected':''}>Round ${r}</option>`;
+    for(let r=1;r<=26;r++){
+      const isPast = r < state.currentRound;
+      html += `<option value="${r}" ${r===selected?'selected':''} ${isPast?'disabled':''}>Round ${r}${isPast?' (played)':''}</option>`;
+    }
     return html;
   }
 
@@ -320,30 +366,30 @@
         const roundTag = 'R' + m.round;
         const aId = 'H2H|res-a|'+roundTag+'|'+m.teamA+'|'+m.teamB;
         const bId = 'H2H|res-b|'+roundTag+'|'+m.teamA+'|'+m.teamB;
-        return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;flex-wrap:wrap;${i<markets.length-1?'border-bottom:1px solid #3a3729;':''}">
+        return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;flex-wrap:wrap;${i<markets.length-1?'border-bottom:1px solid #3d3d3d;':''}">
           <div style="display:flex;align-items:center;gap:8px;">
             ${quickOddsButton(aId, roundTag+': '+m.teamA+' to win', m.teamA, toOdds(m.aWinPct))}
-            <span style="color:#8a8270;font-size:12px;">vs</span>
+            <span style="color:#9a9a9a;font-size:12px;">vs</span>
             ${quickOddsButton(bId, roundTag+': '+m.teamB+' to win', m.teamB, toOdds(m.bWinPct))}
           </div>
           <span class="bb-btn ghost" data-fixture-expand="${esc(div)}|${i}" style="padding:5px 10px;font-size:11px;">Full market (draw &amp; handicap)</span>
         </div>`;
       }).join('') +
       '</div>' +
-      '<p style="color:#8a8270;font-size:12px;margin-top:10px;">Fixture list is a projected double round-robin, not an official 26/27 schedule \u2014 swap in the real one once fixtures are confirmed. Tap either team\'s price to back the moneyline directly, or open the full market for the draw and handicap.</p>';
+      '<p style="color:#9a9a9a;font-size:12px;margin-top:10px;">Fixture list is a projected double round-robin, not an official 26/27 schedule \u2014 swap in the real one once fixtures are confirmed. Tap either team\'s price to back the moneyline directly, or open the full market for the draw and handicap.</p>';
   }
 
   function renderH2HTab(){
     const roundBar = `<div class="bb-card" style="margin-bottom:1rem;display:flex;align-items:center;gap:10px;">
-      <span style="font-size:12px;color:#8a8270;">Round</span>
+      <span style="font-size:12px;color:#9a9a9a;">Round</span>
       <select class="bb-select" id="h2h-round" style="width:140px;">${roundOptions(state.h2hRound)}</select>
     </div>`;
     if(state.h2hSubTab === 'CUSTOM MATCHUP'){
       return roundBar + h2hSubTabBar() + `<div class="bb-card" style="margin-bottom:1rem;">
         <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
-          <div style="flex:1;min-width:180px;"><span style="font-size:12px;color:#8a8270;display:block;margin-bottom:4px;">Team A</span>
+          <div style="flex:1;min-width:180px;"><span style="font-size:12px;color:#9a9a9a;display:block;margin-bottom:4px;">Team A</span>
             <select class="bb-select" id="team-a">${teamOptions(state.teamA)}</select></div>
-          <div style="flex:1;min-width:180px;"><span style="font-size:12px;color:#8a8270;display:block;margin-bottom:4px;">Team B</span>
+          <div style="flex:1;min-width:180px;"><span style="font-size:12px;color:#9a9a9a;display:block;margin-bottom:4px;">Team B</span>
             <select class="bb-select" id="team-b">${teamOptions(state.teamB)}</select></div>
           <button class="bb-btn" id="get-market" ${(!state.teamA||!state.teamB||state.teamA===state.teamB)?'disabled':''}>Get market</button>
         </div>
@@ -354,17 +400,17 @@
   }
 
   function statusPill(status){
-    const colors = { PENDING: ['#efece3','#8a8270'], WON: ['#e1efe9','#1f5c52'], LOST: ['#f3ded9','#a3402f'],
-      VOID: ['#e8e4d8','#6b6555'], OPEN: ['#2a4640','#9fd8c4'] };
+    const colors = { PENDING: ['#efece3','#9a9a9a'], WON: ['#e1efe9','#2d6a44'], LOST: ['#f3ded9','#a3402f'],
+      VOID: ['#e8e4d8','#8a8a8a'], OPEN: ['#4a3a10','#ffdd00'] };
     const [bg,fg] = colors[status] || colors.PENDING;
     return `<span class="bb-pill" style="background:${bg};color:${fg};">${status.toLowerCase()}</span>`;
   }
 
   function renderMyBetsTab(){
-    if(!state.user) return '<p style="color:#8a8270;">Log in to see your bets.</p>';
-    if(state.myBets === null) return '<p style="color:#8a8270;">Loading&hellip;</p>';
+    if(!state.user) return '<p style="color:#9a9a9a;">Log in to see your bets.</p>';
+    if(state.myBets === null) return '<p style="color:#9a9a9a;">Loading&hellip;</p>';
     const bets = state.myBets;
-    if(!bets.length) return '<p style="color:#8a8270;">No bets placed yet &mdash; head to any market tab and tap an outcome to get started.</p>';
+    if(!bets.length) return '<p style="color:#9a9a9a;">No bets placed yet &mdash; head to any market tab and tap an outcome to get started.</p>';
     const pending = bets.filter(b=>(b.status||'PENDING')==='PENDING').length;
     const won = bets.filter(b=>b.status==='WON').length;
     const lost = bets.filter(b=>b.status==='LOST').length;
@@ -376,11 +422,11 @@
     }, 0);
     return `
       <div class="bb-card" style="margin-bottom:1rem;display:flex;gap:20px;flex-wrap:wrap;">
-        <div><div style="font-size:12px;color:#8a8270;">Pending</div><div style="font-size:18px;font-weight:600;">${pending}</div></div>
-        <div><div style="font-size:12px;color:#8a8270;">Won</div><div style="font-size:18px;font-weight:600;color:#1f5c52;">${won}</div></div>
-        <div><div style="font-size:12px;color:#8a8270;">Lost</div><div style="font-size:18px;font-weight:600;color:#a3402f;">${lost}</div></div>
-        <div><div style="font-size:12px;color:#8a8270;">Voided</div><div style="font-size:18px;font-weight:600;">${voided}</div></div>
-        <div><div style="font-size:12px;color:#8a8270;">Net (settled bets)</div><div style="font-size:18px;font-weight:600;">${netFromSettled>=0?'+':''}${fmt(netFromSettled)}</div></div>
+        <div><div style="font-size:12px;color:#9a9a9a;">Pending</div><div style="font-size:18px;font-weight:600;">${pending}</div></div>
+        <div><div style="font-size:12px;color:#9a9a9a;">Won</div><div style="font-size:18px;font-weight:600;color:#4a9166;">${won}</div></div>
+        <div><div style="font-size:12px;color:#9a9a9a;">Lost</div><div style="font-size:18px;font-weight:600;color:#a3402f;">${lost}</div></div>
+        <div><div style="font-size:12px;color:#9a9a9a;">Voided</div><div style="font-size:18px;font-weight:600;">${voided}</div></div>
+        <div><div style="font-size:12px;color:#9a9a9a;">Net (settled bets)</div><div style="font-size:18px;font-weight:600;">${netFromSettled>=0?'+':''}${fmt(netFromSettled)}</div></div>
       </div>
       <div class="bb-card" style="padding:0;overflow-x:auto;">
         <table class="bb-table">
@@ -389,7 +435,7 @@
             ${bets.slice().sort((a,b)=>b.timestamp-a.timestamp).map(b => `
               <tr>
                 <td>${fmtDate(b.timestamp)}</td>
-                <td>${b.selections.map(s=>esc(s.label)+' <span style="color:#6b6555;">('+s.odds.toFixed(2)+')</span>').join('<br/>')}</td>
+                <td>${b.selections.map(s=>esc(s.label)+' <span style="color:#8a8a8a;">('+s.odds.toFixed(2)+')</span>').join('<br/>')}</td>
                 <td>${fmt(b.stake)}</td>
                 <td>${b.combinedOdds.toFixed(2)}</td>
                 <td>${fmt(b.potentialReturn)}</td>
@@ -398,55 +444,55 @@
           </tbody>
         </table>
       </div>
-      <p style="font-size:12px;color:#8a8270;margin-top:10px;">
+      <p style="font-size:12px;color:#9a9a9a;margin-top:10px;">
         Every bet here is recorded as <strong>pending</strong> until the 26/27 season actually plays out and results come in &mdash;
         this table is the template that will populate with won/lost once there's a way to resolve markets against real results.
       </p>`;
   }
 
   function renderSpecialsTab(){
-    if(state.novelty === null) return '<p style="color:#8a8270;">Loading&hellip;</p>';
+    if(state.novelty === null) return '<p style="color:#9a9a9a;">Loading&hellip;</p>';
     const open = state.novelty.filter(n => n.status === 'OPEN');
     const settled = state.novelty.filter(n => n.status !== 'OPEN').sort((a,b)=>b.createdAt-a.createdAt);
     let html = '<h3 style="margin-top:0;">Specials &amp; Novelty</h3>';
     if(!open.length && !settled.length){
-      return html + '<p style="color:#8a8270;">Nothing added yet &mdash; the admin can add one-off bets here.</p>';
+      return html + '<p style="color:#9a9a9a;">Nothing added yet &mdash; the admin can add one-off bets here.</p>';
     }
     if(open.length){
       html += '<div class="bb-card" style="padding:0;overflow:hidden;margin-bottom:1.5rem;">' +
         open.map((n,i) => {
           const id = 'NOVELTY|'+n.id;
           const selected = state.slip.some(s=>s.id===id);
-          return `<div class="bb-outcome ${selected?'selected':''}" data-pick="${esc(id)}" data-label="${esc(n.name)}" data-odds="${n.odds}" style="${i<open.length-1?'border-bottom:1px solid #3a3729;':''}">
+          return `<div class="bb-outcome ${selected?'selected':''}" data-pick="${esc(id)}" data-label="${esc(n.name)}" data-odds="${n.odds}" style="${i<open.length-1?'border-bottom:1px solid #3d3d3d;':''}">
             <span>${esc(n.name)}</span><span class="bb-odds">${n.odds.toFixed(2)}</span></div>`;
         }).join('') + '</div>';
     }
     if(settled.length){
-      html += '<h4 style="color:#8a8270;">Settled</h4><div class="bb-card" style="padding:0;overflow:hidden;">' +
-        settled.map((n,i) => `<div style="display:flex;justify-content:space-between;padding:10px 14px;${i<settled.length-1?'border-bottom:1px solid #3a3729;':''}">
-          <span style="color:#8a8270;">${esc(n.name)} <span style="color:#6b6555;">(${n.odds.toFixed(2)})</span></span>${statusPill(n.status)}
+      html += '<h4 style="color:#9a9a9a;">Settled</h4><div class="bb-card" style="padding:0;overflow:hidden;">' +
+        settled.map((n,i) => `<div style="display:flex;justify-content:space-between;padding:10px 14px;${i<settled.length-1?'border-bottom:1px solid #3d3d3d;':''}">
+          <span style="color:#9a9a9a;">${esc(n.name)} <span style="color:#8a8a8a;">(${n.odds.toFixed(2)})</span></span>${statusPill(n.status)}
         </div>`).join('') + '</div>';
     }
     return html;
   }
 
   function renderStatsTab(){
-    if(state.statsData === null) return '<p style="color:#8a8270;">Loading&hellip;</p>';
+    if(state.statsData === null) return '<p style="color:#9a9a9a;">Loading&hellip;</p>';
     const s = state.statsData;
     function leaderboard(title, rows, valueFmt){
-      if(!rows.length) return `<h4 style="color:#8a8270;">${title}</h4><p style="color:#8a8270;font-size:13px;">Nothing to show yet.</p>`;
-      return `<h4 style="color:#8a8270;margin-bottom:6px;">${title}</h4>
+      if(!rows.length) return `<h4 style="color:#9a9a9a;">${title}</h4><p style="color:#9a9a9a;font-size:13px;">Nothing to show yet.</p>`;
+      return `<h4 style="color:#9a9a9a;margin-bottom:6px;">${title}</h4>
         <div class="bb-card" style="padding:0;overflow:hidden;margin-bottom:1.25rem;">
-          ${rows.map((r,i) => `<div style="display:flex;justify-content:space-between;padding:8px 14px;${i<rows.length-1?'border-bottom:1px solid #3a3729;':''}">
-            <span>${i+1}. ${esc(r.label)}</span><span style="font-weight:600;color:#e8c98a;">${valueFmt(r.value)}</span>
+          ${rows.map((r,i) => `<div style="display:flex;justify-content:space-between;padding:8px 14px;${i<rows.length-1?'border-bottom:1px solid #3d3d3d;':''}">
+            <span>${i+1}. ${esc(r.label)}</span><span style="font-weight:600;color:#ffdd00;">${valueFmt(r.value)}</span>
           </div>`).join('')}
         </div>`;
     }
     return '<h3 style="margin-top:0;">Site stats</h3>' +
       `<div class="bb-card" style="margin-bottom:1.25rem;display:flex;gap:20px;flex-wrap:wrap;">
-        <div><div style="font-size:12px;color:#8a8270;">Total clams wagered</div><div style="font-size:18px;font-weight:600;">${fmt(s.totalWagered)}</div></div>
-        <div><div style="font-size:12px;color:#8a8270;">Bets placed</div><div style="font-size:18px;font-weight:600;">${s.totalBets}</div></div>
-        <div><div style="font-size:12px;color:#8a8270;">Punters</div><div style="font-size:18px;font-weight:600;">${s.totalPunters}</div></div>
+        <div><div style="font-size:12px;color:#9a9a9a;">Total clams wagered</div><div style="font-size:18px;font-weight:600;">${fmt(s.totalWagered)}</div></div>
+        <div><div style="font-size:12px;color:#9a9a9a;">Bets placed</div><div style="font-size:18px;font-weight:600;">${s.totalBets}</div></div>
+        <div><div style="font-size:12px;color:#9a9a9a;">Punters</div><div style="font-size:18px;font-weight:600;">${s.totalPunters}</div></div>
       </div>` +
       leaderboard('Top 5 stakes', s.topStakes, v=>fmt(v)) +
       leaderboard('Top 5 multis (by legs)', s.topMultis, v=>v+' legs') +
@@ -458,15 +504,24 @@
   }
 
   function renderAdminTab(){
-    if(state.adminPunters === null || state.adminBets === null) return '<p style="color:#8a8270;">Loading&hellip;</p>';
+    if(state.adminPunters === null || state.adminBets === null) return '<p style="color:#9a9a9a;">Loading&hellip;</p>';
     const punters = state.adminPunters, bets = state.adminBets;
     const pending = punters.filter(u => (u.status||'APPROVED') === 'PENDING');
     return `
-      <h3 style="margin-top:0;">Pending registrations</h3>
-      ${!pending.length ? '<p style="color:#8a8270;font-size:13px;">Nothing waiting on approval.</p>' : `
+      <h3 style="margin-top:0;">Season progress</h3>
+      <div class="bb-card" style="margin-bottom:1.5rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <span style="font-size:13px;color:#9a9a9a;">Next round to be played:</span>
+        <select class="bb-select" id="admin-current-round" style="width:140px;">
+          ${Array.from({length:26},(_, i) => i+1).map(r => `<option value="${r}" ${r===state.currentRound?'selected':''}>Round ${r}</option>`).join('')}
+        </select>
+        <button class="bb-btn" id="save-current-round">Update</button>
+        <span style="font-size:12px;color:#9a9a9a;">Rounds before this are greyed out everywhere as already played.</span>
+      </div>
+      <h3>Pending registrations</h3>
+      ${!pending.length ? '<p style="color:#9a9a9a;font-size:13px;">Nothing waiting on approval.</p>' : `
       <div class="bb-card" style="padding:0;overflow:hidden;margin-bottom:1.5rem;">
         ${pending.map((u,i) => `
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;${i<pending.length-1?'border-bottom:1px solid #3a3729;':''}">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;${i<pending.length-1?'border-bottom:1px solid #3d3d3d;':''}">
             <span>${esc(u.username)}</span>
             <span style="display:flex;gap:6px;">
               <button class="bb-btn" data-regstatus="${esc(u.username)}|APPROVED" style="padding:5px 10px;font-size:12px;">Approve (fund 1,000)</button>
@@ -482,9 +537,9 @@
             ${punters.slice().sort((a,b)=>a.username.localeCompare(b.username)).map(u => `
               <tr>
                 <td>${esc(u.username)}
-                  ${u.isAdmin ? ' <span class="bb-pill" style="background:#e8c98a;color:#4a3a10;">admin</span>' : ''}
-                  ${u.status==='PENDING' ? ' <span class="bb-pill" style="background:#efece3;color:#8a8270;">pending</span>' : ''}
-                  ${u.status==='REJECTED' ? ` <span class="bb-pill" style="background:#f3ded9;color:#a3402f;">rejected</span> <span data-regstatus="${esc(u.username)}|APPROVED" style="cursor:pointer;color:#8a8270;font-size:11px;text-decoration:underline;">re-approve</span>` : ''}
+                  ${u.isAdmin ? ' <span class="bb-pill" style="background:#ffdd00;color:#4a3a10;">admin</span>' : ''}
+                  ${u.status==='PENDING' ? ' <span class="bb-pill" style="background:#efece3;color:#9a9a9a;">pending</span>' : ''}
+                  ${u.status==='REJECTED' ? ` <span class="bb-pill" style="background:#f3ded9;color:#a3402f;">rejected</span> <span data-regstatus="${esc(u.username)}|APPROVED" style="cursor:pointer;color:#9a9a9a;font-size:11px;text-decoration:underline;">re-approve</span>` : ''}
                 </td>
                 <td>${fmt(u.balance)}</td>
                 <td style="display:flex;gap:6px;align-items:center;">
@@ -498,14 +553,14 @@
       <h3>Specials &amp; Novelty</h3>
       <div class="bb-card" style="margin-bottom:1.5rem;">
         <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px;">
-          <div style="flex:2;min-width:200px;"><span style="font-size:12px;color:#8a8270;display:block;margin-bottom:4px;">Bet name</span>
+          <div style="flex:2;min-width:200px;"><span style="font-size:12px;color:#9a9a9a;display:block;margin-bottom:4px;">Bet name</span>
             <input class="bb-input" id="novelty-name" placeholder="e.g. Someone forgets to make a trade all season"/></div>
-          <div style="width:110px;"><span style="font-size:12px;color:#8a8270;display:block;margin-bottom:4px;">Odds</span>
+          <div style="width:110px;"><span style="font-size:12px;color:#9a9a9a;display:block;margin-bottom:4px;">Odds</span>
             <input class="bb-input" id="novelty-odds" type="number" step="0.01" min="1.01" placeholder="4.50"/></div>
           <button class="bb-btn" id="add-novelty">Add</button>
         </div>
-        ${!(state.novelty||[]).length ? '<p style="color:#8a8270;font-size:13px;">Nothing added yet.</p>' : (state.novelty||[]).slice().sort((a,b)=>b.createdAt-a.createdAt).map(n => `
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid #2a2820;">
+        ${!(state.novelty||[]).length ? '<p style="color:#9a9a9a;font-size:13px;">Nothing added yet.</p>' : (state.novelty||[]).slice().sort((a,b)=>b.createdAt-a.createdAt).map(n => `
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid #333333;">
             <span>${esc(n.name)} <span class="bb-odds">${n.odds.toFixed(2)}</span> ${statusPill(n.status)}</span>
             ${n.status==='OPEN' ? `
               <span style="display:flex;gap:4px;">
@@ -514,13 +569,13 @@
                 <button class="bb-btn ghost" data-noveltystatus="${n.id}|VOID" style="padding:4px 8px;font-size:11px;">Close (void)</button>
               </span>` : `<button class="bb-btn ghost" data-noveltystatus="${n.id}|OPEN" style="padding:4px 8px;font-size:11px;">Reopen</button>`}
           </div>`).join('')}
-        <p style="font-size:12px;color:#8a8270;margin-top:10px;">
+        <p style="font-size:12px;color:#9a9a9a;margin-top:10px;">
           Won credits the full payout; Lost keeps the stake forfeited; Close (void) refunds the stake as if the bet never happened.
           Only single-selection bets on this exact item are auto-settled &mdash; if it's one leg of a bigger multi, resolve that bet manually below instead.
         </p>
       </div>
       <h3>All registered bets</h3>
-      ${!bets.length ? '<p style="color:#8a8270;">No bets placed by anyone yet.</p>' : `
+      ${!bets.length ? '<p style="color:#9a9a9a;">No bets placed by anyone yet.</p>' : `
       <div class="bb-card" style="padding:0;overflow-x:auto;">
         <table class="bb-table">
           <thead><tr><th>Placed</th><th>User</th><th>Selections</th><th>Stake</th><th>Odds</th><th>Potential return</th><th>Status</th><th>Override</th></tr></thead>
@@ -529,7 +584,7 @@
               <tr>
                 <td>${fmtDate(b.timestamp)}</td>
                 <td>${esc(b.username)}</td>
-                <td>${b.selections.map(s=>esc(s.label)+' <span style="color:#6b6555;">('+s.odds.toFixed(2)+')</span>').join('<br/>')}</td>
+                <td>${b.selections.map(s=>esc(s.label)+' <span style="color:#8a8a8a;">('+s.odds.toFixed(2)+')</span>').join('<br/>')}</td>
                 <td>${fmt(b.stake)}</td>
                 <td>${b.combinedOdds.toFixed(2)}</td>
                 <td>${fmt(b.potentialReturn)}</td>
@@ -543,7 +598,7 @@
           </tbody>
         </table>
       </div>`}
-      <p style="font-size:12px;color:#8a8270;margin-top:10px;">
+      <p style="font-size:12px;color:#9a9a9a;margin-top:10px;">
         Marking a bet Won credits its full potential return to that punter's balance; marking it Lost (or resetting to Pending
         after a mistaken override) reverses that credit automatically, so balances always stay consistent with the bet's current status.
       </p>`;
@@ -559,6 +614,12 @@
     state.adminPunters = users;
     state.adminBets = bets;
     state.novelty = novelty;
+    render();
+  }
+
+  async function saveCurrentRound(round){
+    await sset('bilbbet2_current_round', round);
+    state.currentRound = round;
     render();
   }
 
@@ -705,14 +766,16 @@
     if(state.activeTab === 'H2H'){
       body = renderH2HTab();
     } else if(state.activeTab === 'RODDY'){
-      body = roddyMarketTabs() + `<div id="outcomes-list">${futuresOutcomesList('RODDY', state.futureMarketTab)}</div>`;
+      body = roddyMarketTabs() + (state.futureMarketTab === 'leading_at'
+        ? renderLeadingAtMarket('RODDY')
+        : `<div id="outcomes-list">${futuresOutcomesList('RODDY', state.futureMarketTab)}</div>`);
     } else if(state.activeTab === 'FA CUP'){
-      body = cupMarketTabs('fa_cup_labels') +
-        `<p style="color:#8a8270;font-size:12px;margin-bottom:10px;">Real Round of 64 draw from the 26/27 file: 62 entrants plus confirmed byes for Big Mac FC and Harvey Frekes. No matches played yet, so the whole bracket is simulated.</p>` +
+      body = `<div class="bb-div-stripe div-facup"></div>` + cupMarketTabs('fa_cup_labels') +
+        `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">Real Round of 64 draw from the 26/27 file: 62 entrants plus confirmed byes for Big Mac FC and Harvey Frekes. No matches played yet, so the whole bracket is simulated.</p>` +
         `<div id="outcomes-list">${cupOutcomesList('fa_cup_markets', state.futureMarketTab)}</div>`;
     } else if(state.activeTab === 'ECL'){
-      body = cupMarketTabs('ecl_labels') +
-        `<p style="color:#8a8270;font-size:12px;margin-bottom:10px;">Groups from the 26/27 file used as a template (3 groups of 4); the results in that file are last season's leftover data, so the whole group stage plus knockout is simulated fresh here. Top 2 per group advance; the best 2 group winners get a bye straight to the semi-final, the rest play off for the last 2 spots.</p>` +
+      body = `<div class="bb-div-stripe div-ecl"></div>` + cupMarketTabs('ecl_labels') +
+        `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">Groups from the 26/27 file used as a template (3 groups of 4); the results in that file are last season's leftover data, so the whole group stage plus knockout is simulated fresh here. Top 2 per group advance; the best 2 group winners get a bye straight to the semi-final, the rest play off for the last 2 spots.</p>` +
         `<div id="outcomes-list">${cupOutcomesList('ecl_markets', state.futureMarketTab)}</div>`;
     } else if(state.activeTab === 'MY BETS'){
       body = renderMyBetsTab();
@@ -723,7 +786,10 @@
     } else if(state.activeTab === 'ADMIN'){
       body = renderAdminTab();
     } else {
-      body = futuresMarketTabs() + `<div id="outcomes-list">${futuresOutcomesList(state.activeTab, state.futureMarketTab)}</div>`;
+      const stripeClass = divColorClass(state.activeTab);
+      body = (stripeClass ? `<div class="bb-div-stripe ${stripeClass}"></div>` : '') + futuresMarketTabs() + (state.futureMarketTab === 'leading_at'
+        ? renderLeadingAtMarket(state.activeTab)
+        : `<div id="outcomes-list">${futuresOutcomesList(state.activeTab, state.futureMarketTab)}</div>`);
     }
     return `<div>${header()}${mainTabs()}${body}</div>${['ADMIN','STATS'].includes(state.activeTab) ? '' : slipBar()}${state.loginModalOpen ? renderLoginModal() : ''}`;
   }
@@ -772,6 +838,11 @@
       const [, marketKey, team] = parts;
       return { type:'ecl', marketKey, team, group: marketKey==='win_pct' ? 'ECL-SINGLE' : null };
     }
+    if(parts[0]==='LEADAT'){
+      const [, scope, round, team] = parts;
+      // only one team can be leading a given scope at a given round checkpoint
+      return { type:'leadat', scope, round: parseInt(round,10), team, group: 'LEADAT-SINGLE|'+scope+'|'+round };
+    }
     return { type:'unknown' };
   }
 
@@ -793,6 +864,22 @@
         if(npKey !== epKey){
           return { reason:'contrary', msg: `only one outcome in that market can actually happen (you already have ${ep.team || ep.side} in this slip)` };
         }
+      }
+
+      // Leading at round 26 (the final round) is the exact same outcome as winning
+      // the division/Roddy outright, not just correlated with it -- our tiebreak
+      // rule for "leading" is identical to the one used to decide the season winner.
+      if(np.type==='leadat' && ep.type==='fut' && np.round===26 && np.scope===ep.div && np.team===ep.team && ep.marketKey==='win_div_pct'){
+        return { reason:'nested', msg: `leading ${np.scope.replace(' (D1)','')} after round 26 IS winning the division \u2014 backing both is the same outcome twice` };
+      }
+      if(np.type==='fut' && ep.type==='leadat' && ep.round===26 && ep.scope===np.div && ep.team===np.team && np.marketKey==='win_div_pct'){
+        return { reason:'nested', msg: `leading ${ep.scope.replace(' (D1)','')} after round 26 IS winning the division \u2014 backing both is the same outcome twice` };
+      }
+      if(np.type==='leadat' && np.round===26 && np.scope==='RODDY' && ep.marketKey==='roddy_win_pct' && np.team===ep.team){
+        return { reason:'nested', msg: `leading the Roddy after round 26 IS winning the Roddy \u2014 backing both is the same outcome twice` };
+      }
+      if(ep.type==='leadat' && ep.round===26 && ep.scope==='RODDY' && np.marketKey==='roddy_win_pct' && ep.team===np.team){
+        return { reason:'nested', msg: `leading the Roddy after round 26 IS winning the Roddy \u2014 backing both is the same outcome twice` };
       }
 
       // futures: same team, same division/scope, different market
@@ -836,7 +923,7 @@
   }
 
   function slipBar(){
-    if(!state.slip.length) return `<div class="bb-slip"><div class="bb-slip-inner" style="color:#8a8270;font-size:13px;">Tap any outcome to build a bet slip.</div></div>`;
+    if(!state.slip.length) return `<div class="bb-slip"><div class="bb-slip-inner" style="color:#9a9a9a;font-size:13px;">Tap any outcome to build a bet slip.</div></div>`;
     const modeToggle = `
       <div style="display:flex;gap:6px;margin-bottom:8px;">
         <div class="bb-tab ${state.betMode==='multi'?'active':''}" data-betmode="multi" style="font-size:12px;padding:5px 10px;">Multi (one combined bet)</div>
@@ -853,15 +940,15 @@
       return `<div class="bb-slip"><div class="bb-slip-inner">
         ${modeToggle}${header}
         <div style="max-height:160px;overflow-y:auto;margin-bottom:8px;">
-          ${state.slip.map(s => `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;padding:5px 0;border-bottom:1px solid #2a2820;">
-            <span style="color:#c9bfa8;flex:1;">${esc(s.label)} <span class="bb-odds">${s.odds.toFixed(2)}</span></span>
+          ${state.slip.map(s => `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;padding:5px 0;border-bottom:1px solid #333333;">
+            <span style="color:#cfcfcf;flex:1;">${esc(s.label)} <span class="bb-odds">${s.odds.toFixed(2)}</span></span>
             <input class="bb-input" data-single-stake="${esc(s.id)}" type="number" min="1" value="${s.singleStake||50}" style="width:80px;padding:4px 6px;font-size:12px;"/>
-            <span style="color:#8a8270;width:56px;text-align:right;">&rarr;${fmt(Math.round((s.singleStake||0)*s.odds))}</span>
-            <span data-remove="${esc(s.id)}" style="cursor:pointer;color:#8a8270;">&times;</span>
+            <span style="color:#9a9a9a;width:56px;text-align:right;">&rarr;${fmt(Math.round((s.singleStake||0)*s.odds))}</span>
+            <span data-remove="${esc(s.id)}" style="cursor:pointer;color:#9a9a9a;">&times;</span>
           </div>`).join('')}
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:12px;color:#8a8270;">Total stake ${fmt(totalStake)} &rarr; potential ${fmt(totalPotential)}</span>
+          <span style="font-size:12px;color:#9a9a9a;">Total stake ${fmt(totalStake)} &rarr; potential ${fmt(totalPotential)}</span>
           <button class="bb-btn" id="place-singles">Place ${state.slip.length} single${state.slip.length>1?'s':''}</button>
         </div>
       </div></div>`;
@@ -871,17 +958,17 @@
     return `<div class="bb-slip"><div class="bb-slip-inner">
       ${modeToggle}${header}
       <div style="max-height:100px;overflow-y:auto;margin-bottom:8px;">
-        ${state.slip.map(s => `<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid #2a2820;">
-          <span style="color:#c9bfa8;">${esc(s.label)}</span>
+        ${state.slip.map(s => `<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid #333333;">
+          <span style="color:#cfcfcf;">${esc(s.label)}</span>
           <span style="display:flex;gap:8px;align-items:center;"><span class="bb-odds">${s.odds.toFixed(2)}</span>
-          <span data-remove="${esc(s.id)}" style="cursor:pointer;color:#8a8270;">&times;</span></span></div>`).join('')}
+          <span data-remove="${esc(s.id)}" style="cursor:pointer;color:#9a9a9a;">&times;</span></span></div>`).join('')}
       </div>
       <div style="display:flex;gap:8px;align-items:center;">
-        <div style="flex:1;"><span style="font-size:11px;color:#8a8270;">Stake (clams)</span>
+        <div style="flex:1;"><span style="font-size:11px;color:#9a9a9a;">Stake (clams)</span>
           <input class="bb-input" id="stake-input" type="number" min="1" value="${state.stake}" style="padding:6px 10px;"/></div>
-        <div style="flex:1;"><span style="font-size:11px;color:#8a8270;">Combined odds</span>
-          <div style="font-weight:600;color:#e8c98a;padding:6px 0;">${combined.toFixed(2)}</div></div>
-        <div style="flex:1;"><span style="font-size:11px;color:#8a8270;">Potential return</span>
+        <div style="flex:1;"><span style="font-size:11px;color:#9a9a9a;">Combined odds</span>
+          <div style="font-weight:600;color:#ffdd00;padding:6px 0;">${combined.toFixed(2)}</div></div>
+        <div style="flex:1;"><span style="font-size:11px;color:#9a9a9a;">Potential return</span>
           <div style="font-weight:600;padding:6px 0;">${fmt(Math.round(potential))}</div></div>
         <button class="bb-btn" id="place-bet" style="align-self:flex-end;">Place bet</button>
       </div>
@@ -921,6 +1008,7 @@
     const teamAEl = $('#team-a'); if(teamAEl) teamAEl.onchange = e => { state.teamA=e.target.value; state.h2hMarket=null; render(); };
     const teamBEl = $('#team-b'); if(teamBEl) teamBEl.onchange = e => { state.teamB=e.target.value; state.h2hMarket=null; render(); };
     const roundEl = $('#h2h-round'); if(roundEl) roundEl.onchange = e => { state.h2hRound=parseInt(e.target.value,10); state.h2hMarket=null; state.h2hFixtureMarket=null; render(); };
+    const leadingAtRoundEl = $('#leadingat-round'); if(leadingAtRoundEl) leadingAtRoundEl.onchange = e => { state.leadingAtRound=parseInt(e.target.value,10); render(); };
     const getBtn = $('#get-market'); if(getBtn) getBtn.onclick = () => { state.h2hMarket = computeH2HMarket(state.teamA, state.teamB, state.h2hRound); render(); };
     document.querySelectorAll('[data-h2hsubtab]').forEach(el => el.onclick = () => { state.h2hSubTab = el.dataset.h2hsubtab; state.h2hFixtureMarket=null; render(); });
     document.querySelectorAll('[data-fixture-expand]').forEach(el => el.onclick = () => {
@@ -970,6 +1058,11 @@
       setBetStatus(betId, status);
     });
     const addNoveltyBtn = $('#add-novelty'); if(addNoveltyBtn) addNoveltyBtn.onclick = addNoveltyItem;
+    const saveRoundBtn = $('#save-current-round');
+    if(saveRoundBtn) saveRoundBtn.onclick = () => {
+      const sel = document.getElementById('admin-current-round');
+      saveCurrentRound(parseInt(sel.value, 10));
+    };
     document.querySelectorAll('[data-noveltystatus]').forEach(el => el.onclick = () => {
       const [noveltyId, status] = el.dataset.noveltystatus.split('|');
       resolveNoveltyItem(noveltyId, status);
@@ -1079,6 +1172,9 @@
     }
     render();
   }
+
+  const savedCurrentRound = await sget('bilbbet2_current_round');
+  if(savedCurrentRound){ state.currentRound = savedCurrentRound; state.h2hRound = savedCurrentRound; state.leadingAtRound = savedCurrentRound; }
 
   render();
 })();
