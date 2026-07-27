@@ -2,7 +2,30 @@
   const DATA = {};
   async function loadAllData(){
     const files = ['futures','h2h_history','h2h_divisions','h2h_shift','h2h_schedule','leading_at'];
-    const results = await Promise.all(files.map(name => fetch('./data/' + name + '.json').then(r => r.json())));
+    const failures = [];
+    const results = await Promise.all(files.map(async name => {
+      const path = './data/' + name + '.json';
+      let res;
+      try {
+        res = await fetch(path);
+      } catch(e) {
+        failures.push(name + ' (network error: ' + e.message + ')');
+        return null;
+      }
+      if(!res.ok){
+        failures.push(name + ' (HTTP ' + res.status + ' -- check the file exists at data/' + name + '.json)');
+        return null;
+      }
+      try {
+        return await res.json();
+      } catch(e) {
+        failures.push(name + ' (response wasn\u2019t valid JSON -- likely a 404 page was returned instead of the real file)');
+        return null;
+      }
+    }));
+    if(failures.length){
+      throw new Error('Failed to load: ' + failures.join('; '));
+    }
     files.forEach((name, i) => { DATA[name] = results[i]; });
   }
 
