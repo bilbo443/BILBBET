@@ -6,7 +6,16 @@
     files.forEach((name, i) => { DATA[name] = results[i]; });
   }
 
-  await loadAllData();
+  try {
+    await loadAllData();
+  } catch(e) {
+    document.getElementById('app').innerHTML = `
+      <div style="padding:2rem 1rem;max-width:420px;margin:0 auto;color:#f5f5f5;font-family:system-ui,sans-serif;">
+        <h2 style="margin:0 0 8px;">Couldn't load bilbbet</h2>
+        <p style="color:#9a9a9a;font-size:14px;">One of the files in <code>/data</code> failed to load (${esc(e.message)}). If you're setting this up from a fresh copy, check every file in the <code>data/</code> folder was uploaded, including any newly added ones -- a single missing or renamed data file stops the whole page from starting.</p>
+      </div>`;
+    return;
+  }
 
   const FUTURES = DATA.futures;
   const LEADING_AT = DATA.leading_at.leading_at;
