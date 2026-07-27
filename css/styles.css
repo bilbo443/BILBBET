@@ -1,22 +1,68 @@
-#app{color:#eae3d3;}
-  .bb-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 16px;border-radius:8px;border:1px solid #2b6e63;background:#1f5c52;color:#f4ede1;font-size:14px;font-weight:500;cursor:pointer;}
-  .bb-btn:hover{background:#276b5f;}
-  .bb-btn:disabled{opacity:0.5;cursor:not-allowed;}
-  .bb-btn.ghost{background:transparent;color:#e8c98a;border:1px solid #4a4636;}
-  .bb-btn.ghost:hover{background:#2e2c22;}
-  .bb-input,.bb-select{width:100%;box-sizing:border-box;padding:9px 12px;border-radius:8px;border:1px solid #3a3729;background:#1c1b16;font-size:14px;color:#eae3d3;}
-  .bb-input:focus,.bb-select:focus{outline:none;border-color:#1f5c52;box-shadow:0 0 0 2px rgba(31,92,82,0.25);}
-  .bb-card{background:#221f18;border:1px solid #3a3729;border-radius:12px;padding:16px 18px;}
-  .bb-tab{padding:8px 14px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:1px solid transparent;color:#c9bfa8;}
-  .bb-tab.active{background:#1f5c52;color:#f4ede1;border-color:#2b6e63;}
-  .bb-tab:hover:not(.active){background:#2e2c22;}
-  .bb-outcome{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border-radius:8px;border:1px solid #3a3729;cursor:pointer;margin-bottom:6px;}
-  .bb-outcome:hover{background:#2a271e;}
-  .bb-outcome.selected{background:#2a4640;border-color:#3f8a76;}
-  .bb-odds{font-weight:600;color:#e8c98a;min-width:44px;text-align:right;}
-  .bb-slip{position:fixed;bottom:0;left:0;right:0;background:#181712;border-top:1px solid #3a3729;padding:12px 16px;z-index:50;}
-  .bb-slip-inner{max-width:820px;margin:0 auto;}
-  table.bb-table{width:100%;border-collapse:collapse;font-size:13px;}
-  table.bb-table th{text-align:left;color:#8a8270;font-weight:500;padding:6px 8px;border-bottom:1px solid #3a3729;}
-  table.bb-table td{padding:8px;border-bottom:1px solid #2a2820;vertical-align:top;}
-  .bb-pill{display:inline-block;font-size:11px;padding:2px 9px;border-radius:99px;font-weight:500;}
+:root{
+  /* Inspired by the club crest: monochrome grey/white base, single gold accent. */
+  --bb-bg: #1b1b1b;
+  --bb-card-bg: #262626;
+  --bb-card-bg-alt: #2f2f2f;
+  --bb-border: #3d3d3d;
+  --bb-border-light: #4a4a4a;
+  --bb-text: #f5f5f5;
+  --bb-text-muted: #9a9a9a;
+  --bb-accent: #ffdd00;
+  --bb-accent-text: #1b1b1b;
+  --bb-danger: #c0604f;
+  --bb-danger-bg: #3a2a26;
+  --bb-ok: #7fbf8f;
+  --bb-ok-bg: #223028;
+
+  /* Competition colours, per division/competition */
+  --div-eliza: #28427c;
+  --div-2a: #bc3532;
+  --div-2b: #990000;
+  --div-3a: #6aa84f;
+  --div-3b: #274e13;
+  --div-facup: #0a2f85;
+  --div-ecl: #111111;
+}
+
+#app{color:var(--bb-text);}
+.bb-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 16px;border-radius:8px;border:1px solid var(--bb-accent);background:var(--bb-accent);color:var(--bb-accent-text);font-size:14px;font-weight:600;cursor:pointer;}
+.bb-btn:hover{background:#e6c700;border-color:#e6c700;}
+.bb-btn:disabled{opacity:0.5;cursor:not-allowed;}
+.bb-btn.ghost{background:transparent;color:var(--bb-text);border:1px solid var(--bb-border-light);}
+.bb-btn.ghost:hover{background:var(--bb-card-bg-alt);}
+.bb-input,.bb-select{width:100%;box-sizing:border-box;padding:9px 12px;border-radius:8px;border:1px solid var(--bb-border);background:#151515;font-size:14px;color:var(--bb-text);}
+.bb-input:focus,.bb-select:focus{outline:none;border-color:var(--bb-accent);box-shadow:0 0 0 2px rgba(255,221,0,0.25);}
+.bb-card{background:var(--bb-card-bg);border:1px solid var(--bb-border);border-radius:12px;padding:16px 18px;}
+.bb-tab{padding:8px 14px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:1px solid transparent;color:var(--bb-text-muted);}
+.bb-tab.active{background:var(--bb-accent);color:var(--bb-accent-text);border-color:var(--bb-accent);font-weight:600;}
+.bb-tab:hover:not(.active){background:var(--bb-card-bg-alt);color:var(--bb-text);}
+/* Division/competition-specific active-tab colouring -- overrides the generic gold
+   active state so each competition reads at a glance by its own colour. Text stays
+   white on all of these since they're all dark enough for contrast. */
+.bb-tab.active.div-eliza{background:var(--div-eliza);color:#fff;border-color:var(--div-eliza);}
+.bb-tab.active.div-2a{background:var(--div-2a);color:#fff;border-color:var(--div-2a);}
+.bb-tab.active.div-2b{background:var(--div-2b);color:#fff;border-color:var(--div-2b);}
+.bb-tab.active.div-3a{background:var(--div-3a);color:#fff;border-color:var(--div-3a);}
+.bb-tab.active.div-3b{background:var(--div-3b);color:#fff;border-color:var(--div-3b);}
+.bb-tab.active.div-facup{background:var(--div-facup);color:#fff;border-color:var(--div-facup);}
+.bb-tab.active.div-ecl{background:var(--div-ecl);color:#fff;border-color:var(--bb-border-light);}
+.bb-outcome{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border-radius:8px;border:1px solid var(--bb-border);cursor:pointer;margin-bottom:6px;}
+.bb-outcome:hover{background:var(--bb-card-bg-alt);}
+.bb-outcome.selected{background:#3a3316;border-color:var(--bb-accent);}
+.bb-odds{font-weight:700;color:var(--bb-accent);min-width:44px;text-align:right;}
+.bb-slip{position:fixed;bottom:0;left:0;right:0;background:#151515;border-top:1px solid var(--bb-border);padding:12px 16px;z-index:50;}
+.bb-slip-inner{max-width:820px;margin:0 auto;}
+table.bb-table{width:100%;border-collapse:collapse;font-size:13px;}
+table.bb-table th{text-align:left;color:var(--bb-text-muted);font-weight:500;padding:6px 8px;border-bottom:1px solid var(--bb-border);}
+table.bb-table td{padding:8px;border-bottom:1px solid #333;vertical-align:top;color:var(--bb-text);}
+.bb-pill{display:inline-block;font-size:11px;padding:2px 9px;border-radius:99px;font-weight:500;}
+/* A thin coloured accent stripe, placed above a division/competition's market
+   content so the section reads by colour even away from the tab bar itself. */
+.bb-div-stripe{height:4px;border-radius:2px;margin-bottom:14px;}
+.bb-div-stripe.div-eliza{background:var(--div-eliza);}
+.bb-div-stripe.div-2a{background:var(--div-2a);}
+.bb-div-stripe.div-2b{background:var(--div-2b);}
+.bb-div-stripe.div-3a{background:var(--div-3a);}
+.bb-div-stripe.div-3b{background:var(--div-3b);}
+.bb-div-stripe.div-facup{background:var(--div-facup);}
+.bb-div-stripe.div-ecl{background:var(--div-ecl);border:1px solid var(--bb-border-light);}
