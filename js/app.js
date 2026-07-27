@@ -1,4 +1,3 @@
-
 (async function(){
   const DATA = {};
   async function loadAllData(){
