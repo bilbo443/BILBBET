@@ -126,15 +126,15 @@
     specialsSelection: { win_round: '', lose_round: '', charity: '', philanthropy: '' },
     teamSearchOpen: false, teamSearchQuery: '',
     registeringMode: false,
-    tosModalOpen: false, tosMode: 'view', tosScrolledToBottom: false, tosAgreed: false,
+    tosModalOpen: false, tosMode: 'view', tosAgreed: false,
     cupFixtures: { 'FA CUP': [], 'ECL': [] },
     cupFixtureMarket: null,
     cupAdminEntry: { 'FA CUP': {teamA:'', teamB:''}, 'ECL': {teamA:'', teamB:''} },
     cupCalendarOverrides: { 'FA CUP': {}, 'ECL': {} },  // round -> stage name string, or false to force "not a cup round"
-    playoffFixtures: { 'DIVISION 2A': [], 'DIVISION 2B': [], 'DIVISION 3A': [], 'DIVISION 3B': [] },
+    playoffFixtures: { 'DIVISION 2': [], 'DIVISION 3': [] },
     playoffFixtureMarket: null,
-    playoffSubTab: 'DIVISION 2A',
-    playoffAdminEntry: { 'DIVISION 2A': {teamA:'',teamB:''}, 'DIVISION 2B': {teamA:'',teamB:''}, 'DIVISION 3A': {teamA:'',teamB:''}, 'DIVISION 3B': {teamA:'',teamB:''} },
+    playoffSubTab: 'DIVISION 2',
+    playoffAdminEntry: { 'DIVISION 2': {teamA:'',teamB:''}, 'DIVISION 3': {teamA:'',teamB:''} },
     roundBettingOpen: true,
     oddsRefreshRequested: false,
   };
@@ -368,9 +368,9 @@
             <p style="color:#8a8a8a;font-size:12px;margin-bottom:0;">(End of terms.)</p>
           </div>
           ${registerMode ? `
-            <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;margin-bottom:12px;${state.tosScrolledToBottom?'':'opacity:0.5;'}">
-              <input type="checkbox" id="tos-agree-checkbox" ${state.tosScrolledToBottom?'':'disabled'} ${state.tosAgreed?'checked':''} style="margin-top:2px;"/>
-              <span>${state.tosScrolledToBottom ? 'I have read and agree to the Terms &amp; Conditions.' : 'Scroll to the end of the terms above to enable this.'}</span>
+            <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;margin-bottom:12px;">
+              <input type="checkbox" id="tos-agree-checkbox" ${state.tosAgreed?'checked':''} style="margin-top:2px;"/>
+              <span>I have read and agree to the Terms &amp; Conditions.</span>
             </label>` : ''}
           <button class="bb-btn ghost" id="close-tos-modal" style="width:100%;">${registerMode ? 'Done' : 'Close'}</button>
         </div>
@@ -393,9 +393,9 @@
             <div><span style="font-size:12px;color:#9a9a9a;display:block;margin-bottom:4px;">PIN</span>
               <input class="bb-input" id="f-pin" type="password" inputmode="numeric" value="${esc(state.pin)}"/></div>
             ${state.registeringMode ? `
-              <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;${state.tosScrolledToBottom?'':'opacity:0.5;'}">
-                <input type="checkbox" id="tos-agree-checkbox-inline" ${state.tosScrolledToBottom?'':'disabled'} ${state.tosAgreed?'checked':''} style="margin-top:2px;"/>
-                <span>I agree to the <span id="open-tos-register" style="text-decoration:underline;cursor:pointer;color:#ffdd00;">Terms &amp; Conditions</span>${state.tosScrolledToBottom?'':' (open and read to the end to enable this)'}.</span>
+              <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;">
+                <input type="checkbox" id="tos-agree-checkbox-inline" ${state.tosAgreed?'checked':''} style="margin-top:2px;"/>
+                <span>I agree to the <span id="open-tos-register" style="text-decoration:underline;cursor:pointer;color:#ffdd00;">Terms &amp; Conditions</span>.</span>
               </label>` : ''}
             ${state.error ? `<div style="color:#c0604f;font-size:13px;">${esc(state.error)}</div>` : ''}
             ${state.info ? `<div style="color:#7fbf8f;font-size:13px;">${esc(state.info)}</div>` : ''}
@@ -446,6 +446,8 @@
     if(tabName === 'FA CUP') return 'div-facup';
     if(tabName === 'ECL') return 'div-ecl';
     if(tabName === 'RODDY') return 'div-roddy';
+    if(tabName === 'DIVISION 2') return 'div-2a';
+    if(tabName === 'DIVISION 3') return 'div-3a';
     return '';
   }
 
@@ -530,11 +532,11 @@
       `<p style="color:#9a9a9a;font-size:12px;margin-top:10px;">Odds here use the same head-to-head model as the division matches -- cup-specific pricing (rewarding spike ability for the FA Cup, tough-opposition form for the ECL) isn't wired in yet.</p>`;
   }
 
-  const PLAYOFF_DIVS = ['DIVISION 2A', 'DIVISION 2B', 'DIVISION 3A', 'DIVISION 3B'];
+  const PLAYOFF_DIVS = ['DIVISION 2', 'DIVISION 3'];
 
   function playoffSubTabBar(){
     return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">' +
-      PLAYOFF_DIVS.map(d => `<div class="bb-tab ${state.playoffSubTab===d?'active '+divColorClass(d):''}" data-playoffsubtab="${esc(d)}" style="font-size:12px;padding:6px 10px;">${d.replace('DIVISION ','')}</div>`).join('') +
+      PLAYOFF_DIVS.map(d => `<div class="bb-tab ${state.playoffSubTab===d?'active '+divColorClass(d):''}" data-playoffsubtab="${esc(d)}" style="font-size:12px;padding:6px 10px;">${d.replace('DIVISION ','Div ')}</div>`).join('') +
       '</div>';
   }
 
@@ -1753,7 +1755,7 @@
     const registerBtn = $('#register-submit');
     if(registerBtn) registerBtn.onclick = () => { state.registeringMode = true; state.error=''; render(); };
     const backFromRegisterBtn = $('#back-from-register');
-    if(backFromRegisterBtn) backFromRegisterBtn.onclick = () => { state.registeringMode = false; state.tosAgreed = false; state.tosScrolledToBottom = false; state.error=''; render(); };
+    if(backFromRegisterBtn) backFromRegisterBtn.onclick = () => { state.registeringMode = false; state.tosAgreed = false; state.error=''; render(); };
     const confirmRegisterBtn = $('#confirm-register-submit');
     if(confirmRegisterBtn) confirmRegisterBtn.onclick = doRegister;
     const openTosRegisterLink = $('#open-tos-register');
@@ -1766,18 +1768,8 @@
     if(tosCheckbox) tosCheckbox.onchange = e => { state.tosAgreed = e.target.checked; render(); };
     const tosCheckboxInline = $('#tos-agree-checkbox-inline');
     if(tosCheckboxInline) tosCheckboxInline.onchange = e => { state.tosAgreed = e.target.checked; render(); };
-    const tosScrollContent = $('#tos-scroll-content');
-    if(tosScrollContent){
-      tosScrollContent.onscroll = e => {
-        const el = e.target;
-        if(!state.tosScrolledToBottom && el.scrollTop + el.clientHeight >= el.scrollHeight - 4){
-          state.tosScrolledToBottom = true;
-          render();
-        }
-      };
-    }
     const logoutBtn = $('#logout-btn');
-    if(logoutBtn) logoutBtn.onclick = () => { state = {...state, screen:'main', user:null, username:'', pin:'', adminLoginMode:false, registeringMode:false, tosAgreed:false, tosScrolledToBottom:false, error:'', info:'', loginModalOpen:false, slip:[], betMode:'multi', activeTab:'H2H', h2hMarket:null, h2hFixtureMarket:null, myBets:null, adminPunters:null, adminBets:null, novelty:null, statsData:null}; render(); };
+    if(logoutBtn) logoutBtn.onclick = () => { state = {...state, screen:'main', user:null, username:'', pin:'', adminLoginMode:false, registeringMode:false, tosAgreed:false, error:'', info:'', loginModalOpen:false, slip:[], betMode:'multi', activeTab:'H2H', h2hMarket:null, h2hFixtureMarket:null, myBets:null, adminPunters:null, adminBets:null, novelty:null, statsData:null}; render(); };
     const openLoginBtn = $('#open-login-btn'); if(openLoginBtn) openLoginBtn.onclick = () => { state.loginModalOpen = true; state.adminLoginMode=false; state.error=''; state.info=''; render(); };
     const openTeamSearchBtn = $('#open-team-search-btn'); if(openTeamSearchBtn) openTeamSearchBtn.onclick = () => { state.teamSearchOpen = true; render(); };
     const closeTeamSearchBtn = $('#close-team-search'); if(closeTeamSearchBtn) closeTeamSearchBtn.onclick = () => { state.teamSearchOpen = false; state.teamSearchQuery=''; render(); };
@@ -1786,7 +1778,7 @@
       headerTeamSearch.oninput = e => { state.teamSearchQuery = e.target.value; };
       headerTeamSearch.onchange = e => { state.teamSearchQuery = e.target.value; render(); };
     }
-    const closeLoginBtn = $('#close-login-modal'); if(closeLoginBtn) closeLoginBtn.onclick = () => { state.loginModalOpen = false; state.adminLoginMode=false; state.registeringMode=false; state.tosAgreed=false; state.tosScrolledToBottom=false; state.error=''; state.info=''; render(); };
+    const closeLoginBtn = $('#close-login-modal'); if(closeLoginBtn) closeLoginBtn.onclick = () => { state.loginModalOpen = false; state.adminLoginMode=false; state.registeringMode=false; state.tosAgreed=false; state.error=''; state.info=''; render(); };
     const useAdminBtn = $('#use-admin-login'); if(useAdminBtn) useAdminBtn.onclick = () => { state.adminLoginMode = true; render(); };
     document.querySelectorAll('[data-tab]').forEach(el => el.onclick = () => {
       state.activeTab = el.dataset.tab;
@@ -2139,7 +2131,7 @@
     const saved = await sset('bilbbet2_user:' + username.toLowerCase(), u);
     if(!saved){ state.error='Could not save your account (storage unavailable). Try reloading.'; render(); return; }
     await addToIndex('bilbbet2_users_index', username);
-    state.registeringMode = false; state.tosAgreed = false; state.tosScrolledToBottom = false;
+    state.registeringMode = false; state.tosAgreed = false;
     if(isFirstEver){
       state.user = u; state.error=''; state.username=''; state.pin=''; state.screen='main'; state.loginModalOpen=false;
       state.activeTab='H2H'; state.adminPunters=null; state.adminBets=null; state.novelty=null; state.statsData=null; state.myBets=null;
