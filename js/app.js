@@ -1,7 +1,7 @@
 (async function(){
   const DATA = {};
   async function loadAllData(){
-    const files = ['futures','h2h_history','h2h_divisions','h2h_shift','h2h_schedule','leading_at','special_markets','h2h_record','cup_calendar'];
+    const files = ['futures','h2h_history','h2h_divisions','h2h_shift','h2h_schedule','leading_at','special_markets','h2h_record','cup_calendar','carry_balances'];
     const failures = [];
     const results = await Promise.all(files.map(async name => {
       const path = './data/' + name + '.json';
@@ -75,6 +75,7 @@
   function getCalendarDefault(comp, round){
     return (CUP_CALENDAR[CUP_CALENDAR_KEY[comp]] || {})[round] || null;
   }
+  const CARRY_BALANCES = DATA.carry_balances; // {teamName: {carry, historicalRecord}}
   const K = 8;
 
   const FUTURE_DIVS = Object.keys(FUTURES.divisions);
@@ -593,9 +594,21 @@
 
   function renderMyBetsTab(){
     if(!state.user) return '<p style="color:#9a9a9a;">Log in to see your bets.</p>';
-    if(state.myBets === null) return '<p style="color:#9a9a9a;">Loading&hellip;</p>';
+    const h = state.user.historicalRecord;
+    const careerBox = (h && h.totalBets > 0) ? `
+      <div class="bb-card" style="margin-bottom:1rem;">
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px;">Career record (carried over from previous seasons)</div>
+        <div style="display:flex;gap:20px;flex-wrap:wrap;">
+          <div><div style="font-size:12px;color:#9a9a9a;">Bets</div><div style="font-size:16px;font-weight:600;">${h.totalBets}</div></div>
+          <div><div style="font-size:12px;color:#9a9a9a;">Won</div><div style="font-size:16px;font-weight:600;color:#4a9166;">${h.winningBets}</div></div>
+          <div><div style="font-size:12px;color:#9a9a9a;">Lost</div><div style="font-size:16px;font-weight:600;color:#a3402f;">${h.losingBets}</div></div>
+          <div><div style="font-size:12px;color:#9a9a9a;">Void</div><div style="font-size:16px;font-weight:600;">${h.voidBets}</div></div>
+          <div><div style="font-size:12px;color:#9a9a9a;">Net</div><div style="font-size:16px;font-weight:600;">${(h.winnings-h.losses)>=0?'+':''}${fmt(h.winnings-h.losses)}</div></div>
+        </div>
+      </div>` : '';
+    if(state.myBets === null) return careerBox + '<p style="color:#9a9a9a;">Loading&hellip;</p>';
     const bets = state.myBets;
-    if(!bets.length) return '<p style="color:#9a9a9a;">No bets placed yet &mdash; head to any market tab and tap an outcome to get started.</p>';
+    if(!bets.length) return careerBox + '<p style="color:#9a9a9a;">No bets placed yet &mdash; head to any market tab and tap an outcome to get started.</p>';
     const pending = bets.filter(b=>(b.status||'PENDING')==='PENDING').length;
     const won = bets.filter(b=>b.status==='WON').length;
     const lost = bets.filter(b=>b.status==='LOST').length;
@@ -605,7 +618,7 @@
       if(b.status==='LOST') return s - b.stake;
       return s;   // PENDING and VOID both net to 0 -- VOID refunds the stake, nothing gained or lost
     }, 0);
-    return `
+    return careerBox + `
       <div class="bb-card" style="margin-bottom:1rem;display:flex;gap:20px;flex-wrap:wrap;">
         <div><div style="font-size:12px;color:#9a9a9a;">Pending</div><div style="font-size:18px;font-weight:600;">${pending}</div></div>
         <div><div style="font-size:12px;color:#9a9a9a;">Won</div><div style="font-size:18px;font-weight:600;color:#4a9166;">${won}</div></div>
@@ -785,7 +798,8 @@
       leaderboard('Top 5 losses (biggest stakes lost)', s.topLosses, v=>fmt(v)) +
       leaderboard('Longest odds actually backed', s.topOdds, v=>v.toFixed(2)) +
       leaderboard('Most popular selection', s.mostPopular, v=>v+' bet'+(v>1?'s':'')) +
-      leaderboard('Kitty leaderboard (richest punters)', s.topKitty, v=>fmt(v));
+      leaderboard('Kitty leaderboard (richest punters)', s.topKitty, v=>fmt(v)) +
+      leaderboard('Most career wins (carried over from previous seasons)', s.topCareerWins, v=>v+' win'+(v!==1?'s':''));
   }
 
   function renderAdminTab(){
@@ -840,14 +854,18 @@
       <h3>Pending registrations</h3>
       ${!pending.length ? '<p style="color:#9a9a9a;font-size:13px;">Nothing waiting on approval.</p>' : `
       <div class="bb-card" style="padding:0;overflow:hidden;margin-bottom:1.5rem;">
-        ${pending.map((u,i) => `
+        ${pending.map((u,i) => {
+          const carry = u.dormantCarry || 0;
+          const totalOnApproval = 1000 + carry;
+          return `
           <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;${i<pending.length-1?'border-bottom:1px solid #3d3d3d;':''}">
-            <span>${esc(u.username)}</span>
+            <span>${esc(u.username)} ${carry ? `<span style="color:#9a9a9a;font-size:12px;">(carry: ${fmt(carry)})</span>` : ''}</span>
             <span style="display:flex;gap:6px;">
-              <button class="bb-btn" data-regstatus="${esc(u.username)}|APPROVED" style="padding:5px 10px;font-size:12px;">Approve (fund 1,000)</button>
+              <button class="bb-btn" data-regstatus="${esc(u.username)}|APPROVED" style="padding:5px 10px;font-size:12px;">Approve (fund ${fmt(totalOnApproval)})</button>
               <button class="bb-btn ghost" data-regstatus="${esc(u.username)}|REJECTED" style="padding:5px 10px;font-size:12px;">Reject</button>
             </span>
-          </div>`).join('')}
+          </div>`;
+        }).join('')}
       </div>`}
       <h3>Punters</h3>
       <div class="bb-card" style="padding:0;overflow-x:auto;margin-bottom:1.5rem;">
@@ -970,9 +988,11 @@
     u.status = newStatus;
     // fund the account the moment it's approved, but only if it hasn't already
     // been funded before (so re-approving someone who was later rejected doesn't
-    // hand them a second 1,000-clam top-up on top of whatever they still have).
+    // hand them a second top-up on top of whatever they still have). Anyone
+    // with a dormant carry balance from a previous season gets that added on
+    // top of the usual 1,000-clam registration bonus, all at once.
     if(newStatus === 'APPROVED' && !u.everFunded){
-      u.balance += 1000;
+      u.balance += 1000 + (u.dormantCarry || 0);
       u.everFunded = true;
     }
     await saveUser(u);
@@ -1057,9 +1077,11 @@
   // ---------- Stats ----------
   async function loadStats(){
     const usernames = await getIndex('bilbbet2_users_index');
-    const users = (await Promise.all(usernames.map(getUser))).filter(Boolean);
+    const allUsers = (await Promise.all(usernames.map(getUser))).filter(Boolean);
+    const users = allUsers.filter(u => u.username.toLowerCase() !== 'admin');
     const betIds = await getIndex('bilbbet2_all_bets_index');
-    const bets = (await Promise.all(betIds.map(id => sget('bilbbet2_bet:'+id)))).filter(Boolean);
+    const allBets = (await Promise.all(betIds.map(id => sget('bilbbet2_bet:'+id)))).filter(Boolean);
+    const bets = allBets.filter(b => b.username.toLowerCase() !== 'admin');
 
     const top = (arr, key, n=5) => arr.slice().sort((a,b)=>b[key]-a[key]).slice(0,n);
 
@@ -1080,12 +1102,17 @@
     for(const b of bets) for(const s of b.selections) pickCounts[s.label] = (pickCounts[s.label]||0) + 1;
     const mostPopular = Object.entries(pickCounts).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([label,value]) => ({label, value}));
     const topKitty = top(users, 'balance').map(u => ({ label: u.username, value: u.balance }));
+    const withHistory = users.filter(u => u.historicalRecord && u.historicalRecord.totalBets > 0);
+    const topCareerWins = withHistory.slice()
+      .sort((a,b) => b.historicalRecord.winningBets - a.historicalRecord.winningBets)
+      .slice(0,5)
+      .map(u => ({ label: u.username+' \u2014 '+u.historicalRecord.totalBets+' bets carried over', value: u.historicalRecord.winningBets }));
 
     state.statsData = {
       totalWagered: bets.reduce((s,b)=>s+b.stake,0),
       totalBets: bets.length,
       totalPunters: users.length,
-      topStakes, topMultis, topWins, topLosses, topOdds, mostPopular, topKitty,
+      topStakes, topMultis, topWins, topLosses, topOdds, mostPopular, topKitty, topCareerWins,
     };
     render();
   }
@@ -1588,6 +1615,11 @@
     state.user = u; state.error=''; state.username=''; state.pin=''; state.screen='main'; state.loginModalOpen=false;
     state.activeTab='H2H'; state.adminPunters=null; state.adminBets=null; state.novelty=null; state.statsData=null; state.myBets=null;
     render();
+    // a punter who's genuinely punted before (not brand new) and ended last
+    // season under 500 clams gets a little needling on the way in.
+    if(u.historicalRecord && u.historicalRecord.totalBets > 0 && (u.dormantCarry||0) < 500){
+      alert('Expect to lose more sucker');
+    }
   }
 
   async function doRegister(){
@@ -1598,12 +1630,17 @@
     const existing = await getUser(username);
     if(existing){ state.error='That username is taken. Log in instead.'; render(); return; }
     const isFirstEver = (await getIndex('bilbbet2_users_index')).length === 0;
+    const carryData = CARRY_BALANCES[username] || null;
     // the very first account ever registered becomes admin and is auto-approved
     // (there's no admin yet to approve them); everyone after that starts PENDING
-    // with no funds until an admin approves them.
+    // with no funds until an admin approves them. If this team has a carry
+    // balance from a previous season, it stays dormant (invisible, reads as 0)
+    // until approval, at which point it's added on top of the usual 1,000
+    // registration bonus.
     const u = isFirstEver
       ? { username, pinHash: simpleHash(pin), balance: 1000, isAdmin: true, status: 'APPROVED', everFunded: true }
-      : { username, pinHash: simpleHash(pin), balance: 0, isAdmin: false, status: 'PENDING', everFunded: false };
+      : { username, pinHash: simpleHash(pin), balance: 0, isAdmin: false, status: 'PENDING', everFunded: false,
+          dormantCarry: carryData ? carryData.carry : 0, historicalRecord: carryData ? carryData.historicalRecord : null };
     const saved = await sset('bilbbet2_user:' + username.toLowerCase(), u);
     if(!saved){ state.error='Could not save your account (storage unavailable). Try reloading.'; render(); return; }
     await addToIndex('bilbbet2_users_index', username);
