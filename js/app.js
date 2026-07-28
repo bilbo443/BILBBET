@@ -1,7 +1,7 @@
 (async function(){
   const DATA = {};
   async function loadAllData(){
-    const files = ['futures','h2h_history','h2h_divisions','h2h_shift','h2h_schedule','leading_at','special_markets','h2h_record'];
+    const files = ['futures','h2h_history','h2h_divisions','h2h_shift','h2h_schedule','leading_at','special_markets','h2h_record','cup_calendar'];
     const failures = [];
     const results = await Promise.all(files.map(async name => {
       const path = './data/' + name + '.json';
@@ -58,6 +58,23 @@
     if(H2H_RECORD[teamB+'|'+teamA]) return { rec: H2H_RECORD[teamB+'|'+teamA], flipped: true };
     return null;
   }
+  const CUP_CALENDAR = DATA.cup_calendar; // {fa_cup: {round: stageName}, ecl: {round: stageName}}
+  const CUP_CALENDAR_KEY = { 'FA CUP': 'fa_cup', 'ECL': 'ecl' };
+  // Whether a given round is a scheduled cup weekend for a competition --
+  // an admin override (if set) always wins over the calendar, since the
+  // calendar note itself says rounds can move to dodge unplanned byes/doubles.
+  function getCupRoundInfo(comp, round){
+    const overrides = state.cupCalendarOverrides[comp] || {};
+    if(Object.prototype.hasOwnProperty.call(overrides, round)){
+      const ov = overrides[round];
+      return ov ? { stage: ov, overridden: true } : null;
+    }
+    const stage = (CUP_CALENDAR[CUP_CALENDAR_KEY[comp]] || {})[round];
+    return stage ? { stage, overridden: false } : null;
+  }
+  function getCalendarDefault(comp, round){
+    return (CUP_CALENDAR[CUP_CALENDAR_KEY[comp]] || {})[round] || null;
+  }
   const K = 8;
 
   const FUTURE_DIVS = Object.keys(FUTURES.divisions);
@@ -78,6 +95,10 @@
     leadingAtRound: 1,
     specialsSelection: { win_round: '', lose_round: '', charity: '', philanthropy: '' },
     teamSearchOpen: false, teamSearchQuery: '',
+    cupFixtures: { 'FA CUP': [], 'ECL': [] },
+    cupFixtureMarket: null,
+    cupAdminEntry: { 'FA CUP': {teamA:'', teamB:''}, 'ECL': {teamA:'', teamB:''} },
+    cupCalendarOverrides: { 'FA CUP': {}, 'ECL': {} },  // round -> stage name string, or false to force "not a cup round"
   };
 
   function esc(s){ return String(s).replace(/[&<>"'\x27]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -297,7 +318,7 @@
         <div style="display:flex;align-items:center;gap:14px;font-size:14px;">
           <button class="bb-btn ghost" id="open-team-search-btn" style="padding:6px 12px;font-size:13px;">Find a team</button>
           <span>${fmt(state.user.balance)} clams</span>
-          <span style="color:#9a9a9a;">${esc(state.user.username)}</span>
+          <span style="color:#9a9a9a;">${esc(state.user.username)}${(state.user.isAdmin && adminNeedsAttention()) ? ' <span title="Needs attention" style="font-size:12px;">\u{1F6A9}</span>' : ''}</span>
           <button class="bb-btn ghost" id="logout-btn" style="padding:6px 12px;">Log out</button>
         </div>
       </div>`;
@@ -316,7 +337,12 @@
 
   function mainTabs(){
     return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">' +
-      currentTabs().map(t => `<div class="bb-tab ${state.activeTab===t?'active '+divColorClass(t):''}" data-tab="${esc(t)}">${t==='RODDY'?'The Roddy':(t==='MY BETS'?'My Bets':(t==='ADMIN'?'Admin':(t==='H2H'?'H2H':t.replace(' (D1)',''))))}</div>`).join('') +
+      currentTabs().map(t => {
+        const label = t==='RODDY'?'The Roddy':(t==='MY BETS'?'My Bets':(t==='ADMIN'?'Admin':(t==='H2H'?'H2H':t.replace(' (D1)',''))));
+        const flag = (t==='ADMIN' && state.user && state.user.isAdmin && adminNeedsAttention())
+          ? ' <span title="Needs attention" style="font-size:11px;">\u{1F6A9}</span>' : '';
+        return `<div class="bb-tab ${state.activeTab===t?'active '+divColorClass(t):''}" data-tab="${esc(t)}">${label}${flag}</div>`;
+      }).join('') +
       '</div>';
   }
 
@@ -364,9 +390,43 @@
   function cupMarketTabs(labelsKey){
     const labels = FUTURES[labelsKey];
     return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">' +
+      `<div class="bb-tab ${state.futureMarketTab==='fixtures'?'active':''}" data-marketkey="fixtures" style="font-size:12px;padding:6px 10px;">Current fixtures</div>` +
       Object.entries(labels).map(([key,label]) =>
         `<div class="bb-tab ${state.futureMarketTab===key?'active':''}" data-marketkey="${key}" style="font-size:12px;padding:6px 10px;">${esc(label)}</div>`
       ).join('') + '</div>';
+  }
+
+  function renderCupFixtures(compKey){
+    const fixtures = state.cupFixtures[compKey] || [];
+    if(state.cupFixtureMarket){
+      return `<button class="bb-btn ghost" id="back-to-cup-fixtures" style="margin-bottom:10px;">&larr; Back to fixtures</button>` + renderH2HMarket(state.cupFixtureMarket);
+    }
+    const roundInfo = getCupRoundInfo(compKey, state.currentRound);
+    const calendarNote = roundInfo
+      ? `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">Round ${state.currentRound}, per the 26/27 calendar${roundInfo.overridden?' (admin override)':''}: <strong style="color:#ffdd00;">${esc(roundInfo.stage)}</strong>.</p>`
+      : `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">Round ${state.currentRound} isn't a scheduled ${esc(compKey)} round on the 26/27 calendar.</p>`;
+    if(!fixtures.length){
+      return calendarNote + `<div class="bb-card" style="text-align:center;padding:2rem 1rem;color:#9a9a9a;">No fixtures scheduled yet.</div>`;
+    }
+    return calendarNote + '<div class="bb-card" style="padding:0;overflow:hidden;">' +
+      fixtures.map((f,i) => `<div data-cupfixture="${esc(compKey)}|${i}" style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;cursor:pointer;${i<fixtures.length-1?'border-bottom:1px solid #3d3d3d;':''}">
+        <span>${esc(f.teamA)} <span style="color:#9a9a9a;">vs</span> ${esc(f.teamB)}</span>
+        <span class="bb-btn ghost" style="padding:5px 12px;font-size:12px;">View market</span>
+      </div>`).join('') + '</div>' +
+      `<p style="color:#9a9a9a;font-size:12px;margin-top:10px;">Odds here use the same head-to-head model as the division matches -- cup-specific pricing (rewarding spike ability for the FA Cup, tough-opposition form for the ECL) isn't wired in yet.</p>`;
+  }
+
+  // Is there anything the admin should look at? Either a pending registration,
+  // or a round the calendar (or an override) says is a cup weekend for a
+  // competition that still has no fixtures entered.
+  function adminNeedsAttention(){
+    const pendingCount = (state.adminPunters||[]).filter(u => (u.status||'APPROVED')==='PENDING').length;
+    if(pendingCount > 0) return true;
+    for(const comp of ['FA CUP','ECL']){
+      const info = getCupRoundInfo(comp, state.currentRound);
+      if(info && !(state.cupFixtures[comp]||[]).length) return true;
+    }
+    return false;
   }
 
   function cupOutcomesList(marketsKey, marketKey){
@@ -742,6 +802,41 @@
         <button class="bb-btn" id="save-current-round">Update</button>
         <span style="font-size:12px;color:#9a9a9a;">Rounds before this are greyed out everywhere as already played.</span>
       </div>
+      <h3>Cup fixtures (FA Cup &amp; ECL)</h3>
+      <div class="bb-card" style="margin-bottom:1.5rem;">
+        <p style="font-size:12px;color:#9a9a9a;margin-top:0;">Based on the 26/27 calendar. Rounds may shift to dodge unplanned byes/doubles -- override the current round below if the calendar's out of date.</p>
+        ${['FA CUP','ECL'].map(comp => {
+          const calDefault = getCalendarDefault(comp, state.currentRound);
+          const override = (state.cupCalendarOverrides[comp]||{})[state.currentRound];
+          const hasOverride = Object.prototype.hasOwnProperty.call(state.cupCalendarOverrides[comp]||{}, state.currentRound);
+          return `
+          <div style="margin-bottom:14px;">
+            <div style="font-size:13px;font-weight:600;margin-bottom:6px;">${esc(comp)}</div>
+            <div style="font-size:12px;color:#9a9a9a;margin-bottom:6px;">
+              Round ${state.currentRound} calendar default: <strong>${calDefault ? esc(calDefault) : 'not a cup round'}</strong>
+              ${hasOverride ? ` &mdash; currently overridden to: <strong style="color:#ffdd00;">${override ? esc(override) : 'not a cup round'}</strong>` : ''}
+            </div>
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
+              <input class="bb-input" type="text" id="cup-override-stage-${esc(comp)}" placeholder="Stage name to force (e.g. Round Of 32)\u2026" style="max-width:220px;"/>
+              <button class="bb-btn ghost" data-set-cupoverride="${esc(comp)}" style="padding:6px 12px;font-size:12px;">Force this round as cup round</button>
+              <button class="bb-btn ghost" data-set-cupoverride-off="${esc(comp)}" style="padding:6px 12px;font-size:12px;">Force NOT a cup round</button>
+              ${hasOverride ? `<button class="bb-btn ghost" data-clear-cupoverride="${esc(comp)}" style="padding:6px 12px;font-size:12px;">Clear override (use calendar)</button>` : ''}
+            </div>
+            ${(state.cupFixtures[comp]||[]).length ? (state.cupFixtures[comp]||[]).map((f,i) => `
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #2a2a2a;font-size:13px;">
+                <span>${esc(f.teamA)} vs ${esc(f.teamB)}</span>
+                <span data-remove-cupfixture="${esc(comp)}|${i}" style="cursor:pointer;color:#9a9a9a;font-size:12px;">remove</span>
+              </div>`).join('') : `<p style="color:#9a9a9a;font-size:12px;">No fixtures set for this competition.</p>`}
+            <div style="display:flex;gap:6px;align-items:flex-end;margin-top:8px;flex-wrap:wrap;">
+              <div style="flex:1;min-width:140px;">${teamSearchInput('cup-team-a-'+esc(comp), '', 'Team A\u2026')}</div>
+              <div style="flex:1;min-width:140px;">${teamSearchInput('cup-team-b-'+esc(comp), '', 'Team B\u2026')}</div>
+              <button class="bb-btn" data-add-cupfixture="${esc(comp)}" style="padding:8px 14px;font-size:12px;">Add</button>
+              ${(state.cupFixtures[comp]||[]).length ? `<button class="bb-btn ghost" data-clear-cupfixtures="${esc(comp)}" style="padding:8px 14px;font-size:12px;">Clear all</button>` : ''}
+            </div>
+          </div>`;
+        }).join('')}
+        <p style="font-size:12px;color:#9a9a9a;margin-top:4px;">Set fixtures when there's an actual cup weekend; clear them once it's passed so the tab correctly shows "No fixtures scheduled yet" the rest of the time.</p>
+      </div>
       <h3>Pending registrations</h3>
       ${!pending.length ? '<p style="color:#9a9a9a;font-size:13px;">Nothing waiting on approval.</p>' : `
       <div class="bb-card" style="padding:0;overflow:hidden;margin-bottom:1.5rem;">
@@ -845,6 +940,16 @@
   async function saveCurrentRound(round){
     await sset('bilbbet2_current_round', round);
     state.currentRound = round;
+    render();
+  }
+
+  async function saveCupFixtures(){
+    await sset('bilbbet2_cup_fixtures', state.cupFixtures);
+    render();
+  }
+
+  async function saveCupOverrides(){
+    await sset('bilbbet2_cup_overrides', state.cupCalendarOverrides);
     render();
   }
 
@@ -996,12 +1101,14 @@
         : `<div id="outcomes-list">${futuresOutcomesList('RODDY', state.futureMarketTab)}</div>`);
     } else if(state.activeTab === 'FA CUP'){
       body = `<div class="bb-div-stripe div-facup"></div>` + cupMarketTabs('fa_cup_labels') +
-        `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">Real Round of 64 draw from the 26/27 file: 62 entrants plus confirmed byes for Big Mac FC and Harvey Frekes. No matches played yet, so the whole bracket is simulated.</p>` +
-        `<div id="outcomes-list">${cupOutcomesList('fa_cup_markets', state.futureMarketTab)}</div>`;
+        (state.futureMarketTab === 'fixtures' ? renderCupFixtures('FA CUP') :
+          `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">Real Round of 64 draw from the 26/27 file: 62 entrants plus confirmed byes for Big Mac FC and Harvey Frekes. No matches played yet, so the whole bracket is simulated.</p>` +
+          `<div id="outcomes-list">${cupOutcomesList('fa_cup_markets', state.futureMarketTab)}</div>`);
     } else if(state.activeTab === 'ECL'){
       body = `<div class="bb-div-stripe div-ecl"></div>` + cupMarketTabs('ecl_labels') +
-        `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">Groups from the 26/27 file used as a template (3 groups of 4); the results in that file are last season's leftover data, so the whole group stage plus knockout is simulated fresh here. Top 2 per group advance; the best 2 group winners get a bye straight to the semi-final, the rest play off for the last 2 spots.</p>` +
-        `<div id="outcomes-list">${cupOutcomesList('ecl_markets', state.futureMarketTab)}</div>`;
+        (state.futureMarketTab === 'fixtures' ? renderCupFixtures('ECL') :
+          `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">Groups from the 26/27 file used as a template (3 groups of 4); the results in that file are last season's leftover data, so the whole group stage plus knockout is simulated fresh here. Top 2 per group advance; the best 2 group winners get a bye straight to the semi-final, the rest play off for the last 2 spots.</p>` +
+          `<div id="outcomes-list">${cupOutcomesList('ecl_markets', state.futureMarketTab)}</div>`);
     } else if(state.activeTab === 'MY BETS'){
       body = renderMyBetsTab();
     } else if(state.activeTab === 'SPECIALS'){
@@ -1238,6 +1345,7 @@
     const useAdminBtn = $('#use-admin-login'); if(useAdminBtn) useAdminBtn.onclick = () => { state.adminLoginMode = true; render(); };
     document.querySelectorAll('[data-tab]').forEach(el => el.onclick = () => {
       state.activeTab = el.dataset.tab;
+      state.cupFixtureMarket = null;
       if(state.activeTab === 'RODDY') state.futureMarketTab = Object.keys(FUTURES.roddy_labels)[0];
       else if(state.activeTab === 'FA CUP') state.futureMarketTab = Object.keys(FUTURES.fa_cup_labels)[0];
       else if(state.activeTab === 'ECL') state.futureMarketTab = Object.keys(FUTURES.ecl_labels)[0];
@@ -1248,7 +1356,7 @@
       if(state.activeTab === 'STATS'){ state.statsData = null; render(); loadStats(); return; }
       render();
     });
-    document.querySelectorAll('[data-marketkey]').forEach(el => el.onclick = () => { state.futureMarketTab = el.dataset.marketkey; render(); });
+    document.querySelectorAll('[data-marketkey]').forEach(el => el.onclick = () => { state.futureMarketTab = el.dataset.marketkey; state.cupFixtureMarket = null; render(); });
     const teamAEl = $('#team-a');
     if(teamAEl){
       teamAEl.oninput = e => { state.teamA = e.target.value; };
@@ -1289,6 +1397,13 @@
       render();
     });
     const backBtn = $('#back-to-fixtures'); if(backBtn) backBtn.onclick = () => { state.h2hFixtureMarket=null; render(); };
+    document.querySelectorAll('[data-cupfixture]').forEach(el => el.onclick = () => {
+      const [compKey, idx] = el.dataset.cupfixture.split('|');
+      const f = state.cupFixtures[compKey][parseInt(idx,10)];
+      state.cupFixtureMarket = computeH2HMarket(f.teamA, f.teamB, state.currentRound);
+      render();
+    });
+    const backCupBtn = $('#back-to-cup-fixtures'); if(backCupBtn) backCupBtn.onclick = () => { state.cupFixtureMarket = null; render(); };
     document.querySelectorAll('[data-pick]').forEach(el => el.onclick = () => {
       if(!state.user){
         alert('You must log in first to place a bet.');
@@ -1335,6 +1450,56 @@
       const sel = document.getElementById('admin-current-round');
       saveCurrentRound(parseInt(sel.value, 10));
     };
+    for(const comp of ['FA CUP','ECL']){
+      const aEl = $('#cup-team-a-'+comp);
+      if(aEl){
+        aEl.oninput = e => { state.cupAdminEntry[comp].teamA = e.target.value; };
+        aEl.onchange = e => { state.cupAdminEntry[comp].teamA = matchTeamName(e.target.value); };
+      }
+      const bEl = $('#cup-team-b-'+comp);
+      if(bEl){
+        bEl.oninput = e => { state.cupAdminEntry[comp].teamB = e.target.value; };
+        bEl.onchange = e => { state.cupAdminEntry[comp].teamB = matchTeamName(e.target.value); };
+      }
+    }
+    document.querySelectorAll('[data-add-cupfixture]').forEach(el => el.onclick = () => {
+      const comp = el.dataset.addCupfixture;
+      const entry = state.cupAdminEntry[comp];
+      if(!ALL_TEAMS.includes(entry.teamA) || !ALL_TEAMS.includes(entry.teamB)){ alert('Pick two real teams from the suggestions first.'); return; }
+      if(entry.teamA === entry.teamB){ alert('Pick two different teams.'); return; }
+      state.cupFixtures[comp].push({ teamA: entry.teamA, teamB: entry.teamB });
+      state.cupAdminEntry[comp] = { teamA:'', teamB:'' };
+      saveCupFixtures();
+    });
+    document.querySelectorAll('[data-remove-cupfixture]').forEach(el => el.onclick = () => {
+      const [comp, idx] = el.dataset.removeCupfixture.split('|');
+      state.cupFixtures[comp].splice(parseInt(idx,10), 1);
+      saveCupFixtures();
+    });
+    document.querySelectorAll('[data-clear-cupfixtures]').forEach(el => el.onclick = () => {
+      const comp = el.dataset.clearCupfixtures;
+      if(!confirm('Clear all current '+comp+' fixtures?')) return;
+      state.cupFixtures[comp] = [];
+      saveCupFixtures();
+    });
+    document.querySelectorAll('[data-set-cupoverride]').forEach(el => el.onclick = () => {
+      const comp = el.dataset.setCupoverride;
+      const input = document.getElementById('cup-override-stage-'+comp);
+      const stage = (input.value||'').trim();
+      if(!stage){ alert('Enter a stage name to force, e.g. "Round Of 32".'); return; }
+      state.cupCalendarOverrides[comp][state.currentRound] = stage;
+      saveCupOverrides();
+    });
+    document.querySelectorAll('[data-set-cupoverride-off]').forEach(el => el.onclick = () => {
+      const comp = el.dataset.setCupoverrideOff;
+      state.cupCalendarOverrides[comp][state.currentRound] = false;
+      saveCupOverrides();
+    });
+    document.querySelectorAll('[data-clear-cupoverride]').forEach(el => el.onclick = () => {
+      const comp = el.dataset.clearCupoverride;
+      delete state.cupCalendarOverrides[comp][state.currentRound];
+      saveCupOverrides();
+    });
     document.querySelectorAll('[data-noveltystatus]').forEach(el => el.onclick = () => {
       const [noveltyId, status] = el.dataset.noveltystatus.split('|');
       resolveNoveltyItem(noveltyId, status);
@@ -1407,6 +1572,7 @@
       state.user = adminUser; state.error=''; state.username=''; state.pin=''; state.adminLoginMode=false; state.screen='main'; state.loginModalOpen=false;
       state.activeTab='H2H'; state.adminPunters=null; state.adminBets=null; state.novelty=null; state.statsData=null; state.myBets=null;
       render();
+      loadAdminData();  // background load so the attention flag is accurate from the start, not just after visiting Admin
       return;
     }
 
@@ -1453,6 +1619,10 @@
 
   const savedCurrentRound = await sget('bilbbet2_current_round');
   if(savedCurrentRound){ state.currentRound = savedCurrentRound; state.h2hRound = savedCurrentRound; state.leadingAtRound = savedCurrentRound; }
+  const savedCupFixtures = await sget('bilbbet2_cup_fixtures');
+  if(savedCupFixtures){ state.cupFixtures = savedCupFixtures; }
+  const savedCupOverrides = await sget('bilbbet2_cup_overrides');
+  if(savedCupOverrides){ state.cupCalendarOverrides = savedCupOverrides; }
 
   render();
 })();
