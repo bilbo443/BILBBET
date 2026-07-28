@@ -190,6 +190,13 @@
   function teamLogo(name, size){ return logoBadge('team', name, size); }
   function divisionLogo(name, size){ return logoBadge('division', name, size); }
   function competitionLogo(name, size){ return logoBadge('competition', name, size); }
+  function siteLogoBadge(size){
+    size = size || 32;
+    return `<span style="position:relative;display:inline-block;width:${size}px;height:${size}px;min-width:${size}px;vertical-align:middle;">
+      <span style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;border-radius:50%;background:#ffdd00;color:#1b1b1b;font-size:${Math.round(size*0.42)}px;font-weight:700;">B</span>
+      <img src="assets/logos/site.png" alt="" style="position:absolute;top:0;left:0;width:100%;height:100%;border-radius:50%;object-fit:cover;" onerror="this.style.display='none';"/>
+    </span>`;
+  }
   // Platform-wide rule: every date/time shown anywhere is Sydney time, correct
   // for whichever of AEST/AEDT actually applies on that date -- never the
   // viewer's own browser timezone. Intl's IANA timezone database handles the
@@ -494,10 +501,11 @@
   }
 
   function header(){
+    const brand = `<span style="display:flex;align-items:center;gap:10px;">${siteLogoBadge(32)}<strong style="letter-spacing:1px;font-size:22px;text-transform:uppercase;">BILBBET</strong></span>`;
     if(!state.user){
       return `
         <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 4px;border-bottom:1px solid #3d3d3d;margin-bottom:1rem;">
-          <strong style="letter-spacing:0.5px;">bilbbet</strong>
+          ${brand}
           <div style="display:flex;align-items:center;gap:10px;">
             <button class="bb-btn ghost" id="open-team-search-btn" style="padding:6px 12px;font-size:13px;">Find a team</button>
             <button class="bb-btn" id="open-login-btn" style="padding:7px 14px;">Log in</button>
@@ -506,7 +514,7 @@
     }
     return `
       <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 4px;border-bottom:1px solid #3d3d3d;margin-bottom:1rem;flex-wrap:wrap;gap:8px;">
-        <strong style="letter-spacing:0.5px;">bilbbet</strong>
+        ${brand}
         <div style="display:flex;align-items:center;gap:14px;font-size:14px;">
           <button class="bb-btn ghost" id="open-team-search-btn" style="padding:6px 12px;font-size:13px;">Find a team</button>
           <span>${fmt(state.user.balance)} clams</span>
@@ -726,7 +734,7 @@
         const aLosses = found.flipped ? r.aWins : r.aLosses;
         return `<div style="background:#1b1b1b;border:1px solid #3d3d3d;border-radius:8px;padding:10px 12px;margin-bottom:12px;">
           <div style="font-size:12px;color:#9a9a9a;margin-bottom:2px;">All-time head-to-head &mdash; played ${r.played}</div>
-          <div style="font-size:14px;">${esc(m.teamA)} <strong>${aWins}W</strong> &ndash; <strong>${r.draws}D</strong> &ndash; <strong>${aLosses}L</strong> ${esc(m.teamB)}</div>
+          <div style="font-size:14px;">${esc(m.teamA)} <strong>${aWins}</strong> &ndash; <strong>${r.draws}D</strong> &ndash; <strong>${aLosses}</strong> ${esc(m.teamB)}</div>
           <div style="font-size:11px;color:#8a8a8a;margin-top:4px;">Most recent meeting: ${esc(r.lastMatch)}</div>
           ${m.edge && m.edge.applied ? `<div style="font-size:11px;color:#ffdd00;margin-top:6px;">\u26A1 ${esc(m.edge.favored)} carries a slight edge here from a considerably lopsided head-to-head record (${m.edge.winMargin>0?aWins:aLosses}W-${m.edge.winMargin>0?aLosses:aWins}L across ${r.played} meetings).</div>` : ''}
         </div>`;
@@ -1188,16 +1196,18 @@
                   ${u.status==='PENDING' ? ' <span class="bb-pill" style="background:#efece3;color:#9a9a9a;">pending</span>' : ''}
                   ${u.status==='REJECTED' ? ` <span class="bb-pill" style="background:#f3ded9;color:#a3402f;">rejected</span> <span data-regstatus="${esc(u.username)}|APPROVED" style="cursor:pointer;color:#9a9a9a;font-size:11px;text-decoration:underline;">re-approve</span>` : ''}
                   ${u.status==='KICKED' ? ` <span class="bb-pill" style="background:#3a2a26;color:#c0604f;">kicked</span>` : ''}
+                  ${u.status==='RESET' ? ` <span class="bb-pill" style="background:#efece3;color:#9a9a9a;">reset \u2014 awaiting re-registration</span>` : ''}
                 </td>
                 <td>${fmt(u.balance)}</td>
                 <td style="display:flex;gap:6px;align-items:center;">
                   <input class="bb-input" type="number" placeholder="+/- clams" id="adj-${esc(u.username)}" style="width:110px;padding:5px 8px;"/>
                   <button class="bb-btn ghost" data-adjust-user="${esc(u.username)}" style="padding:5px 10px;font-size:12px;">Apply</button>
                 </td>
-                <td>
-                  ${u.isAdmin ? '' : (u.status==='KICKED'
+                <td style="display:flex;gap:4px;flex-wrap:wrap;">
+                  ${u.isAdmin || u.status==='RESET' ? '' : (u.status==='KICKED'
                     ? `<button class="bb-btn ghost" data-regstatus="${esc(u.username)}|APPROVED" style="padding:5px 10px;font-size:12px;">Unkick</button>`
                     : `<button class="bb-btn ghost" data-kick-user="${esc(u.username)}" style="padding:5px 10px;font-size:12px;">Kick</button>`)}
+                  ${u.isAdmin || u.status==='RESET' ? '' : `<button class="bb-btn ghost" data-reset-registration="${esc(u.username)}" style="padding:5px 10px;font-size:12px;">Reset registration</button>`}
                 </td>
               </tr>`).join('')}
           </tbody>
@@ -1366,6 +1376,24 @@
 
   async function updateRegistrationStatus(username, newStatus){
     await applyRegistrationStatus(username, newStatus);
+    await loadAdminData();
+  }
+
+  // For a punter who's forgotten their PIN: wipes the account's login and
+  // funding state so they can register again from scratch with a new PIN,
+  // via the normal registration flow. Their carry balance and historical
+  // record get reapplied automatically on re-registration (looked up fresh
+  // from the same source data), so nothing there is lost -- only the old
+  // PIN, live balance, and current-season status are cleared.
+  async function resetRegistration(username){
+    if(!confirm(`Reset ${username}'s registration? They'll need to register again with a new PIN, and their current balance will be cleared (their carried-over history isn't lost -- it's reapplied automatically once they re-register and are approved). This can't be undone.`)) return;
+    const u = await getUser(username);
+    if(!u) return;
+    u.status = 'RESET';
+    u.pinHash = null;
+    u.balance = 0;
+    u.everFunded = false;
+    await saveUser(u);
     await loadAdminData();
   }
 
@@ -2071,6 +2099,7 @@
       if(!confirm('Kick '+username+'? They\'ll be blocked from logging in until reinstated.')) return;
       updateRegistrationStatus(username, 'KICKED');
     });
+    document.querySelectorAll('[data-reset-registration]').forEach(el => el.onclick = () => resetRegistration(el.dataset.resetRegistration));
     document.querySelectorAll('[data-setstatus]').forEach(el => el.onclick = () => {
       const [betId, status] = el.dataset.setstatus.split('|');
       setBetStatus(betId, status);
@@ -2273,6 +2302,7 @@
 
     const u = await getUser(username);
     if(!u){ state.error='No account with that username. Try "create account" below.'; render(); return; }
+    if(u.status === 'RESET'){ state.error='This registration was reset by the admin \u2014 use "First time? Create account" to register again with a new PIN.'; state.username=''; state.pin=''; render(); return; }
     if(u.pinHash !== simpleHash(pin)){ state.error='Wrong PIN.'; render(); return; }
     const status = u.status || 'APPROVED';
     if(status === 'PENDING'){ state.error='Your registration is still awaiting admin approval \u2014 check back soon.'; state.username=''; state.pin=''; render(); return; }
@@ -2295,7 +2325,7 @@
     if(username.toLowerCase() === 'admin'){ state.error='That name is reserved for the admin login.'; render(); return; }
     if(!username || pin.length<4){ state.error='Pick a username and a PIN of at least 4 digits.'; render(); return; }
     const existing = await getUser(username);
-    if(existing){ state.error='That username is taken. Log in instead.'; render(); return; }
+    if(existing && existing.status !== 'RESET'){ state.error='That username is taken. Log in instead.'; render(); return; }
     const isFirstEver = (await getIndex('bilbbet2_users_index')).length === 0;
     const carryData = CARRY_BALANCES[username] || null;
     // the very first account ever registered becomes admin and is auto-approved
