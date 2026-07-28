@@ -1,7 +1,7 @@
 (async function(){
   const DATA = {};
   async function loadAllData(){
-    const files = ['futures','h2h_history','h2h_divisions','h2h_shift','h2h_schedule','leading_at','special_markets','h2h_record','cup_calendar','carry_balances','round_dates'];
+    const files = ['futures','h2h_history','h2h_divisions','h2h_shift','h2h_schedule','leading_at','special_markets','h2h_record','cup_calendar','carry_balances','round_dates','div23_schedule_exceptions'];
     const failures = [];
     const results = await Promise.all(files.map(async name => {
       const path = './data/' + name + '.json';
@@ -77,6 +77,15 @@
   }
   const CARRY_BALANCES = DATA.carry_balances; // {teamName: {carry, historicalRecord}}
   const ROUND_DATES = DATA.round_dates; // {round: 'YYYY-MM-DD' kickoff date}
+  const DIV23_EXCEPTIONS = DATA.div23_schedule_exceptions; // {div: {no_fixture_rounds, playoff_rounds}}
+  function hasNoFixtures(div, round){
+    const ex = DIV23_EXCEPTIONS[div];
+    return !!(ex && ex.no_fixture_rounds.includes(round));
+  }
+  function isPlayoffRound(div, round){
+    const ex = DIV23_EXCEPTIONS[div];
+    return !!(ex && ex.playoff_rounds.includes(round));
+  }
   // Whether the current round's scheduled date has arrived -- checked on
   // render, not on a timer, so it only ever moves state the moment someone
   // has the page open on or after that date, never silently in the background.
@@ -99,7 +108,7 @@
   const K = 8;
 
   const FUTURE_DIVS = Object.keys(FUTURES.divisions);
-  const BASE_TABS = [...FUTURE_DIVS, 'RODDY', 'FA CUP', 'ECL', 'H2H', 'SPECIALS', 'STATS', 'MY BETS'];
+  const BASE_TABS = [...FUTURE_DIVS, 'RODDY', 'FA CUP', 'ECL', 'H2H', 'PLAYOFFS', 'SPECIALS', 'STATS', 'MY BETS'];
   function currentTabs(){ return state.user && state.user.isAdmin ? [...BASE_TABS, 'ADMIN'] : BASE_TABS; }
 
   let state = {
@@ -109,9 +118,9 @@
     futureMarketTab: FUTURE_DIVS.length ? Object.keys(FUTURES.market_labels)[0] : null,
     teamA:'', teamB:'', h2hRound:1, h2hMarket:null,
     h2hSubTab: FUTURE_DIVS[0], h2hFixtureMarket: null,
-    slip:[], stake:50, betMode:'multi',
+    slip:[], stake:50, betMode:'multi', useBoost:false,
     myBets:null,
-    adminPunters:null, adminBets:null, novelty:null, statsData:null,
+    adminPunters:null, adminBets:null, novelty:null, statsData:null, suggestions:null, suggestionText:'',
     currentRound: 1,       // the next round yet to be played; anything before this is "past"
     leadingAtRound: 1,
     specialsSelection: { win_round: '', lose_round: '', charity: '', philanthropy: '' },
@@ -122,6 +131,10 @@
     cupFixtureMarket: null,
     cupAdminEntry: { 'FA CUP': {teamA:'', teamB:''}, 'ECL': {teamA:'', teamB:''} },
     cupCalendarOverrides: { 'FA CUP': {}, 'ECL': {} },  // round -> stage name string, or false to force "not a cup round"
+    playoffFixtures: { 'DIVISION 2A': [], 'DIVISION 2B': [], 'DIVISION 3A': [], 'DIVISION 3B': [] },
+    playoffFixtureMarket: null,
+    playoffSubTab: 'DIVISION 2A',
+    playoffAdminEntry: { 'DIVISION 2A': {teamA:'',teamB:''}, 'DIVISION 2B': {teamA:'',teamB:''}, 'DIVISION 3A': {teamA:'',teamB:''}, 'DIVISION 3B': {teamA:'',teamB:''} },
     roundBettingOpen: true,
     oddsRefreshRequested: false,
   };
@@ -432,6 +445,7 @@
     if(tabName === 'DIVISION 3B') return 'div-3b';
     if(tabName === 'FA CUP') return 'div-facup';
     if(tabName === 'ECL') return 'div-ecl';
+    if(tabName === 'RODDY') return 'div-roddy';
     return '';
   }
 
@@ -516,8 +530,34 @@
       `<p style="color:#9a9a9a;font-size:12px;margin-top:10px;">Odds here use the same head-to-head model as the division matches -- cup-specific pricing (rewarding spike ability for the FA Cup, tough-opposition form for the ECL) isn't wired in yet.</p>`;
   }
 
-  // Is there anything the admin should look at? Either a pending registration,
-  // or a round the calendar (or an override) says is a cup weekend for a
+  const PLAYOFF_DIVS = ['DIVISION 2A', 'DIVISION 2B', 'DIVISION 3A', 'DIVISION 3B'];
+
+  function playoffSubTabBar(){
+    return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">' +
+      PLAYOFF_DIVS.map(d => `<div class="bb-tab ${state.playoffSubTab===d?'active '+divColorClass(d):''}" data-playoffsubtab="${esc(d)}" style="font-size:12px;padding:6px 10px;">${d.replace('DIVISION ','')}</div>`).join('') +
+      '</div>';
+  }
+
+  function renderPlayoffsTab(){
+    const div = state.playoffSubTab;
+    if(state.playoffFixtureMarket){
+      return playoffSubTabBar() + `<button class="bb-btn ghost" id="back-to-playoff-fixtures" style="margin-bottom:10px;">&larr; Back to fixtures</button>` + renderH2HMarket(state.playoffFixtureMarket);
+    }
+    const fixtures = state.playoffFixtures[div] || [];
+    const inPlayoffWindow = isPlayoffRound(div, state.currentRound);
+    const windowNote = inPlayoffWindow
+      ? `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">Round ${state.currentRound} is a scheduled playoff week for ${esc(div)}.</p>`
+      : `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">Round ${state.currentRound} isn't one of ${esc(div)}'s playoff weeks (those are Rounds 24-26).</p>`;
+    if(!fixtures.length){
+      return playoffSubTabBar() + windowNote + `<div class="bb-card" style="text-align:center;padding:2rem 1rem;color:#9a9a9a;">No fixtures scheduled yet.</div>`;
+    }
+    return playoffSubTabBar() + windowNote + '<div class="bb-card" style="padding:0;overflow:hidden;">' +
+      fixtures.map((f,i) => `<div data-playofffixture="${esc(div)}|${i}" style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;cursor:pointer;${i<fixtures.length-1?'border-bottom:1px solid #3d3d3d;':''}">
+        <span>${esc(f.teamA)} <span style="color:#9a9a9a;">vs</span> ${esc(f.teamB)}</span>
+        <span class="bb-btn ghost" style="padding:5px 12px;font-size:12px;">View market</span>
+      </div>`).join('') + '</div>';
+  }
+
   // competition that still has no fixtures entered.
   function adminNeedsAttention(){
     const pendingCount = (state.adminPunters||[]).filter(u => (u.status||'APPROVED')==='PENDING').length;
@@ -530,6 +570,8 @@
     const hasResolvable = (state.adminBets||[]).some(b => (b.status||'PENDING')==='PENDING' && b.selections.length===1 &&
       (() => { const r = getPickRound(b.selections[0].id); return r !== null && r <= state.currentRound; })());
     if(hasResolvable) return true;
+    const hasPendingSuggestions = (state.suggestions||[]).some(s => s.status === 'PENDING_REVIEW');
+    if(hasPendingSuggestions) return true;
     return false;
   }
 
@@ -590,14 +632,14 @@
       </div>
       ${(() => {
         const found = getH2HRecord(m.teamA, m.teamB);
-        if(!found) return `<p style="color:#9a9a9a;font-size:12px;margin-bottom:12px;">No recorded meetings between these two yet.</p>`;
+        if(!found) return `<p style="color:#9a9a9a;font-size:12px;margin-bottom:12px;">\u{1F195} First time these two have played each other \u2014 no history to show.</p>`;
         const r = found.rec;
         const aWins = found.flipped ? r.aLosses : r.aWins;
         const aLosses = found.flipped ? r.aWins : r.aLosses;
         return `<div style="background:#1b1b1b;border:1px solid #3d3d3d;border-radius:8px;padding:10px 12px;margin-bottom:12px;">
           <div style="font-size:12px;color:#9a9a9a;margin-bottom:2px;">All-time head-to-head &mdash; played ${r.played}</div>
           <div style="font-size:14px;">${esc(m.teamA)} <strong>${aWins}W</strong> &ndash; <strong>${r.draws}D</strong> &ndash; <strong>${aLosses}L</strong> ${esc(m.teamB)}</div>
-          <div style="font-size:11px;color:#8a8a8a;margin-top:4px;">${esc(r.lastMatch)}</div>
+          <div style="font-size:11px;color:#8a8a8a;margin-top:4px;">Most recent meeting: ${esc(r.lastMatch)}</div>
         </div>`;
       })()}
       <h4 style="margin:0 0 8px;font-size:13px;color:#9a9a9a;">Match result</h4>
@@ -647,6 +689,10 @@
   function renderFixtureList(div){
     if(state.h2hFixtureMarket){
       return `<button class="bb-btn ghost" id="back-to-fixtures" style="margin-bottom:10px;">&larr; Back to Round ${state.h2hRound} fixtures</button>` + renderH2HMarket(state.h2hFixtureMarket);
+    }
+    if(hasNoFixtures(div, state.h2hRound)){
+      const reason = isPlayoffRound(div, state.h2hRound) ? ' \u2014 this is a playoff week, see the Playoffs tab.' : '.';
+      return `<div class="bb-card" style="text-align:center;padding:2rem 1rem;color:#9a9a9a;">No scheduled H2H fixtures${reason}</div>`;
     }
     const markets = getFixtureMarkets(div, state.h2hRound);
     return '<div class="bb-card" style="padding:0;overflow:hidden;">' +
@@ -857,7 +903,7 @@
     const open = state.novelty.filter(n => n.status === 'OPEN');
     const settled = state.novelty.filter(n => n.status !== 'OPEN').sort((a,b)=>b.createdAt-a.createdAt);
     if(!open.length && !settled.length){
-      return html + '<p style="color:#9a9a9a;">Nothing added yet &mdash; the admin can add one-off bets here.</p>';
+      html += '<p style="color:#9a9a9a;">Nothing added yet &mdash; the admin can add one-off bets here, or suggest your own below.</p>';
     }
     if(open.length){
       html += '<div class="bb-card" style="padding:0;overflow:hidden;margin-bottom:1.5rem;">' +
@@ -869,11 +915,17 @@
         }).join('') + '</div>';
     }
     if(settled.length){
-      html += '<h4 style="color:#9a9a9a;">Settled</h4><div class="bb-card" style="padding:0;overflow:hidden;">' +
+      html += '<h4 style="color:#9a9a9a;">Settled</h4><div class="bb-card" style="padding:0;overflow:hidden;margin-bottom:1.5rem;">' +
         settled.map((n,i) => `<div style="display:flex;justify-content:space-between;padding:10px 14px;${i<settled.length-1?'border-bottom:1px solid #3d3d3d;':''}">
           <span style="color:#9a9a9a;">${esc(n.name)} <span style="color:#8a8a8a;">(${n.odds.toFixed(2)})</span></span>${statusPill(n.status)}
         </div>`).join('') + '</div>';
     }
+
+    html += '<h3>Suggest your own</h3><div class="bb-card">' +
+      `<textarea class="bb-input" id="suggestion-text" placeholder="Describe your special bet idea\u2026" rows="3" style="resize:vertical;">${esc(state.suggestionText||'')}</textarea>` +
+      `<button class="bb-btn" id="submit-suggestion-btn" style="margin-top:8px;">Submit idea</button>` +
+      `<p style="font-size:12px;color:#9a9a9a;margin:8px 0 0;">The admin reviews every idea and either sets a price and adds it above, or turns it down.</p>` +
+      '</div>';
     return html;
   }
 
@@ -996,6 +1048,25 @@
         }).join('')}
         <p style="font-size:12px;color:#9a9a9a;margin-top:4px;">Set fixtures when there's an actual cup weekend; clear them once it's passed so the tab correctly shows "No fixtures scheduled yet" the rest of the time.</p>
       </div>
+      <h3>Playoff fixtures (Division 2 &amp; 3, Rounds 24-26)</h3>
+      <div class="bb-card" style="margin-bottom:1.5rem;">
+        ${PLAYOFF_DIVS.map(div => `
+          <div style="margin-bottom:14px;">
+            <div style="font-size:13px;font-weight:600;margin-bottom:6px;">${esc(div)}</div>
+            ${(state.playoffFixtures[div]||[]).length ? (state.playoffFixtures[div]||[]).map((f,i) => `
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #2a2a2a;font-size:13px;">
+                <span>${esc(f.teamA)} vs ${esc(f.teamB)}</span>
+                <span data-remove-playofffixture="${esc(div)}|${i}" style="cursor:pointer;color:#9a9a9a;font-size:12px;">remove</span>
+              </div>`).join('') : `<p style="color:#9a9a9a;font-size:12px;">No fixtures set for this division.</p>`}
+            <div style="display:flex;gap:6px;align-items:flex-end;margin-top:8px;flex-wrap:wrap;">
+              <div style="flex:1;min-width:140px;">${teamSearchInput('playoff-team-a-'+esc(div), '', 'Team A\u2026')}</div>
+              <div style="flex:1;min-width:140px;">${teamSearchInput('playoff-team-b-'+esc(div), '', 'Team B\u2026')}</div>
+              <button class="bb-btn" data-add-playofffixture="${esc(div)}" style="padding:8px 14px;font-size:12px;">Add</button>
+              ${(state.playoffFixtures[div]||[]).length ? `<button class="bb-btn ghost" data-clear-playofffixtures="${esc(div)}" style="padding:8px 14px;font-size:12px;">Clear all</button>` : ''}
+            </div>
+          </div>`).join('')}
+        <p style="font-size:12px;color:#9a9a9a;margin-top:4px;">Rounds 24-26 are the playoff weeks for Division 2/3 (no regular H2H fixtures those weeks) -- set matchups here once the bracket's known.</p>
+      </div>
       <h3>Pending registrations</h3>
       ${!pending.length ? '<p style="color:#9a9a9a;font-size:13px;">Nothing waiting on approval.</p>' : `
       <div class="bb-card" style="padding:0;overflow:hidden;margin-bottom:1.5rem;">
@@ -1063,6 +1134,22 @@
           Only single-selection bets on this exact item are auto-settled &mdash; if it's one leg of a bigger multi, resolve that bet manually below instead.
         </p>
       </div>
+      <h3>Punter suggestions</h3>
+      <div class="bb-card" style="margin-bottom:1.5rem;">
+        ${(() => {
+          const pendingSuggestions = (state.suggestions||[]).filter(s => s.status === 'PENDING_REVIEW');
+          if(!pendingSuggestions.length) return `<p style="color:#9a9a9a;font-size:13px;margin:0;">No ideas waiting on review.</p>`;
+          return pendingSuggestions.map(s => `
+            <div style="padding:8px 0;border-bottom:1px solid #333333;">
+              <div style="font-size:13px;margin-bottom:6px;">${esc(s.text)} <span style="color:#8a8a8a;font-size:12px;">(from ${esc(s.submittedBy)})</span></div>
+              <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                <input class="bb-input" id="suggestion-price-${s.id}" type="number" step="0.01" min="1.01" placeholder="Odds to set" style="width:110px;padding:5px 8px;"/>
+                <button class="bb-btn" data-approve-suggestion="${s.id}" style="padding:5px 10px;font-size:12px;">Approve &amp; add</button>
+                <button class="bb-btn ghost" data-reject-suggestion="${s.id}" style="padding:5px 10px;font-size:12px;">Reject</button>
+              </div>
+            </div>`).join('');
+        })()}
+      </div>
       <h3>All registered bets</h3>
       ${!bets.length ? '<p style="color:#9a9a9a;">No bets placed by anyone yet.</p>' : `
       <div class="bb-card" style="padding:0;overflow-x:auto;">
@@ -1073,11 +1160,21 @@
               <tr>
                 <td>${fmtDate(b.timestamp)}</td>
                 <td>${esc(b.username)}</td>
-                <td>${b.selections.map(s=>esc(s.label)+' <span style="color:#8a8a8a;">('+s.odds.toFixed(2)+')</span>').join('<br/>')}</td>
+                <td>${b.selections.map((s,i)=>{
+                  const label = esc(s.label)+' <span style="color:#8a8a8a;">('+s.odds.toFixed(2)+')</span>';
+                  if(b.selections.length===1) return label;
+                  const legStatus = s.result || 'PENDING';
+                  return `<div style="margin-bottom:4px;">${label} ${statusPill(legStatus)}<br/>
+                    <span style="display:inline-flex;gap:3px;margin-top:2px;">
+                      <span data-resolveleg="${b.id}|${i}|WON" style="cursor:pointer;color:#4a9166;font-size:10px;text-decoration:underline;">won</span>
+                      <span data-resolveleg="${b.id}|${i}|LOST" style="cursor:pointer;color:#a3402f;font-size:10px;text-decoration:underline;">lost</span>
+                      <span data-resolveleg="${b.id}|${i}|VOID" style="cursor:pointer;color:#9a9a9a;font-size:10px;text-decoration:underline;">void</span>
+                    </span></div>`;
+                }).join(b.selections.length===1?'<br/>':'')}</td>
                 <td>${fmt(b.stake)}</td>
-                <td>${b.combinedOdds.toFixed(2)}</td>
+                <td>${b.combinedOdds.toFixed(2)}${b.boosted?' \u26A1':''}</td>
                 <td>${fmt(b.potentialReturn)}</td>
-                <td>${statusPill(b.status || 'PENDING')}</td>
+                <td>${statusPill(b.status || 'PENDING')}${b.nearMissBonusAwarded?' <span class="bb-pill" style="background:#4a3a10;color:#ffdd00;">bonus paid</span>':''}</td>
                 <td style="display:flex;gap:4px;flex-wrap:wrap;">
                   <button class="bb-btn ghost" data-setstatus="${b.id}|WON" style="padding:4px 8px;font-size:11px;">Won</button>
                   <button class="bb-btn ghost" data-setstatus="${b.id}|LOST" style="padding:4px 8px;font-size:11px;">Lost</button>
@@ -1102,9 +1199,12 @@
     const bets = (await Promise.all(betIds.map(id => sget('bilbbet2_bet:'+id)))).filter(Boolean);
     const noveltyIds = await getIndex('bilbbet2_novelty_index');
     const novelty = (await Promise.all(noveltyIds.map(id => sget('bilbbet2_novelty:'+id)))).filter(Boolean);
+    const suggestionIds = await getIndex('bilbbet2_suggestions_index');
+    const suggestions = (await Promise.all(suggestionIds.map(id => sget('bilbbet2_suggestion:'+id)))).filter(Boolean);
     state.adminPunters = users;
     state.adminBets = bets;
     state.novelty = novelty;
+    state.suggestions = suggestions;
     render();
   }
 
@@ -1147,6 +1247,11 @@
 
   async function saveCupFixtures(){
     await sset('bilbbet2_cup_fixtures', state.cupFixtures);
+    render();
+  }
+
+  async function savePlayoffFixtures(){
+    await sset('bilbbet2_playoff_fixtures', state.playoffFixtures);
     render();
   }
 
@@ -1211,11 +1316,59 @@
       if(state.user.username.toLowerCase() === bet.username.toLowerCase()) state.user = u;
     }
     bet.status = newStatus;
+    // keep the per-leg result in sync for single-selection bets, so the data model
+    // is consistent regardless of which path resolved the bet
+    if(bet.selections.length === 1){
+      bet.selections[0].result = newStatus === 'PENDING' ? null : newStatus;
+    }
     await sset('bilbbet2_bet:'+betId, bet);
   }
 
   async function setBetStatus(betId, newStatus){
     await applyBetStatus(betId, newStatus);
+    await loadAdminData();
+  }
+
+  // Multi-leg resolution: every leg gets resolved individually (some legs might be
+  // known before others), and the bet's overall status is derived once every leg has
+  // a result -- LOST if any leg lost, otherwise WON (void legs don't count either way).
+  function computeOverallStatus(selections){
+    if(selections.some(s => s.result === null || s.result === undefined)) return 'PENDING';
+    if(selections.some(s => s.result === 'LOST')) return 'LOST';
+    return 'WON';
+  }
+
+  // A 5+ leg multi that loses by exactly one leg (every other leg won, none voided)
+  // earns the punter a bonus credit matching their stake, per house rule.
+  function isNearMissBonus(selections){
+    if(selections.length < 5) return false;
+    const lostCount = selections.filter(s => s.result === 'LOST').length;
+    const wonCount = selections.filter(s => s.result === 'WON').length;
+    const voidCount = selections.filter(s => s.result === 'VOID').length;
+    return lostCount === 1 && voidCount === 0 && wonCount === selections.length - 1;
+  }
+
+  async function resolveSelectionResult(betId, index, result){
+    const bet = await sget('bilbbet2_bet:'+betId);
+    if(!bet) return;
+    bet.selections[index].result = result;
+    const prevOverall = bet.status || 'PENDING';
+    const newOverall = computeOverallStatus(bet.selections);
+    if(newOverall !== prevOverall){
+      const u = await getUser(bet.username);
+      if(u){
+        u.balance -= settlementCredit(prevOverall, bet);
+        u.balance += settlementCredit(newOverall, bet);
+        if(newOverall === 'LOST' && !bet.nearMissBonusAwarded && isNearMissBonus(bet.selections)){
+          u.balance += bet.stake;
+          bet.nearMissBonusAwarded = true;
+        }
+        await saveUser(u);
+        if(state.user && state.user.username.toLowerCase() === bet.username.toLowerCase()) state.user = u;
+      }
+      bet.status = newOverall;
+    }
+    await sset('bilbbet2_bet:'+betId, bet);
     await loadAdminData();
   }
 
@@ -1237,6 +1390,48 @@
     await sset('bilbbet2_novelty:'+item.id, item);
     await addToIndex('bilbbet2_novelty_index', item.id);
     await loadAdminData();
+  }
+
+  async function loadSuggestions(){
+    const ids = await getIndex('bilbbet2_suggestions_index');
+    const items = (await Promise.all(ids.map(id => sget('bilbbet2_suggestion:'+id)))).filter(Boolean);
+    state.suggestions = items;
+    render();
+  }
+
+  async function submitSuggestion(){
+    if(!state.user){ alert('You must log in first to submit an idea.'); state.loginModalOpen = true; render(); return; }
+    const text = (state.suggestionText||'').trim();
+    if(!text){ alert('Write your idea first.'); return; }
+    const item = { id: uid(), text, submittedBy: state.user.username, status: 'PENDING_REVIEW', createdAt: Date.now() };
+    await sset('bilbbet2_suggestion:'+item.id, item);
+    await addToIndex('bilbbet2_suggestions_index', item.id);
+    state.suggestionText = '';
+    await loadSuggestions();
+    alert('Idea submitted \u2014 the admin will review it.');
+  }
+
+  async function approveSuggestion(suggestionId){
+    const input = document.getElementById('suggestion-price-'+suggestionId);
+    const odds = parseFloat(input.value);
+    if(!odds || odds < 1.01){ alert('Enter odds of at least 1.01 to approve this idea.'); return; }
+    const suggestion = await sget('bilbbet2_suggestion:'+suggestionId);
+    if(!suggestion) return;
+    const item = { id: uid(), name: suggestion.text, odds: Math.round(odds*100)/100, status: 'OPEN', createdAt: Date.now() };
+    await sset('bilbbet2_novelty:'+item.id, item);
+    await addToIndex('bilbbet2_novelty_index', item.id);
+    suggestion.status = 'APPROVED';
+    await sset('bilbbet2_suggestion:'+suggestionId, suggestion);
+    await loadSuggestions();
+    await loadAdminData();
+  }
+
+  async function rejectSuggestion(suggestionId){
+    const suggestion = await sget('bilbbet2_suggestion:'+suggestionId);
+    if(!suggestion) return;
+    suggestion.status = 'REJECTED';
+    await sset('bilbbet2_suggestion:'+suggestionId, suggestion);
+    await loadSuggestions();
   }
 
   async function resolveNoveltyItem(noveltyId, newStatus){
@@ -1308,7 +1503,7 @@
     if(state.activeTab === 'H2H'){
       body = renderH2HTab();
     } else if(state.activeTab === 'RODDY'){
-      body = roddyMarketTabs() + (state.futureMarketTab === 'leading_at'
+      body = `<div class="bb-div-stripe div-roddy"></div>` + roddyMarketTabs() + (state.futureMarketTab === 'leading_at'
         ? renderLeadingAtMarket('RODDY')
         : `<div id="outcomes-list">${futuresOutcomesList('RODDY', state.futureMarketTab)}</div>`);
     } else if(state.activeTab === 'FA CUP'){
@@ -1321,6 +1516,8 @@
         (state.futureMarketTab === 'fixtures' ? renderCupFixtures('ECL') :
           `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">Groups from the 26/27 file used as a template (3 groups of 4); the results in that file are last season's leftover data, so the whole group stage plus knockout is simulated fresh here. Top 2 per group advance; the best 2 group winners get a bye straight to the semi-final, the rest play off for the last 2 spots.</p>` +
           `<div id="outcomes-list">${cupOutcomesList('ecl_markets', state.futureMarketTab)}</div>`);
+    } else if(state.activeTab === 'PLAYOFFS'){
+      body = renderPlayoffsTab();
     } else if(state.activeTab === 'MY BETS'){
       body = renderMyBetsTab();
     } else if(state.activeTab === 'SPECIALS'){
@@ -1339,6 +1536,7 @@
   }
 
   function combinedOdds(){ return state.slip.reduce((acc,s)=>acc*s.odds,1); }
+  const BOOST_MULTIPLIER = 1.10; // one free +10% odds boost per punter per round, on a 3+ leg multi
 
   // ---------- conflict detection ----------
   // Two kinds of thing get blocked, for different reasons:
@@ -1506,6 +1704,15 @@
     }
 
     const combined = combinedOdds(), potential = state.stake*combined;
+    const boostEligible = state.user && state.slip.length >= 3 && (!state.user.boostUsedRound || state.user.boostUsedRound !== state.currentRound);
+    const boostApplied = boostEligible && state.useBoost;
+    const displayedCombined = boostApplied ? combined * BOOST_MULTIPLIER : combined;
+    const displayedPotential = state.stake * displayedCombined;
+    const boostToggle = boostEligible ? `
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:8px;background:#4a3a10;border-radius:8px;padding:8px 10px;">
+        <input type="checkbox" id="use-boost-checkbox" ${state.useBoost?'checked':''}/>
+        <span style="color:#ffdd00;">Use your Round ${state.currentRound} boosted odd \u2014 free +${Math.round((BOOST_MULTIPLIER-1)*100)}% on this multi (one per round).</span>
+      </label>` : '';
     return `<div class="bb-slip"><div class="bb-slip-inner">
       ${modeToggle}${header}
       <div style="max-height:100px;overflow-y:auto;margin-bottom:8px;">
@@ -1514,13 +1721,14 @@
           <span style="display:flex;gap:8px;align-items:center;"><span class="bb-odds">${s.odds.toFixed(2)}</span>
           <span data-remove="${esc(s.id)}" style="cursor:pointer;color:#9a9a9a;">&times;</span></span></div>`).join('')}
       </div>
+      ${boostToggle}
       <div style="display:flex;gap:8px;align-items:center;">
         <div style="flex:1;"><span style="font-size:11px;color:#9a9a9a;">Stake (clams)</span>
           <input class="bb-input" id="stake-input" type="number" min="1" value="${state.stake}" style="padding:6px 10px;"/></div>
         <div style="flex:1;"><span style="font-size:11px;color:#9a9a9a;">Combined odds</span>
-          <div style="font-weight:600;color:#ffdd00;padding:6px 0;">${combined.toFixed(2)}</div></div>
+          <div style="font-weight:600;color:#ffdd00;padding:6px 0;">${displayedCombined.toFixed(2)}${boostApplied?' \u26A1':''}</div></div>
         <div style="flex:1;"><span style="font-size:11px;color:#9a9a9a;">Potential return</span>
-          <div style="font-weight:600;padding:6px 0;">${fmt(Math.round(potential))}</div></div>
+          <div style="font-weight:600;padding:6px 0;">${fmt(Math.round(displayedPotential))}</div></div>
         <button class="bb-btn" id="place-bet" style="align-self:flex-end;">Place bet</button>
       </div>
     </div></div>`;
@@ -1583,13 +1791,14 @@
     document.querySelectorAll('[data-tab]').forEach(el => el.onclick = () => {
       state.activeTab = el.dataset.tab;
       state.cupFixtureMarket = null;
+      state.playoffFixtureMarket = null;
       if(state.activeTab === 'RODDY') state.futureMarketTab = Object.keys(FUTURES.roddy_labels)[0];
       else if(state.activeTab === 'FA CUP') state.futureMarketTab = Object.keys(FUTURES.fa_cup_labels)[0];
       else if(state.activeTab === 'ECL') state.futureMarketTab = Object.keys(FUTURES.ecl_labels)[0];
-      else if(!['H2H','MY BETS','ADMIN','SPECIALS','STATS'].includes(state.activeTab)) state.futureMarketTab = Object.keys(FUTURES.market_labels)[0];
+      else if(!['H2H','MY BETS','ADMIN','SPECIALS','STATS','PLAYOFFS'].includes(state.activeTab)) state.futureMarketTab = Object.keys(FUTURES.market_labels)[0];
       if(state.activeTab === 'MY BETS'){ if(!state.user){ render(); return; } state.myBets = null; render(); loadMyBets(); return; }
       if(state.activeTab === 'ADMIN'){ state.adminPunters = null; state.adminBets = null; render(); loadAdminData(); return; }
-      if(state.activeTab === 'SPECIALS'){ state.novelty = null; render(); loadNovelty(); return; }
+      if(state.activeTab === 'SPECIALS'){ state.novelty = null; state.suggestions = null; render(); loadNovelty(); loadSuggestions(); return; }
       if(state.activeTab === 'STATS'){ state.statsData = null; render(); loadStats(); return; }
       render();
     });
@@ -1641,6 +1850,14 @@
       render();
     });
     const backCupBtn = $('#back-to-cup-fixtures'); if(backCupBtn) backCupBtn.onclick = () => { state.cupFixtureMarket = null; render(); };
+    document.querySelectorAll('[data-playoffsubtab]').forEach(el => el.onclick = () => { state.playoffSubTab = el.dataset.playoffsubtab; state.playoffFixtureMarket = null; render(); });
+    document.querySelectorAll('[data-playofffixture]').forEach(el => el.onclick = () => {
+      const [div, idx] = el.dataset.playofffixture.split('|');
+      const f = state.playoffFixtures[div][parseInt(idx,10)];
+      state.playoffFixtureMarket = computeH2HMarket(f.teamA, f.teamB, state.currentRound);
+      render();
+    });
+    const backPlayoffBtn = $('#back-to-playoff-fixtures'); if(backPlayoffBtn) backPlayoffBtn.onclick = () => { state.playoffFixtureMarket = null; render(); };
     document.querySelectorAll('[data-pick]').forEach(el => el.onclick = () => {
       if(!state.user){
         alert('You must log in first to place a bet.');
@@ -1662,6 +1879,7 @@
       render();
     });
     document.querySelectorAll('[data-betmode]').forEach(el => el.onclick = () => { state.betMode = el.dataset.betmode; render(); });
+    const useBoostCheckbox = $('#use-boost-checkbox'); if(useBoostCheckbox) useBoostCheckbox.onchange = e => { state.useBoost = e.target.checked; render(); };
     document.querySelectorAll('[data-single-stake]').forEach(el => el.oninput = e => {
       const item = state.slip.find(s=>s.id===el.dataset.singleStake);
       if(item) item.singleStake = Math.max(1, parseInt(e.target.value,10)||1);
@@ -1691,7 +1909,15 @@
       const [betId, status] = el.dataset.setstatus.split('|');
       setBetStatus(betId, status);
     });
+    document.querySelectorAll('[data-resolveleg]').forEach(el => el.onclick = () => {
+      const [betId, idx, result] = el.dataset.resolveleg.split('|');
+      resolveSelectionResult(betId, parseInt(idx,10), result);
+    });
     const addNoveltyBtn = $('#add-novelty'); if(addNoveltyBtn) addNoveltyBtn.onclick = addNoveltyItem;
+    const suggestionText = $('#suggestion-text'); if(suggestionText) suggestionText.oninput = e => { state.suggestionText = e.target.value; };
+    const submitSuggestionBtn = $('#submit-suggestion-btn'); if(submitSuggestionBtn) submitSuggestionBtn.onclick = submitSuggestion;
+    document.querySelectorAll('[data-approve-suggestion]').forEach(el => el.onclick = () => approveSuggestion(el.dataset.approveSuggestion));
+    document.querySelectorAll('[data-reject-suggestion]').forEach(el => el.onclick = () => rejectSuggestion(el.dataset.rejectSuggestion));
     const saveRoundBtn = $('#save-current-round');
     if(saveRoundBtn) saveRoundBtn.onclick = () => {
       const sel = document.getElementById('admin-current-round');
@@ -1733,6 +1959,38 @@
       state.cupFixtures[comp] = [];
       saveCupFixtures();
     });
+    for(const div of PLAYOFF_DIVS){
+      const aEl = $('#playoff-team-a-'+div);
+      if(aEl){
+        aEl.oninput = e => { state.playoffAdminEntry[div].teamA = e.target.value; };
+        aEl.onchange = e => { state.playoffAdminEntry[div].teamA = matchTeamName(e.target.value); };
+      }
+      const bEl = $('#playoff-team-b-'+div);
+      if(bEl){
+        bEl.oninput = e => { state.playoffAdminEntry[div].teamB = e.target.value; };
+        bEl.onchange = e => { state.playoffAdminEntry[div].teamB = matchTeamName(e.target.value); };
+      }
+    }
+    document.querySelectorAll('[data-add-playofffixture]').forEach(el => el.onclick = () => {
+      const div = el.dataset.addPlayofffixture;
+      const entry = state.playoffAdminEntry[div];
+      if(!ALL_TEAMS.includes(entry.teamA) || !ALL_TEAMS.includes(entry.teamB)){ alert('Pick two real teams from the suggestions first.'); return; }
+      if(entry.teamA === entry.teamB){ alert('Pick two different teams.'); return; }
+      state.playoffFixtures[div].push({ teamA: entry.teamA, teamB: entry.teamB });
+      state.playoffAdminEntry[div] = { teamA:'', teamB:'' };
+      savePlayoffFixtures();
+    });
+    document.querySelectorAll('[data-remove-playofffixture]').forEach(el => el.onclick = () => {
+      const [div, idx] = el.dataset.removePlayofffixture.split('|');
+      state.playoffFixtures[div].splice(parseInt(idx,10), 1);
+      savePlayoffFixtures();
+    });
+    document.querySelectorAll('[data-clear-playofffixtures]').forEach(el => el.onclick = () => {
+      const div = el.dataset.clearPlayofffixtures;
+      if(!confirm('Clear all current '+div+' playoff fixtures?')) return;
+      state.playoffFixtures[div] = [];
+      savePlayoffFixtures();
+    });
     document.querySelectorAll('[data-set-cupoverride]').forEach(el => el.onclick = () => {
       const comp = el.dataset.setCupoverride;
       const input = document.getElementById('cup-override-stage-'+comp);
@@ -1767,19 +2025,22 @@
     const stake = Math.max(1, parseInt(stakeInput.value,10)||1);
     if(!state.slip.length){ alert('Add at least one selection first.'); return; }
     if(stake > state.user.balance){ alert("You don't have that many clams."); return; }
-    const combined = combinedOdds();
+    const boostEligible = state.slip.length >= 3 && (!state.user.boostUsedRound || state.user.boostUsedRound !== state.currentRound);
+    const boostApplied = boostEligible && state.useBoost;
+    const combined = combinedOdds() * (boostApplied ? BOOST_MULTIPLIER : 1);
     const u = await getUser(state.user.username);
     u.balance -= stake;
+    if(boostApplied) u.boostUsedRound = state.currentRound;
     await saveUser(u);
     state.user = u;
-    const bet = { id: uid(), username: u.username, selections: state.slip, stake, combinedOdds: combined,
+    const bet = { id: uid(), username: u.username, selections: state.slip, stake, combinedOdds: combined, boosted: boostApplied,
                   potentialReturn: Math.round(stake*combined), timestamp: Date.now(), status: 'PENDING' };
     await sset('bilbbet2_bet:'+bet.id, bet);
     await addToIndex('bilbbet2_bets_index_' + u.username.toLowerCase(), bet.id);
     await addToIndex('bilbbet2_all_bets_index', bet.id);
-    state.slip = []; state.stake = 50;
+    state.slip = []; state.stake = 50; state.useBoost = false;
     render();
-    alert('Bet placed: ' + stake + ' clams to win ' + fmt(bet.potentialReturn) + ' clams. Check "My Bets" to track it.');
+    alert('Bet placed: ' + stake + ' clams to win ' + fmt(bet.potentialReturn) + ' clams' + (boostApplied ? ' (boosted!)' : '') + '. Check "My Bets" to track it.');
   }
 
   async function placeBetsAsSingles(){
@@ -1893,6 +2154,8 @@
   if(savedCurrentRound){ state.currentRound = savedCurrentRound; state.h2hRound = savedCurrentRound; state.leadingAtRound = savedCurrentRound; }
   const savedCupFixtures = await sget('bilbbet2_cup_fixtures');
   if(savedCupFixtures){ state.cupFixtures = savedCupFixtures; }
+  const savedPlayoffFixtures = await sget('bilbbet2_playoff_fixtures');
+  if(savedPlayoffFixtures){ state.playoffFixtures = savedPlayoffFixtures; }
   const savedCupOverrides = await sget('bilbbet2_cup_overrides');
   if(savedCupOverrides){ state.cupCalendarOverrides = savedCupOverrides; }
 
