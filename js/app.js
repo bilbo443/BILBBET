@@ -1,7 +1,7 @@
 (async function(){
   const DATA = {};
   async function loadAllData(){
-    const files = ['futures','h2h_history','h2h_divisions','h2h_shift','h2h_schedule','leading_at','special_markets'];
+    const files = ['futures','h2h_history','h2h_divisions','h2h_shift','h2h_schedule','leading_at','special_markets','h2h_record'];
     const failures = [];
     const results = await Promise.all(files.map(async name => {
       const path = './data/' + name + '.json';
@@ -48,6 +48,16 @@
   const H2H_SHIFT = DATA.h2h_shift;
   const H2H_SCHEDULE = DATA.h2h_schedule;
   const SPECIAL_MARKETS = DATA.special_markets;
+  const H2H_RECORD = {};
+  DATA.h2h_record.forEach(r => { H2H_RECORD[r.teamA+'|'+r.teamB] = r; });
+  // Records are stored once per pair (alphabetical order) -- this looks up
+  // either direction and flags whether the stored record needs its
+  // win/loss flipped to describe teamA/teamB in the order asked for.
+  function getH2HRecord(teamA, teamB){
+    if(H2H_RECORD[teamA+'|'+teamB]) return { rec: H2H_RECORD[teamA+'|'+teamB], flipped: false };
+    if(H2H_RECORD[teamB+'|'+teamA]) return { rec: H2H_RECORD[teamB+'|'+teamA], flipped: true };
+    return null;
+  }
   const K = 8;
 
   const FUTURE_DIVS = Object.keys(FUTURES.divisions);
@@ -414,6 +424,18 @@
         <div><div style="font-size:12px;color:#9a9a9a;">${esc(m.teamA)} viable range</div><div style="font-size:20px;font-weight:600;">${m.aRange[0]}&ndash;${m.aRange[1]}</div></div>
         <div style="text-align:right;"><div style="font-size:12px;color:#9a9a9a;">${esc(m.teamB)} viable range</div><div style="font-size:20px;font-weight:600;">${m.bRange[0]}&ndash;${m.bRange[1]}</div></div>
       </div>
+      ${(() => {
+        const found = getH2HRecord(m.teamA, m.teamB);
+        if(!found) return `<p style="color:#9a9a9a;font-size:12px;margin-bottom:12px;">No recorded meetings between these two yet.</p>`;
+        const r = found.rec;
+        const aWins = found.flipped ? r.aLosses : r.aWins;
+        const aLosses = found.flipped ? r.aWins : r.aLosses;
+        return `<div style="background:#1b1b1b;border:1px solid #3d3d3d;border-radius:8px;padding:10px 12px;margin-bottom:12px;">
+          <div style="font-size:12px;color:#9a9a9a;margin-bottom:2px;">All-time head-to-head &mdash; played ${r.played}</div>
+          <div style="font-size:14px;">${esc(m.teamA)} <strong>${aWins}W</strong> &ndash; <strong>${r.draws}D</strong> &ndash; <strong>${aLosses}L</strong> ${esc(m.teamB)}</div>
+          <div style="font-size:11px;color:#8a8a8a;margin-top:4px;">${esc(r.lastMatch)}</div>
+        </div>`;
+      })()}
       <h4 style="margin:0 0 8px;font-size:13px;color:#9a9a9a;">Match result</h4>
       ${row('H2H|res-a|'+roundTag+'|'+m.teamA+'|'+m.teamB, 'R'+m.round+': '+m.teamA+' to win', m.aWinPct, winOdds.a)}
       ${row('H2H|res-draw|'+roundTag+'|'+m.teamA+'|'+m.teamB, 'R'+m.round+': Draw', m.drawPct, winOdds.draw)}
