@@ -1078,10 +1078,11 @@
   async function loadStats(){
     const usernames = await getIndex('bilbbet2_users_index');
     const allUsers = (await Promise.all(usernames.map(getUser))).filter(Boolean);
-    const users = allUsers.filter(u => u.username.toLowerCase() !== 'admin');
+    const users = allUsers.filter(u => !u.isAdmin);
+    const adminUsernames = new Set(allUsers.filter(u => u.isAdmin).map(u => u.username.toLowerCase()));
     const betIds = await getIndex('bilbbet2_all_bets_index');
     const allBets = (await Promise.all(betIds.map(id => sget('bilbbet2_bet:'+id)))).filter(Boolean);
-    const bets = allBets.filter(b => b.username.toLowerCase() !== 'admin');
+    const bets = allBets.filter(b => !adminUsernames.has(b.username.toLowerCase()));
 
     const top = (arr, key, n=5) => arr.slice().sort((a,b)=>b[key]-a[key]).slice(0,n);
 
