@@ -56,7 +56,7 @@
 
   let state = {
     screen:'main', user:null, error:'', info:'', loginModalOpen:false,
-    username:'', pin:'',
+    username:'', pin:'', adminLoginMode:false,
     activeTab:'H2H',
     futureMarketTab: FUTURE_DIVS.length ? Object.keys(FUTURES.market_labels)[0] : null,
     teamA:'', teamB:'', h2hRound:1, h2hMarket:null,
@@ -67,6 +67,7 @@
     currentRound: 1,       // the next round yet to be played; anything before this is "past"
     leadingAtRound: 1,
     specialsSelection: { win_round: '', lose_round: '', charity: '', philanthropy: '' },
+    teamSearchOpen: false, teamSearchQuery: '',
   };
 
   function esc(s){ return String(s).replace(/[&<>"'\x27]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -228,6 +229,20 @@
     attachHandlers();
   }
 
+  function teamsDatalist(){
+    return `<datalist id="bb-teams-list">${ALL_TEAMS.map(t => `<option value="${esc(t)}">`).join('')}</datalist>`;
+  }
+  function teamSearchInput(id, currentValue, placeholder){
+    return `<input class="bb-input" type="text" list="bb-teams-list" id="${id}" value="${esc(currentValue||'')}" placeholder="${esc(placeholder||'Search for a team\u2026')}" autocomplete="off"/>`;
+  }
+  // Normalises free-typed text against the real team list (case-insensitive),
+  // since a datalist lets someone type past what they picked from suggestions.
+  function matchTeamName(typed){
+    if(!typed) return '';
+    const hit = ALL_TEAMS.find(t => t.toLowerCase() === typed.trim().toLowerCase());
+    return hit || typed;
+  }
+
   function renderLoginModal(){
     return `
       <div id="login-modal-backdrop" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:100;display:flex;align-items:center;justify-content:center;padding:1rem;">
@@ -238,10 +253,9 @@
           </div>
           <form id="login-form" class="bb-card" style="display:flex;flex-direction:column;gap:10px;">
             <div><span style="font-size:12px;color:#9a9a9a;display:block;margin-bottom:4px;">Your Eliza team</span>
-              <select class="bb-select" id="f-user">
-                <option value="admin" ${state.username==='admin'?'selected':''}>Admin login</option>
-                ${teamOptions(state.username)}
-              </select></div>
+              ${teamSearchInput('f-user', state.adminLoginMode?'':state.username, 'Search for your team\u2026')}
+              <button type="button" class="bb-btn ghost" id="use-admin-login" style="margin-top:6px;width:100%;font-size:12px;padding:6px;">${state.adminLoginMode ? '\u2713 Logging in as admin' : 'Log in as admin instead'}</button>
+            </div>
             <div><span style="font-size:12px;color:#9a9a9a;display:block;margin-bottom:4px;">PIN</span>
               <input class="bb-input" id="f-pin" type="password" inputmode="numeric" value="${esc(state.pin)}"/></div>
             ${state.error ? `<div style="color:#c0604f;font-size:13px;">${esc(state.error)}</div>` : ''}
@@ -261,13 +275,17 @@
       return `
         <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 4px;border-bottom:1px solid #3d3d3d;margin-bottom:1rem;">
           <strong style="letter-spacing:0.5px;">bilbbet</strong>
-          <button class="bb-btn" id="open-login-btn" style="padding:7px 14px;">Log in</button>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <button class="bb-btn ghost" id="open-team-search-btn" style="padding:6px 12px;font-size:13px;">Find a team</button>
+            <button class="bb-btn" id="open-login-btn" style="padding:7px 14px;">Log in</button>
+          </div>
         </div>`;
     }
     return `
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 4px;border-bottom:1px solid #3d3d3d;margin-bottom:1rem;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 4px;border-bottom:1px solid #3d3d3d;margin-bottom:1rem;flex-wrap:wrap;gap:8px;">
         <strong style="letter-spacing:0.5px;">bilbbet</strong>
         <div style="display:flex;align-items:center;gap:14px;font-size:14px;">
+          <button class="bb-btn ghost" id="open-team-search-btn" style="padding:6px 12px;font-size:13px;">Find a team</button>
           <span>${fmt(state.user.balance)} clams</span>
           <span style="color:#9a9a9a;">${esc(state.user.username)}</span>
           <button class="bb-btn ghost" id="logout-btn" style="padding:6px 12px;">Log out</button>
@@ -372,16 +390,6 @@
     }).join('');
   }
 
-  function teamOptions(selected){
-    let html = `<option value="">Select a team&hellip;</option>`;
-    for(const div in H2H_DIVISIONS){
-      html += `<optgroup label="${esc(div)}">`;
-      for(const t of H2H_DIVISIONS[div]) html += `<option value="${esc(t)}" ${t===selected?'selected':''}>${esc(t)}</option>`;
-      html += `</optgroup>`;
-    }
-    return html;
-  }
-
   function renderH2HMarket(m){
     const winOdds = { a: toOdds(m.aWinPct), b: toOdds(m.bWinPct), draw: toOdds(m.drawPct) };
     const hcapOdds = { a: toOdds(m.aCoversPct), b: toOdds(m.bCoversPct) };
@@ -482,12 +490,13 @@
       return roundBar + h2hSubTabBar() + `<div class="bb-card" style="margin-bottom:1rem;">
         <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
           <div style="flex:1;min-width:180px;"><span style="font-size:12px;color:#9a9a9a;display:block;margin-bottom:4px;">Team A</span>
-            <select class="bb-select" id="team-a">${teamOptions(state.teamA)}</select></div>
+            ${teamSearchInput('team-a', state.teamA)}</div>
           <div style="flex:1;min-width:180px;"><span style="font-size:12px;color:#9a9a9a;display:block;margin-bottom:4px;">Team B</span>
-            <select class="bb-select" id="team-b">${teamOptions(state.teamB)}</select></div>
-          <button class="bb-btn" id="get-market" ${(!state.teamA||!state.teamB||state.teamA===state.teamB)?'disabled':''}>Get market</button>
+            ${teamSearchInput('team-b', state.teamB)}</div>
+          <button class="bb-btn" id="get-market" ${(!ALL_TEAMS.includes(state.teamA)||!ALL_TEAMS.includes(state.teamB)||state.teamA===state.teamB)?'disabled':''}>Get market</button>
         </div>
         ${state.teamA && state.teamB && state.teamA===state.teamB ? '<p style="color:#c0604f;font-size:13px;margin:8px 0 0;">Pick two different teams.</p>' : ''}
+        ${(state.teamA && !ALL_TEAMS.includes(state.teamA)) || (state.teamB && !ALL_TEAMS.includes(state.teamB)) ? '<p style="color:#c0604f;font-size:13px;margin:8px 0 0;">No match for that team name \u2014 pick one from the suggestions as you type.</p>' : ''}
       </div>${state.h2hMarket ? renderH2HMarket(state.h2hMarket) : ''}`;
     }
     return roundBar + h2hSubTabBar() + renderFixtureList(state.h2hSubTab);
@@ -544,17 +553,86 @@
       </p>`;
   }
 
+  // Pulls together every market a given team currently appears in, across
+  // every tab, into one place. Reuses the exact same pick-id formats each
+  // market already uses elsewhere, so a tap here behaves identically to
+  // tapping the same outcome in its home tab -- same conflict checks, same
+  // slip, no separate code path to keep in sync.
+  function renderTeamSearchResults(team){
+    if(!team || !ALL_TEAMS.includes(team)){
+      return '<p style="color:#9a9a9a;font-size:13px;">Type a team name and pick a suggestion.</p>';
+    }
+    function row(id, label, o){
+      if(!o) return '';
+      if(o.suspended){
+        return `<div class="bb-outcome" style="opacity:0.5;cursor:default;"><span>${esc(label)}</span><span class="bb-odds" style="color:#9a9a9a;">suspended</span></div>`;
+      }
+      const selected = state.slip.some(s=>s.id===id);
+      return `<div class="bb-outcome ${selected?'selected':''}" data-pick="${esc(id)}" data-team="${esc(team)}" data-odds="${o.odds}" data-label="${esc(team)} \u2014 ${esc(label)}">
+        <span>${esc(label)}</span><span class="bb-odds">${o.odds.toFixed(2)}</span></div>`;
+    }
+    let teamDiv = null;
+    for(const div in H2H_DIVISIONS){ if(H2H_DIVISIONS[div].includes(team)) teamDiv = div; }
+    let html = '';
+    if(teamDiv){
+      html += `<h4 style="color:#9a9a9a;margin:14px 0 6px;">${esc(teamDiv.replace(' (D1)',''))}</h4>`;
+      for(const [key,label] of Object.entries(FUTURES.market_labels)){
+        const o = (FUTURES.divisions[teamDiv][key]||[]).find(x=>x.team===team);
+        html += row('FUT|'+teamDiv+'|'+key+'|'+team, label, o);
+      }
+    }
+    html += `<h4 style="color:#9a9a9a;margin:14px 0 6px;">The Roddy</h4>`;
+    for(const [key,label] of Object.entries(FUTURES.roddy_labels)){
+      const o = (FUTURES.roddy[key]||[]).find(x=>x.team===team);
+      html += row('FUT|RODDY|'+key+'|'+team, label, o);
+    }
+    html += `<h4 style="color:#9a9a9a;margin:14px 0 6px;">FA Cup</h4>`;
+    for(const [key,label] of Object.entries(FUTURES.fa_cup_labels)){
+      const o = (FUTURES.fa_cup_markets[key]||[]).find(x=>x.team===team);
+      html += row('FACUP|'+key+'|'+team, label, o);
+    }
+    const inEcl = Object.values(FUTURES.ecl_markets||{}).some(list => list.some(x=>x.team===team));
+    if(inEcl){
+      html += `<h4 style="color:#9a9a9a;margin:14px 0 6px;">ECL</h4>`;
+      for(const [key,label] of Object.entries(FUTURES.ecl_labels)){
+        const o = (FUTURES.ecl_markets[key]||[]).find(x=>x.team===team);
+        html += row('ECL|'+key+'|'+team, label, o);
+      }
+    }
+    html += `<h4 style="color:#9a9a9a;margin:14px 0 6px;">Season specials</h4>`;
+    html += row('SPECIALFIX|charity|'+team, 'Most Charity', SPECIAL_MARKETS.charity.find(x=>x.team===team));
+    html += row('SPECIALFIX|philanthropy|'+team, 'Most Philanthropy', SPECIAL_MARKETS.philanthropy.find(x=>x.team===team));
+    html += `<h4 style="color:#9a9a9a;margin:14px 0 6px;">Round ${state.currentRound}</h4>`;
+    const extremes = computeRoundExtremes(state.currentRound);
+    html += row('SPECIALFIX|win_round|R'+state.currentRound+'|'+team, 'To win Round '+state.currentRound, extremes.win.find(x=>x.team===team));
+    html += row('SPECIALFIX|lose_round|R'+state.currentRound+'|'+team, 'To lose Round '+state.currentRound, extremes.lose.find(x=>x.team===team));
+    return html;
+  }
+
+  function renderTeamSearchPanel(){
+    if(!state.teamSearchOpen) return '';
+    const matched = matchTeamName(state.teamSearchQuery);
+    return `<div class="bb-card" style="margin-bottom:1rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <strong style="font-size:13px;">Find a team's markets</strong>
+        <span id="close-team-search" style="cursor:pointer;color:#9a9a9a;font-size:18px;line-height:1;">&times;</span>
+      </div>
+      ${teamSearchInput('header-team-search', state.teamSearchQuery, 'Search for a team\u2026')}
+      <div style="margin-top:4px;max-height:360px;overflow-y:auto;">${renderTeamSearchResults(matched)}</div>
+    </div>`;
+  }
+
   function fixedSpecialDropdown(pickPrefix, marketLabel, outcomes, selectedTeam, selectId){
-    const options = `<option value="">Select a team&hellip;</option>` +
-      outcomes.map(o => `<option value="${esc(o.team)}" ${o.team===selectedTeam?'selected':''}>${esc(o.team)}</option>`).join('');
     let odds_row = '';
     if(selectedTeam){
       const o = outcomes.find(x => x.team === selectedTeam);
-      const id = pickPrefix + '|' + selectedTeam;
-      if(o.suspended){
+      if(!o){
+        odds_row = `<p style="color:#9a9a9a;font-size:12px;margin-top:8px;">No match for that team name.</p>`;
+      } else if(o.suspended){
         odds_row = `<div class="bb-outcome" style="opacity:0.5;cursor:default;margin-top:8px;">
           <span>${esc(selectedTeam)}</span><span class="bb-odds" style="color:#9a9a9a;">suspended</span></div>`;
       } else {
+        const id = pickPrefix + '|' + selectedTeam;
         const selected = state.slip.some(s=>s.id===id);
         odds_row = `<div class="bb-outcome ${selected?'selected':''}" data-pick="${esc(id)}" data-team="${esc(selectedTeam)}" data-odds="${o.odds}" data-label="${esc(selectedTeam)} \u2014 ${esc(marketLabel)}" style="margin-top:8px;">
           <span>${esc(selectedTeam)}</span><span class="bb-odds">${o.odds.toFixed(2)}</span></div>`;
@@ -562,7 +640,7 @@
     }
     return `<div class="bb-card" style="margin-bottom:10px;">
       <div style="font-size:13px;font-weight:600;margin-bottom:8px;">${esc(marketLabel)}</div>
-      <select class="bb-select" id="${selectId}">${options}</select>
+      ${teamSearchInput(selectId, selectedTeam)}
       ${odds_row}
     </div>`;
   }
@@ -916,7 +994,7 @@
         ? renderLeadingAtMarket(state.activeTab)
         : `<div id="outcomes-list">${futuresOutcomesList(state.activeTab, state.futureMarketTab)}</div>`);
     }
-    return `<div>${header()}${mainTabs()}${body}</div>${['ADMIN','STATS'].includes(state.activeTab) ? '' : slipBar()}${state.loginModalOpen ? renderLoginModal() : ''}`;
+    return `<div>${header()}${renderTeamSearchPanel()}${mainTabs()}${body}</div>${['ADMIN','STATS'].includes(state.activeTab) ? '' : slipBar()}${state.loginModalOpen ? renderLoginModal() : ''}${teamsDatalist()}`;
   }
 
   function combinedOdds(){ return state.slip.reduce((acc,s)=>acc*s.odds,1); }
@@ -1116,14 +1194,26 @@
 
   async function attachHandlers(){
     const $ = sel => document.querySelector(sel);
-    const fUser = $('#f-user'); if(fUser) fUser.onchange = e => { state.username = e.target.value; };
+    const fUser = $('#f-user');
+    if(fUser){
+      fUser.oninput = e => { state.username = e.target.value; state.adminLoginMode = false; };
+      fUser.onchange = e => { state.username = matchTeamName(e.target.value); state.adminLoginMode = false; render(); };
+    }
     const fPin = $('#f-pin'); if(fPin) fPin.oninput = e => { state.pin = e.target.value; };
     const loginForm = $('#login-form'); if(loginForm) loginForm.onsubmit = e => { e.preventDefault(); doLogin(); };
     const registerBtn = $('#register-submit'); if(registerBtn) registerBtn.onclick = doRegister;
     const logoutBtn = $('#logout-btn');
-    if(logoutBtn) logoutBtn.onclick = () => { state = {...state, screen:'main', user:null, username:'', pin:'', error:'', info:'', loginModalOpen:false, slip:[], betMode:'multi', activeTab:'H2H', h2hMarket:null, h2hFixtureMarket:null, myBets:null, adminPunters:null, adminBets:null, novelty:null, statsData:null}; render(); };
-    const openLoginBtn = $('#open-login-btn'); if(openLoginBtn) openLoginBtn.onclick = () => { state.loginModalOpen = true; state.error=''; state.info=''; render(); };
-    const closeLoginBtn = $('#close-login-modal'); if(closeLoginBtn) closeLoginBtn.onclick = () => { state.loginModalOpen = false; state.error=''; state.info=''; render(); };
+    if(logoutBtn) logoutBtn.onclick = () => { state = {...state, screen:'main', user:null, username:'', pin:'', adminLoginMode:false, error:'', info:'', loginModalOpen:false, slip:[], betMode:'multi', activeTab:'H2H', h2hMarket:null, h2hFixtureMarket:null, myBets:null, adminPunters:null, adminBets:null, novelty:null, statsData:null}; render(); };
+    const openLoginBtn = $('#open-login-btn'); if(openLoginBtn) openLoginBtn.onclick = () => { state.loginModalOpen = true; state.adminLoginMode=false; state.error=''; state.info=''; render(); };
+    const openTeamSearchBtn = $('#open-team-search-btn'); if(openTeamSearchBtn) openTeamSearchBtn.onclick = () => { state.teamSearchOpen = true; render(); };
+    const closeTeamSearchBtn = $('#close-team-search'); if(closeTeamSearchBtn) closeTeamSearchBtn.onclick = () => { state.teamSearchOpen = false; state.teamSearchQuery=''; render(); };
+    const headerTeamSearch = $('#header-team-search');
+    if(headerTeamSearch){
+      headerTeamSearch.oninput = e => { state.teamSearchQuery = e.target.value; };
+      headerTeamSearch.onchange = e => { state.teamSearchQuery = e.target.value; render(); };
+    }
+    const closeLoginBtn = $('#close-login-modal'); if(closeLoginBtn) closeLoginBtn.onclick = () => { state.loginModalOpen = false; state.adminLoginMode=false; state.error=''; state.info=''; render(); };
+    const useAdminBtn = $('#use-admin-login'); if(useAdminBtn) useAdminBtn.onclick = () => { state.adminLoginMode = true; render(); };
     document.querySelectorAll('[data-tab]').forEach(el => el.onclick = () => {
       state.activeTab = el.dataset.tab;
       if(state.activeTab === 'RODDY') state.futureMarketTab = Object.keys(FUTURES.roddy_labels)[0];
@@ -1137,14 +1227,38 @@
       render();
     });
     document.querySelectorAll('[data-marketkey]').forEach(el => el.onclick = () => { state.futureMarketTab = el.dataset.marketkey; render(); });
-    const teamAEl = $('#team-a'); if(teamAEl) teamAEl.onchange = e => { state.teamA=e.target.value; state.h2hMarket=null; render(); };
-    const teamBEl = $('#team-b'); if(teamBEl) teamBEl.onchange = e => { state.teamB=e.target.value; state.h2hMarket=null; render(); };
+    const teamAEl = $('#team-a');
+    if(teamAEl){
+      teamAEl.oninput = e => { state.teamA = e.target.value; };
+      teamAEl.onchange = e => { state.teamA = matchTeamName(e.target.value); state.h2hMarket=null; render(); };
+    }
+    const teamBEl = $('#team-b');
+    if(teamBEl){
+      teamBEl.oninput = e => { state.teamB = e.target.value; };
+      teamBEl.onchange = e => { state.teamB = matchTeamName(e.target.value); state.h2hMarket=null; render(); };
+    }
     const roundEl = $('#h2h-round'); if(roundEl) roundEl.onchange = e => { state.h2hRound=parseInt(e.target.value,10); state.h2hMarket=null; state.h2hFixtureMarket=null; render(); };
     const leadingAtRoundEl = $('#leadingat-round'); if(leadingAtRoundEl) leadingAtRoundEl.onchange = e => { state.leadingAtRound=parseInt(e.target.value,10); render(); };
-    const winRoundEl = $('#special-win-round'); if(winRoundEl) winRoundEl.onchange = e => { state.specialsSelection.win_round = e.target.value; render(); };
-    const loseRoundEl = $('#special-lose-round'); if(loseRoundEl) loseRoundEl.onchange = e => { state.specialsSelection.lose_round = e.target.value; render(); };
-    const charityEl = $('#special-charity'); if(charityEl) charityEl.onchange = e => { state.specialsSelection.charity = e.target.value; render(); };
-    const philanthropyEl = $('#special-philanthropy'); if(philanthropyEl) philanthropyEl.onchange = e => { state.specialsSelection.philanthropy = e.target.value; render(); };
+    const winRoundEl = $('#special-win-round');
+    if(winRoundEl){
+      winRoundEl.oninput = e => { state.specialsSelection.win_round = e.target.value; };
+      winRoundEl.onchange = e => { state.specialsSelection.win_round = matchTeamName(e.target.value); render(); };
+    }
+    const loseRoundEl = $('#special-lose-round');
+    if(loseRoundEl){
+      loseRoundEl.oninput = e => { state.specialsSelection.lose_round = e.target.value; };
+      loseRoundEl.onchange = e => { state.specialsSelection.lose_round = matchTeamName(e.target.value); render(); };
+    }
+    const charityEl = $('#special-charity');
+    if(charityEl){
+      charityEl.oninput = e => { state.specialsSelection.charity = e.target.value; };
+      charityEl.onchange = e => { state.specialsSelection.charity = matchTeamName(e.target.value); render(); };
+    }
+    const philanthropyEl = $('#special-philanthropy');
+    if(philanthropyEl){
+      philanthropyEl.oninput = e => { state.specialsSelection.philanthropy = e.target.value; };
+      philanthropyEl.onchange = e => { state.specialsSelection.philanthropy = matchTeamName(e.target.value); render(); };
+    }
     const getBtn = $('#get-market'); if(getBtn) getBtn.onclick = () => { state.h2hMarket = computeH2HMarket(state.teamA, state.teamB, state.h2hRound); render(); };
     document.querySelectorAll('[data-h2hsubtab]').forEach(el => el.onclick = () => { state.h2hSubTab = el.dataset.h2hsubtab; state.h2hFixtureMarket=null; render(); });
     document.querySelectorAll('[data-fixture-expand]').forEach(el => el.onclick = () => {
@@ -1252,12 +1366,15 @@
   }
 
   async function doLogin(){
-    const username = state.username.trim(), pin = state.pin.trim();
+    const pin = state.pin.trim();
     state.info = '';
-    if(!username || !pin){ state.error='Enter a username and PIN.'; render(); return; }
 
-    // precoded admin login -- bypasses the normal team-account/approval system entirely.
-    if(username.toLowerCase() === 'admin'){
+    // precoded admin login -- driven by the dedicated adminLoginMode flag, not the
+    // shared username field, so it can never be silently overwritten by whatever
+    // the team-search box last did (that was the cause of "only works after
+    // touching the search box first").
+    if(state.adminLoginMode){
+      if(!pin){ state.error='Enter your PIN.'; render(); return; }
       if(pin !== '2845'){ state.error='Wrong PIN.'; render(); return; }
       let adminUser = await getUser('admin');
       if(!adminUser){
@@ -1265,11 +1382,14 @@
         await saveUser(adminUser);
         await addToIndex('bilbbet2_users_index', 'admin');
       }
-      state.user = adminUser; state.error=''; state.username=''; state.pin=''; state.screen='main'; state.loginModalOpen=false;
+      state.user = adminUser; state.error=''; state.username=''; state.pin=''; state.adminLoginMode=false; state.screen='main'; state.loginModalOpen=false;
       state.activeTab='H2H'; state.adminPunters=null; state.adminBets=null; state.novelty=null; state.statsData=null; state.myBets=null;
       render();
       return;
     }
+
+    const username = state.username.trim();
+    if(!username || !pin){ state.error='Enter a username and PIN.'; render(); return; }
 
     const u = await getUser(username);
     if(!u){ state.error='No account with that username. Try "create account" below.'; render(); return; }
