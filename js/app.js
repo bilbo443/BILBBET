@@ -116,6 +116,8 @@
     leadingAtRound: 1,
     specialsSelection: { win_round: '', lose_round: '', charity: '', philanthropy: '' },
     teamSearchOpen: false, teamSearchQuery: '',
+    registeringMode: false,
+    tosModalOpen: false, tosMode: 'view', tosScrolledToBottom: false, tosAgreed: false,
     cupFixtures: { 'FA CUP': [], 'ECL': [] },
     cupFixtureMarket: null,
     cupAdminEntry: { 'FA CUP': {teamA:'', teamB:''}, 'ECL': {teamA:'', teamB:''} },
@@ -326,6 +328,42 @@
     return hit || typed;
   }
 
+  const TOS_CONDITIONS = [
+    'You will only register a team that you control.',
+    'You will only bet on your team if it is a positive outcome, and never on a negative outcome in the context of what your team controls.',
+    'Any attempt to "hack", "cheat", or "game" the system will come under review of Bilbbet management.',
+    'All Bilbbet decisions are final.',
+  ];
+
+  function renderFooter(){
+    return `<div style="text-align:center;padding:24px 0 12px;">
+      <span id="open-tos-footer" style="font-size:12px;color:#9a9a9a;text-decoration:underline;cursor:pointer;">Terms &amp; Conditions</span>
+    </div>`;
+  }
+
+  function renderTosModal(){
+    const registerMode = state.tosMode === 'register';
+    return `
+      <div id="tos-modal-backdrop" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:110;display:flex;align-items:center;justify-content:center;padding:1rem;">
+        <div class="bb-card" style="max-width:420px;width:100%;max-height:80vh;display:flex;flex-direction:column;">
+          <h3 style="margin:0 0 10px;">Terms &amp; Conditions</h3>
+          <div id="tos-scroll-content" style="overflow-y:auto;flex:1;border:1px solid #3d3d3d;border-radius:8px;padding:14px;margin-bottom:12px;font-size:14px;line-height:1.6;">
+            <p style="color:#9a9a9a;margin-top:0;">By registering an account on bilbbet, you agree to the following:</p>
+            <ol style="padding-left:20px;margin-bottom:0;">
+              ${TOS_CONDITIONS.map(c => `<li style="margin-bottom:14px;">${esc(c)}</li>`).join('')}
+            </ol>
+            <p style="color:#8a8a8a;font-size:12px;margin-bottom:0;">(End of terms.)</p>
+          </div>
+          ${registerMode ? `
+            <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;margin-bottom:12px;${state.tosScrolledToBottom?'':'opacity:0.5;'}">
+              <input type="checkbox" id="tos-agree-checkbox" ${state.tosScrolledToBottom?'':'disabled'} ${state.tosAgreed?'checked':''} style="margin-top:2px;"/>
+              <span>${state.tosScrolledToBottom ? 'I have read and agree to the Terms &amp; Conditions.' : 'Scroll to the end of the terms above to enable this.'}</span>
+            </label>` : ''}
+          <button class="bb-btn ghost" id="close-tos-modal" style="width:100%;">${registerMode ? 'Done' : 'Close'}</button>
+        </div>
+      </div>`;
+  }
+
   function renderLoginModal(){
     return `
       <div id="login-modal-backdrop" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:100;display:flex;align-items:center;justify-content:center;padding:1rem;">
@@ -341,10 +379,20 @@
             </div>
             <div><span style="font-size:12px;color:#9a9a9a;display:block;margin-bottom:4px;">PIN</span>
               <input class="bb-input" id="f-pin" type="password" inputmode="numeric" value="${esc(state.pin)}"/></div>
+            ${state.registeringMode ? `
+              <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;${state.tosScrolledToBottom?'':'opacity:0.5;'}">
+                <input type="checkbox" id="tos-agree-checkbox-inline" ${state.tosScrolledToBottom?'':'disabled'} ${state.tosAgreed?'checked':''} style="margin-top:2px;"/>
+                <span>I agree to the <span id="open-tos-register" style="text-decoration:underline;cursor:pointer;color:#ffdd00;">Terms &amp; Conditions</span>${state.tosScrolledToBottom?'':' (open and read to the end to enable this)'}.</span>
+              </label>` : ''}
             ${state.error ? `<div style="color:#c0604f;font-size:13px;">${esc(state.error)}</div>` : ''}
             ${state.info ? `<div style="color:#7fbf8f;font-size:13px;">${esc(state.info)}</div>` : ''}
-            <button type="submit" class="bb-btn" id="login-submit" style="margin-top:4px;">Log in</button>
-            <button type="button" class="bb-btn ghost" id="register-submit">First time? Create account</button>
+            ${state.registeringMode ? `
+              <button type="button" class="bb-btn" id="confirm-register-submit" ${state.tosAgreed?'':'disabled'}>Confirm &amp; register</button>
+              <button type="button" class="bb-btn ghost" id="back-from-register">Back</button>
+            ` : `
+              <button type="submit" class="bb-btn" id="login-submit" style="margin-top:4px;">Log in</button>
+              <button type="button" class="bb-btn ghost" id="register-submit">First time? Create account</button>
+            `}
             <button type="button" class="bb-btn ghost" id="close-login-modal">Cancel</button>
           </form>
           <p style="font-size:12px;color:#9a9a9a;text-align:center;margin-top:1rem;">Everyone starts with 1,000 clams once an admin approves your registration.</p>
@@ -967,7 +1015,7 @@
       <h3>Punters</h3>
       <div class="bb-card" style="padding:0;overflow-x:auto;margin-bottom:1.5rem;">
         <table class="bb-table">
-          <thead><tr><th>Username</th><th>Balance</th><th>Adjust</th></tr></thead>
+          <thead><tr><th>Username</th><th>Balance</th><th>Adjust</th><th></th></tr></thead>
           <tbody>
             ${punters.slice().sort((a,b)=>a.username.localeCompare(b.username)).map(u => `
               <tr>
@@ -975,11 +1023,17 @@
                   ${u.isAdmin ? ' <span class="bb-pill" style="background:#ffdd00;color:#4a3a10;">admin</span>' : ''}
                   ${u.status==='PENDING' ? ' <span class="bb-pill" style="background:#efece3;color:#9a9a9a;">pending</span>' : ''}
                   ${u.status==='REJECTED' ? ` <span class="bb-pill" style="background:#f3ded9;color:#a3402f;">rejected</span> <span data-regstatus="${esc(u.username)}|APPROVED" style="cursor:pointer;color:#9a9a9a;font-size:11px;text-decoration:underline;">re-approve</span>` : ''}
+                  ${u.status==='KICKED' ? ` <span class="bb-pill" style="background:#3a2a26;color:#c0604f;">kicked</span>` : ''}
                 </td>
                 <td>${fmt(u.balance)}</td>
                 <td style="display:flex;gap:6px;align-items:center;">
                   <input class="bb-input" type="number" placeholder="+/- clams" id="adj-${esc(u.username)}" style="width:110px;padding:5px 8px;"/>
                   <button class="bb-btn ghost" data-adjust-user="${esc(u.username)}" style="padding:5px 10px;font-size:12px;">Apply</button>
+                </td>
+                <td>
+                  ${u.isAdmin ? '' : (u.status==='KICKED'
+                    ? `<button class="bb-btn ghost" data-regstatus="${esc(u.username)}|APPROVED" style="padding:5px 10px;font-size:12px;">Unkick</button>`
+                    : `<button class="bb-btn ghost" data-kick-user="${esc(u.username)}" style="padding:5px 10px;font-size:12px;">Kick</button>`)}
                 </td>
               </tr>`).join('')}
           </tbody>
@@ -1027,6 +1081,7 @@
                 <td style="display:flex;gap:4px;flex-wrap:wrap;">
                   <button class="bb-btn ghost" data-setstatus="${b.id}|WON" style="padding:4px 8px;font-size:11px;">Won</button>
                   <button class="bb-btn ghost" data-setstatus="${b.id}|LOST" style="padding:4px 8px;font-size:11px;">Lost</button>
+                  <button class="bb-btn ghost" data-setstatus="${b.id}|VOID" style="padding:4px 8px;font-size:11px;">Kick (void)</button>
                   <button class="bb-btn ghost" data-setstatus="${b.id}|PENDING" style="padding:4px 8px;font-size:11px;">Reset</button>
                 </td>
               </tr>`).join('')}
@@ -1036,6 +1091,7 @@
       <p style="font-size:12px;color:#9a9a9a;margin-top:10px;">
         Marking a bet Won credits its full potential return to that punter's balance; marking it Lost (or resetting to Pending
         after a mistaken override) reverses that credit automatically, so balances always stay consistent with the bet's current status.
+        Kick (void) cancels the bet and refunds the stake, as if it had never been placed.
       </p>`;
   }
 
@@ -1279,7 +1335,7 @@
         ? renderLeadingAtMarket(state.activeTab)
         : `<div id="outcomes-list">${futuresOutcomesList(state.activeTab, state.futureMarketTab)}</div>`);
     }
-    return `<div>${header()}${renderTeamSearchPanel()}${mainTabs()}${body}</div>${['ADMIN','STATS'].includes(state.activeTab) ? '' : slipBar()}${state.loginModalOpen ? renderLoginModal() : ''}${teamsDatalist()}`;
+    return `<div>${header()}${renderTeamSearchPanel()}${mainTabs()}${body}${renderFooter()}</div>${['ADMIN','STATS'].includes(state.activeTab) ? '' : slipBar()}${state.loginModalOpen ? renderLoginModal() : ''}${state.tosModalOpen ? renderTosModal() : ''}${teamsDatalist()}`;
   }
 
   function combinedOdds(){ return state.slip.reduce((acc,s)=>acc*s.odds,1); }
@@ -1486,9 +1542,34 @@
     }
     const fPin = $('#f-pin'); if(fPin) fPin.oninput = e => { state.pin = e.target.value; };
     const loginForm = $('#login-form'); if(loginForm) loginForm.onsubmit = e => { e.preventDefault(); doLogin(); };
-    const registerBtn = $('#register-submit'); if(registerBtn) registerBtn.onclick = doRegister;
+    const registerBtn = $('#register-submit');
+    if(registerBtn) registerBtn.onclick = () => { state.registeringMode = true; state.error=''; render(); };
+    const backFromRegisterBtn = $('#back-from-register');
+    if(backFromRegisterBtn) backFromRegisterBtn.onclick = () => { state.registeringMode = false; state.tosAgreed = false; state.tosScrolledToBottom = false; state.error=''; render(); };
+    const confirmRegisterBtn = $('#confirm-register-submit');
+    if(confirmRegisterBtn) confirmRegisterBtn.onclick = doRegister;
+    const openTosRegisterLink = $('#open-tos-register');
+    if(openTosRegisterLink) openTosRegisterLink.onclick = () => { state.tosModalOpen = true; state.tosMode = 'register'; render(); };
+    const openTosFooterLink = $('#open-tos-footer');
+    if(openTosFooterLink) openTosFooterLink.onclick = () => { state.tosModalOpen = true; state.tosMode = 'view'; render(); };
+    const closeTosBtn = $('#close-tos-modal');
+    if(closeTosBtn) closeTosBtn.onclick = () => { state.tosModalOpen = false; render(); };
+    const tosCheckbox = $('#tos-agree-checkbox');
+    if(tosCheckbox) tosCheckbox.onchange = e => { state.tosAgreed = e.target.checked; render(); };
+    const tosCheckboxInline = $('#tos-agree-checkbox-inline');
+    if(tosCheckboxInline) tosCheckboxInline.onchange = e => { state.tosAgreed = e.target.checked; render(); };
+    const tosScrollContent = $('#tos-scroll-content');
+    if(tosScrollContent){
+      tosScrollContent.onscroll = e => {
+        const el = e.target;
+        if(!state.tosScrolledToBottom && el.scrollTop + el.clientHeight >= el.scrollHeight - 4){
+          state.tosScrolledToBottom = true;
+          render();
+        }
+      };
+    }
     const logoutBtn = $('#logout-btn');
-    if(logoutBtn) logoutBtn.onclick = () => { state = {...state, screen:'main', user:null, username:'', pin:'', adminLoginMode:false, error:'', info:'', loginModalOpen:false, slip:[], betMode:'multi', activeTab:'H2H', h2hMarket:null, h2hFixtureMarket:null, myBets:null, adminPunters:null, adminBets:null, novelty:null, statsData:null}; render(); };
+    if(logoutBtn) logoutBtn.onclick = () => { state = {...state, screen:'main', user:null, username:'', pin:'', adminLoginMode:false, registeringMode:false, tosAgreed:false, tosScrolledToBottom:false, error:'', info:'', loginModalOpen:false, slip:[], betMode:'multi', activeTab:'H2H', h2hMarket:null, h2hFixtureMarket:null, myBets:null, adminPunters:null, adminBets:null, novelty:null, statsData:null}; render(); };
     const openLoginBtn = $('#open-login-btn'); if(openLoginBtn) openLoginBtn.onclick = () => { state.loginModalOpen = true; state.adminLoginMode=false; state.error=''; state.info=''; render(); };
     const openTeamSearchBtn = $('#open-team-search-btn'); if(openTeamSearchBtn) openTeamSearchBtn.onclick = () => { state.teamSearchOpen = true; render(); };
     const closeTeamSearchBtn = $('#close-team-search'); if(closeTeamSearchBtn) closeTeamSearchBtn.onclick = () => { state.teamSearchOpen = false; state.teamSearchQuery=''; render(); };
@@ -1497,7 +1578,7 @@
       headerTeamSearch.oninput = e => { state.teamSearchQuery = e.target.value; };
       headerTeamSearch.onchange = e => { state.teamSearchQuery = e.target.value; render(); };
     }
-    const closeLoginBtn = $('#close-login-modal'); if(closeLoginBtn) closeLoginBtn.onclick = () => { state.loginModalOpen = false; state.adminLoginMode=false; state.error=''; state.info=''; render(); };
+    const closeLoginBtn = $('#close-login-modal'); if(closeLoginBtn) closeLoginBtn.onclick = () => { state.loginModalOpen = false; state.adminLoginMode=false; state.registeringMode=false; state.tosAgreed=false; state.tosScrolledToBottom=false; state.error=''; state.info=''; render(); };
     const useAdminBtn = $('#use-admin-login'); if(useAdminBtn) useAdminBtn.onclick = () => { state.adminLoginMode = true; render(); };
     document.querySelectorAll('[data-tab]').forEach(el => el.onclick = () => {
       state.activeTab = el.dataset.tab;
@@ -1600,6 +1681,11 @@
     document.querySelectorAll('[data-regstatus]').forEach(el => el.onclick = () => {
       const [username, status] = el.dataset.regstatus.split('|');
       updateRegistrationStatus(username, status);
+    });
+    document.querySelectorAll('[data-kick-user]').forEach(el => el.onclick = () => {
+      const username = el.dataset.kickUser;
+      if(!confirm('Kick '+username+'? They\'ll be blocked from logging in until reinstated.')) return;
+      updateRegistrationStatus(username, 'KICKED');
     });
     document.querySelectorAll('[data-setstatus]').forEach(el => el.onclick = () => {
       const [betId, status] = el.dataset.setstatus.split('|');
@@ -1758,6 +1844,7 @@
     const status = u.status || 'APPROVED';
     if(status === 'PENDING'){ state.error='Your registration is still awaiting admin approval \u2014 check back soon.'; state.username=''; state.pin=''; render(); return; }
     if(status === 'REJECTED'){ state.error='Your registration was rejected. Contact the admin if you think that\u2019s a mistake.'; state.username=''; state.pin=''; render(); return; }
+    if(status === 'KICKED'){ state.error='Your account has been removed by Bilbbet management. Contact the admin if you think that\u2019s a mistake.'; state.username=''; state.pin=''; render(); return; }
     state.user = u; state.error=''; state.username=''; state.pin=''; state.screen='main'; state.loginModalOpen=false;
     state.activeTab='H2H'; state.adminPunters=null; state.adminBets=null; state.novelty=null; state.statsData=null; state.myBets=null;
     render();
@@ -1771,6 +1858,7 @@
   async function doRegister(){
     const username = state.username.trim(), pin = state.pin.trim();
     state.info = '';
+    if(!state.tosAgreed){ state.error='You must read and agree to the Terms & Conditions before registering.'; render(); return; }
     if(username.toLowerCase() === 'admin'){ state.error='That name is reserved for the admin login.'; render(); return; }
     if(!username || pin.length<4){ state.error='Pick a username and a PIN of at least 4 digits.'; render(); return; }
     const existing = await getUser(username);
@@ -1790,6 +1878,7 @@
     const saved = await sset('bilbbet2_user:' + username.toLowerCase(), u);
     if(!saved){ state.error='Could not save your account (storage unavailable). Try reloading.'; render(); return; }
     await addToIndex('bilbbet2_users_index', username);
+    state.registeringMode = false; state.tosAgreed = false; state.tosScrolledToBottom = false;
     if(isFirstEver){
       state.user = u; state.error=''; state.username=''; state.pin=''; state.screen='main'; state.loginModalOpen=false;
       state.activeTab='H2H'; state.adminPunters=null; state.adminBets=null; state.novelty=null; state.statsData=null; state.myBets=null;
