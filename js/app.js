@@ -1591,4 +1591,614 @@
   function parsePick(id){
     const parts = id.split('|');
     if(parts[0]==='H2H'){
-      const [, kind
+      const [, kindRaw, roundTag, teamA, teamB] = parts;
+      const isRes = kindRaw.startsWith('res');
+      // hcap kind carries a fav/dog tag: 'hcap-a-fav' means team A is the side that
+      // needs to win outright to cover (so covering implies the moneyline); 'hcap-a-dog'
+      // means team A can cover while still losing (genuinely independent of the moneyline).
+      const side = kindRaw.startsWith('res-') ? kindRaw.slice(4) : (kindRaw.startsWith('hcap-') ? kindRaw.split('-')[1] : null);
+      const favTag = kindRaw.endsWith('-fav') ? 'fav' : (kindRaw.endsWith('-dog') ? 'dog' : null);
+      return { type:'h2h', kind: isRes ? 'res' : 'hcap', side, favTag, roundTag, teamA, teamB,
+        group: (isRes?'H2H-RES|':'H2H-HCAP|')+roundTag+'|'+teamA+'|'+teamB };
+    }
+    if(parts[0]==='FUT'){
+      const [, div, marketKey, team] = parts;
+      return { type:'fut', div, marketKey, team,
+        group: SINGLE_WINNER_FUT_MARKETS.has(marketKey) ? ('FUT-SINGLE|'+div+'|'+marketKey) : null };
+    }
+    if(parts[0]==='FACUP'){
+      const [, marketKey, team] = parts;
+      return { type:'facup', marketKey, team, group: marketKey==='win_pct' ? 'FACUP-SINGLE' : null };
+    }
+    if(parts[0]==='ECL'){
+      const [, marketKey, team] = parts;
+      return { type:'ecl', marketKey, team, group: marketKey==='win_pct' ? 'ECL-SINGLE' : null };
+    }
+    if(parts[0]==='LEADAT'){
+      const [, scope, round, team] = parts;
+      // only one team can be leading a given scope at a given round checkpoint
+      return { type:'leadat', scope, round: parseInt(round,10), team, group: 'LEADAT-SINGLE|'+scope+'|'+round };
+    }
+    if(parts[0]==='SPECIALFIX'){
+      // either SPECIALFIX|marketKey|team (season-long) or SPECIALFIX|marketKey|Rn|team (round-based)
+      const marketKey = parts[1];
+      const team = parts[parts.length-1];
+      const roundTag = parts.length===4 ? parts[2] : null;
+      return { type:'specialfix', marketKey, team, group: 'SPECIALFIX-SINGLE|'+marketKey+(roundTag?('|'+roundTag):'') };
+    }
+    return { type:'unknown' };
+  }
+
+  function chainOf(marketKey){
+    if(UPPER_SET.has(marketKey)) return 'upper';
+    if(LOWER_SET.has(marketKey)) return 'lower';
+    if(RODDY_CHAIN.includes(marketKey)) return 'roddy';
+    return null;
+  }
+
+  function findConflict(newId){
+    const np = parsePick(newId);
+    for(const s of state.slip){
+      const ep = parsePick(s.id);
+
+      // same "only one outcome can be true" group, different specific outcome (CONTRARY)
+      if(np.group && ep.group && np.group === ep.group){
+        const npKey = np.team || np.side, epKey = ep.team || ep.side;
+        if(npKey !== epKey){
+          return { reason:'contrary', msg: `only one outcome in that market can actually happen (you already have ${ep.team || ep.side} in this slip)` };
+        }
+      }
+
+      // Leading at round 26 (the final round) is the exact same outcome as winning
+      // the division/Roddy outright, not just correlated with it -- our tiebreak
+      // rule for "leading" is identical to the one used to decide the season winner.
+      if(np.type==='leadat' && ep.type==='fut' && np.round===26 && np.scope===ep.div && np.team===ep.team && ep.marketKey==='win_div_pct'){
+        return { reason:'nested', msg: `leading ${np.scope.replace(' (D1)','')} after round 26 IS winning the division \u2014 backing both is the same outcome twice` };
+      }
+      if(np.type==='fut' && ep.type==='leadat' && ep.round===26 && ep.scope===np.div && ep.team===np.team && np.marketKey==='win_div_pct'){
+        return { reason:'nested', msg: `leading ${ep.scope.replace(' (D1)','')} after round 26 IS winning the division \u2014 backing both is the same outcome twice` };
+      }
+      if(np.type==='leadat' && np.round===26 && np.scope==='RODDY' && ep.marketKey==='roddy_win_pct' && np.team===ep.team){
+        return { reason:'nested', msg: `leading the Roddy after round 26 IS winning the Roddy \u2014 backing both is the same outcome twice` };
+      }
+      if(ep.type==='leadat' && ep.round===26 && ep.scope==='RODDY' && np.marketKey==='roddy_win_pct' && ep.team===np.team){
+        return { reason:'nested', msg: `leading the Roddy after round 26 IS winning the Roddy \u2014 backing both is the same outcome twice` };
+      }
+
+      // futures: same team, same division/scope, different market
+      if(np.type==='fut' && ep.type==='fut' && np.div===ep.div && np.team===ep.team && np.marketKey!==ep.marketKey){
+        const npChain = chainOf(np.marketKey), epChain = chainOf(ep.marketKey);
+        if(npChain && epChain){
+          if(npChain === epChain){
+            return { reason:'nested', msg: `those two finishes for ${np.team} aren't independent \u2014 one guarantees the other, so combining them just double-dips the same outcome` };
+          } else {
+            return { reason:'contrary', msg: `${np.team} can't finish both of those positions in the same season` };
+          }
+        }
+      }
+
+      // FA Cup / ECL: reaching a later stage always guarantees every earlier stage
+      // too (win it all guarantees reaching the final, which guarantees the semis,
+      // etc.) -- same team, two different stages of the same cup, is always a
+      // double-dip, never a genuine impossibility (there's no "opposite" side to
+      // a cup run the way there is for a division finish).
+      if(np.type===ep.type && (np.type==='facup' || np.type==='ecl') && np.team===ep.team && np.marketKey!==ep.marketKey){
+        return { reason:'nested', msg: `those two stages for ${np.team} in the same cup aren't independent \u2014 reaching the later one guarantees the earlier one, so combining them just double-dips the same run` };
+      }
+
+      // H2H: a favourite's handicap cover strictly implies they won outright. That
+      // makes it NESTED with their own moneyline pick (double-dip, already handled),
+      // but CONTRARY with the other side's moneyline or a draw (literally impossible
+      // together) -- both directions need checking, not just the matching side.
+      if(np.type==='h2h' && ep.type==='h2h' && np.roundTag===ep.roundTag && np.teamA===ep.teamA && np.teamB===ep.teamB){
+        const resPick = np.kind==='res' ? np : (ep.kind==='res' ? ep : null);
+        const hcapPick = np.kind==='hcap' ? np : (ep.kind==='hcap' ? ep : null);
+        if(resPick && hcapPick && hcapPick.favTag==='fav'){
+          if(resPick.side === hcapPick.side){
+            return { reason:'nested', msg: `covering a favourite's handicap already means they won outright, so pairing that with the moneyline just double-dips the same result` };
+          } else {
+            return { reason:'contrary', msg: `that handicap result requires ${hcapPick.side==='a'?np.teamA||ep.teamA:np.teamB||ep.teamB} to win outright, which rules out your other selection on this match` };
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  function slipBar(){
+    if(!state.slip.length) return `<div class="bb-slip"><div class="bb-slip-inner" style="color:#9a9a9a;font-size:13px;">Tap any outcome to build a bet slip.</div></div>`;
+    const modeToggle = `
+      <div style="display:flex;gap:6px;margin-bottom:8px;">
+        <div class="bb-tab ${state.betMode==='multi'?'active':''}" data-betmode="multi" style="font-size:12px;padding:5px 10px;">Multi (one combined bet)</div>
+        <div class="bb-tab ${state.betMode==='singles'?'active':''}" data-betmode="singles" style="font-size:12px;padding:5px 10px;">Singles (bet each separately)</div>
+      </div>`;
+    const header = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <strong style="font-size:13px;">${state.slip.length} selection${state.slip.length>1?'s':''}</strong>
+        <button class="bb-btn ghost" id="clear-slip" style="padding:4px 10px;font-size:12px;">Clear</button>
+      </div>`;
+
+    if(state.betMode === 'singles'){
+      const totalStake = state.slip.reduce((s,x)=>s+(x.singleStake||0),0);
+      const totalPotential = state.slip.reduce((s,x)=>s+Math.round((x.singleStake||0)*x.odds),0);
+      return `<div class="bb-slip"><div class="bb-slip-inner">
+        ${modeToggle}${header}
+        <div style="max-height:160px;overflow-y:auto;margin-bottom:8px;">
+          ${state.slip.map(s => `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;padding:5px 0;border-bottom:1px solid #333333;">
+            <span style="color:#cfcfcf;flex:1;">${esc(s.label)} <span class="bb-odds">${s.odds.toFixed(2)}</span></span>
+            <input class="bb-input" data-single-stake="${esc(s.id)}" type="number" min="1" value="${s.singleStake||50}" style="width:80px;padding:4px 6px;font-size:12px;"/>
+            <span style="color:#9a9a9a;width:56px;text-align:right;">&rarr;${fmt(Math.round((s.singleStake||0)*s.odds))}</span>
+            <span data-remove="${esc(s.id)}" style="cursor:pointer;color:#9a9a9a;">&times;</span>
+          </div>`).join('')}
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:12px;color:#9a9a9a;">Total stake ${fmt(totalStake)} &rarr; potential ${fmt(totalPotential)}</span>
+          <button class="bb-btn" id="place-singles">Place ${state.slip.length} single${state.slip.length>1?'s':''}</button>
+        </div>
+      </div></div>`;
+    }
+
+    const combined = combinedOdds(), potential = state.stake*combined;
+    const boostEligible = state.user && state.slip.length >= 3 && (!state.user.boostUsedRound || state.user.boostUsedRound !== state.currentRound);
+    const boostApplied = boostEligible && state.useBoost;
+    const displayedCombined = boostApplied ? combined * BOOST_MULTIPLIER : combined;
+    const displayedPotential = state.stake * displayedCombined;
+    const boostToggle = boostEligible ? `
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:8px;background:#4a3a10;border-radius:8px;padding:8px 10px;">
+        <input type="checkbox" id="use-boost-checkbox" ${state.useBoost?'checked':''}/>
+        <span style="color:#ffdd00;">Use your Round ${state.currentRound} boosted odd \u2014 free +${Math.round((BOOST_MULTIPLIER-1)*100)}% on this multi (one per round).</span>
+      </label>` : '';
+    return `<div class="bb-slip"><div class="bb-slip-inner">
+      ${modeToggle}${header}
+      <div style="max-height:100px;overflow-y:auto;margin-bottom:8px;">
+        ${state.slip.map(s => `<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid #333333;">
+          <span style="color:#cfcfcf;">${esc(s.label)}</span>
+          <span style="display:flex;gap:8px;align-items:center;"><span class="bb-odds">${s.odds.toFixed(2)}</span>
+          <span data-remove="${esc(s.id)}" style="cursor:pointer;color:#9a9a9a;">&times;</span></span></div>`).join('')}
+      </div>
+      ${boostToggle}
+      <div style="display:flex;gap:8px;align-items:center;">
+        <div style="flex:1;"><span style="font-size:11px;color:#9a9a9a;">Stake (clams)</span>
+          <input class="bb-input" id="stake-input" type="number" min="1" value="${state.stake}" style="padding:6px 10px;"/></div>
+        <div style="flex:1;"><span style="font-size:11px;color:#9a9a9a;">Combined odds</span>
+          <div style="font-weight:600;color:#ffdd00;padding:6px 0;">${displayedCombined.toFixed(2)}${boostApplied?' \u26A1':''}</div></div>
+        <div style="flex:1;"><span style="font-size:11px;color:#9a9a9a;">Potential return</span>
+          <div style="font-weight:600;padding:6px 0;">${fmt(Math.round(displayedPotential))}</div></div>
+        <button class="bb-btn" id="place-bet" style="align-self:flex-end;">Place bet</button>
+      </div>
+    </div></div>`;
+  }
+
+  async function loadMyBets(){
+    const ids = await getIndex('bilbbet2_bets_index_' + state.user.username.toLowerCase());
+    const bets = (await Promise.all(ids.map(id => sget('bilbbet2_bet:'+id)))).filter(Boolean);
+    state.myBets = bets;
+    render();
+  }
+
+  async function attachHandlers(){
+    const $ = sel => document.querySelector(sel);
+    const fUser = $('#f-user');
+    if(fUser){
+      fUser.oninput = e => { state.username = e.target.value; state.adminLoginMode = false; };
+      fUser.onchange = e => { state.username = matchTeamName(e.target.value); state.adminLoginMode = false; render(); };
+    }
+    const fPin = $('#f-pin'); if(fPin) fPin.oninput = e => { state.pin = e.target.value; };
+    const loginForm = $('#login-form'); if(loginForm) loginForm.onsubmit = e => { e.preventDefault(); doLogin(); };
+    const registerBtn = $('#register-submit');
+    if(registerBtn) registerBtn.onclick = () => { state.registeringMode = true; state.error=''; render(); };
+    const backFromRegisterBtn = $('#back-from-register');
+    if(backFromRegisterBtn) backFromRegisterBtn.onclick = () => { state.registeringMode = false; state.tosAgreed = false; state.error=''; render(); };
+    const confirmRegisterBtn = $('#confirm-register-submit');
+    if(confirmRegisterBtn) confirmRegisterBtn.onclick = doRegister;
+    const openTosRegisterLink = $('#open-tos-register');
+    if(openTosRegisterLink) openTosRegisterLink.onclick = () => { state.tosModalOpen = true; state.tosMode = 'register'; render(); };
+    const openTosFooterLink = $('#open-tos-footer');
+    if(openTosFooterLink) openTosFooterLink.onclick = () => { state.tosModalOpen = true; state.tosMode = 'view'; render(); };
+    const closeTosBtn = $('#close-tos-modal');
+    if(closeTosBtn) closeTosBtn.onclick = () => { state.tosModalOpen = false; render(); };
+    const tosCheckbox = $('#tos-agree-checkbox');
+    if(tosCheckbox) tosCheckbox.onchange = e => { state.tosAgreed = e.target.checked; render(); };
+    const tosCheckboxInline = $('#tos-agree-checkbox-inline');
+    if(tosCheckboxInline) tosCheckboxInline.onchange = e => { state.tosAgreed = e.target.checked; render(); };
+    const logoutBtn = $('#logout-btn');
+    if(logoutBtn) logoutBtn.onclick = () => { state = {...state, screen:'main', user:null, username:'', pin:'', adminLoginMode:false, registeringMode:false, tosAgreed:false, error:'', info:'', loginModalOpen:false, slip:[], betMode:'multi', activeTab:'H2H', h2hMarket:null, h2hFixtureMarket:null, myBets:null, adminPunters:null, adminBets:null, novelty:null, statsData:null}; render(); };
+    const openLoginBtn = $('#open-login-btn'); if(openLoginBtn) openLoginBtn.onclick = () => { state.loginModalOpen = true; state.adminLoginMode=false; state.error=''; state.info=''; render(); };
+    const openTeamSearchBtn = $('#open-team-search-btn'); if(openTeamSearchBtn) openTeamSearchBtn.onclick = () => { state.teamSearchOpen = true; render(); };
+    const closeTeamSearchBtn = $('#close-team-search'); if(closeTeamSearchBtn) closeTeamSearchBtn.onclick = () => { state.teamSearchOpen = false; state.teamSearchQuery=''; render(); };
+    const headerTeamSearch = $('#header-team-search');
+    if(headerTeamSearch){
+      headerTeamSearch.oninput = e => { state.teamSearchQuery = e.target.value; };
+      headerTeamSearch.onchange = e => { state.teamSearchQuery = e.target.value; render(); };
+    }
+    const closeLoginBtn = $('#close-login-modal'); if(closeLoginBtn) closeLoginBtn.onclick = () => { state.loginModalOpen = false; state.adminLoginMode=false; state.registeringMode=false; state.tosAgreed=false; state.error=''; state.info=''; render(); };
+    const useAdminBtn = $('#use-admin-login'); if(useAdminBtn) useAdminBtn.onclick = () => { state.adminLoginMode = true; render(); };
+    document.querySelectorAll('[data-tab]').forEach(el => el.onclick = () => {
+      state.activeTab = el.dataset.tab;
+      state.cupFixtureMarket = null;
+      state.playoffFixtureMarket = null;
+      if(state.activeTab === 'RODDY') state.futureMarketTab = Object.keys(FUTURES.roddy_labels)[0];
+      else if(state.activeTab === 'FA CUP') state.futureMarketTab = Object.keys(FUTURES.fa_cup_labels)[0];
+      else if(state.activeTab === 'ECL') state.futureMarketTab = Object.keys(FUTURES.ecl_labels)[0];
+      else if(!['H2H','MY BETS','ADMIN','SPECIALS','STATS','PLAYOFFS'].includes(state.activeTab)) state.futureMarketTab = Object.keys(FUTURES.market_labels)[0];
+      if(state.activeTab === 'MY BETS'){ if(!state.user){ render(); return; } state.myBets = null; render(); loadMyBets(); return; }
+      if(state.activeTab === 'ADMIN'){ state.adminPunters = null; state.adminBets = null; render(); loadAdminData(); return; }
+      if(state.activeTab === 'SPECIALS'){ state.novelty = null; state.suggestions = null; render(); loadNovelty(); loadSuggestions(); return; }
+      if(state.activeTab === 'STATS'){ state.statsData = null; render(); loadStats(); return; }
+      render();
+    });
+    document.querySelectorAll('[data-marketkey]').forEach(el => el.onclick = () => { state.futureMarketTab = el.dataset.marketkey; state.cupFixtureMarket = null; render(); });
+    const teamAEl = $('#team-a');
+    if(teamAEl){
+      teamAEl.oninput = e => { state.teamA = e.target.value; };
+      teamAEl.onchange = e => { state.teamA = matchTeamName(e.target.value); state.h2hMarket=null; render(); };
+    }
+    const teamBEl = $('#team-b');
+    if(teamBEl){
+      teamBEl.oninput = e => { state.teamB = e.target.value; };
+      teamBEl.onchange = e => { state.teamB = matchTeamName(e.target.value); state.h2hMarket=null; render(); };
+    }
+    const roundEl = $('#h2h-round'); if(roundEl) roundEl.onchange = e => { state.h2hRound=parseInt(e.target.value,10); state.h2hMarket=null; state.h2hFixtureMarket=null; render(); };
+    const leadingAtRoundEl = $('#leadingat-round'); if(leadingAtRoundEl) leadingAtRoundEl.onchange = e => { state.leadingAtRound=parseInt(e.target.value,10); render(); };
+    const winRoundEl = $('#special-win-round');
+    if(winRoundEl){
+      winRoundEl.oninput = e => { state.specialsSelection.win_round = e.target.value; };
+      winRoundEl.onchange = e => { state.specialsSelection.win_round = matchTeamName(e.target.value); render(); };
+    }
+    const loseRoundEl = $('#special-lose-round');
+    if(loseRoundEl){
+      loseRoundEl.oninput = e => { state.specialsSelection.lose_round = e.target.value; };
+      loseRoundEl.onchange = e => { state.specialsSelection.lose_round = matchTeamName(e.target.value); render(); };
+    }
+    const charityEl = $('#special-charity');
+    if(charityEl){
+      charityEl.oninput = e => { state.specialsSelection.charity = e.target.value; };
+      charityEl.onchange = e => { state.specialsSelection.charity = matchTeamName(e.target.value); render(); };
+    }
+    const philanthropyEl = $('#special-philanthropy');
+    if(philanthropyEl){
+      philanthropyEl.oninput = e => { state.specialsSelection.philanthropy = e.target.value; };
+      philanthropyEl.onchange = e => { state.specialsSelection.philanthropy = matchTeamName(e.target.value); render(); };
+    }
+    const getBtn = $('#get-market'); if(getBtn) getBtn.onclick = () => { state.h2hMarket = computeH2HMarket(state.teamA, state.teamB, state.h2hRound); render(); };
+    document.querySelectorAll('[data-h2hsubtab]').forEach(el => el.onclick = () => { state.h2hSubTab = el.dataset.h2hsubtab; state.h2hFixtureMarket=null; render(); });
+    document.querySelectorAll('[data-fixture-expand]').forEach(el => el.onclick = () => {
+      const [div, idx] = el.dataset.fixtureExpand.split('|');
+      state.h2hFixtureMarket = getFixtureMarkets(div, state.h2hRound)[parseInt(idx,10)];
+      render();
+    });
+    const backBtn = $('#back-to-fixtures'); if(backBtn) backBtn.onclick = () => { state.h2hFixtureMarket=null; render(); };
+    document.querySelectorAll('[data-cupfixture]').forEach(el => el.onclick = () => {
+      const [compKey, idx] = el.dataset.cupfixture.split('|');
+      const f = state.cupFixtures[compKey][parseInt(idx,10)];
+      state.cupFixtureMarket = computeH2HMarket(f.teamA, f.teamB, state.currentRound);
+      render();
+    });
+    const backCupBtn = $('#back-to-cup-fixtures'); if(backCupBtn) backCupBtn.onclick = () => { state.cupFixtureMarket = null; render(); };
+    document.querySelectorAll('[data-playoffsubtab]').forEach(el => el.onclick = () => { state.playoffSubTab = el.dataset.playoffsubtab; state.playoffFixtureMarket = null; render(); });
+    document.querySelectorAll('[data-playofffixture]').forEach(el => el.onclick = () => {
+      const [div, idx] = el.dataset.playofffixture.split('|');
+      const f = state.playoffFixtures[div][parseInt(idx,10)];
+      state.playoffFixtureMarket = computeH2HMarket(f.teamA, f.teamB, state.currentRound);
+      render();
+    });
+    const backPlayoffBtn = $('#back-to-playoff-fixtures'); if(backPlayoffBtn) backPlayoffBtn.onclick = () => { state.playoffFixtureMarket = null; render(); };
+    document.querySelectorAll('[data-pick]').forEach(el => el.onclick = () => {
+      if(!state.user){
+        alert('You must log in first to place a bet.');
+        state.loginModalOpen = true;
+        render();
+        return;
+      }
+      const id = el.dataset.pick;
+      const existing = state.slip.findIndex(s=>s.id===id);
+      if(existing>=0){ state.slip.splice(existing,1); render(); return; }
+      const pickRound = getPickRound(id);
+      if(pickRound !== null && pickRound === state.currentRound && !state.roundBettingOpen){
+        alert('Betting for Round '+state.currentRound+' is currently closed.');
+        return;
+      }
+      const conflict = findConflict(id);
+      if(conflict){ alert("Can't add that selection \u2014 " + conflict.msg + "."); return; }
+      state.slip.push({id, label: el.dataset.label || el.dataset.team, odds: parseFloat(el.dataset.odds), singleStake: state.stake});
+      render();
+    });
+    document.querySelectorAll('[data-betmode]').forEach(el => el.onclick = () => { state.betMode = el.dataset.betmode; render(); });
+    const useBoostCheckbox = $('#use-boost-checkbox'); if(useBoostCheckbox) useBoostCheckbox.onchange = e => { state.useBoost = e.target.checked; render(); };
+    document.querySelectorAll('[data-single-stake]').forEach(el => el.oninput = e => {
+      const item = state.slip.find(s=>s.id===el.dataset.singleStake);
+      if(item) item.singleStake = Math.max(1, parseInt(e.target.value,10)||1);
+    });
+    const clearBtn = $('#clear-slip'); if(clearBtn) clearBtn.onclick = () => { state.slip=[]; render(); };
+    document.querySelectorAll('[data-remove]').forEach(el => el.onclick = e => { e.stopPropagation(); state.slip = state.slip.filter(s=>s.id!==el.dataset.remove); render(); });
+    const stakeInput = $('#stake-input'); if(stakeInput) stakeInput.oninput = e => { state.stake = Math.max(1, parseInt(e.target.value,10)||1); };
+    const placeBtn = $('#place-bet'); if(placeBtn) placeBtn.onclick = placeBet;
+    const placeSinglesBtn = $('#place-singles'); if(placeSinglesBtn) placeSinglesBtn.onclick = placeBetsAsSingles;
+    document.querySelectorAll('[data-adjust-user]').forEach(el => el.onclick = () => {
+      const username = el.dataset.adjustUser;
+      const input = document.getElementById('adj-'+username);
+      const delta = parseInt(input.value, 10);
+      if(!delta){ alert('Enter a non-zero amount to add or subtract.'); return; }
+      adjustPunterBalance(username, delta);
+    });
+    document.querySelectorAll('[data-regstatus]').forEach(el => el.onclick = () => {
+      const [username, status] = el.dataset.regstatus.split('|');
+      updateRegistrationStatus(username, status);
+    });
+    document.querySelectorAll('[data-kick-user]').forEach(el => el.onclick = () => {
+      const username = el.dataset.kickUser;
+      if(!confirm('Kick '+username+'? They\'ll be blocked from logging in until reinstated.')) return;
+      updateRegistrationStatus(username, 'KICKED');
+    });
+    document.querySelectorAll('[data-setstatus]').forEach(el => el.onclick = () => {
+      const [betId, status] = el.dataset.setstatus.split('|');
+      setBetStatus(betId, status);
+    });
+    document.querySelectorAll('[data-resolveleg]').forEach(el => el.onclick = () => {
+      const [betId, idx, result] = el.dataset.resolveleg.split('|');
+      resolveSelectionResult(betId, parseInt(idx,10), result);
+    });
+    const addNoveltyBtn = $('#add-novelty'); if(addNoveltyBtn) addNoveltyBtn.onclick = addNoveltyItem;
+    const suggestionText = $('#suggestion-text'); if(suggestionText) suggestionText.oninput = e => { state.suggestionText = e.target.value; };
+    const submitSuggestionBtn = $('#submit-suggestion-btn'); if(submitSuggestionBtn) submitSuggestionBtn.onclick = submitSuggestion;
+    document.querySelectorAll('[data-approve-suggestion]').forEach(el => el.onclick = () => approveSuggestion(el.dataset.approveSuggestion));
+    document.querySelectorAll('[data-reject-suggestion]').forEach(el => el.onclick = () => rejectSuggestion(el.dataset.rejectSuggestion));
+    const saveRoundBtn = $('#save-current-round');
+    if(saveRoundBtn) saveRoundBtn.onclick = () => {
+      const sel = document.getElementById('admin-current-round');
+      saveCurrentRound(parseInt(sel.value, 10));
+    };
+    const closeBettingBtn = $('#close-betting-btn'); if(closeBettingBtn) closeBettingBtn.onclick = closeBettingNow;
+    const reopenBettingBtn = $('#reopen-betting-btn'); if(reopenBettingBtn) reopenBettingBtn.onclick = reopenBetting;
+    const requestRefreshBtn = $('#request-odds-refresh-btn'); if(requestRefreshBtn) requestRefreshBtn.onclick = requestOddsRefresh;
+    const clearRefreshBtn = $('#clear-odds-refresh-btn'); if(clearRefreshBtn) clearRefreshBtn.onclick = clearOddsRefreshRequest;
+    for(const comp of ['FA CUP','ECL']){
+      const aEl = $('#cup-team-a-'+comp);
+      if(aEl){
+        aEl.oninput = e => { state.cupAdminEntry[comp].teamA = e.target.value; };
+        aEl.onchange = e => { state.cupAdminEntry[comp].teamA = matchTeamName(e.target.value); };
+      }
+      const bEl = $('#cup-team-b-'+comp);
+      if(bEl){
+        bEl.oninput = e => { state.cupAdminEntry[comp].teamB = e.target.value; };
+        bEl.onchange = e => { state.cupAdminEntry[comp].teamB = matchTeamName(e.target.value); };
+      }
+    }
+    document.querySelectorAll('[data-add-cupfixture]').forEach(el => el.onclick = () => {
+      const comp = el.dataset.addCupfixture;
+      const entry = state.cupAdminEntry[comp];
+      if(!ALL_TEAMS.includes(entry.teamA) || !ALL_TEAMS.includes(entry.teamB)){ alert('Pick two real teams from the suggestions first.'); return; }
+      if(entry.teamA === entry.teamB){ alert('Pick two different teams.'); return; }
+      state.cupFixtures[comp].push({ teamA: entry.teamA, teamB: entry.teamB });
+      state.cupAdminEntry[comp] = { teamA:'', teamB:'' };
+      saveCupFixtures();
+    });
+    document.querySelectorAll('[data-remove-cupfixture]').forEach(el => el.onclick = () => {
+      const [comp, idx] = el.dataset.removeCupfixture.split('|');
+      state.cupFixtures[comp].splice(parseInt(idx,10), 1);
+      saveCupFixtures();
+    });
+    document.querySelectorAll('[data-clear-cupfixtures]').forEach(el => el.onclick = () => {
+      const comp = el.dataset.clearCupfixtures;
+      if(!confirm('Clear all current '+comp+' fixtures?')) return;
+      state.cupFixtures[comp] = [];
+      saveCupFixtures();
+    });
+    for(const div of PLAYOFF_DIVS){
+      const aEl = $('#playoff-team-a-'+div);
+      if(aEl){
+        aEl.oninput = e => { state.playoffAdminEntry[div].teamA = e.target.value; };
+        aEl.onchange = e => { state.playoffAdminEntry[div].teamA = matchTeamName(e.target.value); };
+      }
+      const bEl = $('#playoff-team-b-'+div);
+      if(bEl){
+        bEl.oninput = e => { state.playoffAdminEntry[div].teamB = e.target.value; };
+        bEl.onchange = e => { state.playoffAdminEntry[div].teamB = matchTeamName(e.target.value); };
+      }
+    }
+    document.querySelectorAll('[data-add-playofffixture]').forEach(el => el.onclick = () => {
+      const div = el.dataset.addPlayofffixture;
+      const entry = state.playoffAdminEntry[div];
+      if(!ALL_TEAMS.includes(entry.teamA) || !ALL_TEAMS.includes(entry.teamB)){ alert('Pick two real teams from the suggestions first.'); return; }
+      if(entry.teamA === entry.teamB){ alert('Pick two different teams.'); return; }
+      state.playoffFixtures[div].push({ teamA: entry.teamA, teamB: entry.teamB });
+      state.playoffAdminEntry[div] = { teamA:'', teamB:'' };
+      savePlayoffFixtures();
+    });
+    document.querySelectorAll('[data-remove-playofffixture]').forEach(el => el.onclick = () => {
+      const [div, idx] = el.dataset.removePlayofffixture.split('|');
+      state.playoffFixtures[div].splice(parseInt(idx,10), 1);
+      savePlayoffFixtures();
+    });
+    document.querySelectorAll('[data-clear-playofffixtures]').forEach(el => el.onclick = () => {
+      const div = el.dataset.clearPlayofffixtures;
+      if(!confirm('Clear all current '+div+' playoff fixtures?')) return;
+      state.playoffFixtures[div] = [];
+      savePlayoffFixtures();
+    });
+    document.querySelectorAll('[data-set-cupoverride]').forEach(el => el.onclick = () => {
+      const comp = el.dataset.setCupoverride;
+      const input = document.getElementById('cup-override-stage-'+comp);
+      const stage = (input.value||'').trim();
+      if(!stage){ alert('Enter a stage name to force, e.g. "Round Of 32".'); return; }
+      state.cupCalendarOverrides[comp][state.currentRound] = stage;
+      saveCupOverrides();
+    });
+    document.querySelectorAll('[data-set-cupoverride-off]').forEach(el => el.onclick = () => {
+      const comp = el.dataset.setCupoverrideOff;
+      state.cupCalendarOverrides[comp][state.currentRound] = false;
+      saveCupOverrides();
+    });
+    document.querySelectorAll('[data-clear-cupoverride]').forEach(el => el.onclick = () => {
+      const comp = el.dataset.clearCupoverride;
+      delete state.cupCalendarOverrides[comp][state.currentRound];
+      saveCupOverrides();
+    });
+    document.querySelectorAll('[data-noveltystatus]').forEach(el => el.onclick = () => {
+      const [noveltyId, status] = el.dataset.noveltystatus.split('|');
+      resolveNoveltyItem(noveltyId, status);
+    });
+  }
+
+  async function placeBet(){
+    if(!state.user){ alert('You must log in first to place a bet.'); state.loginModalOpen=true; render(); return; }
+    if(!state.roundBettingOpen && state.slip.some(s => { const r = getPickRound(s.id); return r !== null && r === state.currentRound; })){
+      alert('Betting for Round '+state.currentRound+' closed while building this slip \u2014 remove that selection to continue.');
+      return;
+    }
+    const stakeInput = document.getElementById('stake-input');
+    const stake = Math.max(1, parseInt(stakeInput.value,10)||1);
+    if(!state.slip.length){ alert('Add at least one selection first.'); return; }
+    if(stake > state.user.balance){ alert("You don't have that many clams."); return; }
+    const boostEligible = state.slip.length >= 3 && (!state.user.boostUsedRound || state.user.boostUsedRound !== state.currentRound);
+    const boostApplied = boostEligible && state.useBoost;
+    const combined = combinedOdds() * (boostApplied ? BOOST_MULTIPLIER : 1);
+    const u = await getUser(state.user.username);
+    u.balance -= stake;
+    if(boostApplied) u.boostUsedRound = state.currentRound;
+    await saveUser(u);
+    state.user = u;
+    const bet = { id: uid(), username: u.username, selections: state.slip, stake, combinedOdds: combined, boosted: boostApplied,
+                  potentialReturn: Math.round(stake*combined), timestamp: Date.now(), status: 'PENDING' };
+    await sset('bilbbet2_bet:'+bet.id, bet);
+    await addToIndex('bilbbet2_bets_index_' + u.username.toLowerCase(), bet.id);
+    await addToIndex('bilbbet2_all_bets_index', bet.id);
+    state.slip = []; state.stake = 50; state.useBoost = false;
+    render();
+    alert('Bet placed: ' + stake + ' clams to win ' + fmt(bet.potentialReturn) + ' clams' + (boostApplied ? ' (boosted!)' : '') + '. Check "My Bets" to track it.');
+  }
+
+  async function placeBetsAsSingles(){
+    if(!state.user){ alert('You must log in first to place a bet.'); state.loginModalOpen=true; render(); return; }
+    if(!state.roundBettingOpen && state.slip.some(s => { const r = getPickRound(s.id); return r !== null && r === state.currentRound; })){
+      alert('Betting for Round '+state.currentRound+' closed while building this slip \u2014 remove that selection to continue.');
+      return;
+    }
+    if(!state.slip.length){ alert('Add at least one selection first.'); return; }
+    if(state.slip.some(s => !s.singleStake || s.singleStake < 1)){ alert('Every selection needs a stake before placing as singles.'); return; }
+    const stakes = state.slip.map(s => Math.max(1, s.singleStake));
+    const totalStake = stakes.reduce((a,b)=>a+b,0);
+    if(totalStake > state.user.balance){ alert("You don't have enough clams to cover all of those singles."); return; }
+    const u = await getUser(state.user.username);
+    u.balance -= totalStake;
+    await saveUser(u);
+    state.user = u;
+    for(const item of state.slip){
+      const stake = Math.max(1, item.singleStake||0);
+      const bet = { id: uid(), username: u.username, selections: [item], stake, combinedOdds: item.odds,
+                    potentialReturn: Math.round(stake*item.odds), timestamp: Date.now(), status: 'PENDING' };
+      await sset('bilbbet2_bet:'+bet.id, bet);
+      await addToIndex('bilbbet2_bets_index_' + u.username.toLowerCase(), bet.id);
+      await addToIndex('bilbbet2_all_bets_index', bet.id);
+    }
+    const count = state.slip.length;
+    state.slip = []; state.stake = 50;
+    render();
+    alert('Placed ' + count + ' single bets totalling ' + totalStake + ' clams staked. Check "My Bets" to track them.');
+  }
+
+  async function doLogin(){
+    const pin = state.pin.trim();
+    state.info = '';
+
+    // precoded admin login -- driven by the dedicated adminLoginMode flag, not the
+    // shared username field, so it can never be silently overwritten by whatever
+    // the team-search box last did (that was the cause of "only works after
+    // touching the search box first").
+    if(state.adminLoginMode){
+      if(!pin){ state.error='Enter your PIN.'; render(); return; }
+      if(pin !== '2845'){ state.error='Wrong PIN.'; render(); return; }
+      let adminUser = await getUser('admin');
+      if(!adminUser){
+        adminUser = { username: 'admin', pinHash: simpleHash('2845'), balance: 0, isAdmin: true, status: 'APPROVED', everFunded: true };
+        await saveUser(adminUser);
+        await addToIndex('bilbbet2_users_index', 'admin');
+      }
+      state.user = adminUser; state.error=''; state.username=''; state.pin=''; state.adminLoginMode=false; state.screen='main'; state.loginModalOpen=false;
+      state.activeTab='H2H'; state.adminPunters=null; state.adminBets=null; state.novelty=null; state.statsData=null; state.myBets=null;
+      render();
+      loadAdminData();  // background load so the attention flag is accurate from the start, not just after visiting Admin
+      return;
+    }
+
+    const username = state.username.trim();
+    if(!username || !pin){ state.error='Enter a username and PIN.'; render(); return; }
+
+    const u = await getUser(username);
+    if(!u){ state.error='No account with that username. Try "create account" below.'; render(); return; }
+    if(u.pinHash !== simpleHash(pin)){ state.error='Wrong PIN.'; render(); return; }
+    const status = u.status || 'APPROVED';
+    if(status === 'PENDING'){ state.error='Your registration is still awaiting admin approval \u2014 check back soon.'; state.username=''; state.pin=''; render(); return; }
+    if(status === 'REJECTED'){ state.error='Your registration was rejected. Contact the admin if you think that\u2019s a mistake.'; state.username=''; state.pin=''; render(); return; }
+    if(status === 'KICKED'){ state.error='Your account has been removed by Bilbbet management. Contact the admin if you think that\u2019s a mistake.'; state.username=''; state.pin=''; render(); return; }
+    state.user = u; state.error=''; state.username=''; state.pin=''; state.screen='main'; state.loginModalOpen=false;
+    state.activeTab='H2H'; state.adminPunters=null; state.adminBets=null; state.novelty=null; state.statsData=null; state.myBets=null;
+    render();
+    // a punter who's genuinely punted before (not brand new) and ended last
+    // season under 500 clams gets a little needling on the way in.
+    if(u.historicalRecord && u.historicalRecord.totalBets > 0 && (u.dormantCarry||0) < 500){
+      alert('Expect to lose more sucker');
+    }
+  }
+
+  async function doRegister(){
+    const username = state.username.trim(), pin = state.pin.trim();
+    state.info = '';
+    if(!state.tosAgreed){ state.error='You must read and agree to the Terms & Conditions before registering.'; render(); return; }
+    if(username.toLowerCase() === 'admin'){ state.error='That name is reserved for the admin login.'; render(); return; }
+    if(!username || pin.length<4){ state.error='Pick a username and a PIN of at least 4 digits.'; render(); return; }
+    const existing = await getUser(username);
+    if(existing){ state.error='That username is taken. Log in instead.'; render(); return; }
+    const isFirstEver = (await getIndex('bilbbet2_users_index')).length === 0;
+    const carryData = CARRY_BALANCES[username] || null;
+    // the very first account ever registered becomes admin and is auto-approved
+    // (there's no admin yet to approve them); everyone after that starts PENDING
+    // with no funds until an admin approves them. If this team has a carry
+    // balance from a previous season, it stays dormant (invisible, reads as 0)
+    // until approval, at which point it's added on top of the usual 1,000
+    // registration bonus.
+    const u = isFirstEver
+      ? { username, pinHash: simpleHash(pin), balance: 1000, isAdmin: true, status: 'APPROVED', everFunded: true }
+      : { username, pinHash: simpleHash(pin), balance: 0, isAdmin: false, status: 'PENDING', everFunded: false,
+          dormantCarry: carryData ? carryData.carry : 0, historicalRecord: carryData ? carryData.historicalRecord : null };
+    const saved = await sset('bilbbet2_user:' + username.toLowerCase(), u);
+    if(!saved){ state.error='Could not save your account (storage unavailable). Try reloading.'; render(); return; }
+    await addToIndex('bilbbet2_users_index', username);
+    state.registeringMode = false; state.tosAgreed = false;
+    if(isFirstEver){
+      state.user = u; state.error=''; state.username=''; state.pin=''; state.screen='main'; state.loginModalOpen=false;
+      state.activeTab='H2H'; state.adminPunters=null; state.adminBets=null; state.novelty=null; state.statsData=null; state.myBets=null;
+    } else {
+      state.username=''; state.pin=''; state.error='';
+      state.info = `Registration submitted for ${username} \u2014 an admin needs to approve your account before you can log in and get your starting clams.`;
+    }
+    render();
+  }
+
+  const savedCurrentRound = await sget('bilbbet2_current_round');
+  if(savedCurrentRound){ state.currentRound = savedCurrentRound; state.h2hRound = savedCurrentRound; state.leadingAtRound = savedCurrentRound; }
+  const savedCupFixtures = await sget('bilbbet2_cup_fixtures');
+  if(savedCupFixtures){ state.cupFixtures = savedCupFixtures; }
+  const savedPlayoffFixtures = await sget('bilbbet2_playoff_fixtures');
+  if(savedPlayoffFixtures){ state.playoffFixtures = savedPlayoffFixtures; }
+  const savedCupOverrides = await sget('bilbbet2_cup_overrides');
+  if(savedCupOverrides){ state.cupCalendarOverrides = savedCupOverrides; }
+
+  const savedBettingOpen = await sget('bilbbet2_round_betting_open');
+  if(savedBettingOpen !== null){ state.roundBettingOpen = savedBettingOpen; }
+  const savedAutoClosedRound = await sget('bilbbet2_last_autoclosed_round');
+  // Auto-close is a one-time check on load, not a background timer: if the
+  // scheduled date for the current round has arrived and nobody's closed or
+  // auto-closed it yet for this specific round, close it now. Tracking which
+  // round we last auto-closed (rather than just the open/closed flag) means
+  // a manual reopen after auto-close sticks -- it won't immediately
+  // re-trigger on the next page load for the same round.
+  if(scheduledCloseDue() && state.roundBettingOpen && savedAutoClosedRound !== state.currentRound){
+    state.roundBettingOpen = false;
+    await sset('bilbbet2_round_betting_open', false);
+    await sset('bilbbet2_last_autoclosed_round', state.currentRound);
+  }
+  const savedOddsRefreshRequested = await sget('bilbbet2_odds_refresh_requested');
+  if(savedOddsRefreshRequested !== null){ state.oddsRefreshRequested = savedOddsRefreshRequested; }
+
+  render();
+})();
