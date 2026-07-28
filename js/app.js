@@ -73,13 +73,41 @@
   function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
   function simpleHash(s){ let h=0; for(let i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))|0;} return String(h); }
 
+  // ---------- storage: Supabase (if configured) -> window.storage (Claude's
+  // artifact panel) -> in-memory (last resort, this browser tab only) ----------
+  // Fill these in from your own Supabase project (Project Settings -> API)
+  // after running supabase/schema.sql once in the SQL editor. Leave them as
+  // the placeholder strings to skip Supabase and fall back automatically.
+  const SUPABASE_URL = 'https://dhgkrlimitbordddcaqo.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_fWZvXvtCp1YhfuU47H3fjQ_zDIFGHCB';
+  let supabaseClient = null;
+  if(SUPABASE_URL.startsWith('http') && SUPABASE_ANON_KEY && typeof window !== 'undefined' && window.supabase){
+    try { supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); }
+    catch(e) { console.error('Supabase client failed to initialise:', e); }
+  }
+
   const memoryStore = {};
   const hasRealStorage = typeof window !== 'undefined' && window.storage && typeof window.storage.get === 'function';
+
   async function sget(key){
+    if(supabaseClient){
+      try {
+        const { data, error } = await supabaseClient.from('kv_store').select('value').eq('key', key).maybeSingle();
+        if(error) throw error;
+        return data ? data.value : null;
+      } catch(e) { console.error('Supabase read failed for', key, '-- falling back:', e.message); }
+    }
     if(!hasRealStorage) return Object.prototype.hasOwnProperty.call(memoryStore,key) ? JSON.parse(memoryStore[key]) : null;
     try{ const r = await window.storage.get(key, true); return r ? JSON.parse(r.value) : null; }catch(e){ return null; }
   }
   async function sset(key, val){
+    if(supabaseClient){
+      try {
+        const { error } = await supabaseClient.from('kv_store').upsert({ key, value: val });
+        if(error) throw error;
+        return true;
+      } catch(e) { console.error('Supabase write failed for', key, '-- falling back:', e.message); }
+    }
     if(!hasRealStorage){ memoryStore[key] = JSON.stringify(val); return true; }
     try{ await window.storage.set(key, JSON.stringify(val), true); return true; }catch(e){ return false; }
   }
@@ -189,7 +217,7 @@
             <button type="button" class="bb-btn ghost" id="close-login-modal">Cancel</button>
           </form>
           <p style="font-size:12px;color:#9a9a9a;text-align:center;margin-top:1rem;">Everyone starts with 1,000 clams once an admin approves your registration.</p>
-          ${!hasRealStorage ? `<p style="font-size:12px;color:#c0604f;text-align:center;margin-top:0.5rem;">Running without persistent storage &mdash; open inside Claude's artifact panel for accounts to be saved between visits.</p>` : ''}
+          ${(!supabaseClient && !hasRealStorage) ? `<p style="font-size:12px;color:#c0604f;text-align:center;margin-top:0.5rem;">Running without persistent storage &mdash; set up Supabase (see supabase/schema.sql) or open inside Claude's artifact panel for accounts to be saved between visits.</p>` : ''}
         </div>
       </div>`;
   }
