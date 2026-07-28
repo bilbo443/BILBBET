@@ -1,7 +1,7 @@
 (async function(){
   const DATA = {};
   async function loadAllData(){
-    const files = ['futures','h2h_history','h2h_divisions','h2h_shift','h2h_schedule','leading_at'];
+    const files = ['futures','h2h_history','h2h_divisions','h2h_shift','h2h_schedule','leading_at','special_markets'];
     const failures = [];
     const results = await Promise.all(files.map(async name => {
       const path = './data/' + name + '.json';
@@ -47,6 +47,7 @@
   const H2H_DIVISIONS = DATA.h2h_divisions;
   const H2H_SHIFT = DATA.h2h_shift;
   const H2H_SCHEDULE = DATA.h2h_schedule;
+  const SPECIAL_MARKETS = DATA.special_markets;
   const K = 8;
 
   const FUTURE_DIVS = Object.keys(FUTURES.divisions);
@@ -65,6 +66,7 @@
     adminPunters:null, adminBets:null, novelty:null, statsData:null,
     currentRound: 1,       // the next round yet to be played; anything before this is "past"
     leadingAtRound: 1,
+    specialsSelection: { win_round: '', lose_round: '', charity: '', philanthropy: '' },
   };
 
   function esc(s){ return String(s).replace(/[&<>"'\x27]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -186,6 +188,38 @@
     if(odds < ODDS_FLOOR) odds = ODDS_FLOOR;   // guards against float rounding (e.g. 1.005*100 !== 100.5 exactly)
     if(odds > ODDS_CAP) odds = ODDS_CAP;
     return { odds, suspended:false };
+  }
+
+  // Open-field "who tops/bottoms the current round" market -- genuinely
+  // round-dependent (moves as the admin advances the season), so this is
+  // computed live in the browser from the same samplers as everything else,
+  // rather than precomputed, and cached per round so repeat renders don't
+  // re-run the simulation.
+  const ALL_TEAMS = Object.keys(H2H_SHIFT);
+  const roundExtremeCache = {};
+  function computeRoundExtremes(round, nSims){
+    if(roundExtremeCache[round]) return roundExtremeCache[round];
+    nSims = nSims || 8000;
+    const winCounts = {}, loseCounts = {};
+    ALL_TEAMS.forEach(t => { winCounts[t] = 0; loseCounts[t] = 0; });
+    const samples = {};
+    ALL_TEAMS.forEach(t => { samples[t] = sampleTeam(t, nSims); });
+    for(let i=0;i<nSims;i++){
+      let best=-Infinity, bestTeam=null, worst=Infinity, worstTeam=null;
+      for(const t of ALL_TEAMS){
+        const s = samples[t][i];
+        if(s>best){ best=s; bestTeam=t; }
+        if(s<worst){ worst=s; worstTeam=t; }
+      }
+      winCounts[bestTeam]++; loseCounts[worstTeam]++;
+    }
+    const toRows = counts => ALL_TEAMS.map(t => {
+      const info = toOdds(100*counts[t]/nSims);
+      return { team: t, odds: info.odds, suspended: info.suspended };
+    }).sort((a,b) => (a.odds===null)-(b.odds===null) || (a.odds||0)-(b.odds||0));
+    const result = { win: toRows(winCounts), lose: toRows(loseCounts) };
+    roundExtremeCache[round] = result;
+    return result;
   }
 
   // ---------- rendering ----------
@@ -510,11 +544,42 @@
       </p>`;
   }
 
+  function fixedSpecialDropdown(pickPrefix, marketLabel, outcomes, selectedTeam, selectId){
+    const options = `<option value="">Select a team&hellip;</option>` +
+      outcomes.map(o => `<option value="${esc(o.team)}" ${o.team===selectedTeam?'selected':''}>${esc(o.team)}</option>`).join('');
+    let odds_row = '';
+    if(selectedTeam){
+      const o = outcomes.find(x => x.team === selectedTeam);
+      const id = pickPrefix + '|' + selectedTeam;
+      if(o.suspended){
+        odds_row = `<div class="bb-outcome" style="opacity:0.5;cursor:default;margin-top:8px;">
+          <span>${esc(selectedTeam)}</span><span class="bb-odds" style="color:#9a9a9a;">suspended</span></div>`;
+      } else {
+        const selected = state.slip.some(s=>s.id===id);
+        odds_row = `<div class="bb-outcome ${selected?'selected':''}" data-pick="${esc(id)}" data-team="${esc(selectedTeam)}" data-odds="${o.odds}" data-label="${esc(selectedTeam)} \u2014 ${esc(marketLabel)}" style="margin-top:8px;">
+          <span>${esc(selectedTeam)}</span><span class="bb-odds">${o.odds.toFixed(2)}</span></div>`;
+      }
+    }
+    return `<div class="bb-card" style="margin-bottom:10px;">
+      <div style="font-size:13px;font-weight:600;margin-bottom:8px;">${esc(marketLabel)}</div>
+      <select class="bb-select" id="${selectId}">${options}</select>
+      ${odds_row}
+    </div>`;
+  }
+
   function renderSpecialsTab(){
     if(state.novelty === null) return '<p style="color:#9a9a9a;">Loading&hellip;</p>';
+    const roundExtremes = computeRoundExtremes(state.currentRound);
+    let html = '<h3 style="margin-top:0;">Specials</h3>';
+    html += `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">Round-based markets use Round ${state.currentRound} (the season's current round). Season-long markets cover all 26 rounds.</p>`;
+    html += fixedSpecialDropdown('SPECIALFIX|win_round|R'+state.currentRound, 'To win Round '+state.currentRound+' (highest scorer)', roundExtremes.win, state.specialsSelection.win_round, 'special-win-round');
+    html += fixedSpecialDropdown('SPECIALFIX|lose_round|R'+state.currentRound, 'To lose Round '+state.currentRound+' (lowest scorer)', roundExtremes.lose, state.specialsSelection.lose_round, 'special-lose-round');
+    html += fixedSpecialDropdown('SPECIALFIX|charity', 'Most Charity (least points conceded all season)', SPECIAL_MARKETS.charity, state.specialsSelection.charity, 'special-charity');
+    html += fixedSpecialDropdown('SPECIALFIX|philanthropy', 'Most Philanthropy (most points conceded all season)', SPECIAL_MARKETS.philanthropy, state.specialsSelection.philanthropy, 'special-philanthropy');
+
+    html += '<h3>Novelty &amp; one-offs</h3>';
     const open = state.novelty.filter(n => n.status === 'OPEN');
     const settled = state.novelty.filter(n => n.status !== 'OPEN').sort((a,b)=>b.createdAt-a.createdAt);
-    let html = '<h3 style="margin-top:0;">Specials &amp; Novelty</h3>';
     if(!open.length && !settled.length){
       return html + '<p style="color:#9a9a9a;">Nothing added yet &mdash; the admin can add one-off bets here.</p>';
     }
@@ -903,6 +968,13 @@
       // only one team can be leading a given scope at a given round checkpoint
       return { type:'leadat', scope, round: parseInt(round,10), team, group: 'LEADAT-SINGLE|'+scope+'|'+round };
     }
+    if(parts[0]==='SPECIALFIX'){
+      // either SPECIALFIX|marketKey|team (season-long) or SPECIALFIX|marketKey|Rn|team (round-based)
+      const marketKey = parts[1];
+      const team = parts[parts.length-1];
+      const roundTag = parts.length===4 ? parts[2] : null;
+      return { type:'specialfix', marketKey, team, group: 'SPECIALFIX-SINGLE|'+marketKey+(roundTag?('|'+roundTag):'') };
+    }
     return { type:'unknown' };
   }
 
@@ -1069,6 +1141,10 @@
     const teamBEl = $('#team-b'); if(teamBEl) teamBEl.onchange = e => { state.teamB=e.target.value; state.h2hMarket=null; render(); };
     const roundEl = $('#h2h-round'); if(roundEl) roundEl.onchange = e => { state.h2hRound=parseInt(e.target.value,10); state.h2hMarket=null; state.h2hFixtureMarket=null; render(); };
     const leadingAtRoundEl = $('#leadingat-round'); if(leadingAtRoundEl) leadingAtRoundEl.onchange = e => { state.leadingAtRound=parseInt(e.target.value,10); render(); };
+    const winRoundEl = $('#special-win-round'); if(winRoundEl) winRoundEl.onchange = e => { state.specialsSelection.win_round = e.target.value; render(); };
+    const loseRoundEl = $('#special-lose-round'); if(loseRoundEl) loseRoundEl.onchange = e => { state.specialsSelection.lose_round = e.target.value; render(); };
+    const charityEl = $('#special-charity'); if(charityEl) charityEl.onchange = e => { state.specialsSelection.charity = e.target.value; render(); };
+    const philanthropyEl = $('#special-philanthropy'); if(philanthropyEl) philanthropyEl.onchange = e => { state.specialsSelection.philanthropy = e.target.value; render(); };
     const getBtn = $('#get-market'); if(getBtn) getBtn.onclick = () => { state.h2hMarket = computeH2HMarket(state.teamA, state.teamB, state.h2hRound); render(); };
     document.querySelectorAll('[data-h2hsubtab]').forEach(el => el.onclick = () => { state.h2hSubTab = el.dataset.h2hsubtab; state.h2hFixtureMarket=null; render(); });
     document.querySelectorAll('[data-fixture-expand]').forEach(el => el.onclick = () => {
