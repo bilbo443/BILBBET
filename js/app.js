@@ -1,7 +1,7 @@
 (async function(){
   const DATA = {};
   async function loadAllData(){
-    const files = ['futures','h2h_history','h2h_divisions','h2h_shift','h2h_schedule','leading_at','special_markets','h2h_record','cup_calendar','carry_balances'];
+    const files = ['futures','h2h_history','h2h_divisions','h2h_shift','h2h_schedule','leading_at','special_markets','h2h_record','cup_calendar','carry_balances','round_dates'];
     const failures = [];
     const results = await Promise.all(files.map(async name => {
       const path = './data/' + name + '.json';
@@ -76,6 +76,26 @@
     return (CUP_CALENDAR[CUP_CALENDAR_KEY[comp]] || {})[round] || null;
   }
   const CARRY_BALANCES = DATA.carry_balances; // {teamName: {carry, historicalRecord}}
+  const ROUND_DATES = DATA.round_dates; // {round: 'YYYY-MM-DD' kickoff date}
+  // Whether the current round's scheduled date has arrived -- checked on
+  // render, not on a timer, so it only ever moves state the moment someone
+  // has the page open on or after that date, never silently in the background.
+  function scheduledCloseDue(){
+    const dateStr = ROUND_DATES[state.currentRound];
+    if(!dateStr) return false;
+    return new Date() >= sydneyKickoffUTC(dateStr);
+  }
+  // Which round (if any) a pick is locked to. Season-long markets (division
+  // futures, Roddy, cup stages, charity/philanthropy, novelty) return null --
+  // closing betting for a round never touches those, only picks tied to that
+  // exact round (H2H matches, leading-at-this-round, win/lose-this-round).
+  function getPickRound(id){
+    const parts = id.split('|');
+    if(parts[0]==='H2H') return parseInt(parts[2].replace('R',''),10);
+    if(parts[0]==='LEADAT') return parseInt(parts[2],10);
+    if(parts[0]==='SPECIALFIX' && (parts[1]==='win_round'||parts[1]==='lose_round')) return parseInt(parts[2].replace('R',''),10);
+    return null;
+  }
   const K = 8;
 
   const FUTURE_DIVS = Object.keys(FUTURES.divisions);
@@ -100,11 +120,42 @@
     cupFixtureMarket: null,
     cupAdminEntry: { 'FA CUP': {teamA:'', teamB:''}, 'ECL': {teamA:'', teamB:''} },
     cupCalendarOverrides: { 'FA CUP': {}, 'ECL': {} },  // round -> stage name string, or false to force "not a cup round"
+    roundBettingOpen: true,
+    oddsRefreshRequested: false,
   };
 
   function esc(s){ return String(s).replace(/[&<>"'\x27]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
   function fmt(n){ return Number(n||0).toLocaleString(undefined,{maximumFractionDigits:2}); }
-  function fmtDate(ts){ const d=new Date(ts); return d.toLocaleDateString()+' '+d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); }
+  // Platform-wide rule: every date/time shown anywhere is Sydney time, correct
+  // for whichever of AEST/AEDT actually applies on that date -- never the
+  // viewer's own browser timezone. Intl's IANA timezone database handles the
+  // daylight-saving transition dates automatically; nothing here is hardcoded.
+  const SYDNEY_TZ = 'Australia/Sydney';
+  function fmtDate(ts){
+    const d = new Date(ts);
+    return new Intl.DateTimeFormat('en-AU', {
+      timeZone: SYDNEY_TZ, day:'2-digit', month:'2-digit', year:'numeric',
+      hour:'2-digit', minute:'2-digit', hour12:true, timeZoneName:'short',
+    }).format(d);
+  }
+  // Sydney's UTC offset is +10 (AEST) or +11 (AEDT) depending on the date --
+  // this reads the real offset for a specific date from the timezone
+  // database rather than assuming either one.
+  function sydneyOffsetHours(dateStr){
+    const probe = new Date(dateStr + 'T12:00:00Z'); // midday UTC, safe from any day-boundary edge case
+    const parts = new Intl.DateTimeFormat('en-US', { timeZone: SYDNEY_TZ, timeZoneName: 'longOffset' }).formatToParts(probe);
+    const tzPart = parts.find(p => p.type === 'timeZoneName');
+    const match = tzPart && tzPart.value.match(/GMT([+-]\d+)/);
+    return match ? parseInt(match[1], 10) : 11; // AEDT as the safer fallback if parsing ever fails
+  }
+  // No kickoff times are given for A-League-style rounds, only dates -- per
+  // house rule, the round's first match is assumed to kick off at 7:00pm
+  // Sydney time, DST-adjusted for that specific date.
+  function sydneyKickoffUTC(dateStr){
+    const offset = sydneyOffsetHours(dateStr);
+    const utcHour = 19 - offset; // 7pm Sydney is always still the same UTC calendar date, since the offset (10-11h) never pushes it past midnight backward
+    return new Date(dateStr + 'T' + String(utcHour).padStart(2,'0') + ':00:00Z');
+  }
   function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
   function simpleHash(s){ let h=0; for(let i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))|0;} return String(h); }
 
@@ -427,6 +478,10 @@
       const info = getCupRoundInfo(comp, state.currentRound);
       if(info && !(state.cupFixtures[comp]||[]).length) return true;
     }
+    if(!state.roundBettingOpen) return true;
+    const hasResolvable = (state.adminBets||[]).some(b => (b.status||'PENDING')==='PENDING' && b.selections.length===1 &&
+      (() => { const r = getPickRound(b.selections[0].id); return r !== null && r <= state.currentRound; })());
+    if(hasResolvable) return true;
     return false;
   }
 
@@ -814,7 +869,49 @@
           ${Array.from({length:26},(_, i) => i+1).map(r => `<option value="${r}" ${r===state.currentRound?'selected':''}>Round ${r}</option>`).join('')}
         </select>
         <button class="bb-btn" id="save-current-round">Update</button>
-        <span style="font-size:12px;color:#9a9a9a;">Rounds before this are greyed out everywhere as already played.</span>
+        <span style="font-size:12px;color:#9a9a9a;">Rounds before this are greyed out everywhere as already played. Advancing this reopens betting fresh.</span>
+      </div>
+      <h3>Round betting</h3>
+      <div class="bb-card" style="margin-bottom:1.5rem;">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
+          <span class="bb-pill" style="background:${state.roundBettingOpen?'#1e3a2a':'#3a2a26'};color:${state.roundBettingOpen?'#7fbf8f':'#c0604f'};">${state.roundBettingOpen?'OPEN':'CLOSED'}</span>
+          <span style="font-size:13px;">Round ${state.currentRound} betting is currently ${state.roundBettingOpen?'open':'closed'}.</span>
+        </div>
+        <p style="font-size:12px;color:#9a9a9a;margin:0 0 10px;">
+          ${ROUND_DATES[state.currentRound] ? `Scheduled kickoff per the 26/27 calendar: ${esc(ROUND_DATES[state.currentRound])}, assumed 7:00pm Sydney time (no exact kickoff times are given, so the round's first match is assumed to start then). Betting auto-closes the first time the site's loaded on or after that moment, if nobody's closed it already.` : `No scheduled date on file for this round -- auto-close won't trigger, close it manually when needed.`}
+          Auto-close only ever fires this way for this round once; reopening it manually will stick.
+        </p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="bb-btn ghost" id="close-betting-btn" ${!state.roundBettingOpen?'disabled':''} style="padding:8px 14px;font-size:12px;">Close betting now</button>
+          <button class="bb-btn" id="reopen-betting-btn" ${state.roundBettingOpen?'disabled':''} style="padding:8px 14px;font-size:12px;">Reopen betting</button>
+        </div>
+        <p style="font-size:12px;color:#9a9a9a;margin:10px 0 6px;">Closing/reopening only ever affects this specific round's H2H, leading-at, and win/lose-the-round markets -- season-long futures (division, Roddy, cup stages) stay bettable regardless.</p>
+      </div>
+      <h3>Odds refresh</h3>
+      <div class="bb-card" style="margin-bottom:1.5rem;">
+        <p style="font-size:12px;color:#9a9a9a;margin-top:0;">
+          The futures odds (division standings, Roddy, cup stages, leading-at, charity/philanthropy) are precomputed and can't recalculate themselves from live results -- that needs the underlying simulation rerun and the data files redeployed. This button doesn't do that on its own; it just raises the attention flag as a reminder to come back and ask for a refresh once a round's fully resolved. H2H match odds already recompute live on every visit and don't need this.
+        </p>
+        ${state.oddsRefreshRequested
+          ? `<div style="display:flex;align-items:center;gap:10px;"><span class="bb-pill" style="background:#4a3a10;color:#ffdd00;">Requested</span><button class="bb-btn ghost" id="clear-odds-refresh-btn" style="padding:6px 12px;font-size:12px;">Clear</button></div>`
+          : `<button class="bb-btn ghost" id="request-odds-refresh-btn" style="padding:8px 14px;font-size:12px;">Flag odds as needing a refresh</button>`}
+      </div>
+      <h3>Resolve outstanding bets</h3>
+      <div class="bb-card" style="margin-bottom:1.5rem;">
+        ${(() => {
+          const resolvable = bets.filter(b => (b.status||'PENDING')==='PENDING' && b.selections.length===1 &&
+            (() => { const r = getPickRound(b.selections[0].id); return r !== null && r <= state.currentRound; })());
+          if(!resolvable.length) return `<p style="color:#9a9a9a;font-size:13px;margin:0;">Nothing waiting on a result for this round or earlier.</p>`;
+          return `<p style="color:#9a9a9a;font-size:12px;margin-top:0;">Single-selection bets on Round ${state.currentRound} or earlier, still pending. Multi-leg bets aren't shown here -- resolve those individually in the table below once every leg's known.</p>` +
+            resolvable.map(b => `
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #2a2a2a;font-size:13px;">
+                <span>${esc(b.username)} \u2014 ${esc(b.selections[0].label)} <span style="color:#8a8a8a;">(stake ${fmt(b.stake)}, odds ${b.selections[0].odds.toFixed(2)})</span></span>
+                <span style="display:flex;gap:4px;">
+                  <button class="bb-btn ghost" data-setstatus="${b.id}|WON" style="padding:4px 8px;font-size:11px;">Won</button>
+                  <button class="bb-btn ghost" data-setstatus="${b.id}|LOST" style="padding:4px 8px;font-size:11px;">Lost</button>
+                </span>
+              </div>`).join('');
+        })()}
       </div>
       <h3>Cup fixtures (FA Cup &amp; ECL)</h3>
       <div class="bb-card" style="margin-bottom:1.5rem;">
@@ -956,8 +1053,39 @@
   }
 
   async function saveCurrentRound(round){
+    const advanced = round !== state.currentRound;
     await sset('bilbbet2_current_round', round);
     state.currentRound = round;
+    if(advanced){
+      // moving to a new round starts that round's betting fresh, regardless
+      // of how the previous round was left
+      state.roundBettingOpen = true;
+      await sset('bilbbet2_round_betting_open', true);
+    }
+    render();
+  }
+
+  async function closeBettingNow(){
+    state.roundBettingOpen = false;
+    await sset('bilbbet2_round_betting_open', false);
+    render();
+  }
+
+  async function reopenBetting(){
+    state.roundBettingOpen = true;
+    await sset('bilbbet2_round_betting_open', true);
+    render();
+  }
+
+  async function requestOddsRefresh(){
+    state.oddsRefreshRequested = true;
+    await sset('bilbbet2_odds_refresh_requested', true);
+    render();
+  }
+
+  async function clearOddsRefreshRequest(){
+    state.oddsRefreshRequested = false;
+    await sset('bilbbet2_odds_refresh_requested', false);
     render();
   }
 
@@ -1442,6 +1570,11 @@
       const id = el.dataset.pick;
       const existing = state.slip.findIndex(s=>s.id===id);
       if(existing>=0){ state.slip.splice(existing,1); render(); return; }
+      const pickRound = getPickRound(id);
+      if(pickRound !== null && pickRound === state.currentRound && !state.roundBettingOpen){
+        alert('Betting for Round '+state.currentRound+' is currently closed.');
+        return;
+      }
       const conflict = findConflict(id);
       if(conflict){ alert("Can't add that selection \u2014 " + conflict.msg + "."); return; }
       state.slip.push({id, label: el.dataset.label || el.dataset.team, odds: parseFloat(el.dataset.odds), singleStake: state.stake});
@@ -1478,6 +1611,10 @@
       const sel = document.getElementById('admin-current-round');
       saveCurrentRound(parseInt(sel.value, 10));
     };
+    const closeBettingBtn = $('#close-betting-btn'); if(closeBettingBtn) closeBettingBtn.onclick = closeBettingNow;
+    const reopenBettingBtn = $('#reopen-betting-btn'); if(reopenBettingBtn) reopenBettingBtn.onclick = reopenBetting;
+    const requestRefreshBtn = $('#request-odds-refresh-btn'); if(requestRefreshBtn) requestRefreshBtn.onclick = requestOddsRefresh;
+    const clearRefreshBtn = $('#clear-odds-refresh-btn'); if(clearRefreshBtn) clearRefreshBtn.onclick = clearOddsRefreshRequest;
     for(const comp of ['FA CUP','ECL']){
       const aEl = $('#cup-team-a-'+comp);
       if(aEl){
@@ -1536,6 +1673,10 @@
 
   async function placeBet(){
     if(!state.user){ alert('You must log in first to place a bet.'); state.loginModalOpen=true; render(); return; }
+    if(!state.roundBettingOpen && state.slip.some(s => { const r = getPickRound(s.id); return r !== null && r === state.currentRound; })){
+      alert('Betting for Round '+state.currentRound+' closed while building this slip \u2014 remove that selection to continue.');
+      return;
+    }
     const stakeInput = document.getElementById('stake-input');
     const stake = Math.max(1, parseInt(stakeInput.value,10)||1);
     if(!state.slip.length){ alert('Add at least one selection first.'); return; }
@@ -1557,6 +1698,10 @@
 
   async function placeBetsAsSingles(){
     if(!state.user){ alert('You must log in first to place a bet.'); state.loginModalOpen=true; render(); return; }
+    if(!state.roundBettingOpen && state.slip.some(s => { const r = getPickRound(s.id); return r !== null && r === state.currentRound; })){
+      alert('Betting for Round '+state.currentRound+' closed while building this slip \u2014 remove that selection to continue.');
+      return;
+    }
     if(!state.slip.length){ alert('Add at least one selection first.'); return; }
     if(state.slip.some(s => !s.singleStake || s.singleStake < 1)){ alert('Every selection needs a stake before placing as singles.'); return; }
     const stakes = state.slip.map(s => Math.max(1, s.singleStake));
@@ -1661,6 +1806,23 @@
   if(savedCupFixtures){ state.cupFixtures = savedCupFixtures; }
   const savedCupOverrides = await sget('bilbbet2_cup_overrides');
   if(savedCupOverrides){ state.cupCalendarOverrides = savedCupOverrides; }
+
+  const savedBettingOpen = await sget('bilbbet2_round_betting_open');
+  if(savedBettingOpen !== null){ state.roundBettingOpen = savedBettingOpen; }
+  const savedAutoClosedRound = await sget('bilbbet2_last_autoclosed_round');
+  // Auto-close is a one-time check on load, not a background timer: if the
+  // scheduled date for the current round has arrived and nobody's closed or
+  // auto-closed it yet for this specific round, close it now. Tracking which
+  // round we last auto-closed (rather than just the open/closed flag) means
+  // a manual reopen after auto-close sticks -- it won't immediately
+  // re-trigger on the next page load for the same round.
+  if(scheduledCloseDue() && state.roundBettingOpen && savedAutoClosedRound !== state.currentRound){
+    state.roundBettingOpen = false;
+    await sset('bilbbet2_round_betting_open', false);
+    await sset('bilbbet2_last_autoclosed_round', state.currentRound);
+  }
+  const savedOddsRefreshRequested = await sget('bilbbet2_odds_refresh_requested');
+  if(savedOddsRefreshRequested !== null){ state.oddsRefreshRequested = savedOddsRefreshRequested; }
 
   render();
 })();
