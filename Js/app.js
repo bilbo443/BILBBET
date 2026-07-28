@@ -1,4 +1,3 @@
-
 (async function(){
   const DATA = {};
   async function loadAllData(){
@@ -142,6 +141,55 @@
 
   function esc(s){ return String(s).replace(/[&<>"'\x27]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
   function fmt(n){ return Number(n||0).toLocaleString(undefined,{maximumFractionDigits:2}); }
+
+  // ---------- Logo provision: teams, divisions, competitions ----------
+  // Drop image files into these paths (relative to index.html) and they'll be
+  // picked up automatically, no code changes needed:
+  //   assets/logos/teams/<slug>.png         e.g. assets/logos/teams/big-mac-fc.png
+  //   assets/logos/divisions/<slug>.png     e.g. assets/logos/divisions/division-2a.png
+  //   assets/logos/competitions/<slug>.png  e.g. assets/logos/competitions/fa-cup.png
+  // Until a given file exists, that badge silently falls back to a coloured
+  // circle with the name's initials -- nothing breaks, nothing shows a broken
+  // image icon. Uses the browser's own image-load failure (onerror) to detect
+  // a missing file, since a static site has no way to check in advance.
+  function logoSlug(name){
+    return String(name).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+  }
+  function logoInitials(name){
+    const words = String(name).replace(/[^A-Za-z0-9 ]/g,' ').trim().split(/\s+/).filter(Boolean);
+    if(!words.length) return '?';
+    if(words.length === 1) return words[0].slice(0,2).toUpperCase();
+    return (words[0][0] + words[1][0]).toUpperCase();
+  }
+  // Divisions/competitions reuse the same colours as their tab ribbons, for
+  // visual consistency; anything not in this list (i.e. every team) gets a
+  // deterministic colour derived from its own name instead, so the same team
+  // always gets the same colour without needing a lookup table for all 62.
+  const KNOWN_ENTITY_COLORS = {
+    'ELIZA CUP (D1)': '#28427c', 'DIVISION 2A': '#bc3532', 'DIVISION 2B': '#990000',
+    'DIVISION 3A': '#6aa84f', 'DIVISION 3B': '#274e13', 'FA CUP': '#0a2f85', 'ECL': '#111111', 'RODDY': '#ffdd00',
+  };
+  function logoColor(name){
+    if(KNOWN_ENTITY_COLORS[name]) return KNOWN_ENTITY_COLORS[name];
+    let hash = 0;
+    for(let i=0;i<name.length;i++) hash = (hash*31 + name.charCodeAt(i)) >>> 0;
+    return `hsl(${hash % 360}, 45%, 32%)`;
+  }
+  function logoBadge(kind, name, size){
+    size = size || 26;
+    const slug = logoSlug(name);
+    const path = 'assets/logos/' + kind + 's/' + slug + '.png';
+    const color = logoColor(name);
+    const fg = (kind === 'competition' && name === 'RODDY') ? '#1b1b1b' : '#fff'; // gold badge needs dark text to stay legible
+    const initial = esc(logoInitials(name));
+    return `<span style="position:relative;display:inline-block;width:${size}px;height:${size}px;min-width:${size}px;vertical-align:middle;">
+      <span style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;border-radius:50%;background:${color};color:${fg};font-size:${Math.round(size*0.38)}px;font-weight:700;">${initial}</span>
+      <img src="${esc(path)}" alt="" style="position:absolute;top:0;left:0;width:100%;height:100%;border-radius:50%;object-fit:cover;" onerror="this.style.display='none';"/>
+    </span>`;
+  }
+  function teamLogo(name, size){ return logoBadge('team', name, size); }
+  function divisionLogo(name, size){ return logoBadge('division', name, size); }
+  function competitionLogo(name, size){ return logoBadge('competition', name, size); }
   // Platform-wide rule: every date/time shown anywhere is Sydney time, correct
   // for whichever of AEST/AEDT actually applies on that date -- never the
   // viewer's own browser timezone. Intl's IANA timezone database handles the
@@ -483,12 +531,19 @@
   }
 
   function mainTabs(){
+    const logoTabKind = t => {
+      if(t === 'RODDY' || t === 'FA CUP' || t === 'ECL') return 'competition';
+      if(FUTURE_DIVS.includes(t)) return 'division';
+      return null;
+    };
     return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">' +
       currentTabs().map(t => {
         const label = t==='RODDY'?'The Roddy':(t==='MY BETS'?'My Bets':(t==='ADMIN'?'Admin':(t==='H2H'?'H2H':t.replace(' (D1)',''))));
         const flag = (t==='ADMIN' && state.user && state.user.isAdmin && adminNeedsAttention())
           ? ' <span title="Needs attention" style="font-size:11px;">\u{1F6A9}</span>' : '';
-        return `<div class="bb-tab ${state.activeTab===t?'active '+divColorClass(t):''}" data-tab="${esc(t)}">${label}${flag}</div>`;
+        const kind = logoTabKind(t);
+        const logo = kind ? logoBadge(kind, t, 16) + ' ' : '';
+        return `<div class="bb-tab ${state.activeTab===t?'active '+divColorClass(t):''}" data-tab="${esc(t)}" style="display:flex;align-items:center;gap:5px;">${logo}${label}${flag}</div>`;
       }).join('') +
       '</div>';
   }
@@ -630,12 +685,12 @@
     return outcomes.map(o => {
       if(o.suspended){
         return `<div class="bb-outcome" style="opacity:0.5;cursor:default;">
-          <span>${esc(o.team)}</span><span class="bb-odds" style="color:#9a9a9a;">suspended</span></div>`;
+          <span style="display:flex;align-items:center;gap:8px;">${teamLogo(o.team,20)}${esc(o.team)}</span><span class="bb-odds" style="color:#9a9a9a;">suspended</span></div>`;
       }
       const selId = 'FUT|'+div+'|'+marketKey+'|'+o.team;
       const selected = state.slip.some(s=>s.id===selId);
       return `<div class="bb-outcome ${selected?'selected':''}" data-pick="${esc(selId)}" data-team="${esc(o.team)}" data-odds="${o.odds}" data-label="${esc(o.team)}">
-        <span>${esc(o.team)}</span><span class="bb-odds">${o.odds.toFixed(2)}</span></div>`;
+        <span style="display:flex;align-items:center;gap:8px;">${teamLogo(o.team,20)}${esc(o.team)}</span><span class="bb-odds">${o.odds.toFixed(2)}</span></div>`;
     }).join('');
   }
 
@@ -714,10 +769,10 @@
 
   function quickOddsButton(pickId, label, teamLabel, oddsInfo){
     if(oddsInfo.suspended){
-      return `<span class="bb-btn ghost" style="padding:6px 10px;font-size:12px;opacity:0.5;cursor:default;">${esc(teamLabel)} susp.</span>`;
+      return `<span class="bb-btn ghost" style="padding:6px 10px;font-size:12px;opacity:0.5;cursor:default;display:inline-flex;align-items:center;gap:6px;">${teamLogo(teamLabel,16)}${esc(teamLabel)} susp.</span>`;
     }
     const selected = state.slip.some(s=>s.id===pickId);
-    return `<button class="bb-btn ${selected?'':'ghost'}" data-pick="${esc(pickId)}" data-label="${esc(label)}" data-odds="${oddsInfo.odds}" style="padding:6px 10px;font-size:12px;">${esc(teamLabel)} ${oddsInfo.odds.toFixed(2)}</button>`;
+    return `<button class="bb-btn ${selected?'':'ghost'}" data-pick="${esc(pickId)}" data-label="${esc(label)}" data-odds="${oddsInfo.odds}" style="padding:6px 10px;font-size:12px;display:inline-flex;align-items:center;gap:6px;">${teamLogo(teamLabel,16)}${esc(teamLabel)} ${oddsInfo.odds.toFixed(2)}</button>`;
   }
 
   function renderFixtureList(div){
@@ -988,6 +1043,7 @@
       leaderboard('Longest odds actually backed', s.topOdds, v=>v.toFixed(2)) +
       leaderboard('Most popular selection', s.mostPopular, v=>v+' bet'+(v>1?'s':'')) +
       leaderboard('Kitty leaderboard (richest punters)', s.topKitty, v=>fmt(v)) +
+      (s.myKittyRank ? `<p style="color:#9a9a9a;font-size:12px;margin-top:-10px;margin-bottom:1.25rem;">You're ranked #${s.myKittyRank.rank} of ${s.myKittyRank.of} punters by balance.</p>` : '') +
       leaderboard('Most career wins (carried over from previous seasons)', s.topCareerWins, v=>v+' win'+(v!==1?'s':''));
   }
 
@@ -1104,6 +1160,9 @@
       <h3>Pending registrations</h3>
       ${!pending.length ? '<p style="color:#9a9a9a;font-size:13px;">Nothing waiting on approval.</p>' : `
       <div class="bb-card" style="padding:0;overflow:hidden;margin-bottom:1.5rem;">
+        ${pending.length > 1 ? `<div style="padding:10px 14px;border-bottom:1px solid #3d3d3d;">
+          <button class="bb-btn ghost" id="approve-all-btn" style="padding:5px 10px;font-size:12px;">Approve all ${pending.length}</button>
+        </div>` : ''}
         ${pending.map((u,i) => {
           const carry = u.dormantCarry || 0;
           const totalOnApproval = 1000 + carry;
@@ -1186,6 +1245,7 @@
       </div>
       <h3>All registered bets</h3>
       ${!bets.length ? '<p style="color:#9a9a9a;">No bets placed by anyone yet.</p>' : `
+      <button class="bb-btn ghost" id="export-bets-csv" style="margin-bottom:10px;padding:6px 12px;font-size:12px;">Export to CSV</button>
       <div class="bb-card" style="padding:0;overflow-x:auto;">
         <table class="bb-table">
           <thead><tr><th>Placed</th><th>User</th><th>Selections</th><th>Stake</th><th>Odds</th><th>Potential return</th><th>Status</th><th>Override</th></tr></thead>
@@ -1305,22 +1365,69 @@
   }
 
   async function updateRegistrationStatus(username, newStatus){
+    await applyRegistrationStatus(username, newStatus);
+    await loadAdminData();
+  }
+
+  async function applyRegistrationStatus(username, newStatus){
     const u = await getUser(username);
     if(!u) return;
-    const wasApprovedBefore = (u.status||'APPROVED') === 'APPROVED';
     u.status = newStatus;
-    // fund the account the moment it's approved, but only if it hasn't already
-    // been funded before (so re-approving someone who was later rejected doesn't
-    // hand them a second top-up on top of whatever they still have). Anyone
-    // with a dormant carry balance from a previous season gets that added on
-    // top of the usual 1,000-clam registration bonus, all at once.
     if(newStatus === 'APPROVED' && !u.everFunded){
       u.balance += 1000 + (u.dormantCarry || 0);
       u.everFunded = true;
     }
     await saveUser(u);
     if(state.user.username.toLowerCase() === username.toLowerCase()) state.user = u;
+  }
+
+  async function approveAllPending(){
+    const pending = (state.adminPunters||[]).filter(u => (u.status||'APPROVED') === 'PENDING');
+    if(!pending.length) return;
+    if(!confirm(`Approve all ${pending.length} pending registrations?`)) return;
+    for(const u of pending){
+      await applyRegistrationStatus(u.username, 'APPROVED');
+    }
     await loadAdminData();
+  }
+
+  function surpriseMe(){
+    let list, tagPrefix;
+    if(state.activeTab === 'RODDY'){
+      list = FUTURES.roddy[state.futureMarketTab];
+      tagPrefix = 'FUT|RODDY|'+state.futureMarketTab+'|';
+    } else if(FUTURE_DIVS.includes(state.activeTab)){
+      list = FUTURES.divisions[state.activeTab][state.futureMarketTab];
+      tagPrefix = 'FUT|'+state.activeTab+'|'+state.futureMarketTab+'|';
+    } else {
+      return;
+    }
+    const eligible = (list||[]).filter(o => !o.suspended);
+    if(!eligible.length){ alert('Nothing to surprise you with here.'); return; }
+    const pick = eligible[Math.floor(Math.random()*eligible.length)];
+    const id = tagPrefix + pick.team;
+    if(state.slip.some(s=>s.id===id)){ alert(pick.team+' is already in your slip!'); return; }
+    const conflict = findConflict(id);
+    if(conflict){ alert("Can't add that selection \u2014 " + conflict.msg + "."); return; }
+    state.slip.push({id, label: pick.team, odds: pick.odds, singleStake: state.stake});
+    render();
+    alert('Surprise pick added: '+pick.team+' @ '+pick.odds.toFixed(2));
+  }
+
+  function exportBetsToCSV(){
+    const bets = state.adminBets || [];
+    const rows = [['Placed','User','Selections','Stake','Combined Odds','Potential Return','Status']];
+    bets.forEach(b => {
+      const selText = b.selections.map(s => s.label+' ('+s.odds.toFixed(2)+')').join(' | ');
+      rows.push([fmtDate(b.timestamp), b.username, selText, b.stake, b.combinedOdds.toFixed(2), b.potentialReturn, b.status||'PENDING']);
+    });
+    const csv = rows.map(r => r.map(cell => '"'+String(cell).replace(/"/g,'""')+'"').join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'bilbbet-bets-'+new Date().toISOString().slice(0,10)+'.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   // How much of a bet's stake comes back to the punter for a given status.
@@ -1516,6 +1623,12 @@
     for(const b of bets) for(const s of b.selections) pickCounts[s.label] = (pickCounts[s.label]||0) + 1;
     const mostPopular = Object.entries(pickCounts).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([label,value]) => ({label, value}));
     const topKitty = top(users, 'balance').map(u => ({ label: u.username, value: u.balance }));
+    let myKittyRank = null;
+    if(state.user){
+      const sortedByBalance = users.slice().sort((a,b)=>b.balance-a.balance);
+      const idx = sortedByBalance.findIndex(u => u.username.toLowerCase() === state.user.username.toLowerCase());
+      if(idx >= 0) myKittyRank = { rank: idx+1, of: sortedByBalance.length };
+    }
     const withHistory = users.filter(u => u.historicalRecord && u.historicalRecord.totalBets > 0);
     const topCareerWins = withHistory.slice()
       .sort((a,b) => b.historicalRecord.winningBets - a.historicalRecord.winningBets)
@@ -1526,7 +1639,7 @@
       totalWagered: bets.reduce((s,b)=>s+b.stake,0),
       totalBets: bets.length,
       totalPunters: users.length,
-      topStakes, topMultis, topWins, topLosses, topOdds, mostPopular, topKitty, topCareerWins,
+      topStakes, topMultis, topWins, topLosses, topOdds, mostPopular, topKitty, topCareerWins, myKittyRank,
     };
     render();
   }
@@ -1539,7 +1652,7 @@
     } else if(state.activeTab === 'RODDY'){
       body = `<div class="bb-div-stripe div-roddy"></div>` + roddyMarketTabs() + (state.futureMarketTab === 'leading_at'
         ? renderLeadingAtMarket('RODDY')
-        : `<div id="outcomes-list">${futuresOutcomesList('RODDY', state.futureMarketTab)}</div>`);
+        : `<button class="bb-btn ghost" id="surprise-me-btn" style="margin-bottom:10px;padding:6px 12px;font-size:12px;">\u{1F3B2} Surprise me</button><div id="outcomes-list">${futuresOutcomesList('RODDY', state.futureMarketTab)}</div>`);
     } else if(state.activeTab === 'FA CUP'){
       body = `<div class="bb-div-stripe div-facup"></div>` + cupMarketTabs('fa_cup_labels') +
         (state.futureMarketTab === 'fixtures' ? renderCupFixtures('FA CUP') :
@@ -1564,7 +1677,7 @@
       const stripeClass = divColorClass(state.activeTab);
       body = (stripeClass ? `<div class="bb-div-stripe ${stripeClass}"></div>` : '') + futuresMarketTabs() + (state.futureMarketTab === 'leading_at'
         ? renderLeadingAtMarket(state.activeTab)
-        : `<div id="outcomes-list">${futuresOutcomesList(state.activeTab, state.futureMarketTab)}</div>`);
+        : `<button class="bb-btn ghost" id="surprise-me-btn" style="margin-bottom:10px;padding:6px 12px;font-size:12px;">\u{1F3B2} Surprise me</button><div id="outcomes-list">${futuresOutcomesList(state.activeTab, state.futureMarketTab)}</div>`);
     }
     return `<div>${header()}${renderTeamSearchPanel()}${mainTabs()}${body}${renderFooter()}</div>${['ADMIN','STATS'].includes(state.activeTab) ? '' : slipBar()}${state.loginModalOpen ? renderLoginModal() : ''}${state.tosModalOpen ? renderTosModal() : ''}${teamsDatalist()}`;
   }
@@ -1705,6 +1818,28 @@
     return null;
   }
 
+  function buildSlipText(){
+    const lines = ['My bilbbet slip:'];
+    state.slip.forEach(s => lines.push('- ' + s.label + ' (' + s.odds.toFixed(2) + ')'));
+    if(state.betMode === 'multi' && state.slip.length){
+      lines.push('Combined odds: ' + combinedOdds().toFixed(2));
+      lines.push('Stake: ' + state.stake + ' clams \u2192 potential ' + Math.round(state.stake*combinedOdds()) + ' clams');
+    }
+    return lines.join('\n');
+  }
+
+  async function copySlipToClipboard(){
+    const text = buildSlipText();
+    try {
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        await navigator.clipboard.writeText(text);
+        alert('Slip copied \u2014 paste it wherever you like.');
+        return;
+      }
+    } catch(e) { /* fall through to the manual fallback below */ }
+    prompt('Copy this slip manually:', text);
+  }
+
   function slipBar(){
     if(!state.slip.length) return `<div class="bb-slip"><div class="bb-slip-inner" style="color:#9a9a9a;font-size:13px;">Tap any outcome to build a bet slip.</div></div>`;
     const modeToggle = `
@@ -1714,7 +1849,10 @@
       </div>`;
     const header = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
         <strong style="font-size:13px;">${state.slip.length} selection${state.slip.length>1?'s':''}</strong>
-        <button class="bb-btn ghost" id="clear-slip" style="padding:4px 10px;font-size:12px;">Clear</button>
+        <span style="display:flex;gap:6px;">
+          <button class="bb-btn ghost" id="copy-slip" style="padding:4px 10px;font-size:12px;">Copy slip</button>
+          <button class="bb-btn ghost" id="clear-slip" style="padding:4px 10px;font-size:12px;">Clear</button>
+        </span>
       </div>`;
 
     if(state.betMode === 'singles'){
@@ -1909,6 +2047,7 @@
       if(item) item.singleStake = Math.max(1, parseInt(e.target.value,10)||1);
     });
     const clearBtn = $('#clear-slip'); if(clearBtn) clearBtn.onclick = () => { state.slip=[]; render(); };
+    const copySlipBtn = $('#copy-slip'); if(copySlipBtn) copySlipBtn.onclick = copySlipToClipboard;
     document.querySelectorAll('[data-remove]').forEach(el => el.onclick = e => { e.stopPropagation(); state.slip = state.slip.filter(s=>s.id!==el.dataset.remove); render(); });
     const stakeInput = $('#stake-input'); if(stakeInput) stakeInput.oninput = e => { state.stake = Math.max(1, parseInt(e.target.value,10)||1); };
     const placeBtn = $('#place-bet'); if(placeBtn) placeBtn.onclick = placeBet;
@@ -1924,6 +2063,9 @@
       const [username, status] = el.dataset.regstatus.split('|');
       updateRegistrationStatus(username, status);
     });
+    const approveAllBtn = $('#approve-all-btn'); if(approveAllBtn) approveAllBtn.onclick = approveAllPending;
+    const exportCsvBtn = $('#export-bets-csv'); if(exportCsvBtn) exportCsvBtn.onclick = exportBetsToCSV;
+    const surpriseMeBtn = $('#surprise-me-btn'); if(surpriseMeBtn) surpriseMeBtn.onclick = surpriseMe;
     document.querySelectorAll('[data-kick-user]').forEach(el => el.onclick = () => {
       const username = el.dataset.kickUser;
       if(!confirm('Kick '+username+'? They\'ll be blocked from logging in until reinstated.')) return;
@@ -2049,6 +2191,9 @@
     const stake = Math.max(1, parseInt(stakeInput.value,10)||1);
     if(!state.slip.length){ alert('Add at least one selection first.'); return; }
     if(stake > state.user.balance){ alert("You don't have that many clams."); return; }
+    if(stake >= state.user.balance * 0.5){
+      if(!confirm(`That's ${fmt(stake)} of your ${fmt(state.user.balance)} clams \u2014 over half your balance. Place it anyway?`)) return;
+    }
     const boostEligible = state.slip.length >= 3 && (!state.user.boostUsedRound || state.user.boostUsedRound !== state.currentRound);
     const boostApplied = boostEligible && state.useBoost;
     const combined = combinedOdds() * (boostApplied ? BOOST_MULTIPLIER : 1);
@@ -2078,6 +2223,9 @@
     const stakes = state.slip.map(s => Math.max(1, s.singleStake));
     const totalStake = stakes.reduce((a,b)=>a+b,0);
     if(totalStake > state.user.balance){ alert("You don't have enough clams to cover all of those singles."); return; }
+    if(totalStake >= state.user.balance * 0.5){
+      if(!confirm(`That's ${fmt(totalStake)} of your ${fmt(state.user.balance)} clams total \u2014 over half your balance. Place them anyway?`)) return;
+    }
     const u = await getUser(state.user.username);
     u.balance -= totalStake;
     await saveUser(u);
