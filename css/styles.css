@@ -22,6 +22,7 @@
   --div-3b: #274e13;
   --div-facup: #0a2f85;
   --div-ecl: #111111;
+  --div-roddy: #ffdd00;
 }
 
 #app{color:var(--bb-text);}
@@ -46,6 +47,7 @@
 .bb-tab.active.div-3b{background:var(--div-3b);color:#fff;border-color:var(--div-3b);}
 .bb-tab.active.div-facup{background:var(--div-facup);color:#fff;border-color:var(--div-facup);}
 .bb-tab.active.div-ecl{background:var(--div-ecl);color:#fff;border-color:var(--bb-border-light);}
+.bb-tab.active.div-roddy{background:var(--div-roddy);color:#1b1b1b;border-color:var(--div-roddy);}
 .bb-outcome{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border-radius:8px;border:1px solid var(--bb-border);cursor:pointer;margin-bottom:6px;}
 .bb-outcome:hover{background:var(--bb-card-bg-alt);}
 .bb-outcome.selected{background:#3a3316;border-color:var(--bb-accent);}
@@ -66,3 +68,4 @@ table.bb-table td{padding:8px;border-bottom:1px solid #333;vertical-align:top;co
 .bb-div-stripe.div-3b{background:var(--div-3b);}
 .bb-div-stripe.div-facup{background:var(--div-facup);}
 .bb-div-stripe.div-ecl{background:var(--div-ecl);border:1px solid var(--bb-border-light);}
+.bb-div-stripe.div-roddy{background:var(--div-roddy);}
