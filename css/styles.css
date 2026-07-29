@@ -104,3 +104,13 @@ table.bb-table td{padding:8px;border-bottom:1px solid #333;vertical-align:top;co
 @media (min-width: 1150px){
   .bb-content-frame{margin-left:140px; margin-right:140px;}
 }
+
+/* Read Me link: draws the eye before login, then settles down once someone's
+   logged in (no reason to keep flashing at a returning, familiar punter). */
+@keyframes bb-readme-flash{
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.bb-readme-flash{
+  animation: bb-readme-flash 1.4s ease-in-out infinite;
+}
