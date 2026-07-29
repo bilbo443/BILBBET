@@ -175,7 +175,7 @@
     specialsSelection: { win_round: '', lose_round: '', charity: '', philanthropy: '' },
     teamSearchOpen: false, teamSearchQuery: '',
     registeringMode: false,
-    tosModalOpen: false, tosMode: 'view', tosAgreed: false,
+    tosModalOpen: false, tosMode: 'view', tosAgreed: false, readMeModalOpen: false,
     cupFixtures: { 'FA CUP': [], 'ECL': [] },
     cupFixtureMarket: null,
     cupAdminEntry: { 'FA CUP': {teamA:'', teamB:''}, 'ECL': {teamA:'', teamB:''} },
@@ -514,8 +514,11 @@
   }
 
   function renderFooter(){
+    const flashClass = state.user ? '' : ' bb-readme-flash';
     return `<div style="text-align:center;padding:24px 0 12px;">
       <span id="open-tos-footer" style="font-size:12px;color:#9a9a9a;text-decoration:underline;cursor:pointer;">Terms &amp; Conditions</span>
+      <span style="color:#5a5a5a;margin:0 8px;">&middot;</span>
+      <span id="open-readme-footer" class="${flashClass}" style="font-size:12px;color:#9a9a9a;text-decoration:underline;cursor:pointer;">Read me</span>
     </div>`;
   }
 
@@ -538,6 +541,22 @@
               <span>I have read and agree to the Terms &amp; Conditions.</span>
             </label>` : ''}
           <button class="bb-btn ghost" id="close-tos-modal" style="width:100%;">${registerMode ? 'Done' : 'Close'}</button>
+        </div>
+      </div>`;
+  }
+
+  function renderReadMeModal(){
+    return `
+      <div id="readme-modal-backdrop" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:110;display:flex;align-items:center;justify-content:center;padding:1rem;">
+        <div class="bb-card" style="max-width:420px;width:100%;max-height:80vh;display:flex;flex-direction:column;">
+          <h3 style="margin:0 0 10px;">Read me</h3>
+          <div style="overflow-y:auto;flex:1;border:1px solid #3d3d3d;border-radius:8px;padding:14px;margin-bottom:12px;font-size:14px;line-height:1.6;">
+            <p style="margin-top:0;">Bilbbet is a passion project run by Bilbo since the 23/24 season of the Eliza Cup. This platform was the vague vision at that time to provide a fun way for teams to bet on themselves or against their rivals within our Eliza Cup platform.</p>
+            <p>If you see any issues on the site can you let Bilbo know in one of the chats, it isn't meant to be a serious thing (as professional as it looks) so any crowd sourced fixes or updates required are appreciated for the better of the experience of everyone involved.</p>
+            <p>Once logging in, don't use a PIN tied to any personal identity or financial connections. Whilst Bilbbet will guarantee that it doesn't look at anyone's PINs or share them willingly to other parties, because the information is stored on a free-to-use server, there is no guarantee that this information is immune from 3rd party breaches.</p>
+            <p style="margin-bottom:0;">If you do forget your PIN, Bilbo can reset your team upon request, so you can create a new registration that will keep the stored betting information at all times.</p>
+          </div>
+          <button class="bb-btn ghost" id="close-readme-modal" style="width:100%;">Close</button>
         </div>
       </div>`;
   }
@@ -2151,7 +2170,7 @@
         ? renderLeadingAtMarket(state.activeTab)
         : `<button class="bb-btn ghost" id="surprise-me-btn" style="margin-bottom:10px;padding:6px 12px;font-size:12px;">\u{1F3B2} Surprise me</button>` + sectionRibbon() + `<div id="outcomes-list">${futuresOutcomesList(state.activeTab, state.futureMarketTab)}</div>`);
     }
-    return `<div>${renderStorageWarning()}${header()}${renderTeamSearchPanel()}${mainTabs()}${body}${renderFooter()}</div>${['ADMIN','STATS'].includes(state.activeTab) ? '' : slipBar()}${state.loginModalOpen ? renderLoginModal() : ''}${state.tosModalOpen ? renderTosModal() : ''}${teamsDatalist()}`;
+    return `<div>${renderStorageWarning()}${header()}${renderTeamSearchPanel()}${mainTabs()}${body}${renderFooter()}</div>${['ADMIN','STATS'].includes(state.activeTab) ? '' : slipBar()}${state.loginModalOpen ? renderLoginModal() : ''}${state.tosModalOpen ? renderTosModal() : ''}${state.readMeModalOpen ? renderReadMeModal() : ''}${teamsDatalist()}`;
   }
 
   function combinedOdds(){ return state.slip.reduce((acc,s)=>acc*s.odds,1); }
@@ -2406,6 +2425,10 @@
     if(openTosFooterLink) openTosFooterLink.onclick = () => { state.tosModalOpen = true; state.tosMode = 'view'; render(); };
     const closeTosBtn = $('#close-tos-modal');
     if(closeTosBtn) closeTosBtn.onclick = () => { state.tosModalOpen = false; render(); };
+    const openReadMeLink = $('#open-readme-footer');
+    if(openReadMeLink) openReadMeLink.onclick = () => { state.readMeModalOpen = true; render(); };
+    const closeReadMeBtn = $('#close-readme-modal');
+    if(closeReadMeBtn) closeReadMeBtn.onclick = () => { state.readMeModalOpen = false; render(); };
     const tosCheckbox = $('#tos-agree-checkbox');
     if(tosCheckbox) tosCheckbox.onchange = e => { state.tosAgreed = e.target.checked; render(); };
     const tosCheckboxInline = $('#tos-agree-checkbox-inline');
