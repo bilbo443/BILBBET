@@ -1,0 +1,322 @@
+{
+  "ELIZA CUP (D1)": [
+    [
+      "FROGBERT FOOTBALL",
+      18.45,
+      4.87
+    ],
+    [
+      "STAIRWAY TO EVANS",
+      12.54,
+      0.66
+    ],
+    [
+      "BC UNITED ZEBRAS",
+      12.49,
+      8.27
+    ],
+    [
+      "KALLO FC",
+      9.92,
+      0.99
+    ],
+    [
+      "HARVEY FREKES",
+      9.11,
+      4.38
+    ],
+    [
+      "ALASKAN BULL WORMS",
+      7.62,
+      3.86
+    ],
+    [
+      "SAUCE FC",
+      6.8,
+      0.76
+    ],
+    [
+      "JARVIS ZEBRAS",
+      5.06,
+      0.8
+    ],
+    [
+      "NANISTATE",
+      4.91,
+      1.52
+    ],
+    [
+      "GIVE US WANG",
+      4.36,
+      0.22
+    ],
+    [
+      "DW ABOUT IT FC",
+      3.57,
+      0.73
+    ],
+    [
+      "VICTORYRULES",
+      2.47,
+      0.84
+    ],
+    [
+      "BIG MAC FC",
+      2.32,
+      2.04
+    ],
+    [
+      "TOP KUOLITY",
+      0.39,
+      0.33
+    ]
+  ],
+  "DIVISION 2A": [
+    [
+      "AFC BIG RED PORT",
+      29.09,
+      22.0
+    ],
+    [
+      "THE WAINE TRAIN",
+      19.49,
+      9.13
+    ],
+    [
+      "LALAS LEVEN",
+      10.46,
+      4.38
+    ],
+    [
+      "ALBANIAN BOARS",
+      10.44,
+      9.52
+    ],
+    [
+      "CARNEGIE DACHSHUNDS FC",
+      10.44,
+      9.58
+    ],
+    [
+      "REAPERS FC",
+      9.49,
+      8.79
+    ],
+    [
+      "BALLERS",
+      3.61,
+      4.83
+    ],
+    [
+      "MANCHESTHAIR UTD",
+      2.81,
+      1.84
+    ],
+    [
+      "BEST OF A BAD BENCH",
+      2.23,
+      1.48
+    ],
+    [
+      "ROTORUA UNITED",
+      1.45,
+      0.72
+    ],
+    [
+      "3DOGS",
+      0.41,
+      0.46
+    ],
+    [
+      "INTER MILANOVIC",
+      0.09,
+      0.08
+    ]
+  ],
+  "DIVISION 2B": [
+    [
+      "SILVERMAN'S XI",
+      56.43,
+      14.19
+    ],
+    [
+      "SPOONERS FC",
+      13.95,
+      3.53
+    ],
+    [
+      "THE D GENREAU",
+      13.71,
+      5.85
+    ],
+    [
+      "ZEN GARDEN C.F",
+      8.22,
+      1.84
+    ],
+    [
+      "DINKIN CRFC",
+      5.76,
+      2.34
+    ],
+    [
+      "ROYAL KC UNITED FC",
+      0.98,
+      0.9
+    ],
+    [
+      "TBD PROMOTED TEAM B",
+      0.44,
+      0.19
+    ],
+    [
+      "TBD PROMOTED TEAM A",
+      0.38,
+      0.42
+    ],
+    [
+      "ZEN PIJ FC",
+      0.08,
+      0.1
+    ],
+    [
+      "CASUAL APPROACH",
+      0.03,
+      0.02
+    ],
+    [
+      "JERRY THE PAINTER",
+      0.02,
+      0.04
+    ],
+    [
+      "JUSTICEFORMOON FC",
+      0.01,
+      0.01
+    ]
+  ],
+  "DIVISION 3A": [
+    [
+      "FOR VUCK'S SAKE FC",
+      24.35,
+      17.0
+    ],
+    [
+      "GARRY WALLAH UNITED FC",
+      24.12,
+      4.8
+    ],
+    [
+      "CAG'S INVESTORS",
+      21.31,
+      18.18
+    ],
+    [
+      "LOAVES AND FISHES",
+      18.31,
+      8.48
+    ],
+    [
+      "AARONGURDWOODREICH",
+      6.63,
+      4.38
+    ],
+    [
+      "MELBCITYGUY",
+      2.5,
+      3.81
+    ],
+    [
+      "LIMSIM UNITED",
+      1.1,
+      0.7
+    ],
+    [
+      "LINDON-CHEVELLA FC",
+      0.62,
+      0.05
+    ],
+    [
+      "LOLLEY POP MAN",
+      0.61,
+      0.48
+    ],
+    [
+      "DOG GOES WOOF, PAYNE GOES MEOW",
+      0.41,
+      0.25
+    ],
+    [
+      "FC TIKITOKA",
+      0.03,
+      0.02
+    ],
+    [
+      "BREXIT LADS",
+      0.0,
+      0.0
+    ]
+  ],
+  "DIVISION 3B": [
+    [
+      "TSATAS DIP",
+      75.15,
+      4.58
+    ],
+    [
+      "ZOUMA KICKS TIM PAYNE",
+      21.23,
+      5.44
+    ],
+    [
+      "MONGREL GARDEN",
+      2.17,
+      0.42
+    ],
+    [
+      "VICTORY",
+      0.54,
+      0.6
+    ],
+    [
+      "X2 STRANGE",
+      0.37,
+      0.45
+    ],
+    [
+      "NEW PLAYER 2",
+      0.29,
+      0.2
+    ],
+    [
+      "NEW PLAYER 1",
+      0.23,
+      0.09
+    ],
+    [
+      "NUKEFORREST NUKES",
+      0.0,
+      0.01
+    ],
+    [
+      "PAYNE IN THE NECK",
+      0.0,
+      0.0
+    ],
+    [
+      "SHANENIGANS",
+      0.0,
+      0.0
+    ],
+    [
+      "THE 2ND JARV ADMINISTRATION",
+      0.0,
+      0.01
+    ],
+    [
+      "THE MALTESE KNIGHTS",
+      0.0,
+      0.0
+    ]
+  ]
+}
