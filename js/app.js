@@ -105,6 +105,23 @@
     if(parts[0]==='SPECIALFIX' && (parts[1]==='win_round'||parts[1]==='lose_round')) return parseInt(parts[2].replace('R',''),10);
     return null;
   }
+  // Whether a pick is currently unbettable, given the admin's close scope.
+  // 'h2h' scope (the default) only ever blocks picks tied to the exact
+  // current round; 'all' scope blocks everything, including season-long
+  // futures, while betting's closed.
+  function isPickBlocked(id){
+    if(state.pausedPicks[id]) return true;
+    if(state.roundBettingOpen) return false;
+    const r = getPickRound(id);
+    if(r !== null && r === state.currentRound) return true;
+    return state.closeScope === 'all';
+  }
+  async function togglePausePick(id){
+    if(state.pausedPicks[id]) delete state.pausedPicks[id];
+    else state.pausedPicks[id] = true;
+    await sset('bilbbet2_paused_picks', state.pausedPicks);
+    render();
+  }
   const K = 8;
 
   const FUTURE_DIVS = Object.keys(FUTURES.divisions);
@@ -113,7 +130,7 @@
 
   let state = {
     screen:'main', user:null, error:'', info:'', loginModalOpen:false,
-    username:'', pin:'', adminLoginMode:false,
+    username:'', pin:'', adminLoginMode:false, storageDegraded:false,
     activeTab:'H2H',
     futureMarketTab: FUTURE_DIVS.length ? Object.keys(FUTURES.market_labels)[0] : null,
     teamA:'', teamB:'', h2hRound:1, h2hMarket:null,
@@ -135,7 +152,11 @@
     playoffFixtureMarket: null,
     playoffSubTab: 'DIVISION 2',
     playoffAdminEntry: { 'DIVISION 2': {teamA:'',teamB:''}, 'DIVISION 3': {teamA:'',teamB:''} },
+    eclGroups: { A: [], B: [], C: [] },
+    eclGroupAdminPick: '',
     roundBettingOpen: true,
+    closeScope: 'h2h', // 'h2h' or 'all' -- which markets the current closure covers
+    pausedPicks: {},
     oddsRefreshRequested: false,
   };
 
@@ -245,6 +266,14 @@
 
   const memoryStore = {};
   const hasRealStorage = typeof window !== 'undefined' && window.storage && typeof window.storage.get === 'function';
+  // Tracked live, not just inferred from config at startup -- Supabase can be
+  // configured correctly and still fail at runtime (paused project, network
+  // issue, quota), and that's exactly the case punters most need a warning
+  // about, since everything LOOKS like it's working right up until a refresh
+  // wipes it. usingMemoryFallback flips true the moment a write actually
+  // lands in the memory-only store; state.storageDegraded mirrors it so the
+  // UI can show a persistent banner.
+  let usingMemoryFallback = false;
 
   async function sget(key){
     if(supabaseClient){
@@ -265,7 +294,11 @@
         return true;
       } catch(e) { console.error('Supabase write failed for', key, '-- falling back:', e.message); }
     }
-    if(!hasRealStorage){ memoryStore[key] = JSON.stringify(val); return true; }
+    if(!hasRealStorage){
+      memoryStore[key] = JSON.stringify(val);
+      if(!usingMemoryFallback){ usingMemoryFallback = true; state.storageDegraded = true; }
+      return true;
+    }
     try{ await window.storage.set(key, JSON.stringify(val), true); return true; }catch(e){ return false; }
   }
   async function getIndex(name){ return (await sget(name)) || []; }
@@ -434,6 +467,13 @@
     'All Bilbbet decisions are final.',
   ];
 
+  function renderStorageWarning(){
+    if(!state.storageDegraded) return '';
+    return `<div style="background:#3a2a26;color:#f0b8a8;padding:10px 14px;text-align:center;font-size:13px;border-bottom:2px solid #a3402f;">
+      \u26A0\uFE0F Running without a persistent connection right now &mdash; anything you do (bets, balance changes, registrations) will be lost if you close or refresh this page. Try reloading in a bit; if it keeps happening, tell the admin.
+    </div>`;
+  }
+
   function renderFooter(){
     return `<div style="text-align:center;padding:24px 0 12px;">
       <span id="open-tos-footer" style="font-size:12px;color:#9a9a9a;text-decoration:underline;cursor:pointer;">Terms &amp; Conditions</span>
@@ -599,8 +639,10 @@
 
   function cupMarketTabs(labelsKey){
     const labels = FUTURES[labelsKey];
+    const isEcl = labelsKey === 'ecl_labels';
     return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">' +
       `<div class="bb-tab ${state.futureMarketTab==='fixtures'?'active':''}" data-marketkey="fixtures" style="font-size:12px;padding:6px 10px;">Current fixtures</div>` +
+      (isEcl ? `<div class="bb-tab ${state.futureMarketTab==='groups'?'active':''}" data-marketkey="groups" style="font-size:12px;padding:6px 10px;">Groups</div>` : '') +
       Object.entries(labels).map(([key,label]) =>
         `<div class="bb-tab ${state.futureMarketTab===key?'active':''}" data-marketkey="${key}" style="font-size:12px;padding:6px 10px;">${esc(label)}</div>`
       ).join('') + '</div>';
@@ -687,18 +729,34 @@
     }).join('');
   }
 
+  function pauseCheckbox(id){
+    if(!state.user || !state.user.isAdmin) return '';
+    const paused = !!state.pausedPicks[id];
+    return `<label style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#9a9a9a;margin-right:8px;" title="Pause this market (admin only)">
+      <input type="checkbox" data-pause-pick="${esc(id)}" ${paused?'checked':''}/> pause
+    </label>`;
+  }
+
   function futuresOutcomesList(div, marketKey){
+    if(!state.roundBettingOpen && state.closeScope === 'all'){
+      return `<div class="bb-card" style="text-align:center;padding:2rem 1rem;color:#9a9a9a;">
+        \u{1F512} Betting is closed across all markets right now &mdash; hidden until it reopens.
+      </div>`;
+    }
     const outcomes = div==='RODDY' ? FUTURES.roddy[marketKey] : FUTURES.divisions[div][marketKey];
     if(!outcomes || !outcomes.length) return '<p style="color:#9a9a9a;">No outcomes in this market.</p>';
     return outcomes.map(o => {
-      if(o.suspended){
-        return `<div class="bb-outcome" style="opacity:0.5;cursor:default;">
-          <span style="display:flex;align-items:center;gap:8px;">${teamLogo(o.team,20)}${esc(o.team)}</span><span class="bb-odds" style="color:#9a9a9a;">suspended</span></div>`;
-      }
       const selId = 'FUT|'+div+'|'+marketKey+'|'+o.team;
+      const manuallyPaused = !!state.pausedPicks[selId];
+      if(o.suspended || manuallyPaused){
+        return `<div class="bb-outcome" style="opacity:0.5;cursor:default;">
+          <span style="display:flex;align-items:center;gap:8px;">${teamLogo(o.team,20)}${esc(o.team)}</span>
+          <span style="display:flex;align-items:center;">${pauseCheckbox(selId)}<span class="bb-odds" style="color:#9a9a9a;">${manuallyPaused && !o.suspended ? 'paused' : 'suspended'}</span></span></div>`;
+      }
       const selected = state.slip.some(s=>s.id===selId);
       return `<div class="bb-outcome ${selected?'selected':''}" data-pick="${esc(selId)}" data-team="${esc(o.team)}" data-odds="${o.odds}" data-label="${esc(o.team)}">
-        <span style="display:flex;align-items:center;gap:8px;">${teamLogo(o.team,20)}${esc(o.team)}</span><span class="bb-odds">${o.odds.toFixed(2)}</span></div>`;
+        <span style="display:flex;align-items:center;gap:8px;">${teamLogo(o.team,20)}${esc(o.team)}</span>
+        <span style="display:flex;align-items:center;">${pauseCheckbox(selId)}<span class="bb-odds">${o.odds.toFixed(2)}</span></span></div>`;
     }).join('');
   }
 
@@ -758,7 +816,7 @@
     return html;
   }
 
-  const H2H_SUBTABS = [...FUTURE_DIVS, 'CUSTOM MATCHUP'];
+  const H2H_SUBTABS = [...FUTURE_DIVS, 'FA CUP', 'ECL', 'CUSTOM MATCHUP'];
 
   function h2hSubTabBar(){
     return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">' +
@@ -790,6 +848,11 @@
     if(hasNoFixtures(div, state.h2hRound)){
       const reason = isPlayoffRound(div, state.h2hRound) ? ' \u2014 this is a playoff week, see the Playoffs tab.' : '.';
       return `<div class="bb-card" style="text-align:center;padding:2rem 1rem;color:#9a9a9a;">No scheduled H2H fixtures${reason}</div>`;
+    }
+    if(!state.roundBettingOpen && state.h2hRound === state.currentRound){
+      return `<div class="bb-card" style="text-align:center;padding:2rem 1rem;color:#9a9a9a;">
+        \u{1F512} Betting for Round ${state.currentRound} is closed &mdash; scores and odds are hidden until it reopens.
+      </div>`;
     }
     const markets = getFixtureMarkets(div, state.h2hRound);
     return '<div class="bb-card" style="padding:0;overflow:hidden;">' +
@@ -828,6 +891,9 @@
         ${(state.teamA && !ALL_TEAMS.includes(state.teamA)) || (state.teamB && !ALL_TEAMS.includes(state.teamB)) ? '<p style="color:#c0604f;font-size:13px;margin:8px 0 0;">No match for that team name \u2014 pick one from the suggestions as you type.</p>' : ''}
       </div>${state.h2hMarket ? renderH2HMarket(state.h2hMarket) : ''}`;
     }
+    if(state.h2hSubTab === 'FA CUP' || state.h2hSubTab === 'ECL'){
+      return h2hSubTabBar() + renderCupFixtures(state.h2hSubTab);
+    }
     return roundBar + h2hSubTabBar() + renderFixtureList(state.h2hSubTab);
   }
 
@@ -852,9 +918,18 @@
           <div><div style="font-size:12px;color:#9a9a9a;">Net</div><div style="font-size:16px;font-weight:600;">${(h.winnings-h.losses)>=0?'+':''}${fmt(h.winnings-h.losses)}</div></div>
         </div>
       </div>` : '';
-    if(state.myBets === null) return careerBox + '<p style="color:#9a9a9a;">Loading&hellip;</p>';
+    const legacyBox = (state.user.legacyBestBets && state.user.legacyBestBets.length) ? `
+      <div class="bb-card" style="margin-bottom:1rem;">
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px;">All-time best bets</div>
+        ${state.user.legacyBestBets.map((b,i) => `
+          <div style="padding:6px 0;${i<state.user.legacyBestBets.length-1?'border-bottom:1px solid #2a2a2a;':''}">
+            <div style="font-size:13px;">${b.selections.map(s=>esc(s.label)).join(', ')}</div>
+            <div style="font-size:11px;color:#8a8a8a;">Stake ${fmt(b.stake)} @ ${b.combinedOdds.toFixed(2)} &rarr; won ${fmt(b.potentialReturn)}${b.season?' &mdash; '+esc(b.season):''}</div>
+          </div>`).join('')}
+      </div>` : '';
+    if(state.myBets === null) return careerBox + legacyBox + '<p style="color:#9a9a9a;">Loading&hellip;</p>';
     const bets = state.myBets;
-    if(!bets.length) return careerBox + '<p style="color:#9a9a9a;">No bets placed yet &mdash; head to any market tab and tap an outcome to get started.</p>';
+    if(!bets.length) return careerBox + legacyBox + '<p style="color:#9a9a9a;">No bets placed yet &mdash; head to any market tab and tap an outcome to get started.</p>';
     const pending = bets.filter(b=>(b.status||'PENDING')==='PENDING').length;
     const won = bets.filter(b=>b.status==='WON').length;
     const lost = bets.filter(b=>b.status==='LOST').length;
@@ -864,7 +939,7 @@
       if(b.status==='LOST') return s - b.stake;
       return s;   // PENDING and VOID both net to 0 -- VOID refunds the stake, nothing gained or lost
     }, 0);
-    return careerBox + `
+    return careerBox + legacyBox + `
       <div class="bb-card" style="margin-bottom:1rem;display:flex;gap:20px;flex-wrap:wrap;">
         <div><div style="font-size:12px;color:#9a9a9a;">Pending</div><div style="font-size:18px;font-weight:600;">${pending}</div></div>
         <div><div style="font-size:12px;color:#9a9a9a;">Won</div><div style="font-size:18px;font-weight:600;color:#4a9166;">${won}</div></div>
@@ -1069,21 +1144,40 @@
         <button class="bb-btn" id="save-current-round">Update</button>
         <span style="font-size:12px;color:#9a9a9a;">Rounds before this are greyed out everywhere as already played. Advancing this reopens betting fresh.</span>
       </div>
+      <h3>End of season</h3>
+      <div class="bb-card" style="margin-bottom:1.5rem;border-color:#a3402f;">
+        <p style="font-size:12px;color:#9a9a9a;margin-top:0;">
+          Folds everyone's settled bets this season into their running career record (kept, not deleted -- just
+          compacted from individual bet lines into a summary), keeps each punter's all-time best 3 wins in full detail
+          for bragging rights, and resets Round back to 1 with betting reopened. Pending bets are left untouched.
+          <strong style="color:#c0604f;">This can't be undone.</strong>
+        </p>
+        <button class="bb-btn ghost" id="end-season-btn" style="border-color:#a3402f;color:#c0604f;">End season &amp; archive</button>
+      </div>
       <h3>Round betting</h3>
       <div class="bb-card" style="margin-bottom:1.5rem;">
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
           <span class="bb-pill" style="background:${state.roundBettingOpen?'#1e3a2a':'#3a2a26'};color:${state.roundBettingOpen?'#7fbf8f':'#c0604f'};">${state.roundBettingOpen?'OPEN':'CLOSED'}</span>
-          <span style="font-size:13px;">Round ${state.currentRound} betting is currently ${state.roundBettingOpen?'open':'closed'}.</span>
+          <span style="font-size:13px;">Round ${state.currentRound} betting is currently ${state.roundBettingOpen?'open':`closed (${state.closeScope==='all'?'entire betting markets':'H2H only'})`}.</span>
         </div>
         <p style="font-size:12px;color:#9a9a9a;margin:0 0 10px;">
           ${ROUND_DATES[state.currentRound] ? `Scheduled kickoff per the 26/27 calendar: ${esc(ROUND_DATES[state.currentRound])}, assumed 7:00pm Sydney time (no exact kickoff times are given, so the round's first match is assumed to start then). Betting auto-closes the first time the site's loaded on or after that moment, if nobody's closed it already.` : `No scheduled date on file for this round -- auto-close won't trigger, close it manually when needed.`}
           Auto-close only ever fires this way for this round once; reopening it manually will stick.
         </p>
+        <div style="margin-bottom:8px;">
+          <span style="font-size:12px;color:#9a9a9a;display:block;margin-bottom:4px;">When closing, what should it cover?</span>
+          <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;margin-right:16px;">
+            <input type="radio" name="close-scope" id="close-scope-h2h" value="h2h" ${state.closeScope==='h2h'?'checked':''}/> H2H only (this round's matches)
+          </label>
+          <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;">
+            <input type="radio" name="close-scope" id="close-scope-all" value="all" ${state.closeScope==='all'?'checked':''}/> Entire betting markets
+          </label>
+        </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button class="bb-btn ghost" id="close-betting-btn" ${!state.roundBettingOpen?'disabled':''} style="padding:8px 14px;font-size:12px;">Close betting now</button>
           <button class="bb-btn" id="reopen-betting-btn" ${state.roundBettingOpen?'disabled':''} style="padding:8px 14px;font-size:12px;">Reopen betting</button>
         </div>
-        <p style="font-size:12px;color:#9a9a9a;margin:10px 0 6px;">Closing/reopening only ever affects this specific round's H2H, leading-at, and win/lose-the-round markets -- season-long futures (division, Roddy, cup stages) stay bettable regardless.</p>
+        <p style="font-size:12px;color:#9a9a9a;margin:10px 0 6px;">"H2H only" affects this round's H2H, leading-at, and win/lose-the-round markets, leaving season-long futures bettable. "Entire betting markets" also locks division/Roddy/cup futures until reopened. Either way, the affected round's H2H fixture list is hidden (not just unclickable) while closed.</p>
       </div>
       <h3>Odds refresh</h3>
       <div class="bb-card" style="margin-bottom:1.5rem;">
@@ -1164,6 +1258,25 @@
             </div>
           </div>`).join('')}
         <p style="font-size:12px;color:#9a9a9a;margin-top:4px;">Rounds 24-26 are the playoff weeks for Division 2/3 (no regular H2H fixtures those weeks) -- set matchups here once the bracket's known.</p>
+      </div>
+      <h3>ECL group draw</h3>
+      <div class="bb-card" style="margin-bottom:1.5rem;">
+        <p style="font-size:12px;color:#9a9a9a;margin-top:0;">12 confirmed qualifiers this season. Assign each to a group of 4 once the real draw's known -- betting for a group opens automatically once it has all 4.</p>
+        ${['A','B','C'].map(g => `
+          <div style="margin-bottom:10px;">
+            <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Group ${g} (${(state.eclGroups[g]||[]).length}/4)</div>
+            ${(state.eclGroups[g]||[]).map(t => `
+              <span style="display:inline-flex;align-items:center;gap:6px;background:#262626;border:1px solid #3d3d3d;border-radius:14px;padding:3px 10px;margin:2px 4px 2px 0;font-size:12px;">
+                ${esc(t)} <span data-remove-eclteam="${g}|${esc(t)}" style="cursor:pointer;color:#9a9a9a;">&times;</span>
+              </span>`).join('')}
+          </div>`).join('')}
+        <div style="display:flex;gap:6px;align-items:flex-end;margin-top:8px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:160px;">${teamSearchInput('ecl-group-pick', '', 'Team from the ECL field\u2026')}</div>
+          <button class="bb-btn" data-assign-eclgroup="A" style="padding:8px 14px;font-size:12px;">Add to A</button>
+          <button class="bb-btn" data-assign-eclgroup="B" style="padding:8px 14px;font-size:12px;">Add to B</button>
+          <button class="bb-btn" data-assign-eclgroup="C" style="padding:8px 14px;font-size:12px;">Add to C</button>
+          <button class="bb-btn ghost" id="clear-ecl-groups-btn" style="padding:8px 14px;font-size:12px;">Clear all</button>
+        </div>
       </div>
       <h3>Pending registrations</h3>
       ${!pending.length ? '<p style="color:#9a9a9a;font-size:13px;">Nothing waiting on approval.</p>' : `
@@ -1312,6 +1425,110 @@
     render();
   }
 
+  // Archives one punter's SETTLED bets (won/lost/void) into their running
+  // historical record and legacy "best bets" list, then shrinks their live
+  // bet index down to just whatever's still pending. Pending bets are never
+  // touched -- they're real, unresolved stakes, not history yet.
+  async function archiveBetsForUser(username, seasonLabel){
+    const u = await getUser(username);
+    if(!u) return null;
+    const idxKey = 'bilbbet2_bets_index_' + username.toLowerCase();
+    const ids = await getIndex(idxKey);
+    const bets = (await Promise.all(ids.map(id => sget('bilbbet2_bet:'+id)))).filter(Boolean);
+    const settled = bets.filter(b => (b.status||'PENDING') !== 'PENDING');
+    const stillPending = bets.filter(b => (b.status||'PENDING') === 'PENDING');
+
+    if(!settled.length) return { username, archived: 0, pendingLeft: stillPending.length };
+
+    const won = settled.filter(b => b.status === 'WON');
+    const lost = settled.filter(b => b.status === 'LOST');
+    const voided = settled.filter(b => b.status === 'VOID');
+    const seasonSummary = {
+      totalBets: settled.length,
+      winningBets: won.length,
+      winnings: won.reduce((s,b)=>s+b.potentialReturn, 0),
+      losingBets: lost.length,
+      losses: lost.reduce((s,b)=>s+b.stake, 0),
+      voidBets: voided.length,
+      voidReturn: voided.reduce((s,b)=>s+b.stake, 0),
+    };
+
+    // Add this season's numbers on top of whatever's already there, rather
+    // than replacing it -- historicalRecord accumulates across every season
+    // this way, same shape it's always had.
+    const prior = u.historicalRecord || { totalBets:0, winningBets:0, winnings:0, losingBets:0, losses:0, voidBets:0, voidReturn:0 };
+    u.historicalRecord = {
+      totalBets: prior.totalBets + seasonSummary.totalBets,
+      winningBets: prior.winningBets + seasonSummary.winningBets,
+      winnings: prior.winnings + seasonSummary.winnings,
+      losingBets: prior.losingBets + seasonSummary.losingBets,
+      losses: prior.losses + seasonSummary.losses,
+      voidBets: prior.voidBets + seasonSummary.voidBets,
+      voidReturn: prior.voidReturn + seasonSummary.voidReturn,
+    };
+
+    // Legacy "best 3" -- kept as full bet detail (not just a number) for
+    // bragging rights, re-ranked across all-time every rollover so it's
+    // always the genuine best 3 ever, not 3-per-season piling up forever.
+    const candidates = (u.legacyBestBets || []).concat(
+      won.map(b => ({
+        selections: b.selections, stake: b.stake, combinedOdds: b.combinedOdds,
+        potentialReturn: b.potentialReturn, timestamp: b.timestamp, season: seasonLabel || null,
+      }))
+    );
+    candidates.sort((a,b) => b.potentialReturn - a.potentialReturn);
+    u.legacyBestBets = candidates.slice(0, 3);
+
+    // Once-per-season mechanics reset with the season itself.
+    u.nearMissBonusUsed = false;
+    u.boostUsedRound = null;
+
+    await saveUser(u);
+    await sset(idxKey, stillPending.map(b => b.id));
+    return { username, archived: settled.length, pendingLeft: stillPending.length };
+  }
+
+  async function endSeasonRollover(seasonLabel){
+    const usernames = await getIndex('bilbbet2_users_index');
+    const users = (await Promise.all(usernames.map(getUser))).filter(Boolean);
+    const nonAdmin = users.filter(u => !u.isAdmin);
+
+    let totalPending = 0;
+    for(const u of nonAdmin){
+      const ids = await getIndex('bilbbet2_bets_index_' + u.username.toLowerCase());
+      const bets = (await Promise.all(ids.map(id => sget('bilbbet2_bet:'+id)))).filter(Boolean);
+      totalPending += bets.filter(b => (b.status||'PENDING') === 'PENDING').length;
+    }
+    const pendingWarning = totalPending > 0
+      ? `\n\nHeads up: ${totalPending} bet(s) across all punters are still PENDING -- those will be left untouched and stay live (not archived), so resolve them first if you'd rather they be included in this season's record.`
+      : '';
+    if(!confirm(`End the season and archive everyone's settled bets into their career record? `
+      + `This compacts each punter's bet history down to a summary (plus their best 3 all-time bets kept in full) `
+      + `and resets Round to 1 with betting open. This can't be undone.${pendingWarning}`)) return;
+
+    const results = [];
+    for(const u of nonAdmin){
+      const r = await archiveBetsForUser(u.username, seasonLabel);
+      if(r) results.push(r);
+    }
+    // the global bets index only needs to keep whatever's still pending --
+    // everything settled has already been folded into each punter's record
+    const stillLiveIds = [];
+    for(const u of nonAdmin){
+      const ids = await getIndex('bilbbet2_bets_index_' + u.username.toLowerCase());
+      stillLiveIds.push(...ids);
+    }
+    await sset('bilbbet2_all_bets_index', stillLiveIds);
+
+    await saveCurrentRound(1);
+    await reopenBetting();
+
+    const archivedCount = results.reduce((s,r)=>s+r.archived, 0);
+    alert(`Season archived: ${archivedCount} settled bet(s) folded into career records across ${results.length} punter(s). `
+      + `Round reset to 1, betting reopened.`);
+    await loadAdminData();
+  }
+
   async function saveCurrentRound(round){
     const advanced = round !== state.currentRound;
     await sset('bilbbet2_current_round', round);
@@ -1325,9 +1542,11 @@
     render();
   }
 
-  async function closeBettingNow(){
+  async function closeBettingNow(scope){
     state.roundBettingOpen = false;
+    state.closeScope = scope || 'h2h';
     await sset('bilbbet2_round_betting_open', false);
+    await sset('bilbbet2_close_scope', state.closeScope);
     render();
   }
 
@@ -1357,6 +1576,83 @@
   async function savePlayoffFixtures(){
     await sset('bilbbet2_playoff_fixtures', state.playoffFixtures);
     render();
+  }
+
+  async function assignEclGroup(group, team){
+    if(!team || !ALL_TEAMS.includes(team)){ alert('Pick a real team from the suggestions first.'); return; }
+    if(!FUTURES.ecl_field.includes(team)){ alert(team+' isn\'t part of this season\'s ECL field.'); return; }
+    const alreadyIn = Object.entries(state.eclGroups).find(([g,teams]) => teams.includes(team));
+    if(alreadyIn){ alert(team+' is already assigned to Group '+alreadyIn[0]+'.'); return; }
+    if(state.eclGroups[group].length >= 4){ alert('Group '+group+' already has 4 teams.'); return; }
+    state.eclGroups[group] = [...state.eclGroups[group], team];
+    await sset('bilbbet2_ecl_groups', state.eclGroups);
+    render();
+  }
+
+  async function removeEclGroupTeam(group, team){
+    state.eclGroups[group] = state.eclGroups[group].filter(t => t !== team);
+    await sset('bilbbet2_ecl_groups', state.eclGroups);
+    render();
+  }
+
+  async function clearEclGroups(){
+    if(!confirm('Clear all ECL group assignments?')) return;
+    state.eclGroups = { A: [], B: [], C: [] };
+    await sset('bilbbet2_ecl_groups', state.eclGroups);
+    render();
+  }
+
+  function computeGroupWinnerMarket(teams, nSim){
+    nSim = nSim || 10000;
+    const samples = {};
+    teams.forEach(t => { samples[t] = sampleTeam(t, nSim); });
+    const wins = {}; teams.forEach(t => wins[t] = 0);
+    for(let i=0;i<nSim;i++){
+      let best = teams[0], bestScore = samples[teams[0]][i];
+      for(let j=1;j<teams.length;j++){
+        if(samples[teams[j]][i] > bestScore){ best = teams[j]; bestScore = samples[teams[j]][i]; }
+      }
+      wins[best]++;
+    }
+    return teams.map(t => ({ team: t, pct: 100*wins[t]/nSim }));
+  }
+
+  function renderEclGroupBox(group){
+    const teams = state.eclGroups[group] || [];
+    const complete = teams.length === 4;
+    let html = `<div class="bb-card" style="margin-bottom:14px;">
+      <div style="font-size:14px;font-weight:600;margin-bottom:8px;">Group ${group}</div>`;
+    if(!complete){
+      html += `<p style="color:#9a9a9a;font-size:12px;">Not yet drawn &mdash; ${teams.length} of 4 teams assigned. Odds for this group will appear once the draw's confirmed.</p>`;
+      if(teams.length){
+        html += teams.map(t => `<div style="font-size:13px;padding:3px 0;">${esc(t)}</div>`).join('');
+      }
+    } else {
+      const market = computeGroupWinnerMarket(teams);
+      html += market.sort((a,b)=>b.pct-a.pct).map(m => {
+        const oddsInfo = toOdds(m.pct);
+        const id = 'ECLGROUP|'+group+'|'+m.team;
+        const selected = state.slip.some(s=>s.id===id);
+        if(oddsInfo.suspended){
+          return `<div style="display:flex;justify-content:space-between;padding:6px 0;opacity:0.5;"><span>${esc(m.team)}</span><span style="color:#9a9a9a;">suspended</span></div>`;
+        }
+        return `<div class="bb-outcome ${selected?'selected':''}" data-pick="${esc(id)}" data-label="${esc(m.team)} to win Group ${group}" data-odds="${oddsInfo.odds}">
+          <span>${esc(m.team)}</span><span class="bb-odds">${oddsInfo.odds.toFixed(2)}</span></div>`;
+      }).join('');
+    }
+    html += `</div>`;
+    return html;
+  }
+
+  function renderEclGroups(){
+    const assignedCount = Object.values(state.eclGroups).reduce((s,t)=>s+t.length, 0);
+    const disclaimer = assignedCount < 12
+      ? `<div class="bb-card" style="text-align:center;padding:1.5rem 1rem;color:#9a9a9a;margin-bottom:14px;">
+          The group draw hasn't been confirmed yet &mdash; this is a placeholder template. Once the real draw's known, the admin
+          assigns each of the 12 qualifying teams to a group below, and betting opens automatically once a group has all 4.
+        </div>`
+      : '';
+    return disclaimer + ['A','B','C'].map(g => renderEclGroupBox(g)).join('');
   }
 
   async function saveCupOverrides(){
@@ -1528,8 +1824,9 @@
       if(u){
         u.balance -= settlementCredit(prevOverall, bet);
         u.balance += settlementCredit(newOverall, bet);
-        if(newOverall === 'LOST' && !bet.nearMissBonusAwarded && isNearMissBonus(bet.selections)){
+        if(newOverall === 'LOST' && !bet.nearMissBonusAwarded && !u.nearMissBonusUsed && isNearMissBonus(bet.selections)){
           u.balance += bet.stake;
+          u.nearMissBonusUsed = true;
           bet.nearMissBonusAwarded = true;
         }
         await saveUser(u);
@@ -1689,7 +1986,8 @@
     } else if(state.activeTab === 'ECL'){
       body = `<div class="bb-div-stripe div-ecl"></div>` + cupMarketTabs('ecl_labels') +
         (state.futureMarketTab === 'fixtures' ? renderCupFixtures('ECL') :
-          `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">Groups from the 26/27 file used as a template (3 groups of 4); the results in that file are last season's leftover data, so the whole group stage plus knockout is simulated fresh here. Top 2 per group advance; the best 2 group winners get a bye straight to the semi-final, the rest play off for the last 2 spots.</p>` +
+         state.futureMarketTab === 'groups' ? renderEclGroups() :
+          `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">12 confirmed qualifiers for the 26/27 ECL, group draw not yet assigned (see the Groups tab). Stage odds below assume the field regardless of group -- they'll sharpen once groups are confirmed.</p>` +
           `<div id="outcomes-list">${cupOutcomesList('ecl_markets', state.futureMarketTab)}</div>`);
     } else if(state.activeTab === 'PLAYOFFS'){
       body = renderPlayoffsTab();
@@ -1707,7 +2005,7 @@
         ? renderLeadingAtMarket(state.activeTab)
         : `<button class="bb-btn ghost" id="surprise-me-btn" style="margin-bottom:10px;padding:6px 12px;font-size:12px;">\u{1F3B2} Surprise me</button><div id="outcomes-list">${futuresOutcomesList(state.activeTab, state.futureMarketTab)}</div>`);
     }
-    return `<div>${header()}${renderTeamSearchPanel()}${mainTabs()}${body}${renderFooter()}</div>${['ADMIN','STATS'].includes(state.activeTab) ? '' : slipBar()}${state.loginModalOpen ? renderLoginModal() : ''}${state.tosModalOpen ? renderTosModal() : ''}${teamsDatalist()}`;
+    return `<div>${renderStorageWarning()}${header()}${renderTeamSearchPanel()}${mainTabs()}${body}${renderFooter()}</div>${['ADMIN','STATS'].includes(state.activeTab) ? '' : slipBar()}${state.loginModalOpen ? renderLoginModal() : ''}${state.tosModalOpen ? renderTosModal() : ''}${teamsDatalist()}`;
   }
 
   function combinedOdds(){ return state.slip.reduce((acc,s)=>acc*s.odds,1); }
@@ -2026,7 +2324,7 @@
       philanthropyEl.onchange = e => { state.specialsSelection.philanthropy = matchTeamName(e.target.value); render(); };
     }
     const getBtn = $('#get-market'); if(getBtn) getBtn.onclick = () => { state.h2hMarket = computeH2HMarket(state.teamA, state.teamB, state.h2hRound); render(); };
-    document.querySelectorAll('[data-h2hsubtab]').forEach(el => el.onclick = () => { state.h2hSubTab = el.dataset.h2hsubtab; state.h2hFixtureMarket=null; render(); });
+    document.querySelectorAll('[data-h2hsubtab]').forEach(el => el.onclick = () => { state.h2hSubTab = el.dataset.h2hsubtab; state.h2hFixtureMarket=null; state.cupFixtureMarket=null; render(); });
     document.querySelectorAll('[data-fixture-expand]').forEach(el => el.onclick = () => {
       const [div, idx] = el.dataset.fixtureExpand.split('|');
       state.h2hFixtureMarket = getFixtureMarkets(div, state.h2hRound)[parseInt(idx,10)];
@@ -2058,9 +2356,10 @@
       const id = el.dataset.pick;
       const existing = state.slip.findIndex(s=>s.id===id);
       if(existing>=0){ state.slip.splice(existing,1); render(); return; }
-      const pickRound = getPickRound(id);
-      if(pickRound !== null && pickRound === state.currentRound && !state.roundBettingOpen){
-        alert('Betting for Round '+state.currentRound+' is currently closed.');
+      if(isPickBlocked(id)){
+        alert(state.closeScope === 'all'
+          ? 'Betting is currently closed while Round '+state.currentRound+' is being resolved.'
+          : 'Betting for Round '+state.currentRound+' is currently closed.');
         return;
       }
       const conflict = findConflict(id);
@@ -2070,6 +2369,10 @@
     });
     document.querySelectorAll('[data-betmode]').forEach(el => el.onclick = () => { state.betMode = el.dataset.betmode; render(); });
     const useBoostCheckbox = $('#use-boost-checkbox'); if(useBoostCheckbox) useBoostCheckbox.onchange = e => { state.useBoost = e.target.checked; render(); };
+    document.querySelectorAll('[data-pause-pick]').forEach(el => {
+      el.onclick = e => { e.stopPropagation(); };
+      el.onchange = e => { e.stopPropagation(); togglePausePick(el.dataset.pausePick); };
+    });
     document.querySelectorAll('[data-single-stake]').forEach(el => el.oninput = e => {
       const item = state.slip.find(s=>s.id===el.dataset.singleStake);
       if(item) item.singleStake = Math.max(1, parseInt(e.target.value,10)||1);
@@ -2118,7 +2421,11 @@
       const sel = document.getElementById('admin-current-round');
       saveCurrentRound(parseInt(sel.value, 10));
     };
-    const closeBettingBtn = $('#close-betting-btn'); if(closeBettingBtn) closeBettingBtn.onclick = closeBettingNow;
+    const endSeasonBtn = $('#end-season-btn');
+    if(endSeasonBtn) endSeasonBtn.onclick = () => endSeasonRollover();
+    const closeBettingBtn = $('#close-betting-btn'); if(closeBettingBtn) closeBettingBtn.onclick = () => closeBettingNow(state.closeScope);
+    const closeScopeH2h = $('#close-scope-h2h'); if(closeScopeH2h) closeScopeH2h.onchange = () => { state.closeScope = 'h2h'; render(); };
+    const closeScopeAll = $('#close-scope-all'); if(closeScopeAll) closeScopeAll.onchange = () => { state.closeScope = 'all'; render(); };
     const reopenBettingBtn = $('#reopen-betting-btn'); if(reopenBettingBtn) reopenBettingBtn.onclick = reopenBetting;
     const requestRefreshBtn = $('#request-odds-refresh-btn'); if(requestRefreshBtn) requestRefreshBtn.onclick = requestOddsRefresh;
     const clearRefreshBtn = $('#clear-odds-refresh-btn'); if(clearRefreshBtn) clearRefreshBtn.onclick = clearOddsRefreshRequest;
@@ -2186,6 +2493,19 @@
       state.playoffFixtures[div] = [];
       savePlayoffFixtures();
     });
+    const eclGroupPickEl = $('#ecl-group-pick');
+    if(eclGroupPickEl){
+      eclGroupPickEl.oninput = e => { state.eclGroupAdminPick = e.target.value; };
+      eclGroupPickEl.onchange = e => { state.eclGroupAdminPick = matchTeamName(e.target.value); };
+    }
+    document.querySelectorAll('[data-assign-eclgroup]').forEach(el => el.onclick = () => {
+      assignEclGroup(el.dataset.assignEclgroup, state.eclGroupAdminPick);
+    });
+    document.querySelectorAll('[data-remove-eclteam]').forEach(el => el.onclick = () => {
+      const [group, team] = el.dataset.removeEclteam.split('|');
+      removeEclGroupTeam(group, team);
+    });
+    const clearEclGroupsBtn = $('#clear-ecl-groups-btn'); if(clearEclGroupsBtn) clearEclGroupsBtn.onclick = clearEclGroups;
     document.querySelectorAll('[data-set-cupoverride]').forEach(el => el.onclick = () => {
       const comp = el.dataset.setCupoverride;
       const input = document.getElementById('cup-override-stage-'+comp);
@@ -2212,8 +2532,8 @@
 
   async function placeBet(){
     if(!state.user){ alert('You must log in first to place a bet.'); state.loginModalOpen=true; render(); return; }
-    if(!state.roundBettingOpen && state.slip.some(s => { const r = getPickRound(s.id); return r !== null && r === state.currentRound; })){
-      alert('Betting for Round '+state.currentRound+' closed while building this slip \u2014 remove that selection to continue.');
+    if(state.slip.some(s => isPickBlocked(s.id))){
+      alert('Betting closed while building this slip \u2014 remove the affected selection(s) to continue.');
       return;
     }
     const stakeInput = document.getElementById('stake-input');
@@ -2243,8 +2563,8 @@
 
   async function placeBetsAsSingles(){
     if(!state.user){ alert('You must log in first to place a bet.'); state.loginModalOpen=true; render(); return; }
-    if(!state.roundBettingOpen && state.slip.some(s => { const r = getPickRound(s.id); return r !== null && r === state.currentRound; })){
-      alert('Betting for Round '+state.currentRound+' closed while building this slip \u2014 remove that selection to continue.');
+    if(state.slip.some(s => isPickBlocked(s.id))){
+      alert('Betting closed while building this slip \u2014 remove the affected selection(s) to continue.');
       return;
     }
     if(!state.slip.length){ alert('Add at least one selection first.'); return; }
@@ -2358,11 +2678,17 @@
   if(savedCupFixtures){ state.cupFixtures = savedCupFixtures; }
   const savedPlayoffFixtures = await sget('bilbbet2_playoff_fixtures');
   if(savedPlayoffFixtures){ state.playoffFixtures = savedPlayoffFixtures; }
+  const savedEclGroups = await sget('bilbbet2_ecl_groups');
+  if(savedEclGroups){ state.eclGroups = savedEclGroups; }
   const savedCupOverrides = await sget('bilbbet2_cup_overrides');
   if(savedCupOverrides){ state.cupCalendarOverrides = savedCupOverrides; }
 
   const savedBettingOpen = await sget('bilbbet2_round_betting_open');
   if(savedBettingOpen !== null){ state.roundBettingOpen = savedBettingOpen; }
+  const savedCloseScope = await sget('bilbbet2_close_scope');
+  if(savedCloseScope !== null){ state.closeScope = savedCloseScope; }
+  const savedPausedPicks = await sget('bilbbet2_paused_picks');
+  if(savedPausedPicks !== null){ state.pausedPicks = savedPausedPicks; }
   const savedAutoClosedRound = await sget('bilbbet2_last_autoclosed_round');
   // Auto-close is a one-time check on load, not a background timer: if the
   // scheduled date for the current round has arrived and nobody's closed or
