@@ -105,21 +105,34 @@
     if(parts[0]==='SPECIALFIX' && (parts[1]==='win_round'||parts[1]==='lose_round')) return parseInt(parts[2].replace('R',''),10);
     return null;
   }
+  // Derives the pausable "category" (a whole market, not one team's row in
+  // it) from a pick ID. FUT|division|marketKey|team -> division|marketKey.
+  // cupTag|marketKey|team -> cupTag|marketKey. ECLGROUP|group|team ->
+  // ECLGROUP|group. Anything else (H2H, LEADAT, SPECIALFIX, etc.) has no
+  // category-pause concept -- those are governed by round open/close instead.
+  function pickCategory(id){
+    const parts = id.split('|');
+    if(parts[0] === 'FUT') return parts[1] + '|' + parts[2];
+    if(parts[0] === 'FACUP' || parts[0] === 'ECL') return parts[0] + '|' + parts[1];
+    if(parts[0] === 'ECLGROUP') return parts[0] + '|' + parts[1];
+    return null;
+  }
   // Whether a pick is currently unbettable, given the admin's close scope.
   // 'h2h' scope (the default) only ever blocks picks tied to the exact
   // current round; 'all' scope blocks everything, including season-long
   // futures, while betting's closed.
   function isPickBlocked(id){
-    if(state.pausedPicks[id]) return true;
+    const category = pickCategory(id);
+    if(category && state.pausedCategories[category]) return true;
     if(state.roundBettingOpen) return false;
     const r = getPickRound(id);
     if(r !== null && r === state.currentRound) return true;
     return state.closeScope === 'all';
   }
-  async function togglePausePick(id){
-    if(state.pausedPicks[id]) delete state.pausedPicks[id];
-    else state.pausedPicks[id] = true;
-    await sset('bilbbet2_paused_picks', state.pausedPicks);
+  async function toggleCategoryPause(category){
+    if(state.pausedCategories[category]) delete state.pausedCategories[category];
+    else state.pausedCategories[category] = true;
+    await sset('bilbbet2_paused_categories', state.pausedCategories);
     render();
   }
   const K = 8;
@@ -156,7 +169,7 @@
     eclGroupAdminPick: '',
     roundBettingOpen: true,
     closeScope: 'h2h', // 'h2h' or 'all' -- which markets the current closure covers
-    pausedPicks: {},
+    pausedCategories: {},
     oddsRefreshRequested: false,
   };
 
@@ -720,29 +733,37 @@
     return false;
   }
 
+  function categoryPauseControl(category, label){
+    if(!state.user || !state.user.isAdmin) return '';
+    const paused = !!state.pausedCategories[category];
+    return `<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#9a9a9a;margin-bottom:8px;" title="Pause this whole market for everyone (admin only)">
+      <input type="checkbox" data-pause-category="${esc(category)}" ${paused?'checked':''}/> Pause ${esc(label||'this market')}
+    </label>`;
+  }
+
   function cupOutcomesList(marketsKey, marketKey){
+    if(!state.roundBettingOpen && state.closeScope === 'all'){
+      return `<div class="bb-card" style="text-align:center;padding:2rem 1rem;color:#9a9a9a;">
+        \u{1F512} Betting is closed across all markets right now &mdash; hidden until it reopens.
+      </div>`;
+    }
     const cupTag = marketsKey === 'fa_cup_markets' ? 'FACUP' : 'ECL';
+    const category = cupTag+'|'+marketKey;
+    const categoryPaused = !!state.pausedCategories[category];
     const outcomes = FUTURES[marketsKey][marketKey];
     if(!outcomes || !outcomes.length) return '<p style="color:#9a9a9a;">No outcomes in this market.</p>';
-    return outcomes.map(o => {
+    const control = categoryPauseControl(category, marketKey);
+    const list = outcomes.map(o => {
       const selId = cupTag+'|'+marketKey+'|'+o.team;
-      const manuallyPaused = !!state.pausedPicks[selId];
-      if(o.suspended || manuallyPaused){
+      if(o.suspended || categoryPaused){
         return `<div class="bb-outcome" style="opacity:0.5;cursor:default;">
-          <span>${esc(o.team)}</span><span style="display:flex;align-items:center;">${pauseCheckbox(selId)}<span class="bb-odds" style="color:#9a9a9a;">${manuallyPaused && !o.suspended ? 'paused' : 'suspended'}</span></span></div>`;
+          <span>${esc(o.team)}</span><span class="bb-odds" style="color:#9a9a9a;">${categoryPaused && !o.suspended ? 'paused' : 'suspended'}</span></div>`;
       }
       const selected = state.slip.some(s=>s.id===selId);
       return `<div class="bb-outcome ${selected?'selected':''}" data-pick="${esc(selId)}" data-team="${esc(o.team)}" data-odds="${o.odds}" data-label="${esc(o.team)}">
-        <span>${esc(o.team)}</span><span style="display:flex;align-items:center;">${pauseCheckbox(selId)}<span class="bb-odds">${o.odds.toFixed(2)}</span></span></div>`;
+        <span>${esc(o.team)}</span><span class="bb-odds">${o.odds.toFixed(2)}</span></div>`;
     }).join('');
-  }
-
-  function pauseCheckbox(id){
-    if(!state.user || !state.user.isAdmin) return '';
-    const paused = !!state.pausedPicks[id];
-    return `<label style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#9a9a9a;margin-right:8px;" title="Pause this market (admin only)">
-      <input type="checkbox" data-pause-pick="${esc(id)}" ${paused?'checked':''}/> pause
-    </label>`;
+    return control + list;
   }
 
   function futuresOutcomesList(div, marketKey){
@@ -751,21 +772,24 @@
         \u{1F512} Betting is closed across all markets right now &mdash; hidden until it reopens.
       </div>`;
     }
+    const category = div+'|'+marketKey;
+    const categoryPaused = !!state.pausedCategories[category];
     const outcomes = div==='RODDY' ? FUTURES.roddy[marketKey] : FUTURES.divisions[div][marketKey];
     if(!outcomes || !outcomes.length) return '<p style="color:#9a9a9a;">No outcomes in this market.</p>';
-    return outcomes.map(o => {
+    const control = categoryPauseControl(category, marketKey);
+    const list = outcomes.map(o => {
       const selId = 'FUT|'+div+'|'+marketKey+'|'+o.team;
-      const manuallyPaused = !!state.pausedPicks[selId];
-      if(o.suspended || manuallyPaused){
+      if(o.suspended || categoryPaused){
         return `<div class="bb-outcome" style="opacity:0.5;cursor:default;">
           <span style="display:flex;align-items:center;gap:8px;">${teamLogo(o.team,20)}${esc(o.team)}</span>
-          <span style="display:flex;align-items:center;">${pauseCheckbox(selId)}<span class="bb-odds" style="color:#9a9a9a;">${manuallyPaused && !o.suspended ? 'paused' : 'suspended'}</span></span></div>`;
+          <span class="bb-odds" style="color:#9a9a9a;">${categoryPaused && !o.suspended ? 'paused' : 'suspended'}</span></div>`;
       }
       const selected = state.slip.some(s=>s.id===selId);
       return `<div class="bb-outcome ${selected?'selected':''}" data-pick="${esc(selId)}" data-team="${esc(o.team)}" data-odds="${o.odds}" data-label="${esc(o.team)}">
         <span style="display:flex;align-items:center;gap:8px;">${teamLogo(o.team,20)}${esc(o.team)}</span>
-        <span style="display:flex;align-items:center;">${pauseCheckbox(selId)}<span class="bb-odds">${o.odds.toFixed(2)}</span></span></div>`;
+        <span class="bb-odds">${o.odds.toFixed(2)}</span></div>`;
     }).join('');
+    return control + list;
   }
 
   function renderH2HMarket(m){
@@ -1599,26 +1623,17 @@
   // and if the market stays open in the gap between the draw becoming known
   // and someone recomputing real odds for it, that gap is gameable by anyone
   // who knows the draw before the system reflects it. So any admin change to
-  // a group draw or cup fixtures immediately pauses every stage-outcome pick
-  // for that whole competition, for every team in its field -- not just the
-  // team(s) that changed -- forcing a fresh, explicit unpause (ideally after
+  // a group draw or cup fixtures immediately pauses every stage-outcome
+  // MARKET for that whole competition (one flag per market, covering every
+  // team in it at once) -- forcing a fresh, explicit unpause (ideally after
   // recomputing real odds) before anyone can bet on it again.
   async function autoPauseCupStageMarkets(cupTag, marketsKey){
     const stageMarketKeys = Object.keys(FUTURES[marketsKey] || {});
     if(!stageMarketKeys.length) return;
-    // ECL has a separate field list; FA Cup doesn't -- derive its team list
-    // from whichever market already has entries, since every stage market
-    // for a competition covers the same field.
-    const field = marketsKey === 'ecl_markets'
-      ? FUTURES.ecl_field
-      : (FUTURES[marketsKey][stageMarketKeys[0]] || []).map(o => o.team);
-    if(!field || !field.length) return;
     for(const marketKey of stageMarketKeys){
-      for(const team of field){
-        state.pausedPicks[cupTag+'|'+marketKey+'|'+team] = true;
-      }
+      state.pausedCategories[cupTag+'|'+marketKey] = true;
     }
-    await sset('bilbbet2_paused_picks', state.pausedPicks);
+    await sset('bilbbet2_paused_categories', state.pausedCategories);
   }
 
   async function assignEclGroup(group, team){
@@ -1673,14 +1688,19 @@
       if(teams.length){
         html += teams.map(t => `<div style="font-size:13px;padding:3px 0;">${esc(t)}</div>`).join('');
       }
+    } else if(!state.roundBettingOpen && state.closeScope === 'all'){
+      html += `<p style="color:#9a9a9a;font-size:12px;">\u{1F512} Betting is closed across all markets right now &mdash; hidden until it reopens.</p>`;
     } else {
+      const category = 'ECLGROUP|'+group;
+      const categoryPaused = !!state.pausedCategories[category];
       const market = computeGroupWinnerMarket(teams);
+      html += categoryPauseControl(category, 'Group '+group+' winner market');
       html += market.sort((a,b)=>b.pct-a.pct).map(m => {
         const oddsInfo = toOdds(m.pct);
         const id = 'ECLGROUP|'+group+'|'+m.team;
         const selected = state.slip.some(s=>s.id===id);
-        if(oddsInfo.suspended){
-          return `<div style="display:flex;justify-content:space-between;padding:6px 0;opacity:0.5;"><span>${esc(m.team)}</span><span style="color:#9a9a9a;">suspended</span></div>`;
+        if(oddsInfo.suspended || categoryPaused){
+          return `<div style="display:flex;justify-content:space-between;padding:6px 0;opacity:0.5;"><span>${esc(m.team)}</span><span style="color:#9a9a9a;">${categoryPaused && !oddsInfo.suspended ? 'paused' : 'suspended'}</span></div>`;
         }
         return `<div class="bb-outcome ${selected?'selected':''}" data-pick="${esc(id)}" data-label="${esc(m.team)} to win Group ${group}" data-odds="${oddsInfo.odds}">
           <span>${esc(m.team)}</span><span class="bb-odds">${oddsInfo.odds.toFixed(2)}</span></div>`;
@@ -2415,9 +2435,9 @@
     });
     document.querySelectorAll('[data-betmode]').forEach(el => el.onclick = () => { state.betMode = el.dataset.betmode; render(); });
     const useBoostCheckbox = $('#use-boost-checkbox'); if(useBoostCheckbox) useBoostCheckbox.onchange = e => { state.useBoost = e.target.checked; render(); };
-    document.querySelectorAll('[data-pause-pick]').forEach(el => {
+    document.querySelectorAll('[data-pause-category]').forEach(el => {
       el.onclick = e => { e.stopPropagation(); };
-      el.onchange = e => { e.stopPropagation(); togglePausePick(el.dataset.pausePick); };
+      el.onchange = e => { e.stopPropagation(); toggleCategoryPause(el.dataset.pauseCategory); };
     });
     document.querySelectorAll('[data-single-stake]').forEach(el => el.oninput = e => {
       const item = state.slip.find(s=>s.id===el.dataset.singleStake);
@@ -2733,8 +2753,8 @@
   if(savedBettingOpen !== null){ state.roundBettingOpen = savedBettingOpen; }
   const savedCloseScope = await sget('bilbbet2_close_scope');
   if(savedCloseScope !== null){ state.closeScope = savedCloseScope; }
-  const savedPausedPicks = await sget('bilbbet2_paused_picks');
-  if(savedPausedPicks !== null){ state.pausedPicks = savedPausedPicks; }
+  const savedPausedPicks = await sget('bilbbet2_paused_categories');
+  if(savedPausedPicks !== null){ state.pausedCategories = savedPausedPicks; }
   const savedAutoClosedRound = await sget('bilbbet2_last_autoclosed_round');
   // Auto-close is a one-time check on load, not a background timer: if the
   // scheduled date for the current round has arrived and nobody's closed or
