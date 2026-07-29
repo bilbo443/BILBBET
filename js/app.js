@@ -725,14 +725,15 @@
     const outcomes = FUTURES[marketsKey][marketKey];
     if(!outcomes || !outcomes.length) return '<p style="color:#9a9a9a;">No outcomes in this market.</p>';
     return outcomes.map(o => {
-      if(o.suspended){
-        return `<div class="bb-outcome" style="opacity:0.5;cursor:default;">
-          <span>${esc(o.team)}</span><span class="bb-odds" style="color:#9a9a9a;">suspended</span></div>`;
-      }
       const selId = cupTag+'|'+marketKey+'|'+o.team;
+      const manuallyPaused = !!state.pausedPicks[selId];
+      if(o.suspended || manuallyPaused){
+        return `<div class="bb-outcome" style="opacity:0.5;cursor:default;">
+          <span>${esc(o.team)}</span><span style="display:flex;align-items:center;">${pauseCheckbox(selId)}<span class="bb-odds" style="color:#9a9a9a;">${manuallyPaused && !o.suspended ? 'paused' : 'suspended'}</span></span></div>`;
+      }
       const selected = state.slip.some(s=>s.id===selId);
       return `<div class="bb-outcome ${selected?'selected':''}" data-pick="${esc(selId)}" data-team="${esc(o.team)}" data-odds="${o.odds}" data-label="${esc(o.team)}">
-        <span>${esc(o.team)}</span><span class="bb-odds">${o.odds.toFixed(2)}</span></div>`;
+        <span>${esc(o.team)}</span><span style="display:flex;align-items:center;">${pauseCheckbox(selId)}<span class="bb-odds">${o.odds.toFixed(2)}</span></span></div>`;
     }).join('');
   }
 
@@ -1577,12 +1578,47 @@
 
   async function saveCupFixtures(){
     await sset('bilbbet2_cup_fixtures', state.cupFixtures);
+    // Same safeguard as the ECL group draw -- a cup fixture change (a real
+    // draw becoming known) makes the stage-progression markets stale.
+    // Pausing both competitions here rather than trying to detect which one
+    // changed -- better to over-pause and let the admin review than leave a
+    // gap where a fresh draw sits behind still-live, now-wrong odds.
+    await autoPauseCupStageMarkets('FACUP', 'fa_cup_markets');
+    await autoPauseCupStageMarkets('ECL', 'ecl_markets');
     render();
   }
 
   async function savePlayoffFixtures(){
     await sset('bilbbet2_playoff_fixtures', state.playoffFixtures);
     render();
+  }
+
+  // Safeguard against exactly the risk flagged: once a real group draw (or
+  // cup fixture) becomes known, the stage-progression markets (reach
+  // knockout/SF/final, win) computed BEFORE that draw are instantly stale --
+  // and if the market stays open in the gap between the draw becoming known
+  // and someone recomputing real odds for it, that gap is gameable by anyone
+  // who knows the draw before the system reflects it. So any admin change to
+  // a group draw or cup fixtures immediately pauses every stage-outcome pick
+  // for that whole competition, for every team in its field -- not just the
+  // team(s) that changed -- forcing a fresh, explicit unpause (ideally after
+  // recomputing real odds) before anyone can bet on it again.
+  async function autoPauseCupStageMarkets(cupTag, marketsKey){
+    const stageMarketKeys = Object.keys(FUTURES[marketsKey] || {});
+    if(!stageMarketKeys.length) return;
+    // ECL has a separate field list; FA Cup doesn't -- derive its team list
+    // from whichever market already has entries, since every stage market
+    // for a competition covers the same field.
+    const field = marketsKey === 'ecl_markets'
+      ? FUTURES.ecl_field
+      : (FUTURES[marketsKey][stageMarketKeys[0]] || []).map(o => o.team);
+    if(!field || !field.length) return;
+    for(const marketKey of stageMarketKeys){
+      for(const team of field){
+        state.pausedPicks[cupTag+'|'+marketKey+'|'+team] = true;
+      }
+    }
+    await sset('bilbbet2_paused_picks', state.pausedPicks);
   }
 
   async function assignEclGroup(group, team){
@@ -1593,12 +1629,14 @@
     if(state.eclGroups[group].length >= 4){ alert('Group '+group+' already has 4 teams.'); return; }
     state.eclGroups[group] = [...state.eclGroups[group], team];
     await sset('bilbbet2_ecl_groups', state.eclGroups);
+    await autoPauseCupStageMarkets('ECL', 'ecl_markets');
     render();
   }
 
   async function removeEclGroupTeam(group, team){
     state.eclGroups[group] = state.eclGroups[group].filter(t => t !== team);
     await sset('bilbbet2_ecl_groups', state.eclGroups);
+    await autoPauseCupStageMarkets('ECL', 'ecl_markets');
     render();
   }
 
@@ -1606,6 +1644,7 @@
     if(!confirm('Clear all ECL group assignments?')) return;
     state.eclGroups = { A: [], B: [], C: [] };
     await sset('bilbbet2_ecl_groups', state.eclGroups);
+    await autoPauseCupStageMarkets('ECL', 'ecl_markets');
     render();
   }
 
