@@ -561,7 +561,7 @@
   }
 
   function header(){
-    const brand = `<span style="display:flex;align-items:center;gap:10px;">${siteLogoBadge(32)}<strong style="letter-spacing:1px;font-size:22px;text-transform:uppercase;">BILBBET</strong></span>`;
+    const brand = `<span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">${siteLogoBadge(32)}<strong style="letter-spacing:1px;font-size:22px;text-transform:uppercase;">BILBBET</strong><a href="https://elizacup.com/" target="_blank" rel="noopener noreferrer" style="color:#9a9a9a;font-size:12px;text-decoration:none;border-left:1px solid #3d3d3d;padding-left:10px;margin-left:2px;">Official Fantasy Partner of the Eliza Cup</a></span>`;
     if(!state.user){
       return `
         <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 4px;border-bottom:5px solid var(--bb-accent);margin-bottom:1rem;">
