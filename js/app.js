@@ -474,6 +474,13 @@
     </div>`;
   }
 
+  // A thick divider ribbon for separating two adjacent sections (e.g. a
+  // control row from the content below it) -- distinct from bb-div-stripe,
+  // which specifically marks a competition/division by its own colour.
+  function sectionRibbon(){
+    return `<div style="height:5px;border-radius:2px;background:var(--bb-border-light);margin:12px 0 14px;"></div>`;
+  }
+
   function renderFooter(){
     return `<div style="text-align:center;padding:24px 0 12px;">
       <span id="open-tos-footer" style="font-size:12px;color:#9a9a9a;text-decoration:underline;cursor:pointer;">Terms &amp; Conditions</span>
@@ -544,7 +551,7 @@
     const brand = `<span style="display:flex;align-items:center;gap:10px;">${siteLogoBadge(32)}<strong style="letter-spacing:1px;font-size:22px;text-transform:uppercase;">BILBBET</strong></span>`;
     if(!state.user){
       return `
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 4px;border-bottom:1px solid #3d3d3d;margin-bottom:1rem;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 4px;border-bottom:5px solid var(--bb-accent);margin-bottom:1rem;">
           ${brand}
           <div style="display:flex;align-items:center;gap:10px;">
             <button class="bb-btn ghost" id="open-team-search-btn" style="padding:6px 12px;font-size:13px;">Find a team</button>
@@ -553,7 +560,7 @@
         </div>`;
     }
     return `
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 4px;border-bottom:1px solid #3d3d3d;margin-bottom:1rem;flex-wrap:wrap;gap:8px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 4px;border-bottom:5px solid var(--bb-accent);margin-bottom:1rem;flex-wrap:wrap;gap:8px;">
         ${brand}
         <div style="display:flex;align-items:center;gap:14px;font-size:14px;">
           <button class="bb-btn ghost" id="open-team-search-btn" style="padding:6px 12px;font-size:13px;">Find a team</button>
@@ -894,7 +901,7 @@
     if(state.h2hSubTab === 'FA CUP' || state.h2hSubTab === 'ECL'){
       return h2hSubTabBar() + renderCupFixtures(state.h2hSubTab);
     }
-    return roundBar + h2hSubTabBar() + renderFixtureList(state.h2hSubTab);
+    return roundBar + h2hSubTabBar() + sectionRibbon() + renderFixtureList(state.h2hSubTab);
   }
 
   function statusPill(status){
@@ -1977,14 +1984,14 @@
     } else if(state.activeTab === 'RODDY'){
       body = `<div class="bb-div-stripe div-roddy"></div>` + roddyMarketTabs() + (state.futureMarketTab === 'leading_at'
         ? renderLeadingAtMarket('RODDY')
-        : `<button class="bb-btn ghost" id="surprise-me-btn" style="margin-bottom:10px;padding:6px 12px;font-size:12px;">\u{1F3B2} Surprise me</button><div id="outcomes-list">${futuresOutcomesList('RODDY', state.futureMarketTab)}</div>`);
+        : `<button class="bb-btn ghost" id="surprise-me-btn" style="margin-bottom:10px;padding:6px 12px;font-size:12px;">\u{1F3B2} Surprise me</button>` + sectionRibbon() + `<div id="outcomes-list">${futuresOutcomesList('RODDY', state.futureMarketTab)}</div>`);
     } else if(state.activeTab === 'FA CUP'){
-      body = `<div class="bb-div-stripe div-facup"></div>` + cupMarketTabs('fa_cup_labels') +
+      body = `<div class="bb-div-stripe div-facup"></div>` + cupMarketTabs('fa_cup_labels') + sectionRibbon() +
         (state.futureMarketTab === 'fixtures' ? renderCupFixtures('FA CUP') :
           `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">Real Round of 64 draw from the 26/27 file: 62 entrants plus confirmed byes for Big Mac FC and Harvey Frekes. No matches played yet, so the whole bracket is simulated.</p>` +
           `<div id="outcomes-list">${cupOutcomesList('fa_cup_markets', state.futureMarketTab)}</div>`);
     } else if(state.activeTab === 'ECL'){
-      body = `<div class="bb-div-stripe div-ecl"></div>` + cupMarketTabs('ecl_labels') +
+      body = `<div class="bb-div-stripe div-ecl"></div>` + cupMarketTabs('ecl_labels') + sectionRibbon() +
         (state.futureMarketTab === 'fixtures' ? renderCupFixtures('ECL') :
          state.futureMarketTab === 'groups' ? renderEclGroups() :
           `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">12 confirmed qualifiers for the 26/27 ECL, group draw not yet assigned (see the Groups tab). Stage odds below assume the field regardless of group -- they'll sharpen once groups are confirmed.</p>` +
@@ -2003,7 +2010,7 @@
       const stripeClass = divColorClass(state.activeTab);
       body = (stripeClass ? `<div class="bb-div-stripe ${stripeClass}"></div>` : '') + futuresMarketTabs() + (state.futureMarketTab === 'leading_at'
         ? renderLeadingAtMarket(state.activeTab)
-        : `<button class="bb-btn ghost" id="surprise-me-btn" style="margin-bottom:10px;padding:6px 12px;font-size:12px;">\u{1F3B2} Surprise me</button><div id="outcomes-list">${futuresOutcomesList(state.activeTab, state.futureMarketTab)}</div>`);
+        : `<button class="bb-btn ghost" id="surprise-me-btn" style="margin-bottom:10px;padding:6px 12px;font-size:12px;">\u{1F3B2} Surprise me</button>` + sectionRibbon() + `<div id="outcomes-list">${futuresOutcomesList(state.activeTab, state.futureMarketTab)}</div>`);
     }
     return `<div>${renderStorageWarning()}${header()}${renderTeamSearchPanel()}${mainTabs()}${body}${renderFooter()}</div>${['ADMIN','STATS'].includes(state.activeTab) ? '' : slipBar()}${state.loginModalOpen ? renderLoginModal() : ''}${state.tosModalOpen ? renderTosModal() : ''}${teamsDatalist()}`;
   }
