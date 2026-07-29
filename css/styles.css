@@ -69,3 +69,38 @@ table.bb-table td{padding:8px;border-bottom:1px solid #333;vertical-align:top;co
 .bb-div-stripe.div-facup{background:var(--div-facup);}
 .bb-div-stripe.div-ecl{background:var(--div-ecl);border:1px solid var(--bb-border-light);}
 .bb-div-stripe.div-roddy{background:var(--div-roddy);}
+
+/* Side banners: allocated space for a future logo image, defaulting to plain
+   "BILBBET" text until one's provided. Same layered-fallback pattern as the
+   team/division/competition logos -- the image sits on top and only ever
+   shows itself if it actually loads; the text underneath is otherwise what's
+   visible. Only shown on wide viewports since there's no room for them once
+   the main content column (max 820px) plus margins doesn't leave space. */
+.bb-side-banner{
+  display:none;
+  position:fixed; top:0; bottom:0; width:140px;
+  background:var(--bb-card-bg); border-left:1px solid var(--bb-border); border-right:1px solid var(--bb-border);
+  align-items:center; justify-content:center;
+}
+.bb-side-banner-left{left:0;}
+.bb-side-banner-right{right:0;}
+.bb-side-banner-fallback{
+  color:var(--bb-text-muted); font-family:system-ui,sans-serif; font-weight:700;
+  letter-spacing:3px; font-size:15px; writing-mode:vertical-rl; text-orientation:mixed;
+}
+.bb-side-banner img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover;}
+@media (min-width: 1150px){
+  .bb-side-banner{display:flex;}
+}
+
+/* Thick grey outline framing the main betting-markets column, separating it
+   visually from the side banner slots either side of it on wide screens. */
+.bb-content-frame{
+  border-left:6px solid var(--bb-border-light);
+  border-right:6px solid var(--bb-border-light);
+  min-height:100vh;
+  box-sizing:border-box;
+}
+@media (min-width: 1150px){
+  .bb-content-frame{margin-left:140px; margin-right:140px;}
+}
