@@ -121,11 +121,28 @@
   // 'h2h' scope (the default) only ever blocks picks tied to the exact
   // current round; 'all' scope blocks everything, including season-long
   // futures, while betting's closed.
+  // Same blocking rule as isPickBlocked's round logic, but for checking a
+  // round directly (e.g. to decide whether to show a market's full list at
+  // all) rather than one specific pick.
+  function isRoundBlocked(round){
+    if(round < state.currentRound) return true;
+    if(state.roundBettingOpen) return false;
+    if(round === state.currentRound) return true;
+    return state.closeScope === 'all';
+  }
+
   function isPickBlocked(id){
     const category = pickCategory(id);
     if(category && state.pausedCategories[category]) return true;
-    if(state.roundBettingOpen) return false;
     const r = getPickRound(id);
+    // A round that's already been played has a fully public, known outcome --
+    // always blocked regardless of open/close state. Leaving this to the
+    // round-close toggle alone was a real gap: only the CURRENT round was
+    // ever protected, so anyone could select an already-finished round
+    // (the dropdown disabling past rounds is cosmetic only, not a real
+    // barrier) and bet on an outcome that's already certain.
+    if(r !== null && r < state.currentRound) return true;
+    if(state.roundBettingOpen) return false;
     if(r !== null && r === state.currentRound) return true;
     return state.closeScope === 'all';
   }
@@ -153,6 +170,8 @@
     adminPunters:null, adminBets:null, novelty:null, statsData:null, suggestions:null, suggestionText:'',
     currentRound: 1,       // the next round yet to be played; anything before this is "past"
     leadingAtRound: 1,
+    specialsRound: 1,
+    specialsExtremeExpanded: null, // 'win_round' | 'lose_round' | null -- which list is open
     specialsSelection: { win_round: '', lose_round: '', charity: '', philanthropy: '' },
     teamSearchOpen: false, teamSearchQuery: '',
     registeringMode: false,
@@ -1070,6 +1089,68 @@
     </div>`;
   }
 
+  function renderRoundExtremeMarket(kind){
+    // kind: 'win_round' (highest scorer) or 'lose_round' (lowest scorer)
+    const label = kind === 'win_round' ? 'To win Round' : 'To lose Round';
+    const sublabel = kind === 'win_round' ? 'highest scorer' : 'lowest scorer';
+    const round = state.specialsRound;
+    const searchId = kind === 'win_round' ? 'special-win-round' : 'special-lose-round';
+    const selectedTeam = state.specialsSelection[kind];
+
+    let html = `<div class="bb-card" style="margin-bottom:10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+        <div style="font-size:13px;font-weight:600;">${label} ${round} (${sublabel})</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:12px;color:#9a9a9a;">Round</span>
+          <select class="bb-select" data-specials-round-picker style="width:150px;">${roundOptions(round)}</select>
+        </div>
+      </div>`;
+
+    if(isRoundBlocked(round)){
+      const msg = round < state.currentRound
+        ? '\u{1F512} This round has already been played &mdash; betting closed.'
+        : '\u{1F512} Betting is closed for this round right now &mdash; hidden until it reopens.';
+      html += `<p style="color:#9a9a9a;font-size:12px;">${msg}</p></div>`;
+      return html;
+    }
+
+    const outcomes = computeRoundExtremes(round)[kind === 'win_round' ? 'win' : 'lose'];
+    const pickPrefix = 'SPECIALFIX|'+kind+'|R'+round;
+
+    html += teamSearchInput(searchId, selectedTeam, 'Search for a team\u2026');
+    if(selectedTeam){
+      const o = outcomes.find(x => x.team === selectedTeam);
+      if(!o){
+        html += `<p style="color:#9a9a9a;font-size:12px;margin-top:8px;">No match for that team name.</p>`;
+      } else if(o.suspended){
+        html += `<div class="bb-outcome" style="opacity:0.5;cursor:default;margin-top:8px;"><span>${esc(selectedTeam)}</span><span class="bb-odds" style="color:#9a9a9a;">suspended</span></div>`;
+      } else {
+        const id = pickPrefix+'|'+selectedTeam;
+        const isSelected = state.slip.some(s=>s.id===id);
+        html += `<div class="bb-outcome ${isSelected?'selected':''}" data-pick="${esc(id)}" data-team="${esc(selectedTeam)}" data-odds="${o.odds}" data-label="${esc(selectedTeam)} \u2014 ${label} ${round}" style="margin-top:8px;">
+          <span>${esc(selectedTeam)}</span><span class="bb-odds">${o.odds.toFixed(2)}</span></div>`;
+      }
+    }
+
+    const expanded = state.specialsExtremeExpanded === kind;
+    html += `<button class="bb-btn ghost" data-toggle-extreme-list="${kind}" style="margin-top:10px;font-size:12px;padding:6px 12px;">${expanded ? 'Hide full list \u25b4' : 'Show every team in odds order \u25be'}</button>`;
+
+    if(expanded){
+      html += `<div style="margin-top:10px;max-height:400px;overflow-y:auto;">` + outcomes.map(o => {
+        if(o.suspended){
+          return `<div class="bb-outcome" style="opacity:0.5;cursor:default;"><span>${esc(o.team)}</span><span class="bb-odds" style="color:#9a9a9a;">suspended</span></div>`;
+        }
+        const id = pickPrefix+'|'+o.team;
+        const isSelected = state.slip.some(s=>s.id===id);
+        return `<div class="bb-outcome ${isSelected?'selected':''}" data-pick="${esc(id)}" data-team="${esc(o.team)}" data-odds="${o.odds}" data-label="${esc(o.team)} \u2014 ${label} ${round}">
+          <span>${esc(o.team)}</span><span class="bb-odds">${o.odds.toFixed(2)}</span></div>`;
+      }).join('') + `</div>`;
+    }
+
+    html += `</div>`;
+    return html;
+  }
+
   function fixedSpecialDropdown(pickPrefix, marketLabel, outcomes, selectedTeam, selectId){
     let odds_row = '';
     if(selectedTeam){
@@ -1095,11 +1176,10 @@
 
   function renderSpecialsTab(){
     if(state.novelty === null) return '<p style="color:#9a9a9a;">Loading&hellip;</p>';
-    const roundExtremes = computeRoundExtremes(state.currentRound);
     let html = '<h3 style="margin-top:0;">Specials</h3>';
-    html += `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">Round-based markets use Round ${state.currentRound} (the season's current round). Season-long markets cover all 26 rounds.</p>`;
-    html += fixedSpecialDropdown('SPECIALFIX|win_round|R'+state.currentRound, 'To win Round '+state.currentRound+' (highest scorer)', roundExtremes.win, state.specialsSelection.win_round, 'special-win-round');
-    html += fixedSpecialDropdown('SPECIALFIX|lose_round|R'+state.currentRound, 'To lose Round '+state.currentRound+' (lowest scorer)', roundExtremes.lose, state.specialsSelection.lose_round, 'special-lose-round');
+    html += `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">Round-based markets let you pick any upcoming round. Season-long markets cover all 26 rounds.</p>`;
+    html += renderRoundExtremeMarket('win_round');
+    html += renderRoundExtremeMarket('lose_round');
     html += fixedSpecialDropdown('SPECIALFIX|charity', 'Most Charity (least points conceded all season)', SPECIAL_MARKETS.charity, state.specialsSelection.charity, 'special-charity');
     html += fixedSpecialDropdown('SPECIALFIX|philanthropy', 'Most Philanthropy (most points conceded all season)', SPECIAL_MARKETS.philanthropy, state.specialsSelection.philanthropy, 'special-philanthropy');
 
@@ -2369,6 +2449,12 @@
     }
     const roundEl = $('#h2h-round'); if(roundEl) roundEl.onchange = e => { state.h2hRound=parseInt(e.target.value,10); state.h2hMarket=null; state.h2hFixtureMarket=null; render(); };
     const leadingAtRoundEl = $('#leadingat-round'); if(leadingAtRoundEl) leadingAtRoundEl.onchange = e => { state.leadingAtRound=parseInt(e.target.value,10); render(); };
+    document.querySelectorAll('[data-specials-round-picker]').forEach(el => el.onchange = e => { state.specialsRound = parseInt(e.target.value,10); render(); });
+    document.querySelectorAll('[data-toggle-extreme-list]').forEach(el => el.onclick = () => {
+      const kind = el.dataset.toggleExtremeList;
+      state.specialsExtremeExpanded = state.specialsExtremeExpanded === kind ? null : kind;
+      render();
+    });
     const winRoundEl = $('#special-win-round');
     if(winRoundEl){
       winRoundEl.oninput = e => { state.specialsSelection.win_round = e.target.value; };
@@ -2739,7 +2825,7 @@
   }
 
   const savedCurrentRound = await sget('bilbbet2_current_round');
-  if(savedCurrentRound){ state.currentRound = savedCurrentRound; state.h2hRound = savedCurrentRound; state.leadingAtRound = savedCurrentRound; }
+  if(savedCurrentRound){ state.currentRound = savedCurrentRound; state.h2hRound = savedCurrentRound; state.leadingAtRound = savedCurrentRound; state.specialsRound = savedCurrentRound; }
   const savedCupFixtures = await sget('bilbbet2_cup_fixtures');
   if(savedCupFixtures){ state.cupFixtures = savedCupFixtures; }
   const savedPlayoffFixtures = await sget('bilbbet2_playoff_fixtures');
