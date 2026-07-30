@@ -1,7 +1,7 @@
 (async function(){
   const DATA = {};
   async function loadAllData(){
-    const files = ['futures','h2h_history','h2h_divisions','h2h_shift','h2h_schedule','leading_at','special_markets','h2h_record','cup_calendar','carry_balances','round_dates','div23_schedule_exceptions'];
+    const files = ['futures','h2h_history','h2h_divisions','h2h_shift','h2h_variance_widen','h2h_schedule','leading_at','special_markets','h2h_record','cup_calendar','carry_balances','round_dates','div23_schedule_exceptions'];
     const failures = [];
     const results = await Promise.all(files.map(async name => {
       const path = './data/' + name + '.json';
@@ -46,6 +46,7 @@
   const H2H_HISTORY = DATA.h2h_history;
   const H2H_DIVISIONS = DATA.h2h_divisions;
   const H2H_SHIFT = DATA.h2h_shift;
+  const H2H_VARIANCE_WIDEN = DATA.h2h_variance_widen || {};
   const H2H_SCHEDULE = DATA.h2h_schedule;
   const SPECIAL_MARKETS = DATA.special_markets;
   const H2H_RECORD = {};
@@ -339,10 +340,26 @@
   async function saveUser(u){ return await sset('bilbbet2_user:' + u.username.toLowerCase(), u); }
 
   // ---------- H2H sampling model (bootstrap + shrinkage) ----------
-  function makeShiftedSampler(values, shift){
+  // widen (0-1): blends in a wider reference pool for teams with very
+  // little tracked history -- a team with almost no track record isn't
+  // necessarily "probably average" (a plain shift already handles that
+  // uncertainty); new/promoted managers plausibly split into genuinely
+  // competitive-from-day-one vs. largely disengaged, a real wider spread
+  // of outcomes than an established team's uncertainty produces. This is
+  // the same mechanism the Python simulation pipeline already uses for
+  // division futures/Roddy/FA Cup -- brought here so H2H and ECL group
+  // markets get the same treatment rather than only a corrected mean.
+  function makeShiftedSampler(values, shift, widen, widePool){
     const shifted = values.map(v => Math.round(v + shift));
-    const n = shifted.length;
-    return function(count){ const out=new Array(count); for(let i=0;i<count;i++){ out[i]=shifted[Math.floor(Math.random()*n)]; } return out; };
+    let pool = shifted;
+    if(widen && widen > 0 && widePool && widePool.length){
+      const nFromWide = Math.max(1, Math.min(Math.round(shifted.length * widen / Math.max(1-widen, 0.05)), widePool.length));
+      const extra = [];
+      for(let i=0;i<nFromWide;i++){ extra.push(widePool[Math.floor(Math.random()*widePool.length)]); }
+      pool = shifted.concat(extra);
+    }
+    const n = pool.length;
+    return function(count){ const out=new Array(count); for(let i=0;i<count;i++){ out[i]=pool[Math.floor(Math.random()*n)]; } return out; };
   }
   const divSampler = {};
   for(const div in H2H_DIVISIONS){
@@ -355,11 +372,13 @@
   const leagueSampler = makeShiftedSampler(allPool, 0);
   const teamInfo = {};
   for(const div in H2H_DIVISIONS){
+    const widePool = divSampler[div] ? (H2H_DIVISIONS[div].reduce((acc,t)=>H2H_HISTORY[t]?acc.concat(H2H_HISTORY[t]):acc, [])) : allPool;
     for(const t of H2H_DIVISIONS[div]){
       const shift = H2H_SHIFT[t] || 0;
+      const widen = H2H_VARIANCE_WIDEN[t] || 0;
       if(H2H_HISTORY[t]){
         const n = H2H_HISTORY[t].length;
-        teamInfo[t] = { own: makeShiftedSampler(H2H_HISTORY[t], shift), w: n/(n+K), baseline: divSampler[div] };
+        teamInfo[t] = { own: makeShiftedSampler(H2H_HISTORY[t], shift, widen, widePool.length ? widePool : allPool), w: n/(n+K), baseline: divSampler[div] };
       } else {
         teamInfo[t] = { own: null, w: 0, baseline: makeShiftedSampler(allPool, shift) };
       }
