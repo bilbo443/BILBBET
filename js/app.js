@@ -194,6 +194,16 @@
     oddsRefreshRequested: false,
   };
 
+  // For building an HTML element id out of a value that might contain
+  // spaces or other characters -- e.g. division names like "DIVISION 2".
+  // A raw space in an id, while sometimes rendered by browsers, is invalid
+  // per the HTML spec and breaks the moment it is queried via
+  // document.querySelector('#'+id), since a CSS id selector treats a space
+  // as a descendant combinator, not part of the id -- this was the actual
+  // cause of a real, long-standing bug (attachHandlers throwing partway
+  // through on every single render, silently breaking every button wired
+  // up after it in the same function, found via a browser console error).
+  function idSafe(s){ return String(s).replace(/[^a-zA-Z0-9_-]/g, '-'); }
   function esc(s){ return String(s).replace(/[&<>"'\x27]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
   function fmt(n){ return Number(n||0).toLocaleString(undefined,{maximumFractionDigits:2}); }
 
@@ -1400,8 +1410,8 @@
                 <span data-remove-cupfixture="${esc(comp)}|${i}" style="cursor:pointer;color:#9a9a9a;font-size:12px;">remove</span>
               </div>`).join('') : `<p style="color:#9a9a9a;font-size:12px;">No fixtures set for this competition.</p>`}
             <div style="display:flex;gap:6px;align-items:flex-end;margin-top:8px;flex-wrap:wrap;">
-              <div style="flex:1;min-width:140px;">${teamSearchInput('cup-team-a-'+esc(comp), '', 'Team A\u2026')}</div>
-              <div style="flex:1;min-width:140px;">${teamSearchInput('cup-team-b-'+esc(comp), '', 'Team B\u2026')}</div>
+              <div style="flex:1;min-width:140px;">${teamSearchInput('cup-team-a-'+idSafe(comp), '', 'Team A\u2026')}</div>
+              <div style="flex:1;min-width:140px;">${teamSearchInput('cup-team-b-'+idSafe(comp), '', 'Team B\u2026')}</div>
               <button class="bb-btn" data-add-cupfixture="${esc(comp)}" style="padding:8px 14px;font-size:12px;">Add</button>
               ${(state.cupFixtures[comp]||[]).length ? `<button class="bb-btn ghost" data-clear-cupfixtures="${esc(comp)}" style="padding:8px 14px;font-size:12px;">Clear all</button>` : ''}
             </div>
@@ -1420,8 +1430,8 @@
                 <span data-remove-playofffixture="${esc(div)}|${i}" style="cursor:pointer;color:#9a9a9a;font-size:12px;">remove</span>
               </div>`).join('') : `<p style="color:#9a9a9a;font-size:12px;">No fixtures set for this division.</p>`}
             <div style="display:flex;gap:6px;align-items:flex-end;margin-top:8px;flex-wrap:wrap;">
-              <div style="flex:1;min-width:140px;">${teamSearchInput('playoff-team-a-'+esc(div), '', 'Team A\u2026')}</div>
-              <div style="flex:1;min-width:140px;">${teamSearchInput('playoff-team-b-'+esc(div), '', 'Team B\u2026')}</div>
+              <div style="flex:1;min-width:140px;">${teamSearchInput('playoff-team-a-'+idSafe(div), '', 'Team A\u2026')}</div>
+              <div style="flex:1;min-width:140px;">${teamSearchInput('playoff-team-b-'+idSafe(div), '', 'Team B\u2026')}</div>
               <button class="bb-btn" data-add-playofffixture="${esc(div)}" style="padding:8px 14px;font-size:12px;">Add</button>
               ${(state.playoffFixtures[div]||[]).length ? `<button class="bb-btn ghost" data-clear-playofffixtures="${esc(div)}" style="padding:8px 14px;font-size:12px;">Clear all</button>` : ''}
             </div>
@@ -2726,12 +2736,12 @@
     const requestRefreshBtn = $('#request-odds-refresh-btn'); if(requestRefreshBtn) requestRefreshBtn.onclick = requestOddsRefresh;
     const clearRefreshBtn = $('#clear-odds-refresh-btn'); if(clearRefreshBtn) clearRefreshBtn.onclick = clearOddsRefreshRequest;
     for(const comp of ['FA CUP','ECL']){
-      const aEl = $('#cup-team-a-'+comp);
+      const aEl = $('#cup-team-a-'+idSafe(comp));
       if(aEl){
         aEl.oninput = e => { state.cupAdminEntry[comp].teamA = e.target.value; };
         aEl.onchange = e => { state.cupAdminEntry[comp].teamA = matchTeamName(e.target.value); };
       }
-      const bEl = $('#cup-team-b-'+comp);
+      const bEl = $('#cup-team-b-'+idSafe(comp));
       if(bEl){
         bEl.oninput = e => { state.cupAdminEntry[comp].teamB = e.target.value; };
         bEl.onchange = e => { state.cupAdminEntry[comp].teamB = matchTeamName(e.target.value); };
@@ -2758,12 +2768,12 @@
       saveCupFixtures();
     });
     for(const div of PLAYOFF_DIVS){
-      const aEl = $('#playoff-team-a-'+div);
+      const aEl = $('#playoff-team-a-'+idSafe(div));
       if(aEl){
         aEl.oninput = e => { state.playoffAdminEntry[div].teamA = e.target.value; };
         aEl.onchange = e => { state.playoffAdminEntry[div].teamA = matchTeamName(e.target.value); };
       }
-      const bEl = $('#playoff-team-b-'+div);
+      const bEl = $('#playoff-team-b-'+idSafe(div));
       if(bEl){
         bEl.oninput = e => { state.playoffAdminEntry[div].teamB = e.target.value; };
         bEl.onchange = e => { state.playoffAdminEntry[div].teamB = matchTeamName(e.target.value); };
