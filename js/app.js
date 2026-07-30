@@ -387,6 +387,23 @@
   const H2H_EDGE_MIN_WIN_MARGIN = 3;
   const H2H_EDGE_POINTS_PER_WIN = 0.5;
   const H2H_EDGE_MAX_BONUS = 6;
+  const CURRENT_SEASON_START_YEAR = 26; // "26/27" -- update each season rollover
+  // The H2H data only ever gives an aggregate record plus the single most
+  // recent meeting's summary (no per-meeting log), so true per-match
+  // recency weighting isn't possible -- this is the honest approximation:
+  // decay the whole edge by how long ago that LAST meeting was. A rivalry
+  // that's been dormant for years shouldn't carry the same weight as one
+  // that's still active, even if the all-time record looks identical.
+  function h2hRecencyDecay(lastMatchStr){
+    if(!lastMatchStr) return 1.0;
+    const m = lastMatchStr.match(/^(\d{2})\/\d{2}/);
+    if(!m) return 1.0;
+    const seasonsAgo = CURRENT_SEASON_START_YEAR - parseInt(m[1], 10);
+    if(seasonsAgo <= 1) return 1.0;
+    if(seasonsAgo === 2) return 0.7;
+    if(seasonsAgo === 3) return 0.45;
+    return 0.25;
+  }
   function h2hEdgeBonus(teamA, teamB){
     const found = getH2HRecord(teamA, teamB);
     if(!found) return { aBonus: 0, bBonus: 0, applied: false };
@@ -396,10 +413,11 @@
     const aLosses = found.flipped ? r.aWins : r.aLosses;
     const winMargin = aWins - aLosses;
     if(Math.abs(winMargin) < H2H_EDGE_MIN_WIN_MARGIN) return { aBonus: 0, bBonus: 0, applied: false };
-    const magnitude = Math.min(Math.abs(winMargin) * H2H_EDGE_POINTS_PER_WIN, H2H_EDGE_MAX_BONUS);
+    const decay = h2hRecencyDecay(r.lastMatch);
+    const magnitude = Math.min(Math.abs(winMargin) * H2H_EDGE_POINTS_PER_WIN, H2H_EDGE_MAX_BONUS) * decay;
     return winMargin > 0
-      ? { aBonus: magnitude, bBonus: 0, applied: true, favored: teamA, winMargin, played: r.played }
-      : { aBonus: 0, bBonus: magnitude, applied: true, favored: teamB, winMargin, played: r.played };
+      ? { aBonus: magnitude, bBonus: 0, applied: true, favored: teamA, winMargin, played: r.played, decay }
+      : { aBonus: 0, bBonus: magnitude, applied: true, favored: teamB, winMargin, played: r.played, decay };
   }
 
   function computeH2HMarket(teamA, teamB, round, nSims){
@@ -864,7 +882,7 @@
           <div style="font-size:12px;color:#9a9a9a;margin-bottom:2px;">All-time head-to-head &mdash; played ${r.played}</div>
           <div style="font-size:14px;">${esc(m.teamA)} <strong>${aWins}</strong> &ndash; <strong>${r.draws}D</strong> &ndash; <strong>${aLosses}</strong> ${esc(m.teamB)}</div>
           <div style="font-size:11px;color:#8a8a8a;margin-top:4px;">Most recent meeting: ${esc(r.lastMatch)}</div>
-          ${m.edge && m.edge.applied ? `<div style="font-size:11px;color:#ffdd00;margin-top:6px;">\u26A1 ${esc(m.edge.favored)} carries a slight edge here from a considerably lopsided head-to-head record (${m.edge.winMargin>0?aWins:aLosses}W-${m.edge.winMargin>0?aLosses:aWins}L across ${r.played} meetings).</div>` : ''}
+          ${m.edge && m.edge.applied ? `<div style="font-size:11px;color:#ffdd00;margin-top:6px;">\u26A1 ${esc(m.edge.favored)} carries a${m.edge.decay<1?' reduced':' slight'} edge here from a considerably lopsided head-to-head record (${m.edge.winMargin>0?aWins:aLosses}W-${m.edge.winMargin>0?aLosses:aWins}L across ${r.played} meetings)${m.edge.decay<1?`, weighted down since the last meeting was a while ago`:''}.</div>` : ''}
         </div>`;
       })()}
       <h4 style="margin:0 0 8px;font-size:13px;color:#9a9a9a;">Match result</h4>
