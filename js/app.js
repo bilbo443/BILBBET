@@ -173,6 +173,7 @@
     leadingAtRound: 1,
     specialsRound: 1,
     specialsExtremeExpanded: null, // 'win_round' | 'lose_round' | null -- which list is open
+    editingNoveltyId: null,
     specialsSelection: { win_round: '', lose_round: '', charity: '', philanthropy: '' },
     teamSearchOpen: false, teamSearchQuery: '',
     registeringMode: false,
@@ -693,7 +694,7 @@
 
   function futuresMarketTabs(){
     return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">' +
-      Object.entries(FUTURES.market_labels).map(([key,label]) =>
+      Object.entries(FUTURES.market_labels).filter(([key]) => key !== 'promotion_pct' || state.activeTab !== 'ELIZA CUP (D1)').map(([key,label]) =>
         `<div class="bb-tab ${state.futureMarketTab===key?'active':''}" data-marketkey="${key}" style="font-size:12px;padding:6px 10px;">${esc(label)}</div>`
       ).join('') +
       `<div class="bb-tab ${state.futureMarketTab==='leading_at'?'active':''}" data-marketkey="leading_at" style="font-size:12px;padding:6px 10px;">To Be Leading At&hellip;</div>` +
@@ -1504,14 +1505,30 @@
           <button class="bb-btn" id="add-novelty">Add</button>
         </div>
         ${!(state.novelty||[]).length ? '<p style="color:#9a9a9a;font-size:13px;">Nothing added yet.</p>' : (state.novelty||[]).slice().sort((a,b)=>b.createdAt-a.createdAt).map(n => `
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid #333333;">
-            <span>${esc(n.name)} <span class="bb-odds">${n.odds.toFixed(2)}</span> ${statusPill(n.status)}</span>
-            ${n.status==='OPEN' ? `
-              <span style="display:flex;gap:4px;">
-                <button class="bb-btn ghost" data-noveltystatus="${n.id}|WON" style="padding:4px 8px;font-size:11px;">Won</button>
-                <button class="bb-btn ghost" data-noveltystatus="${n.id}|LOST" style="padding:4px 8px;font-size:11px;">Lost</button>
-                <button class="bb-btn ghost" data-noveltystatus="${n.id}|VOID" style="padding:4px 8px;font-size:11px;">Close (void)</button>
-              </span>` : `<button class="bb-btn ghost" data-noveltystatus="${n.id}|OPEN" style="padding:4px 8px;font-size:11px;">Reopen</button>`}
+          <div style="padding:8px 0;border-bottom:1px solid #333333;">
+            ${state.editingNoveltyId === n.id ? `
+              <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;">
+                <div style="flex:2;min-width:180px;"><span style="font-size:11px;color:#9a9a9a;display:block;">Bet name</span>
+                  <input class="bb-input" id="edit-novelty-name-${n.id}" value="${esc(n.name)}"/></div>
+                <div style="width:100px;"><span style="font-size:11px;color:#9a9a9a;display:block;">Odds</span>
+                  <input class="bb-input" id="edit-novelty-odds-${n.id}" type="number" step="0.01" min="1.01" value="${n.odds}"/></div>
+                <button class="bb-btn" data-save-novelty="${n.id}" style="padding:6px 10px;font-size:12px;">Save</button>
+                <button class="bb-btn ghost" data-cancel-novelty-edit style="padding:6px 10px;font-size:12px;">Cancel</button>
+              </div>
+            ` : `
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+                <span>${esc(n.name)} <span class="bb-odds">${n.odds.toFixed(2)}</span> ${statusPill(n.status)}</span>
+                <span style="display:flex;gap:4px;flex-wrap:wrap;">
+                  ${n.status==='OPEN' ? `
+                    <button class="bb-btn ghost" data-noveltystatus="${n.id}|WON" style="padding:4px 8px;font-size:11px;">Won</button>
+                    <button class="bb-btn ghost" data-noveltystatus="${n.id}|LOST" style="padding:4px 8px;font-size:11px;">Lost</button>
+                    <button class="bb-btn ghost" data-noveltystatus="${n.id}|VOID" style="padding:4px 8px;font-size:11px;">Close (void)</button>
+                  ` : `<button class="bb-btn ghost" data-noveltystatus="${n.id}|OPEN" style="padding:4px 8px;font-size:11px;">Reopen</button>`}
+                  <button class="bb-btn ghost" data-edit-novelty="${n.id}" style="padding:4px 8px;font-size:11px;">Edit</button>
+                  <button class="bb-btn ghost" data-delete-novelty="${n.id}" style="padding:4px 8px;font-size:11px;border-color:#a3402f;color:#c0604f;">Remove</button>
+                </span>
+              </div>
+            `}
           </div>`).join('')}
         <p style="font-size:12px;color:#9a9a9a;margin-top:10px;">
           Won credits the full payout; Lost keeps the stake forfeited; Close (void) refunds the stake as if the bet never happened.
@@ -2057,6 +2074,73 @@
     const item = { id: uid(), name, odds: Math.round(odds*100)/100, status: 'OPEN', createdAt: Date.now() };
     await sset('bilbbet2_novelty:'+item.id, item);
     await addToIndex('bilbbet2_novelty_index', item.id);
+    await loadAdminData();
+  }
+
+  async function findBetsReferencingNovelty(noveltyId){
+    const pickId = 'NOVELTY|' + noveltyId;
+    const betIds = await getIndex('bilbbet2_all_bets_index');
+    const bets = (await Promise.all(betIds.map(id => sget('bilbbet2_bet:'+id)))).filter(Boolean);
+    return bets.filter(b => b.selections.some(s => s.id === pickId));
+  }
+
+  function startEditNovelty(id){
+    state.editingNoveltyId = id;
+    render();
+  }
+  function cancelEditNovelty(){
+    state.editingNoveltyId = null;
+    render();
+  }
+
+  async function saveNoveltyEdit(id){
+    const nameInput = document.getElementById('edit-novelty-name-'+id);
+    const oddsInput = document.getElementById('edit-novelty-odds-'+id);
+    const name = nameInput.value.trim();
+    const odds = parseFloat(oddsInput.value);
+    if(!name || !odds || odds < 1.01){ alert('Enter a name and odds of at least 1.01.'); return; }
+
+    const item = await sget('bilbbet2_novelty:'+id);
+    if(!item) return;
+    const nameChanged = name !== item.name;
+    const oddsChanged = odds !== item.odds;
+    if(nameChanged || oddsChanged){
+      const referencing = await findBetsReferencingNovelty(id);
+      const pendingCount = referencing.filter(b => (b.status||'PENDING')==='PENDING').length;
+      if(pendingCount > 0){
+        const changeDesc = [nameChanged?'the wording':null, oddsChanged?'the odds':null].filter(Boolean).join(' and ');
+        if(!confirm(`${pendingCount} pending bet(s) already reference this item at its current ${changeDesc==='the wording'?'wording':'odds/wording'}. `
+          + `Changing ${changeDesc} now means those punters' slips will show the NEW ${changeDesc.includes('odds')?'odds':'wording'} retroactively, `
+          + `which they didn't actually agree to. Proceed anyway?`)) return;
+      }
+    }
+    item.name = name;
+    item.odds = Math.round(odds*100)/100;
+    await sset('bilbbet2_novelty:'+id, item);
+    state.editingNoveltyId = null;
+    await loadAdminData();
+  }
+
+  async function deleteNoveltyItem(id){
+    const item = await sget('bilbbet2_novelty:'+id);
+    if(!item) return;
+    const referencing = await findBetsReferencingNovelty(id);
+    const pending = referencing.filter(b => (b.status||'PENDING')==='PENDING');
+    let msg = `Remove "${item.name}" completely? This can't be undone.`;
+    if(pending.length){
+      msg = `Remove "${item.name}" completely? ${pending.length} pending bet(s) reference it -- removing it will VOID `
+        + `those bets (single-selection ones refunded automatically; any that are one leg of a bigger multi will need manual review). This can't be undone.`;
+    }
+    if(!confirm(msg)) return;
+
+    for(const bet of pending){
+      if(bet.selections.length === 1 && bet.selections[0].id === 'NOVELTY|'+id){
+        await applyBetStatus(bet.id, 'VOID');
+      }
+    }
+    const idx = await getIndex('bilbbet2_novelty_index');
+    await sset('bilbbet2_novelty_index', idx.filter(x => x !== id));
+    state.novelty = (state.novelty||[]).filter(n => n.id !== id);
     await loadAdminData();
   }
 
@@ -2740,6 +2824,10 @@
       const [noveltyId, status] = el.dataset.noveltystatus.split('|');
       resolveNoveltyItem(noveltyId, status);
     });
+    document.querySelectorAll('[data-edit-novelty]').forEach(el => el.onclick = () => startEditNovelty(el.dataset.editNovelty));
+    document.querySelectorAll('[data-save-novelty]').forEach(el => el.onclick = () => saveNoveltyEdit(el.dataset.saveNovelty));
+    document.querySelectorAll('[data-cancel-novelty-edit]').forEach(el => el.onclick = cancelEditNovelty);
+    document.querySelectorAll('[data-delete-novelty]').forEach(el => el.onclick = () => deleteNoveltyItem(el.dataset.deleteNovelty));
   }
 
   async function placeBet(){
