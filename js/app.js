@@ -175,6 +175,7 @@
     specialsExtremeExpanded: null, // 'win_round' | 'lose_round' | null -- which list is open
     editingNoveltyId: null,
     cupFixtureMarketStage: null,
+    playoffFixtureMarketStage: null,
     specialsSelection: { win_round: '', lose_round: '', charity: '', philanthropy: '' },
     teamSearchOpen: false, teamSearchQuery: '',
     registeringMode: false,
@@ -186,7 +187,7 @@
     playoffFixtures: { 'DIVISION 2': [], 'DIVISION 3': [] },
     playoffFixtureMarket: null,
     playoffSubTab: 'DIVISION 2',
-    playoffAdminEntry: { 'DIVISION 2': {teamA:'',teamB:''}, 'DIVISION 3': {teamA:'',teamB:''} },
+    playoffAdminEntry: { 'DIVISION 2': {teamA:'',teamB:'',stage:'Qualifying Final'}, 'DIVISION 3': {teamA:'',teamB:'',stage:'Qualifying Final'} },
     eclGroups: { A: [], B: [], C: [] },
     eclGroupAdminPick: '',
     roundBettingOpen: true,
@@ -783,6 +784,14 @@
   }
 
   const PLAYOFF_DIVS = ['DIVISION 2', 'DIVISION 3'];
+  // Matches the confirmed finals format: week 1 has a Qualifying Final (major
+  // semi -- winner gets a bye to the Promotion Final) run alongside an
+  // Elimination Final (minor semi -- loser is out); week 2 is the
+  // Preliminary Final (major-semi loser vs minor-semi winner); week 3 is
+  // the Promotion Final itself. Two different stages share the same round
+  // (both week-1 games), so this can't be auto-derived from the round
+  // number the way cup stages are -- the admin picks it explicitly.
+  const PLAYOFF_STAGES = ['Qualifying Final', 'Elimination Final', 'Preliminary Final', 'Promotion Final'];
 
   function playoffSubTabBar(){
     return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">' +
@@ -793,7 +802,9 @@
   function renderPlayoffsTab(){
     const div = state.playoffSubTab;
     if(state.playoffFixtureMarket){
-      return playoffSubTabBar() + `<button class="bb-btn ghost" id="back-to-playoff-fixtures" style="margin-bottom:10px;">&larr; Back to fixtures</button>` + renderH2HMarket(state.playoffFixtureMarket);
+      return playoffSubTabBar() + `<button class="bb-btn ghost" id="back-to-playoff-fixtures" style="margin-bottom:10px;">&larr; Back to fixtures</button>` +
+        (state.playoffFixtureMarketStage ? `<p style="color:#ffdd00;font-weight:600;margin-bottom:6px;">${esc(state.playoffFixtureMarketStage)}</p>` : '') +
+        renderH2HMarket(state.playoffFixtureMarket);
     }
     const fixtures = state.playoffFixtures[div] || [];
     const inPlayoffWindow = isPlayoffRound(div, state.currentRound);
@@ -805,7 +816,7 @@
     }
     return playoffSubTabBar() + windowNote + '<div class="bb-card" style="padding:0;overflow:hidden;">' +
       fixtures.map((f,i) => `<div data-playofffixture="${esc(div)}|${i}" style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;cursor:pointer;${i<fixtures.length-1?'border-bottom:1px solid #3d3d3d;':''}">
-        <span>${esc(f.teamA)} <span style="color:#9a9a9a;">vs</span> ${esc(f.teamB)}</span>
+        <span>${f.stage ? `<span style="color:#ffdd00;font-weight:600;">${esc(f.stage)}:</span> ` : ''}${esc(f.teamA)} <span style="color:#9a9a9a;">vs</span> ${esc(f.teamB)}</span>
         <span class="bb-btn ghost" style="padding:5px 12px;font-size:12px;">View market</span>
       </div>`).join('') + '</div>';
   }
@@ -1434,10 +1445,15 @@
             <div style="font-size:13px;font-weight:600;margin-bottom:6px;">${esc(div)}</div>
             ${(state.playoffFixtures[div]||[]).length ? (state.playoffFixtures[div]||[]).map((f,i) => `
               <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #2a2a2a;font-size:13px;">
-                <span>${esc(f.teamA)} vs ${esc(f.teamB)}</span>
+                <span>${f.stage ? `<span style="color:#ffdd00;font-weight:600;">${esc(f.stage)}:</span> ` : ''}${esc(f.teamA)} vs ${esc(f.teamB)}</span>
                 <span data-remove-playofffixture="${esc(div)}|${i}" style="cursor:pointer;color:#9a9a9a;font-size:12px;">remove</span>
               </div>`).join('') : `<p style="color:#9a9a9a;font-size:12px;">No fixtures set for this division.</p>`}
             <div style="display:flex;gap:6px;align-items:flex-end;margin-top:8px;flex-wrap:wrap;">
+              <div style="min-width:160px;"><span style="font-size:11px;color:#9a9a9a;display:block;">Stage</span>
+                <select class="bb-select" data-playoff-stage="${esc(div)}" style="width:100%;">
+                  ${PLAYOFF_STAGES.map(s => `<option value="${esc(s)}" ${state.playoffAdminEntry[div].stage===s?'selected':''}>${esc(s)}</option>`).join('')}
+                </select>
+              </div>
               <div style="flex:1;min-width:140px;">${teamSearchInput('playoff-team-a-'+idSafe(div), '', 'Team A\u2026')}</div>
               <div style="flex:1;min-width:140px;">${teamSearchInput('playoff-team-b-'+idSafe(div), '', 'Team B\u2026')}</div>
               <button class="bb-btn" data-add-playofffixture="${esc(div)}" style="padding:8px 14px;font-size:12px;">Add</button>
@@ -2658,9 +2674,10 @@
       const [div, idx] = el.dataset.playofffixture.split('|');
       const f = state.playoffFixtures[div][parseInt(idx,10)];
       state.playoffFixtureMarket = computeH2HMarket(f.teamA, f.teamB, state.currentRound);
+      state.playoffFixtureMarketStage = f.stage || null;
       render();
     });
-    const backPlayoffBtn = $('#back-to-playoff-fixtures'); if(backPlayoffBtn) backPlayoffBtn.onclick = () => { state.playoffFixtureMarket = null; render(); };
+    const backPlayoffBtn = $('#back-to-playoff-fixtures'); if(backPlayoffBtn) backPlayoffBtn.onclick = () => { state.playoffFixtureMarket = null; state.playoffFixtureMarketStage = null; render(); };
     document.querySelectorAll('[data-pick]').forEach(el => el.onclick = () => {
       if(!state.user){
         alert('You must log in first to place a bet.');
@@ -2790,13 +2807,17 @@
         bEl.onchange = e => { state.playoffAdminEntry[div].teamB = matchTeamName(e.target.value); };
       }
     }
+    document.querySelectorAll('[data-playoff-stage]').forEach(el => el.onchange = e => {
+      const div = el.dataset.playoffStage;
+      state.playoffAdminEntry[div].stage = e.target.value;
+    });
     document.querySelectorAll('[data-add-playofffixture]').forEach(el => el.onclick = () => {
       const div = el.dataset.addPlayofffixture;
       const entry = state.playoffAdminEntry[div];
       if(!ALL_TEAMS.includes(entry.teamA) || !ALL_TEAMS.includes(entry.teamB)){ alert('Pick two real teams from the suggestions first.'); return; }
       if(entry.teamA === entry.teamB){ alert('Pick two different teams.'); return; }
-      state.playoffFixtures[div].push({ teamA: entry.teamA, teamB: entry.teamB });
-      state.playoffAdminEntry[div] = { teamA:'', teamB:'' };
+      state.playoffFixtures[div].push({ teamA: entry.teamA, teamB: entry.teamB, stage: entry.stage });
+      state.playoffAdminEntry[div] = { teamA:'', teamB:'', stage:'Qualifying Final' };
       savePlayoffFixtures();
     });
     document.querySelectorAll('[data-remove-playofffixture]').forEach(el => el.onclick = () => {
