@@ -174,6 +174,7 @@
     specialsRound: 1,
     specialsExtremeExpanded: null, // 'win_round' | 'lose_round' | null -- which list is open
     editingNoveltyId: null,
+    cupFixtureMarketStage: null,
     specialsSelection: { win_round: '', lose_round: '', charity: '', philanthropy: '' },
     teamSearchOpen: false, teamSearchQuery: '',
     registeringMode: false,
@@ -702,9 +703,14 @@
       '</div>';
   }
 
+  const DIV3_TABS = ['DIVISION 3A', 'DIVISION 3B'];
   function futuresMarketTabs(){
     return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">' +
-      Object.entries(FUTURES.market_labels).filter(([key]) => key !== 'promotion_pct' || state.activeTab !== 'ELIZA CUP (D1)').map(([key,label]) =>
+      Object.entries(FUTURES.market_labels).filter(([key]) =>
+        (key !== 'promotion_pct' || state.activeTab !== 'ELIZA CUP (D1)') &&
+        (key !== 'relegation_pct' || !DIV3_TABS.includes(state.activeTab)) &&
+        (key !== 'bottom3_pct' || DIV3_TABS.includes(state.activeTab))
+      ).map(([key,label]) =>
         `<div class="bb-tab ${state.futureMarketTab===key?'active':''}" data-marketkey="${key}" style="font-size:12px;padding:6px 10px;">${esc(label)}</div>`
       ).join('') +
       `<div class="bb-tab ${state.futureMarketTab==='leading_at'?'active':''}" data-marketkey="leading_at" style="font-size:12px;padding:6px 10px;">To Be Leading At&hellip;</div>` +
@@ -757,7 +763,9 @@
   function renderCupFixtures(compKey){
     const fixtures = state.cupFixtures[compKey] || [];
     if(state.cupFixtureMarket){
-      return `<button class="bb-btn ghost" id="back-to-cup-fixtures" style="margin-bottom:10px;">&larr; Back to fixtures</button>` + renderH2HMarket(state.cupFixtureMarket);
+      return `<button class="bb-btn ghost" id="back-to-cup-fixtures" style="margin-bottom:10px;">&larr; Back to fixtures</button>` +
+        (state.cupFixtureMarketStage ? `<p style="color:#ffdd00;font-weight:600;margin-bottom:6px;">${esc(state.cupFixtureMarketStage)}</p>` : '') +
+        renderH2HMarket(state.cupFixtureMarket);
     }
     const roundInfo = getCupRoundInfo(compKey, state.currentRound);
     const calendarNote = roundInfo
@@ -768,7 +776,7 @@
     }
     return calendarNote + '<div class="bb-card" style="padding:0;overflow:hidden;">' +
       fixtures.map((f,i) => `<div data-cupfixture="${esc(compKey)}|${i}" style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;cursor:pointer;${i<fixtures.length-1?'border-bottom:1px solid #3d3d3d;':''}">
-        <span>${esc(f.teamA)} <span style="color:#9a9a9a;">vs</span> ${esc(f.teamB)}</span>
+        <span>${f.stage ? `<span style="color:#ffdd00;font-weight:600;">${esc(f.stage)}:</span> ` : ''}${esc(f.teamA)} <span style="color:#9a9a9a;">vs</span> ${esc(f.teamB)}</span>
         <span class="bb-btn ghost" style="padding:5px 12px;font-size:12px;">View market</span>
       </div>`).join('') + '</div>' +
       `<p style="color:#9a9a9a;font-size:12px;margin-top:10px;">Odds here use the same head-to-head model as the division matches -- cup-specific pricing (rewarding spike ability for the FA Cup, tough-opposition form for the ECL) isn't wired in yet.</p>`;
@@ -2641,9 +2649,10 @@
       const [compKey, idx] = el.dataset.cupfixture.split('|');
       const f = state.cupFixtures[compKey][parseInt(idx,10)];
       state.cupFixtureMarket = computeH2HMarket(f.teamA, f.teamB, state.currentRound);
+      state.cupFixtureMarketStage = f.stage || null;
       render();
     });
-    const backCupBtn = $('#back-to-cup-fixtures'); if(backCupBtn) backCupBtn.onclick = () => { state.cupFixtureMarket = null; render(); };
+    const backCupBtn = $('#back-to-cup-fixtures'); if(backCupBtn) backCupBtn.onclick = () => { state.cupFixtureMarket = null; state.cupFixtureMarketStage = null; render(); };
     document.querySelectorAll('[data-playoffsubtab]').forEach(el => el.onclick = () => { state.playoffSubTab = el.dataset.playoffsubtab; state.playoffFixtureMarket = null; render(); });
     document.querySelectorAll('[data-playofffixture]').forEach(el => el.onclick = () => {
       const [div, idx] = el.dataset.playofffixture.split('|');
@@ -2752,7 +2761,9 @@
       const entry = state.cupAdminEntry[comp];
       if(!ALL_TEAMS.includes(entry.teamA) || !ALL_TEAMS.includes(entry.teamB)){ alert('Pick two real teams from the suggestions first.'); return; }
       if(entry.teamA === entry.teamB){ alert('Pick two different teams.'); return; }
-      state.cupFixtures[comp].push({ teamA: entry.teamA, teamB: entry.teamB });
+      const roundInfo = getCupRoundInfo(comp, state.currentRound);
+      const stage = roundInfo ? roundInfo.stage : ('Round ' + state.currentRound);
+      state.cupFixtures[comp].push({ teamA: entry.teamA, teamB: entry.teamB, stage, round: state.currentRound });
       state.cupAdminEntry[comp] = { teamA:'', teamB:'' };
       saveCupFixtures();
     });
