@@ -826,8 +826,19 @@
 
   function renderLeadingAtMarket(scopeKey){
     // scopeKey is a division name, or 'RODDY' for the open-field standings
-    const source = scopeKey === 'RODDY' ? RODDY_LEADING_AT : LEADING_AT[scopeKey];
     const round = state.leadingAtRound;
+    const picker = `<div class="bb-card" style="margin-bottom:1rem;display:flex;align-items:center;gap:10px;">
+        <span style="font-size:12px;color:#9a9a9a;">Round</span>
+        <select class="bb-select" id="leadingat-round" style="width:170px;">${roundOptions(state.leadingAtRound)}</select>
+      </div>
+      <p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">Who's on top of the table after this specific round, not who wins the season.</p>`;
+    if(isRoundBlocked(round)){
+      const msg = round < state.currentRound
+        ? '\u{1F512} This round has already been played &mdash; betting closed.'
+        : '\u{1F512} Betting is closed for this round right now &mdash; hidden until it reopens.';
+      return picker + `<div class="bb-card" style="text-align:center;padding:2rem 1rem;color:#9a9a9a;">${msg}</div>`;
+    }
+    const source = scopeKey === 'RODDY' ? RODDY_LEADING_AT : LEADING_AT[scopeKey];
     const outcomes = source[round] || source[String(round)] || [];
     const tagPrefix = 'LEADAT|' + scopeKey + '|' + round;
     const list = !outcomes.length ? '<p style="color:#9a9a9a;">No outcomes in this market.</p>' : outcomes.map(o => {
@@ -840,12 +851,7 @@
       return `<div class="bb-outcome ${selected?'selected':''}" data-pick="${esc(selId)}" data-team="${esc(o.team)}" data-odds="${o.odds}" data-label="${esc(o.team)} leading R${round} (${scopeKey==='RODDY'?'Roddy':scopeKey.replace(' (D1)','')})">
         <span>${esc(o.team)}</span><span class="bb-odds">${o.odds.toFixed(2)}</span></div>`;
     }).join('');
-    return `<div class="bb-card" style="margin-bottom:1rem;display:flex;align-items:center;gap:10px;">
-        <span style="font-size:12px;color:#9a9a9a;">Round</span>
-        <select class="bb-select" id="leadingat-round" style="width:170px;">${roundOptions(state.leadingAtRound)}</select>
-      </div>
-      <p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">Who's on top of the table after this specific round, not who wins the season.</p>
-      ${list}`;
+    return picker + list;
   }
 
   function cupMarketTabs(labelsKey){
