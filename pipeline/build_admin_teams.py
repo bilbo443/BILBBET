@@ -32,13 +32,33 @@ def find_header_row(csv_path, anchor_text='ELIZA ID'):
     """Locates the header row by content, not a hardcoded row number --
     matches this project's established approach for messy, multi-section
     sheets where the header's exact row shifts between exports."""
-    raw = pd.read_csv(csv_path, header=None, low_memory=False)
+    try:
+        raw = pd.read_csv(csv_path, header=None, low_memory=False)
+    except Exception as e:
+        with open(csv_path, 'r', encoding='utf-8', errors='replace') as f:
+            snippet = f.read(500)
+        raise ValueError(
+            f"The fetched file couldn't even be parsed as CSV ({e}) -- this almost "
+            f"always means the URL returned something other than the real file (an "
+            f"error page, a permissions prompt, a redirect target). First 500 "
+            f"characters actually received:\n{snippet!r}"
+        )
     for r in range(len(raw)):
         row_vals = [str(v) for v in raw.iloc[r] if pd.notna(v)]
         if any(anchor_text.upper() in v.upper() for v in row_vals):
             return r
-    raise ValueError(f"Could not find a header row containing '{anchor_text}' -- "
-                      f"the sheet's layout may have changed more than expected.")
+    # Parsed fine as CSV, but nothing matched the anchor text -- show what
+    # was actually fetched, since this usually means the URL returned a
+    # DIFFERENT real sheet/tab, not that this one's layout genuinely changed.
+    with open(csv_path, 'r', encoding='utf-8', errors='replace') as f:
+        snippet = f.read(500)
+    raise ValueError(
+        f"Could not find a header row containing '{anchor_text}' -- "
+        f"the sheet's layout may have changed more than expected, or the URL "
+        f"pointed at a different tab than expected. Fetched {len(raw)} row(s), "
+        f"{len(raw.columns) if len(raw) else 0} column(s). "
+        f"First 500 characters actually received:\n{snippet!r}"
+    )
 
 
 def find_current_season_division_column(columns):
