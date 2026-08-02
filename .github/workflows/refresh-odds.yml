@@ -1,0 +1,83 @@
+name: Weekly Odds Refresh (auto, with manual override)
+
+# Runs automatically every Monday, and can still be triggered manually any
+# time. Scheduled runs have no human to type a sheet URL into, so the
+# published CSV link is read from a saved repository VARIABLE
+# (SHEET_URL -- see the setup guide) instead of a workflow_dispatch input.
+# A manual run can still override it by typing a different URL, which is
+# useful for testing against a different tab/copy without touching the
+# saved default.
+#
+# Safety note: this was deliberately manual-only earlier in the project,
+# out of concern that a scheduled run might process the sheet's pre-season
+# test data as if it were real. That risk is already handled by Layer 2's
+# calendar-consistency check, which rejects any round whose reported
+# kickoff date hasn't actually passed yet -- so a scheduled run genuinely
+# can't mistake test data for a real result, and doesn't need a human
+# gatekeeper to stay safe.
+on:
+  schedule:
+    - cron: '0 20 * * 0'  # ~6am Monday AEST / ~7am AEDT -- adjust to your own timezone, see the guide
+  workflow_dispatch:
+    inputs:
+      sheet_url:
+        description: 'Published CSV URL for the results sheet (leave blank to use the saved SHEET_URL variable)'
+        required: false
+        type: string
+      header_row:
+        description: 'Header row index in the CSV (0-based)'
+        required: false
+        default: '1'
+        type: string
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install pandas numpy requests
+
+      - name: Run the pipeline (fetch -> validate -> extract -> simulate -> draft)
+        id: pipeline
+        env:
+          RESOLVED_SHEET_URL: ${{ inputs.sheet_url || vars.SHEET_URL }}
+          RESOLVED_HEADER_ROW: ${{ inputs.header_row || '1' }}
+        run: |
+          if [ -z "$RESOLVED_SHEET_URL" ]; then
+            echo "No sheet URL available -- set the SHEET_URL repository variable (Settings > Secrets and variables > Actions > Variables), or supply one when running this manually."
+            exit 1
+          fi
+          python pipeline/run_refresh.py \
+            --sheet-url "$RESOLVED_SHEET_URL" \
+            --header-row "$RESOLVED_HEADER_ROW" \
+            --roster-path data/h2h_divisions.json \
+            --round-dates-path data/round_dates.json \
+            --live-futures-path data/futures.json \
+            --draft-dir draft \
+            --pr-body-path draft/pr-body.md
+        # Non-zero exit here (fetch failure, validation failure) stops the
+        # workflow before the PR step below ever runs -- see run_refresh.py's
+        # own exit-code logic, which is what this depends on.
+
+      - name: Open a PR with the draft odds
+        if: success()
+        uses: peter-evans/create-pull-request@v6
+        with:
+          title: "Weekly odds refresh (draft) - ${{ github.run_id }}"
+          body-path: draft/pr-body.md
+          branch: odds-refresh/${{ github.run_id }}
+          add-paths: |
+            draft/odds-draft-*.json
+            draft/extracted-*.json
+            draft/run-report-*.json
+          commit-message: "Draft odds refresh from weekly sheet pull"
+          # This PR is the "draft" -- merging it is the explicit publish
+          # step (Layer 6). Nothing here writes to data/ directly.
