@@ -19,15 +19,25 @@ import sys
 import os
 import json
 import argparse
+import requests
 from datetime import date
 
 from pipeline_layer3 import run_pipeline
 from diff_report import compute_diff, generate_diff_report
+from sync_roster import sync_roster_if_changed
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--sheet-url', required=True)
+    parser.add_argument('--alltime-url', default=None,
+                         help='Published CSV URL for the All Time Data / team registry sheet. '
+                              'If given, roster changes (new/renamed/departed teams) are detected '
+                              'and synced automatically before odds are simulated. If omitted, '
+                              'roster sync is skipped entirely -- odds still refresh normally.')
+    parser.add_argument('--data-dir', default='data',
+                         help='Directory holding the current live data files (h2h_divisions.json, '
+                              'admin_teams.json, etc.) to compare the roster against.')
     parser.add_argument('--roster-path', default='h2h_divisions.json')
     parser.add_argument('--round-dates-path', default='round_dates.json')
     parser.add_argument('--live-futures-path', default='futures.json')
@@ -41,8 +51,37 @@ def main():
 
     today = date.fromisoformat(args.today) if args.today else None
 
+    roster_changed = False
+    roster_summary = None
+    roster_path_for_odds = args.roster_path
+    if args.alltime_url:
+        os.makedirs(args.draft_dir, exist_ok=True)
+        alltime_local_path = os.path.join(args.draft_dir, '_alltime_data.csv')
+        try:
+            resp = requests.get(args.alltime_url, timeout=15)
+            resp.raise_for_status()
+            with open(alltime_local_path, 'w', encoding='utf-8') as f:
+                f.write(resp.text)
+        except Exception as e:
+            print(f"\nCouldn't fetch the All Time Data sheet ({e}) -- continuing with odds refresh "
+                  f"only, roster sync skipped for this run.")
+            alltime_local_path = None
+
+        if alltime_local_path:
+            try:
+                roster_changed, roster_summary = sync_roster_if_changed(
+                    alltime_local_path, data_dir=args.data_dir, draft_dir=args.draft_dir)
+            except Exception as e:
+                print(f"\nSTOPPING: roster sync failed -- {e}")
+                print("No PR will be opened. This needs a human look before anything gets published.")
+                sys.exit(1)
+            if roster_changed:
+                # odds must be simulated against the FRESH roster this sync just wrote,
+                # not the stale one still sitting in data_dir
+                roster_path_for_odds = os.path.join(args.draft_dir, 'h2h_divisions.json')
+
     result = run_pipeline(
-        args.sheet_url, args.roster_path, args.round_dates_path, args.draft_dir,
+        args.sheet_url, roster_path_for_odds, args.round_dates_path, args.draft_dir,
         header_row=args.header_row, run_simulation=True, today=today,
     )
 
@@ -83,9 +122,20 @@ def main():
     included_markets = [label for key, label in other_markets if key in draft]
 
     flagged = [r for r in diffs if r['flagged']]
+    roster_section = []
+    if roster_changed:
+        roster_section = [
+            "\u26a0\ufe0f **This run also includes a roster change, detected from the All Time Data "
+            "sheet and already applied to the files in this draft** -- review this section with real "
+            "care, since it affects the roster itself, not just this week's odds:",
+            "",
+            roster_summary,
+            "",
+        ]
     pr_body_lines = [
         "## Weekly odds refresh -- draft ready for review",
         "",
+    ] + roster_section + [
         f"Fetched from the live sheet, passed all Layer 2 validation checks, "
         f"and ran through the real simulation.",
         "",
