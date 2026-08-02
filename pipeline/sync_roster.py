@@ -11,19 +11,17 @@ applied by hand, file by file, with nothing enforcing that every dependent
 file actually got touched.
 
 The fix: admin_teams.json (the sheet author's own team registry, keyed by a
-permanent ID that survives renames) becomes the ONE place a human edits.
-Every other file listed below gets regenerated FROM it, not patched by
-hand -- so there's no way for a rename or departure to update six files but
-silently miss a seventh.
+permanent ID that survives renames) becomes the ONE place a human (or the
+automated build_admin_teams.py fetch) writes to. Every other file listed
+below gets regenerated FROM it, not patched by hand -- so there's no way
+for a rename or departure to update six files but silently miss a seventh.
 
-Usage (see the bottom of this file for a runnable example of each):
-    - Rename: edit admin_teams.json directly (change `name`, move the old
-      name into `prev_names`), then run sync_roster().
-    - Add a team: edit admin_teams.json directly (new row, new id, set
-      `status` to the division they're joining), then run sync_roster().
-    - Remove/charity-promote: edit `status` (to 'INACTIVE' for a full
-      departure, or to the new division for a charity promotion), then run
-      sync_roster().
+Directory model: functions read the CURRENT live files from `data_dir` and
+write the regenerated versions to `draft_dir` -- these are different
+directories when called from the automated workflow (so a roster change
+lands in a PR for review, the same as an odds refresh), and can be the
+same directory for direct, manual use (as this project's own testing has
+done throughout).
 
 Files this regenerates, and why each one is in scope:
     - h2h_divisions.json   -- the roster itself
@@ -51,15 +49,11 @@ absence, not something to synthesize), and a renamed team's old-name
 entries remain genuinely reachable by anything that resolves aliases.
 """
 import json
-import statistics
+import os
 
-from rebuild_coefficients import (
-    build_alias_map, load_season_with_aliases, rebuild_all_coefficients,
-    division_tier, SEASON_FILES,
-)
-from rebuild_roddy_history import rebuild_roddy_history
 from simulation_adapter import round_robin_schedule, simulate_division_futures, N_SIM
 from diff_report import pct_to_odds
+from build_admin_teams import build_admin_teams
 
 DIVISION_TIER_TO_LIVE_NAME = {
     'ELIZA CUP': 'ELIZA CUP (D1)',
@@ -68,12 +62,13 @@ DIVISION_TIER_TO_LIVE_NAME = {
 }
 
 
-def load_current_roster(admin_path='admin_teams.json'):
+def load_current_roster(admin_teams):
     """{live_division_name: [team names]} for every ACTIVE team -- anyone
-    marked INACTIVE, or with no status at all, is correctly excluded."""
-    admin = json.load(open(admin_path))
+    marked INACTIVE, or with no status at all, is correctly excluded.
+    Takes an already-loaded admin_teams list (not a path), so callers can
+    pass either the live version or a freshly-fetched draft version."""
     roster = {v: [] for v in DIVISION_TIER_TO_LIVE_NAME.values()}
-    for t in admin:
+    for t in admin_teams:
         status = t.get('status')
         if not isinstance(status, str) or status not in DIVISION_TIER_TO_LIVE_NAME:
             continue
@@ -81,29 +76,66 @@ def load_current_roster(admin_path='admin_teams.json'):
     return roster
 
 
-def sync_h2h_divisions(new_roster, out_path='h2h_divisions.json'):
+def diff_admin_teams(old_teams, new_teams):
+    """Compares two admin_teams snapshots by ID (not name, since a rename
+    is not a real change to flag as an 'add' + 'remove' pair) and returns
+    a human-readable summary, or None if nothing actually changed. This is
+    what a PR reviewer sees -- it needs to be clear enough that a roster
+    change can be sanity-checked at a glance, not just "something changed
+    in admin_teams.json"."""
+    old_by_id = {t['id']: t for t in old_teams}
+    new_by_id = {t['id']: t for t in new_teams}
+
+    added = [t for tid, t in new_by_id.items() if tid not in old_by_id]
+    removed = [t for tid, t in old_by_id.items() if tid not in new_by_id]
+    changed = []
+    for tid, new_t in new_by_id.items():
+        old_t = old_by_id.get(tid)
+        if not old_t:
+            continue
+        if old_t.get('name') != new_t.get('name'):
+            changed.append(('renamed', old_t['name'], new_t['name']))
+        if old_t.get('status') != new_t.get('status'):
+            changed.append(('status', new_t['name'], f"{old_t.get('status')} -> {new_t.get('status')}"))
+
+    if not added and not removed and not changed:
+        return None
+
+    lines = ["## Roster changes detected"]
+    for t in added:
+        lines.append(f"- **New team**: {t['name']} (id {t['id']}) -- status: {t.get('status')}")
+    for t in removed:
+        lines.append(f"- **Team removed from the registry entirely**: {t['name']} (id {t['id']}) -- unusual, double-check this is intentional")
+    for kind, a, b in changed:
+        if kind == 'renamed':
+            lines.append(f"- **Renamed**: {a} -> {b}")
+        else:
+            lines.append(f"- **Status change**: {a}: {b}")
+    return '\n'.join(lines)
+
+
+def sync_h2h_divisions(new_roster, data_dir, draft_dir):
+    out_path = os.path.join(draft_dir, 'h2h_divisions.json')
     json.dump(new_roster, open(out_path, 'w'))
     return new_roster
 
 
-def sync_h2h_schedule(new_roster, old_schedule_path='h2h_schedule.json', out_path='h2h_schedule.json',
-                       alias_map=None, id_by_current_name=None, admin_path='admin_teams.json'):
+def sync_h2h_schedule(new_roster, admin_teams, data_dir, draft_dir):
     """For a division whose team SET is unchanged (even if some of those
     teams were just renamed), the existing round-robin pairing is still
     perfectly fair and shouldn't be thrown away and re-randomized -- this
     just relabels renamed teams in place. Only a division whose team COUNT
     or genuine membership actually changed gets a freshly generated
     schedule."""
-    old_schedule = json.load(open(old_schedule_path))
-    admin = json.load(open(admin_path))
+    old_schedule = json.load(open(os.path.join(data_dir, 'h2h_schedule.json')))
     id_by_name = {}
-    for t in admin:
+    for t in admin_teams:
         id_by_name[t['name'].strip().upper()] = t['id']
         prev = t.get('prev_names')
         if isinstance(prev, str) and prev.strip():
             for old in prev.split(','):
                 id_by_name[old.strip().upper()] = t['id']
-    name_by_id = {t['id']: t['name'].strip() for t in admin}
+    name_by_id = {t['id']: t['name'].strip() for t in admin_teams}
 
     new_schedule = {}
     for div, teams in new_roster.items():
@@ -114,67 +146,99 @@ def sync_h2h_schedule(new_roster, old_schedule_path='h2h_schedule.json', out_pat
         old_ids = {id_by_name.get(t.upper()) for t in old_teams_in_div}
         new_ids = {id_by_name.get(t.upper()) for t in teams}
         if old_ids == new_ids and None not in new_ids:
-            # same teams, possibly renamed -- relabel in place, keep the pairing
             def relabel(name):
                 tid = id_by_name.get(name.upper())
                 return name_by_id.get(tid, name)
             new_schedule[div] = [[[relabel(a), relabel(b)] for a, b in rnd] for rnd in old_schedule[div]]
         else:
-            # genuine membership change -- a fresh, fair round-robin is required
             new_schedule[div] = round_robin_schedule(teams)
-    json.dump(new_schedule, open(out_path, 'w'))
+    json.dump(new_schedule, open(os.path.join(draft_dir, 'h2h_schedule.json'), 'w'))
     return new_schedule
 
 
-def sync_coefficients_and_pools(new_roster, admin_path='admin_teams.json',
-                                 coeffs_out='team_market_coeffs.json', history_out='roddy_history.json',
-                                 shift_out='h2h_shift.json', cup_shift_out='h2h_cup_shift.json',
-                                 widen_out='h2h_variance_widen.json'):
-    current_divisions = {}
-    for div, teams in new_roster.items():
-        normalized = div.replace(' (D1)', '')
-        for t in teams:
-            current_divisions[t] = normalized
+def sync_coefficients_and_pools(new_roster, admin_teams, data_dir, draft_dir):
+    """Deliberately does NOT call rebuild_all_coefficients() / a full
+    from-scratch rebuild -- those depend on the raw multi-season historical
+    CSVs, which were only ever processed locally and were never part of
+    the deployed repo, so the automated workflow genuinely cannot call
+    them. Instead: a continuing or renamed team's existing coefficient is
+    carried forward unchanged (matched via admin_teams' id/prev_names, the
+    same alias resolution used everywhere else) -- their underlying skill
+    hasn't changed just because their name or division did. A genuinely
+    new team with no prior entry gets the same neutral defaults already
+    used elsewhere for a team with no tracked history.
 
-    profiles = rebuild_all_coefficients(current_divisions)
+    Known trade-off: a team that's promoted or relegated keeps its prior
+    tier-adjusted 'eliza' value rather than having the tier-offset
+    immediately recalculated against its new division -- that recalc still
+    needs an occasional full manual rebuild (the same process already used
+    each time this project has done one), not something this automated
+    path attempts on its own."""
+    id_by_name = {}
+    for t in admin_teams:
+        id_by_name[t['name'].strip().upper()] = t['id']
+        prev = t.get('prev_names')
+        if isinstance(prev, str) and prev.strip():
+            for old in prev.split(','):
+                id_by_name[old.strip().upper()] = t['id']
+
+    old_tmc = json.load(open(os.path.join(data_dir, 'team_market_coeffs.json')))
+    old_history = json.load(open(os.path.join(data_dir, 'roddy_history.json')))
+    old_shift = json.load(open(os.path.join(data_dir, 'h2h_shift.json')))
+    old_cup_shift = json.load(open(os.path.join(data_dir, 'h2h_cup_shift.json')))
+    old_widen = json.load(open(os.path.join(data_dir, 'h2h_variance_widen.json')))
+    old_coeffs_by_id = {}
+    for name, c in old_tmc['team_coeffs'].items():
+        tid = id_by_name.get(name.upper())
+        if tid:
+            old_coeffs_by_id[tid] = (name, c)
+
+    scale = old_tmc.get('scale', 15.045914141732512)
+    neutral = {'eliza': 0.0, 'roddy': 0.0, 'fa_cup': 0.0, 'ecl': 0.0, 'relegation_risk': 0.0, 'variance_widen': 0.5}
+
     all_teams = [t for teams in new_roster.values() for t in teams]
-    team_coeffs = {}
+    team_coeffs, history, shift, cup_shift, widen = {}, {}, {}, {}, {}
     for t in all_teams:
-        p = profiles.get(t)
-        team_coeffs[t] = {k: p[k] for k in ('eliza', 'roddy', 'fa_cup', 'ecl', 'relegation_risk', 'variance_widen')} if p else \
-                          {'eliza': 0.0, 'roddy': 0.0, 'fa_cup': 0.0, 'ecl': 0.0, 'relegation_risk': 0.0, 'variance_widen': 0.5}
-    scale = 15.045914141732512
+        tid = id_by_name.get(t.upper())
+        old_entry = old_coeffs_by_id.get(tid)
+        if old_entry:
+            old_name, c = old_entry
+            team_coeffs[t] = c
+            history[t] = old_history.get(old_name, [])
+            shift[t] = old_shift.get(old_name, round(scale * (c['eliza'] - 0.5 * c['relegation_risk']), 3))
+            cup_shift[t] = old_cup_shift.get(old_name, round(scale * c['fa_cup'], 3))
+            widen[t] = old_widen.get(old_name, c.get('variance_widen', 0.0))
+        else:
+            team_coeffs[t] = neutral
+            history[t] = []
+            shift[t] = 0.0
+            cup_shift[t] = 0.0
+            widen[t] = 0.5
+
     tmc = {'scale': scale, 'team_coeffs': team_coeffs}
-    json.dump(tmc, open(coeffs_out, 'w'))
-
-    history = rebuild_roddy_history(all_teams)
-    json.dump(history, open(history_out, 'w'))
-
-    shift = {t: round(scale * (c['eliza'] - 0.5 * c['relegation_risk']), 3) for t, c in team_coeffs.items()}
-    json.dump(shift, open(shift_out, 'w'))
-    cup_shift = {t: round(scale * c['fa_cup'], 3) for t, c in team_coeffs.items()}
-    json.dump(cup_shift, open(cup_shift_out, 'w'))
-    widen = {t: c.get('variance_widen', 0.0) for t, c in team_coeffs.items()}
-    json.dump(widen, open(widen_out, 'w'))
+    json.dump(tmc, open(os.path.join(draft_dir, 'team_market_coeffs.json'), 'w'))
+    json.dump(history, open(os.path.join(draft_dir, 'roddy_history.json'), 'w'))
+    json.dump(history, open(os.path.join(draft_dir, 'h2h_history.json'), 'w'))
+    json.dump(shift, open(os.path.join(draft_dir, 'h2h_shift.json'), 'w'))
+    json.dump(cup_shift, open(os.path.join(draft_dir, 'h2h_cup_shift.json'), 'w'))
+    json.dump(widen, open(os.path.join(draft_dir, 'h2h_variance_widen.json'), 'w'))
 
     return tmc, history
 
 
-def sync_carry_balances(new_roster, admin_path='admin_teams.json', carry_path='carry_balances.json',
-                         out_path='carry_balances.json'):
+def sync_carry_balances(new_roster, admin_teams, data_dir, draft_dir):
     """Preserves an existing balance for any continuing or renamed team
     (matched by ID, so a rename doesn't accidentally reset someone's carry
     to zero); adds a genuine $0 entry only for a team that's actually new."""
-    admin = json.load(open(admin_path))
     id_by_old_name = {}
-    for t in admin:
+    for t in admin_teams:
         prev = t.get('prev_names')
         if isinstance(prev, str) and prev.strip():
             for old in prev.split(','):
                 id_by_old_name[old.strip().upper()] = t['id']
-    id_by_current_name = {t['name'].strip().upper(): t['id'] for t in admin}
+    id_by_current_name = {t['name'].strip().upper(): t['id'] for t in admin_teams}
 
-    old_carry = json.load(open(carry_path))
+    old_carry = json.load(open(os.path.join(data_dir, 'carry_balances.json')))
     old_carry_by_id = {}
     for name, rec in old_carry.items():
         tid = id_by_old_name.get(name.upper()) or id_by_current_name.get(name.upper())
@@ -191,19 +255,17 @@ def sync_carry_balances(new_roster, admin_path='admin_teams.json', carry_path='c
             new_carry[t] = {'carry': 0.0, 'historicalRecord': {
                 'totalBets': 0, 'winningBets': 0, 'winnings': 0.0,
                 'losingBets': 0, 'losses': 0.0, 'voidBets': 0, 'voidReturn': 0.0}}
-    json.dump(new_carry, open(out_path, 'w'))
+    json.dump(new_carry, open(os.path.join(draft_dir, 'carry_balances.json'), 'w'))
     return new_carry
 
 
-def sync_futures_divisions(new_roster, team_coeffs, scale, history, futures_path='futures.json',
-                            out_path='futures.json', n_sim=N_SIM, seed=1):
-    futures = json.load(open(futures_path))
+def sync_futures_divisions(new_roster, team_coeffs, scale, history, data_dir, draft_dir, n_sim=N_SIM, seed=1):
+    futures = json.load(open(os.path.join(data_dir, 'futures.json')))
     div_keys_count = lambda div: {
         'win_div_pct': 1, 'top3_pct': 3,
         'top_half_pct': len(new_roster[div]) // 2, 'bottom_half_pct': len(new_roster[div]) // 2,
         'wooden_spoon_pct': 1,
         **({'bottom3_pct': 3} if div in ('DIVISION 3A', 'DIVISION 3B') else {'relegation_pct': 4 if div.startswith('ELIZA') else 3}),
-        'promotion_pct': None,  # left untouched here -- computed by the dedicated promotion market rebuild, not per-division
     }
 
     def floor_and_renormalize(entries, target_total, floor_pct=0.5, max_passes=10):
@@ -225,7 +287,7 @@ def sync_futures_divisions(new_roster, team_coeffs, scale, history, futures_path
     for div, teams in new_roster.items():
         counts = div_keys_count(div)
         for key, n_qual in counts.items():
-            if n_qual is None or key not in by_div.get(div, [{}])[0]:
+            if key not in by_div.get(div, [{}])[0]:
                 continue
             entries = [(r['team'], float(r[key])) for r in by_div[div]]
             floored = floor_and_renormalize(entries, 100.0 * n_qual)
@@ -236,18 +298,38 @@ def sync_futures_divisions(new_roster, team_coeffs, scale, history, futures_path
             market_rows.sort(key=lambda r: r['odds'])
             futures['divisions'].setdefault(div, {})[key] = market_rows
 
-    json.dump(futures, open(out_path, 'w'))
+    json.dump(futures, open(os.path.join(draft_dir, 'futures.json'), 'w'))
     return futures
 
 
-def sync_roster(admin_path='admin_teams.json'):
-    """The single entry point: run this after editing admin_teams.json for
-    any roster change, and every dependent file gets regenerated
-    consistently from it."""
-    new_roster = load_current_roster(admin_path)
-    sync_h2h_divisions(new_roster)
-    sync_h2h_schedule(new_roster, admin_path=admin_path)
-    tmc, history = sync_coefficients_and_pools(new_roster, admin_path=admin_path)
-    sync_carry_balances(new_roster, admin_path=admin_path)
-    sync_futures_divisions(new_roster, tmc['team_coeffs'], tmc['scale'], history)
+def sync_roster(admin_teams, data_dir='.', draft_dir='.'):
+    """The core entry point given an already-loaded admin_teams list --
+    regenerates every dependent file from data_dir into draft_dir."""
+    os.makedirs(draft_dir, exist_ok=True)
+    new_roster = load_current_roster(admin_teams)
+    sync_h2h_divisions(new_roster, data_dir, draft_dir)
+    sync_h2h_schedule(new_roster, admin_teams, data_dir, draft_dir)
+    tmc, history = sync_coefficients_and_pools(new_roster, admin_teams, data_dir, draft_dir)
+    sync_carry_balances(new_roster, admin_teams, data_dir, draft_dir)
+    sync_futures_divisions(new_roster, tmc['team_coeffs'], tmc['scale'], history, data_dir, draft_dir)
+    json.dump(admin_teams, open(os.path.join(draft_dir, 'admin_teams.json'), 'w'))
     return new_roster
+
+
+def sync_roster_if_changed(alltime_csv_path, data_dir, draft_dir):
+    """The automated-workflow entry point: fetches a fresh admin_teams
+    snapshot from the All Time Data sheet, compares it against the current
+    live version, and only actually runs the full sync (writing to
+    draft_dir) if something genuinely changed. Returns (changed: bool,
+    summary: str|None) -- summary is the PR-body text describing exactly
+    what changed, for human review."""
+    fresh_teams, season_label = build_admin_teams(alltime_csv_path, out_path=os.path.join(draft_dir, '_fresh_admin_teams.json'))
+    old_path = os.path.join(data_dir, 'admin_teams.json')
+    old_teams = json.load(open(old_path)) if os.path.exists(old_path) else []
+
+    summary = diff_admin_teams(old_teams, fresh_teams)
+    if summary is None:
+        return False, None
+
+    sync_roster(fresh_teams, data_dir=data_dir, draft_dir=draft_dir)
+    return True, f"{summary}\n\n(Source sheet's most recent season column: {season_label})"
