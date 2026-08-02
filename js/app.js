@@ -1,7 +1,44 @@
 (async function(){
   const DATA = {};
+  // Catches a real, repeated failure mode: a data file getting the WRONG
+  // file's content deployed under its name (this has happened twice --
+  // h2h_shift.json once held h2h_history's score arrays instead of plain
+  // shift numbers, and team_market_coeffs.json once held a plain team-name
+  // list instead of coefficients). Each check is deliberately loose --
+  // just enough to catch "this is obviously the wrong shape of data", not
+  // a full schema validator that becomes a maintenance burden.
+  function validateDataShape(name, data){
+    if(data === null || data === undefined) return 'came back empty';
+    const isPlainNumber = v => typeof v === 'number' && !Array.isArray(v);
+    const isArray = v => Array.isArray(v);
+    if(name === 'h2h_shift' || name === 'h2h_variance_widen' || name === 'h2h_cup_shift'){
+      const vals = Object.values(data);
+      if(!vals.length) return 'has no teams at all';
+      if(!vals.every(isPlainNumber)) return 'should be plain {team: number} values, but found something else (an array or object) -- likely the wrong file\u2019s content got deployed under this name';
+    }
+    if(name === 'h2h_history'){
+      const vals = Object.values(data);
+      if(!vals.length) return 'has no teams at all';
+      if(!vals.every(isArray)) return 'should be {team: [scores]} arrays, but found something else -- likely the wrong file\u2019s content got deployed under this name';
+    }
+    if(name === 'h2h_divisions'){
+      const vals = Object.values(data);
+      if(!vals.length) return 'has no divisions at all';
+      if(!vals.every(v => isArray(v) && v.every(t => typeof t === 'string'))) return 'should be {division: [team names]}, but found something else';
+    }
+    if(name === 'futures'){
+      if(!data.divisions || !data.roddy) return 'is missing expected top-level sections (divisions/roddy) -- likely an incomplete or wrong file';
+    }
+    if(name === 'special_markets'){
+      if(!Array.isArray(data.charity) || !Array.isArray(data.philanthropy)) return 'is missing the expected charity/philanthropy market lists';
+    }
+    if(name === 'h2h_record'){
+      if(!Array.isArray(data) || (data.length && typeof data[0].played !== 'number')) return 'should be a list of pairwise records with a played count, but found something else';
+    }
+    return null;
+  }
   async function loadAllData(){
-    const files = ['futures','h2h_history','h2h_divisions','h2h_shift','h2h_variance_widen','h2h_schedule','leading_at','special_markets','h2h_record','cup_calendar','carry_balances','round_dates','div23_schedule_exceptions'];
+    const files = ['futures','h2h_history','h2h_divisions','h2h_shift','h2h_cup_shift','h2h_variance_widen','h2h_schedule','leading_at','special_markets','h2h_record','cup_calendar','carry_balances','round_dates','div23_schedule_exceptions'];
     const failures = [];
     const results = await Promise.all(files.map(async name => {
       const path = './data/' + name + '.json';
@@ -16,12 +53,19 @@
         failures.push(name + ' (HTTP ' + res.status + ' -- check the file exists at data/' + name + '.json)');
         return null;
       }
+      let parsed;
       try {
-        return await res.json();
+        parsed = await res.json();
       } catch(e) {
         failures.push(name + ' (response wasn\u2019t valid JSON -- likely a 404 page was returned instead of the real file)');
         return null;
       }
+      const shapeIssue = validateDataShape(name, parsed);
+      if(shapeIssue){
+        failures.push(name + ' (' + shapeIssue + ')');
+        return null;
+      }
+      return parsed;
     }));
     if(failures.length){
       throw new Error('Failed to load: ' + failures.join('; '));
@@ -46,6 +90,7 @@
   const H2H_HISTORY = DATA.h2h_history;
   const H2H_DIVISIONS = DATA.h2h_divisions;
   const H2H_SHIFT = DATA.h2h_shift;
+  const H2H_CUP_SHIFT = DATA.h2h_cup_shift || {};
   const H2H_VARIANCE_WIDEN = DATA.h2h_variance_widen || {};
   const H2H_SCHEDULE = DATA.h2h_schedule;
   const SPECIAL_MARKETS = DATA.special_markets;
@@ -399,6 +444,35 @@
   }
   function sampleTeam(team, n){
     const info = teamInfo[team];
+    const out = new Array(n);
+    for(let i=0;i<n;i++){ out[i] = (info.own && Math.random()<info.w) ? info.own(1)[0] : info.baseline(1)[0]; }
+    return out;
+  }
+  // Parallel to teamInfo/sampleTeam above, but using the cup-specific shift
+  // (built from the fa_cup/ecl coefficient -- roddy's base strength plus a
+  // ceiling/volatility boost for teams that run hotter than their average,
+  // since a single-elimination format rewards a high-ceiling day more than
+  // a season-long average does) rather than the division-context eliza
+  // shift. Used for cross-divisional knockout contexts like ECL groups,
+  // where a team's standing relative to its own division isn't really the
+  // right comparison.
+  const teamInfoCup = {};
+  for(const div in H2H_DIVISIONS){
+    const widePool = divSampler[div] ? (H2H_DIVISIONS[div].reduce((acc,t)=>H2H_HISTORY[t]?acc.concat(H2H_HISTORY[t]):acc, [])) : allPool;
+    for(const t of H2H_DIVISIONS[div]){
+      const shift = H2H_CUP_SHIFT[t] || 0;
+      const widen = H2H_VARIANCE_WIDEN[t] || 0;
+      if(H2H_HISTORY[t]){
+        const n = H2H_HISTORY[t].length;
+        teamInfoCup[t] = { own: makeShiftedSampler(H2H_HISTORY[t], shift, widen, widePool.length ? widePool : allPool), w: n/(n+K), baseline: makeShiftedSampler(allPool, shift) };
+      } else {
+        teamInfoCup[t] = { own: null, w: 0, baseline: makeShiftedSampler(allPool, shift) };
+      }
+    }
+  }
+  function sampleTeamForCup(team, n){
+    const info = teamInfoCup[team];
+    if(!info) return sampleTeam(team, n); // fall back gracefully for a team with no cup shift entry
     const out = new Array(n);
     for(let i=0;i<n;i++){ out[i] = (info.own && Math.random()<info.w) ? info.own(1)[0] : info.baseline(1)[0]; }
     return out;
@@ -1853,7 +1927,7 @@
   function computeGroupWinnerMarket(teams, nSim){
     nSim = nSim || 10000;
     const samples = {};
-    teams.forEach(t => { samples[t] = sampleTeam(t, nSim); });
+    teams.forEach(t => { samples[t] = sampleTeamForCup(t, nSim); });
     const wins = {}; teams.forEach(t => wins[t] = 0);
     for(let i=0;i<nSim;i++){
       let best = teams[0], bestScore = samples[teams[0]][i];
