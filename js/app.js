@@ -35,6 +35,30 @@
     if(name === 'h2h_record'){
       if(!Array.isArray(data) || (data.length && typeof data[0].played !== 'number')) return 'should be a list of pairwise records with a played count, but found something else';
     }
+    if(name === 'h2h_schedule'){
+      const vals = Object.values(data);
+      if(!vals.length) return 'has no divisions at all';
+      const first = vals[0];
+      if(!isArray(first) || !isArray(first[0]) || !isArray(first[0][0])) return 'should be {division: [rounds of team-pairs]}, but found something else';
+    }
+    if(name === 'cup_calendar'){
+      if(!data.fa_cup || !data.ecl || typeof data.fa_cup !== 'object' || Array.isArray(data.fa_cup)) return 'should have fa_cup/ecl round-to-stage mappings, but found something else';
+    }
+    if(name === 'carry_balances'){
+      const vals = Object.values(data);
+      if(!vals.length) return 'has no teams at all';
+      if(!vals.every(v => v && typeof v === 'object' && !Array.isArray(v) && typeof v.carry === 'number')) return 'should be {team: {carry: number, ...}}, but found something else';
+    }
+    if(name === 'round_dates'){
+      const vals = Object.values(data);
+      if(!vals.length) return 'has no rounds at all';
+      if(!vals.every(v => typeof v === 'string')) return 'should be {round: date string}, but found something else';
+    }
+    if(name === 'div23_schedule_exceptions'){
+      const vals = Object.values(data);
+      if(!vals.length) return 'has no divisions at all';
+      if(!vals.every(v => v && isArray(v.no_fixture_rounds))) return 'should be {division: {no_fixture_rounds: [...], ...}}, but found something else';
+    }
     return null;
   }
   async function loadAllData(){
