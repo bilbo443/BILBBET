@@ -58,7 +58,7 @@ def main():
         os.makedirs(args.draft_dir, exist_ok=True)
         alltime_local_path = os.path.join(args.draft_dir, '_alltime_data.csv')
         try:
-            resp = requests.get(args.alltime_url, timeout=15)
+            resp = requests.get(args.alltime_url, timeout=60)
             resp.raise_for_status()
             with open(alltime_local_path, 'w', encoding='utf-8') as f:
                 f.write(resp.text)
