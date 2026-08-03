@@ -460,6 +460,27 @@
   async function getIndex(name){ return (await sget(name)) || []; }
   async function addToIndex(name, id){ const list = await getIndex(name); if(!list.includes(id)){ list.push(id); await sset(name, list); } }
   async function getUser(u){ return await sget('bilbbet2_user:' + u.toLowerCase()); }
+  // Serializes any read-modify-write sequence on the SAME user's record,
+  // regardless of which function initiates it. Found via testing: a punter
+  // placing a bet (reads balance, deducts stake, writes) racing against an
+  // admin adjusting that same punter's balance (reads, adds, writes) can
+  // silently lose one of the two changes entirely if both writes land
+  // close together -- confirmed this drops the stake deduction outright,
+  // effectively giving a free bet. This is a general pattern across every
+  // function that mutates a user record (placing bets, resolving bets,
+  // balance adjustments, registration changes), not specific to any one of
+  // them, so the fix is general too: any such function should wrap its
+  // getUser-modify-saveUser sequence in withUserLock rather than getting a
+  // one-off fix each. Different users' operations still run independently
+  // -- this only serializes operations on the SAME username.
+  const userLocks = {};
+  function withUserLock(username, fn){
+    const key = username.toLowerCase();
+    const prev = userLocks[key] || Promise.resolve();
+    const settled = prev.then(fn, fn);
+    userLocks[key] = settled.catch(() => {});
+    return settled;
+  }
   async function saveUser(u){ return await sset('bilbbet2_user:' + u.username.toLowerCase(), u); }
 
   // ---------- H2H sampling model (bootstrap + shrinkage) ----------
@@ -2108,11 +2129,13 @@
 
   async function adjustPunterBalance(username, delta){
     if(!delta){ return; }
-    const u = await getUser(username);
-    if(!u) return;
-    u.balance += delta;
-    await saveUser(u);
-    if(state.user.username.toLowerCase() === username.toLowerCase()) state.user = u;
+    await withUserLock(username, async () => {
+      const u = await getUser(username);
+      if(!u) return;
+      u.balance += delta;
+      await saveUser(u);
+      if(state.user.username.toLowerCase() === username.toLowerCase()) state.user = u;
+    });
     await loadAdminData();
   }
 
@@ -2129,25 +2152,31 @@
   // PIN, live balance, and current-season status are cleared.
   async function resetRegistration(username){
     if(!confirm(`Reset ${username}'s registration? They'll need to register again with a new PIN, and their current balance will be cleared (their carried-over history isn't lost -- it's reapplied automatically once they re-register and are approved). This can't be undone.`)) return;
-    const u = await getUser(username);
-    if(!u) return;
-    u.status = 'RESET';
-    u.pinHash = null;
-    u.balance = 0;
-    u.everFunded = false;
-    await saveUser(u);
+    await withUserLock(username, async () => {
+      const u = await getUser(username);
+      if(!u) return;
+      u.status = 'RESET';
+      u.pinHash = null;
+      u.balance = 0;
+      u.everFunded = false;
+      await saveUser(u);
+    });
     await loadAdminData();
   }
 
   async function applyRegistrationStatus(username, newStatus){
-    const u = await getUser(username);
+    const u = await withUserLock(username, async () => {
+      const fresh = await getUser(username);
+      if(!fresh) return null;
+      fresh.status = newStatus;
+      if(newStatus === 'APPROVED' && !fresh.everFunded){
+        fresh.balance += 1000 + (fresh.dormantCarry || 0);
+        fresh.everFunded = true;
+      }
+      await saveUser(fresh);
+      return fresh;
+    });
     if(!u) return;
-    u.status = newStatus;
-    if(newStatus === 'APPROVED' && !u.everFunded){
-      u.balance += 1000 + (u.dormantCarry || 0);
-      u.everFunded = true;
-    }
-    await saveUser(u);
     if(state.user.username.toLowerCase() === username.toLowerCase()) state.user = u;
   }
 
@@ -2215,24 +2244,32 @@
   // item that settles several bets at once) so they can do a single reload at the end
   // instead of one per bet.
   async function applyBetStatus(betId, newStatus){
-    const bet = await sget('bilbbet2_bet:'+betId);
-    if(!bet) return;
-    const prevStatus = bet.status || 'PENDING';
-    if(prevStatus === newStatus) return;
-    const u = await getUser(bet.username);
-    if(u){
-      u.balance -= settlementCredit(prevStatus, bet);
-      u.balance += settlementCredit(newStatus, bet);
-      await saveUser(u);
-      if(state.user.username.toLowerCase() === bet.username.toLowerCase()) state.user = u;
-    }
-    bet.status = newStatus;
-    // keep the per-leg result in sync for single-selection bets, so the data model
-    // is consistent regardless of which path resolved the bet
-    if(bet.selections.length === 1){
-      bet.selections[0].result = newStatus === 'PENDING' ? null : newStatus;
-    }
-    await sset('bilbbet2_bet:'+betId, bet);
+    const initial = await sget('bilbbet2_bet:'+betId);
+    if(!initial) return;
+    await withUserLock(initial.username, async () => {
+      // Re-read the bet INSIDE the lock -- if another call for this same
+      // user was already in flight, prevStatus needs to reflect whatever
+      // that call actually left behind, not whatever was true before this
+      // call started waiting.
+      const bet = await sget('bilbbet2_bet:'+betId);
+      if(!bet) return;
+      const prevStatus = bet.status || 'PENDING';
+      if(prevStatus === newStatus) return;
+      const u = await getUser(bet.username);
+      if(u){
+        u.balance -= settlementCredit(prevStatus, bet);
+        u.balance += settlementCredit(newStatus, bet);
+        await saveUser(u);
+        if(state.user.username.toLowerCase() === bet.username.toLowerCase()) state.user = u;
+      }
+      bet.status = newStatus;
+      // keep the per-leg result in sync for single-selection bets, so the data model
+      // is consistent regardless of which path resolved the bet
+      if(bet.selections.length === 1){
+        bet.selections[0].result = newStatus === 'PENDING' ? null : newStatus;
+      }
+      await sset('bilbbet2_bet:'+betId, bet);
+    });
   }
 
   async function setBetStatus(betId, newStatus){
@@ -2260,45 +2297,45 @@
   }
 
   async function resolveSelectionResult(betId, index, result){
-    const bet = await sget('bilbbet2_bet:'+betId);
-    if(!bet) return;
-    bet.selections[index].result = result;
-    const prevOverall = bet.status || 'PENDING';
-    const newOverall = computeOverallStatus(bet.selections);
-    const statusChanged = newOverall !== prevOverall;
-    // Recomputed independently of statusChanged: correcting a DIFFERENT leg
-    // can change whether this is still a genuine near-miss (e.g. going from
-    // one lost leg to two) without the overall status itself moving away
-    // from LOST -- so this has to be checked every time a leg changes, not
-    // only when the headline status flips.
-    const stillQualifies = newOverall === 'LOST' && isNearMissBonus(bet.selections);
-    const bonusNeedsClawback = bet.nearMissBonusAwarded && !stillQualifies;
-    const bonusNewlyEarned = !bet.nearMissBonusAwarded && stillQualifies;
-    if(statusChanged || bonusNeedsClawback || bonusNewlyEarned){
-      const u = await getUser(bet.username);
-      if(u){
-        if(statusChanged){
-          u.balance -= settlementCredit(prevOverall, bet);
-          u.balance += settlementCredit(newOverall, bet);
+    const initial = await sget('bilbbet2_bet:'+betId);
+    if(!initial) return;
+    await withUserLock(initial.username, async () => {
+      // Re-read fresh, inside the lock -- if a DIFFERENT leg on this same
+      // bet was resolved by a call that was already in flight, that
+      // change needs to still be there, not overwritten by this call
+      // working from a stale copy.
+      const bet = await sget('bilbbet2_bet:'+betId);
+      if(!bet) return;
+      bet.selections[index].result = result;
+      const prevOverall = bet.status || 'PENDING';
+      const newOverall = computeOverallStatus(bet.selections);
+      const statusChanged = newOverall !== prevOverall;
+      const stillQualifies = newOverall === 'LOST' && isNearMissBonus(bet.selections);
+      const bonusNeedsClawback = bet.nearMissBonusAwarded && !stillQualifies;
+      const bonusNewlyEarned = !bet.nearMissBonusAwarded && stillQualifies;
+      if(statusChanged || bonusNeedsClawback || bonusNewlyEarned){
+        const u = await getUser(bet.username);
+        if(u){
+          if(statusChanged){
+            u.balance -= settlementCredit(prevOverall, bet);
+            u.balance += settlementCredit(newOverall, bet);
+          }
+          if(bonusNeedsClawback){
+            u.balance -= bet.stake;
+            u.nearMissBonusUsed = false;
+            bet.nearMissBonusAwarded = false;
+          } else if(bonusNewlyEarned && !u.nearMissBonusUsed){
+            u.balance += bet.stake;
+            u.nearMissBonusUsed = true;
+            bet.nearMissBonusAwarded = true;
+          }
+          await saveUser(u);
+          if(state.user && state.user.username.toLowerCase() === bet.username.toLowerCase()) state.user = u;
         }
-        if(bonusNeedsClawback){
-          // A correction means this no longer genuinely qualifies -- claw
-          // back the bonus rather than leave it stranded as an incorrect,
-          // permanent extra payment.
-          u.balance -= bet.stake;
-          u.nearMissBonusUsed = false;
-          bet.nearMissBonusAwarded = false;
-        } else if(bonusNewlyEarned && !u.nearMissBonusUsed){
-          u.balance += bet.stake;
-          u.nearMissBonusUsed = true;
-          bet.nearMissBonusAwarded = true;
-        }
-        await saveUser(u);
-        if(state.user && state.user.username.toLowerCase() === bet.username.toLowerCase()) state.user = u;
+        bet.status = newOverall;
       }
-      bet.status = newOverall;
-    }
-    await sset('bilbbet2_bet:'+betId, bet);
+      await sset('bilbbet2_bet:'+betId, bet);
+    });
     await loadAdminData();
   }
 
@@ -3116,10 +3153,13 @@
       const boostEligible = slipSnapshot.length >= 3 && (!state.user.boostUsedRound || state.user.boostUsedRound !== state.currentRound);
       const boostApplied = boostEligible && state.useBoost;
       const combined = combinedOddsFor(slipSnapshot) * (boostApplied ? BOOST_MULTIPLIER : 1);
-      const u = await getUser(state.user.username);
-      u.balance -= stake;
-      if(boostApplied) u.boostUsedRound = state.currentRound;
-      await saveUser(u);
+      const u = await withUserLock(state.user.username, async () => {
+        const fresh = await getUser(state.user.username);
+        fresh.balance -= stake;
+        if(boostApplied) fresh.boostUsedRound = state.currentRound;
+        await saveUser(fresh);
+        return fresh;
+      });
       state.user = u;
       const bet = { id: uid(), username: u.username, selections: slipSnapshot, stake, combinedOdds: combined, boosted: boostApplied,
                     potentialReturn: Math.round(stake*combined), timestamp: Date.now(), status: 'PENDING' };
@@ -3155,9 +3195,12 @@
     state.betSubmissionInProgress = true;
     try {
       const slipSnapshot = state.slip.slice();
-      const u = await getUser(state.user.username);
-      u.balance -= totalStake;
-      await saveUser(u);
+      const u = await withUserLock(state.user.username, async () => {
+        const fresh = await getUser(state.user.username);
+        fresh.balance -= totalStake;
+        await saveUser(fresh);
+        return fresh;
+      });
       state.user = u;
       for(const item of slipSnapshot){
         const stake = Math.max(1, item.singleStake||0);
