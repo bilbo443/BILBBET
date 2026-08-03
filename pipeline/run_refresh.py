@@ -58,7 +58,12 @@ def main():
         os.makedirs(args.draft_dir, exist_ok=True)
         alltime_local_path = os.path.join(args.draft_dir, '_alltime_data.csv')
         try:
-            resp = requests.get(args.alltime_url, timeout=60)
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+                              '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/csv,text/plain,*/*',
+            }
+            resp = requests.get(args.alltime_url, timeout=60, headers=headers)
             resp.raise_for_status()
             with open(alltime_local_path, 'w', encoding='utf-8') as f:
                 f.write(resp.text)
