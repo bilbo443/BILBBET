@@ -159,7 +159,8 @@ def run_pipeline(url, roster_path, round_dates_path, draft_dir,
         odds = regenerate_futures_odds(results)
     except NotImplementedError as e:
         step(f"SIMULATION NOT AVAILABLE: {e}")
-        result = {'status': 'simulation_not_implemented', 'extracted_path': extracted_path, 'log': log}
+        result = {'status': 'simulation_not_implemented', 'extracted_path': extracted_path,
+                  'extracted_results': results, 'log': log}
         write_run_report(draft_dir, run_id, result)
         return result
 
@@ -167,7 +168,8 @@ def run_pipeline(url, roster_path, round_dates_path, draft_dir,
     odds_path = os.path.join(draft_dir, f'odds-draft-{run_id}.json')
     with open(odds_path, 'w') as f:
         json.dump(odds, f, indent=2)
-    result = {'status': 'draft_ready', 'extracted_path': extracted_path, 'odds_path': odds_path, 'log': log}
+    result = {'status': 'draft_ready', 'extracted_path': extracted_path, 'odds_path': odds_path,
+              'extracted_results': results, 'log': log}
     write_run_report(draft_dir, run_id, result)
     return result
 
