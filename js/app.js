@@ -1,4 +1,3 @@
-
 (async function(){
   const DATA = {};
   // Catches a real, repeated failure mode: a data file getting the WRONG
@@ -2540,7 +2539,8 @@
     return `<div>${renderStorageWarning()}${header()}${renderTeamSearchPanel()}${mainTabs()}${body}${renderFooter()}</div>${['ADMIN','STATS'].includes(state.activeTab) ? '' : slipBar()}${state.loginModalOpen ? renderLoginModal() : ''}${state.tosModalOpen ? renderTosModal() : ''}${state.readMeModalOpen ? renderReadMeModal() : ''}${teamsDatalist()}`;
   }
 
-  function combinedOdds(){ return state.slip.reduce((acc,s)=>acc*s.odds,1); }
+  function combinedOdds(){ return combinedOddsFor(state.slip); }
+  function combinedOddsFor(slip){ return slip.reduce((acc,s)=>acc*s.odds,1); }
   const BOOST_MULTIPLIER = 1.10; // one free +10% odds boost per punter per round, on a 3+ leg multi
 
   // ---------- conflict detection ----------
@@ -3101,20 +3101,35 @@
     }
     state.betSubmissionInProgress = true;
     try {
-      const boostEligible = state.slip.length >= 3 && (!state.user.boostUsedRound || state.user.boostUsedRound !== state.currentRound);
+      // Snapshot the slip ONCE, synchronously, right here -- and use this
+      // exact snapshot for everything below, never state.slip directly
+      // again in this function. Without this, combinedOdds() (computed
+      // here, before any await) and bet.selections (previously read from
+      // state.slip AFTER the awaits) could end up reflecting two different
+      // moments in time if the user adds or removes picks while the bet is
+      // still submitting -- a real, exploitable mismatch: add several
+      // high-odds picks to lock in high combined odds, then rapidly remove
+      // all but one near-certain pick before the write lands, and the
+      // saved bet would pay out at multi-leg odds for what's effectively a
+      // single easy bet.
+      const slipSnapshot = state.slip.slice();
+      const boostEligible = slipSnapshot.length >= 3 && (!state.user.boostUsedRound || state.user.boostUsedRound !== state.currentRound);
       const boostApplied = boostEligible && state.useBoost;
-      const combined = combinedOdds() * (boostApplied ? BOOST_MULTIPLIER : 1);
+      const combined = combinedOddsFor(slipSnapshot) * (boostApplied ? BOOST_MULTIPLIER : 1);
       const u = await getUser(state.user.username);
       u.balance -= stake;
       if(boostApplied) u.boostUsedRound = state.currentRound;
       await saveUser(u);
       state.user = u;
-      const bet = { id: uid(), username: u.username, selections: state.slip, stake, combinedOdds: combined, boosted: boostApplied,
+      const bet = { id: uid(), username: u.username, selections: slipSnapshot, stake, combinedOdds: combined, boosted: boostApplied,
                     potentialReturn: Math.round(stake*combined), timestamp: Date.now(), status: 'PENDING' };
       await sset('bilbbet2_bet:'+bet.id, bet);
       await addToIndex('bilbbet2_bets_index_' + u.username.toLowerCase(), bet.id);
       await addToIndex('bilbbet2_all_bets_index', bet.id);
-      state.slip = []; state.stake = 50; state.useBoost = false;
+      // Only clear the slip of exactly what was actually placed -- if the
+      // user added something else while this was submitting, that stays.
+      state.slip = state.slip.filter(s => !slipSnapshot.includes(s));
+      state.stake = 50; state.useBoost = false;
       render();
       alert('Bet placed: ' + stake + ' clams to win ' + fmt(bet.potentialReturn) + ' clams' + (boostApplied ? ' (boosted!)' : '') + '. Check "My Bets" to track it.');
     } finally {
@@ -3139,11 +3154,12 @@
     }
     state.betSubmissionInProgress = true;
     try {
+      const slipSnapshot = state.slip.slice();
       const u = await getUser(state.user.username);
       u.balance -= totalStake;
       await saveUser(u);
       state.user = u;
-      for(const item of state.slip){
+      for(const item of slipSnapshot){
         const stake = Math.max(1, item.singleStake||0);
         const bet = { id: uid(), username: u.username, selections: [item], stake, combinedOdds: item.odds,
                       potentialReturn: Math.round(stake*item.odds), timestamp: Date.now(), status: 'PENDING' };
@@ -3151,8 +3167,9 @@
         await addToIndex('bilbbet2_bets_index_' + u.username.toLowerCase(), bet.id);
         await addToIndex('bilbbet2_all_bets_index', bet.id);
       }
-      const count = state.slip.length;
-      state.slip = []; state.stake = 50;
+      const count = slipSnapshot.length;
+      state.slip = state.slip.filter(s => !slipSnapshot.includes(s));
+      state.stake = 50;
       render();
       alert('Placed ' + count + ' single bets totalling ' + totalStake + ' clams staked. Check "My Bets" to track them.');
     } finally {
