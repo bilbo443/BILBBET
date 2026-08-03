@@ -102,6 +102,7 @@ jobs:
             draft/carry_balances.json
             draft/futures.json
             draft/admin_teams.json
+            draft/real_results.json
           commit-message: "Draft odds refresh from weekly sheet pull"
           # This PR is the "draft" -- merging it is the explicit publish
           # step (Layer 6). Nothing here writes to data/ directly.
