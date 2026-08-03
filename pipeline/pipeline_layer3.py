@@ -33,8 +33,20 @@ from extract_results import extract_results
 from simulation_adapter import regenerate_division_futures, regenerate_roddy_and_fa_cup, regenerate_promotion_and_leading_at
 
 
-def fetch_sheet_csv(url, dest_path, timeout=150):
-    resp = requests.get(url, timeout=timeout)
+def fetch_sheet_csv(url, dest_path, timeout=60):
+    # A generic python-requests User-Agent (or no headers at all) can get
+    # treated very differently by Google's servers than genuine browser
+    # traffic -- confirmed this sheet loads quickly in an actual browser,
+    # so a request that hangs specifically when it lacks browser-like
+    # headers is a known, common pattern, not a sign the sheet itself is
+    # slow. Reverted the timeout back down to 60s now that the real fix is
+    # the headers, not "wait longer."
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+                      '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/csv,text/plain,*/*',
+    }
+    resp = requests.get(url, timeout=timeout, headers=headers)
     resp.raise_for_status()
     with open(dest_path, 'w', encoding='utf-8') as f:
         f.write(resp.text)
