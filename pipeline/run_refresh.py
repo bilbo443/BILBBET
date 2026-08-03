@@ -116,6 +116,20 @@ def main():
     with open(result['odds_path']) as f:
         draft = json.load(f)
 
+    # Publish real per-team round scores alongside the odds, for the
+    # bet-resolution suggestion feature -- {team: [score_r1, score_r2, ...]},
+    # null for any round not yet played. Only written here, in the confirmed
+    # draft_ready path -- same principle as everything else in this
+    # pipeline: nothing gets published, not even this, unless the whole run
+    # genuinely succeeded.
+    extracted = result.get('extracted_results') or []
+    real_results = {}
+    for r in extracted:
+        scores = r.get('scores_by_round') or []
+        real_results[r['team']] = [(s if s is not None else None) for s in scores]
+    with open(os.path.join(args.draft_dir, 'real_results.json'), 'w') as f:
+        json.dump(real_results, f)
+
     diffs = compute_diff(args.live_futures_path, draft['division_rows'], market_key='win_div_pct')
     diff_report = generate_diff_report(diffs, market_label='Division win %')
 
