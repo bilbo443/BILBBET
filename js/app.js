@@ -1936,8 +1936,10 @@
       ? `\n\nHeads up: ${totalPending} bet(s) across all punters are still PENDING -- those will be left untouched and stay live (not archived), so resolve them first if you'd rather they be included in this season's record.`
       : '';
     if(!confirm(`End the season and archive everyone's settled bets into their career record? `
-      + `This compacts each punter's bet history down to a summary (plus their best 3 all-time bets kept in full) `
-      + `and resets Round to 1 with betting open. This can't be undone.${pendingWarning}`)) return;
+      + `This compacts each punter's bet history down to a summary (plus their best 3 all-time bets kept in full), `
+      + `resets Round to 1 with betting open, and clears out this season's cup/playoff fixtures, ECL group draw, `
+      + `paused markets, and novelty bets so the new season starts clean. `
+      + `Punter balances are NOT touched -- everyone keeps exactly what they ended the season with. This can't be undone.${pendingWarning}`)) return;
 
     const results = [];
     for(const u of nonAdmin){
@@ -1953,12 +1955,37 @@
     }
     await sset('bilbbet2_all_bets_index', stillLiveIds);
 
+    // Clear every piece of season-specific state that was previously left
+    // to silently carry over -- found by checking, for each one, whether it
+    // gets persisted and reloaded on boot (all five do). Left stale, the
+    // new season would start with last season's cup/playoff matchups still
+    // showing, an ECL draw full of teams that may have been relegated, and
+    // any markets an admin paused for a since-resolved reason staying
+    // suspended for no reason anyone would remember. Deliberately writing
+    // these directly rather than calling saveCupFixtures()/etc, since those
+    // trigger an auto-pause side effect meant for a single fixture changing
+    // mid-season -- not relevant here, since every market gets rebuilt from
+    // scratch for the new season anyway.
+    state.cupFixtures = { 'FA CUP': [], 'ECL': [] };
+    state.playoffFixtures = { 'DIVISION 2': [], 'DIVISION 3': [] };
+    state.eclGroups = { A: [], B: [], C: [] };
+    state.pausedCategories = {};
+    await sset('bilbbet2_cup_fixtures', state.cupFixtures);
+    await sset('bilbbet2_playoff_fixtures', state.playoffFixtures);
+    await sset('bilbbet2_ecl_groups', state.eclGroups);
+    await sset('bilbbet2_paused_categories', state.pausedCategories);
+
+    const noveltyIds = await getIndex('bilbbet2_novelty_index');
+    await sset('bilbbet2_novelty_index', []);
+    state.novelty = [];
+
     await saveCurrentRound(1);
     await reopenBetting();
 
     const archivedCount = results.reduce((s,r)=>s+r.archived, 0);
     alert(`Season archived: ${archivedCount} settled bet(s) folded into career records across ${results.length} punter(s). `
-      + `Round reset to 1, betting reopened.`);
+      + `Round reset to 1, betting reopened. Cup/playoff fixtures, ECL draw, paused markets, and ${noveltyIds.length} novelty bet(s) cleared. `
+      + `Balances left untouched.`);
     await loadAdminData();
   }
 
