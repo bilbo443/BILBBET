@@ -2230,12 +2230,30 @@
     bet.selections[index].result = result;
     const prevOverall = bet.status || 'PENDING';
     const newOverall = computeOverallStatus(bet.selections);
-    if(newOverall !== prevOverall){
+    const statusChanged = newOverall !== prevOverall;
+    // Recomputed independently of statusChanged: correcting a DIFFERENT leg
+    // can change whether this is still a genuine near-miss (e.g. going from
+    // one lost leg to two) without the overall status itself moving away
+    // from LOST -- so this has to be checked every time a leg changes, not
+    // only when the headline status flips.
+    const stillQualifies = newOverall === 'LOST' && isNearMissBonus(bet.selections);
+    const bonusNeedsClawback = bet.nearMissBonusAwarded && !stillQualifies;
+    const bonusNewlyEarned = !bet.nearMissBonusAwarded && stillQualifies;
+    if(statusChanged || bonusNeedsClawback || bonusNewlyEarned){
       const u = await getUser(bet.username);
       if(u){
-        u.balance -= settlementCredit(prevOverall, bet);
-        u.balance += settlementCredit(newOverall, bet);
-        if(newOverall === 'LOST' && !bet.nearMissBonusAwarded && !u.nearMissBonusUsed && isNearMissBonus(bet.selections)){
+        if(statusChanged){
+          u.balance -= settlementCredit(prevOverall, bet);
+          u.balance += settlementCredit(newOverall, bet);
+        }
+        if(bonusNeedsClawback){
+          // A correction means this no longer genuinely qualifies -- claw
+          // back the bonus rather than leave it stranded as an incorrect,
+          // permanent extra payment.
+          u.balance -= bet.stake;
+          u.nearMissBonusUsed = false;
+          bet.nearMissBonusAwarded = false;
+        } else if(bonusNewlyEarned && !u.nearMissBonusUsed){
           u.balance += bet.stake;
           u.nearMissBonusUsed = true;
           bet.nearMissBonusAwarded = true;
