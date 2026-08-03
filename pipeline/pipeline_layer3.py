@@ -33,7 +33,7 @@ from extract_results import extract_results
 from simulation_adapter import regenerate_division_futures, regenerate_roddy_and_fa_cup, regenerate_promotion_and_leading_at
 
 
-def fetch_sheet_csv(url, dest_path, timeout=60):
+def fetch_sheet_csv(url, dest_path, timeout=150):
     resp = requests.get(url, timeout=timeout)
     resp.raise_for_status()
     with open(dest_path, 'w', encoding='utf-8') as f:
