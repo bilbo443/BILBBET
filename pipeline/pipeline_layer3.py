@@ -24,6 +24,7 @@ faked, so nobody mistakes a dry run for a real odds refresh.
 """
 import os
 import json
+import time
 import requests
 import pandas as pd
 from datetime import datetime, date
@@ -33,21 +34,42 @@ from extract_results import extract_results
 from simulation_adapter import regenerate_division_futures, regenerate_roddy_and_fa_cup, regenerate_promotion_and_leading_at
 
 
-def fetch_sheet_csv(url, dest_path, timeout=60):
+def fetch_sheet_csv(url, dest_path, timeout=150):
     # A generic python-requests User-Agent (or no headers at all) can get
     # treated very differently by Google's servers than genuine browser
-    # traffic -- confirmed this sheet loads quickly in an actual browser,
-    # so a request that hangs specifically when it lacks browser-like
-    # headers is a known, common pattern, not a sign the sheet itself is
-    # slow. Reverted the timeout back down to 60s now that the real fix is
-    # the headers, not "wait longer."
+    # traffic -- confirmed this helped for at least one tab already. But a
+    # second tab is STILL timing out even with headers and a 150s budget,
+    # despite loading in a few seconds in an actual browser -- that rules
+    # out "just needs more time" as the explanation here, so this is now
+    # about finding out WHERE the hang actually happens rather than
+    # guessing at another number. Streaming the response and timing each
+    # stage separately (connect+headers vs. body download) turns the next
+    # failure into a specific, actionable one instead of a blind timeout.
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
                       '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'text/csv,text/plain,*/*',
     }
-    resp = requests.get(url, timeout=timeout, headers=headers)
-    resp.raise_for_status()
+    stage_start = time.time()
+    try:
+        resp = requests.get(url, timeout=timeout, headers=headers, stream=True)
+        connect_elapsed = time.time() - stage_start
+        print(f"[fetch] connected and received headers after {connect_elapsed:.1f}s -- "
+              f"status {resp.status_code}, redirected through {len(resp.history)} hop(s)")
+        for h in resp.history:
+            print(f"[fetch]   redirect: {h.status_code} -> {h.headers.get('Location', '?')}")
+        print(f"[fetch] final URL after redirects: {resp.url}")
+        resp.raise_for_status()
+
+        body_start = time.time()
+        content = resp.content
+        body_elapsed = time.time() - body_start
+        print(f"[fetch] body downloaded in {body_elapsed:.1f}s, {len(content)} byte(s)")
+    except requests.exceptions.Timeout as e:
+        elapsed = time.time() - stage_start
+        print(f"[fetch] TIMED OUT after {elapsed:.1f}s (budget was {timeout}s) -- "
+              f"{'never received response headers' if 'resp' not in dir() else 'hung during body download'}")
+        raise
     with open(dest_path, 'w', encoding='utf-8') as f:
         f.write(resp.text)
     return dest_path
