@@ -59,10 +59,15 @@
       if(!vals.length) return 'has no divisions at all';
       if(!vals.every(v => v && isArray(v.no_fixture_rounds))) return 'should be {division: {no_fixture_rounds: [...], ...}}, but found something else';
     }
+    if(name === 'real_results'){
+      const vals = Object.values(data);
+      // an empty object is the legitimate pre-season state -- nothing to validate yet
+      if(vals.length && !vals.every(isArray)) return 'should be {team: [scores]}, but found something else';
+    }
     return null;
   }
   async function loadAllData(){
-    const files = ['futures','h2h_history','h2h_divisions','h2h_shift','h2h_cup_shift','h2h_variance_widen','h2h_schedule','leading_at','special_markets','h2h_record','cup_calendar','carry_balances','round_dates','div23_schedule_exceptions'];
+    const files = ['futures','h2h_history','h2h_divisions','h2h_shift','h2h_cup_shift','h2h_variance_widen','h2h_schedule','leading_at','special_markets','h2h_record','cup_calendar','carry_balances','round_dates','div23_schedule_exceptions','real_results'];
     const failures = [];
     const results = await Promise.all(files.map(async name => {
       const path = './data/' + name + '.json';
@@ -74,6 +79,13 @@
         return null;
       }
       if(!res.ok){
+        if(name === 'real_results'){
+          // Won't exist until the first real round of live season data has
+          // actually gone through the pipeline -- that's the normal
+          // pre-season state, not a missing-file error like every other
+          // file here.
+          return {};
+        }
         failures.push(name + ' (HTTP ' + res.status + ' -- check the file exists at data/' + name + '.json)');
         return null;
       }
@@ -115,6 +127,7 @@
   const H2H_DIVISIONS = DATA.h2h_divisions;
   const H2H_SHIFT = DATA.h2h_shift;
   const H2H_CUP_SHIFT = DATA.h2h_cup_shift || {};
+  const REAL_RESULTS = DATA.real_results || {};
   const H2H_VARIANCE_WIDEN = DATA.h2h_variance_widen || {};
   const H2H_SCHEDULE = DATA.h2h_schedule;
   const SPECIAL_MARKETS = DATA.special_markets;
@@ -173,6 +186,32 @@
     if(parts[0]==='H2H') return parseInt(parts[2].replace('R',''),10);
     if(parts[0]==='LEADAT') return parseInt(parts[2],10);
     if(parts[0]==='SPECIALFIX' && (parts[1]==='win_round'||parts[1]==='lose_round')) return parseInt(parts[2].replace('R',''),10);
+    return null;
+  }
+  // Suggests WON/LOST once real results exist for the round a pick refers
+  // to -- never auto-applies anything, just surfaces a computed suggestion
+  // for an admin to confirm or override. Deliberately scoped to H2H-style
+  // picks only for now (regular division matches, FA Cup, ECL, and
+  // Playoffs all share this exact pick format, so one function covers all
+  // four). Leading-at, round win/lose specials, season-long futures, and
+  // anything else return null -- no suggestion, stays fully manual -- not
+  // because they're impossible to resolve automatically, just not yet
+  // built out.
+  function computeSuggestedResult(pickId){
+    const parts = pickId.split('|');
+    if(parts[0] !== 'H2H') return null;
+    const side = parts[1]; // 'res-a' or 'res-b'
+    const round = parseInt(parts[2].replace('R',''), 10);
+    const teamA = parts[3], teamB = parts[4];
+    if(!teamA || !teamB || isNaN(round)) return null;
+    const scoresA = REAL_RESULTS[teamA], scoresB = REAL_RESULTS[teamB];
+    if(!scoresA || !scoresB) return null;
+    const scoreA = scoresA[round-1], scoreB = scoresB[round-1];
+    if(scoreA == null || scoreB == null) return null; // that round hasn't actually been played yet
+    if(scoreA === scoreB) return null; // a genuine draw -- no clear "to win" suggestion, needs a human call
+    const aWon = scoreA > scoreB;
+    if(side === 'res-a') return aWon ? 'WON' : 'LOST';
+    if(side === 'res-b') return aWon ? 'LOST' : 'WON';
     return null;
   }
   // Derives the pausable "category" (a whole market, not one team's row in
@@ -1692,22 +1731,36 @@
       <h3>All registered bets</h3>
       ${!bets.length ? '<p style="color:#9a9a9a;">No bets placed by anyone yet.</p>' : `
       <button class="bb-btn ghost" id="export-bets-csv" style="margin-bottom:10px;padding:6px 12px;font-size:12px;">Export to CSV</button>
+      ${(() => {
+        const readyCount = bets.filter(b => (b.status||'PENDING')==='PENDING' &&
+          b.selections.some((s,i) => (b.selections.length===1 || !s.result) && computeSuggestedResult(s.id))).length;
+        return readyCount ? `<p style="color:#ffdd00;font-size:12px;margin-bottom:8px;">\u26a1 ${readyCount} bet(s) below have a real result available and are ready to review -- highlighted first.</p>` : '';
+      })()}
       <div class="bb-card" style="padding:0;overflow-x:auto;">
         <table class="bb-table">
           <thead><tr><th>Placed</th><th>User</th><th>Selections</th><th>Stake</th><th>Odds</th><th>Potential return</th><th>Status</th><th>Override</th></tr></thead>
           <tbody>
-            ${bets.slice().sort((a,b)=>b.timestamp-a.timestamp).map(b => `
-              <tr>
+            ${bets.slice().sort((a,b) => {
+              const aReady = (a.status||'PENDING')==='PENDING' && a.selections.some((s,i) => (a.selections.length===1 || !s.result) && computeSuggestedResult(s.id));
+              const bReady = (b.status||'PENDING')==='PENDING' && b.selections.some((s,i) => (b.selections.length===1 || !s.result) && computeSuggestedResult(s.id));
+              if(aReady !== bReady) return aReady ? -1 : 1;
+              return b.timestamp - a.timestamp;
+            }).map(b => {
+              const betReady = (b.status||'PENDING')==='PENDING' && b.selections.some((s,i) => (b.selections.length===1 || !s.result) && computeSuggestedResult(s.id));
+              return `
+              <tr${betReady ? ' style="background:#3a3210;"' : ''}>
                 <td>${fmtDate(b.timestamp)}</td>
                 <td>${esc(b.username)}</td>
                 <td>${b.selections.map((s,i)=>{
                   const label = esc(s.label)+' <span style="color:#8a8a8a;">('+s.odds.toFixed(2)+')</span>';
-                  if(b.selections.length===1) return label;
+                  const suggestion = !s.result ? computeSuggestedResult(s.id) : null;
+                  const suggestionTag = suggestion ? ` <span style="color:#ffdd00;font-size:10px;font-weight:600;">&#9889; suggested: ${suggestion}</span>` : '';
+                  if(b.selections.length===1) return label + suggestionTag;
                   const legStatus = s.result || 'PENDING';
-                  return `<div style="margin-bottom:4px;">${label} ${statusPill(legStatus)}<br/>
+                  return `<div style="margin-bottom:4px;">${label} ${statusPill(legStatus)}${suggestionTag}<br/>
                     <span style="display:inline-flex;gap:3px;margin-top:2px;">
-                      <span data-resolveleg="${b.id}|${i}|WON" style="cursor:pointer;color:#4a9166;font-size:10px;text-decoration:underline;">won</span>
-                      <span data-resolveleg="${b.id}|${i}|LOST" style="cursor:pointer;color:#a3402f;font-size:10px;text-decoration:underline;">lost</span>
+                      <span data-resolveleg="${b.id}|${i}|WON" style="cursor:pointer;color:#4a9166;font-size:10px;text-decoration:underline;${suggestion==='WON'?'font-weight:700;':''}">won</span>
+                      <span data-resolveleg="${b.id}|${i}|LOST" style="cursor:pointer;color:#a3402f;font-size:10px;text-decoration:underline;${suggestion==='LOST'?'font-weight:700;':''}">lost</span>
                       <span data-resolveleg="${b.id}|${i}|VOID" style="cursor:pointer;color:#9a9a9a;font-size:10px;text-decoration:underline;">void</span>
                     </span></div>`;
                 }).join(b.selections.length===1?'<br/>':'')}</td>
@@ -1716,12 +1769,13 @@
                 <td>${fmt(b.potentialReturn)}</td>
                 <td>${statusPill(b.status || 'PENDING')}${b.nearMissBonusAwarded?' <span class="bb-pill" style="background:#4a3a10;color:#ffdd00;">bonus paid</span>':''}</td>
                 <td style="display:flex;gap:4px;flex-wrap:wrap;">
-                  <button class="bb-btn ghost" data-setstatus="${b.id}|WON" style="padding:4px 8px;font-size:11px;">Won</button>
-                  <button class="bb-btn ghost" data-setstatus="${b.id}|LOST" style="padding:4px 8px;font-size:11px;">Lost</button>
+                  <button class="bb-btn ghost" data-setstatus="${b.id}|WON" style="padding:4px 8px;font-size:11px;${b.selections.length===1&&computeSuggestedResult(b.selections[0].id)==='WON'?'border-color:#ffdd00;':''}">Won</button>
+                  <button class="bb-btn ghost" data-setstatus="${b.id}|LOST" style="padding:4px 8px;font-size:11px;${b.selections.length===1&&computeSuggestedResult(b.selections[0].id)==='LOST'?'border-color:#ffdd00;':''}">Lost</button>
                   <button class="bb-btn ghost" data-setstatus="${b.id}|VOID" style="padding:4px 8px;font-size:11px;">Kick (void)</button>
                   <button class="bb-btn ghost" data-setstatus="${b.id}|PENDING" style="padding:4px 8px;font-size:11px;">Reset</button>
                 </td>
-              </tr>`).join('')}
+              </tr>`;
+            }).join('')}
           </tbody>
         </table>
       </div>`}
