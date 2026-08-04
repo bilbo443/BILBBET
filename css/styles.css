@@ -69,6 +69,16 @@ table.bb-table td{padding:8px;border-bottom:1px solid #333;vertical-align:top;co
 .bb-div-stripe.div-facup{background:var(--div-facup);}
 .bb-div-stripe.div-ecl{background:var(--div-ecl);border:1px solid var(--bb-border-light);}
 .bb-div-stripe.div-roddy{background:var(--div-roddy);}
+.bb-div-banner{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:8px;margin-bottom:14px;}
+.bb-div-banner-name{font-size:18px;font-weight:800;letter-spacing:0.02em;}
+.bb-div-banner.div-eliza{background:var(--div-eliza);color:#fff;}
+.bb-div-banner.div-2a{background:var(--div-2a);color:#fff;}
+.bb-div-banner.div-2b{background:var(--div-2b);color:#fff;}
+.bb-div-banner.div-3a{background:var(--div-3a);color:#fff;}
+.bb-div-banner.div-3b{background:var(--div-3b);color:#fff;}
+.bb-div-banner.div-facup{background:var(--div-facup);color:#fff;}
+.bb-div-banner.div-ecl{background:var(--div-ecl);color:#fff;border:1px solid var(--bb-border-light);}
+.bb-div-banner.div-roddy{background:var(--div-roddy);color:#1b1b1b;}
 
 /* Side banners: allocated space for a future logo image, defaulting to plain
    "BILBBET" text until one's provided. Same layered-fallback pattern as the
