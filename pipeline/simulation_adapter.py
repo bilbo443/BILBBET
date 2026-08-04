@@ -464,27 +464,52 @@ def simulate_conference_season(teams, samplers):
     return sorted(teams, key=lambda t: (-pts[t], -sfor[t]))
 
 
-def simulate_promotion_bracket(entrants, samplers):
-    """The confirmed major/minor-semi-final format: major-semi winner gets
-    a bye straight to the promotion final; major-semi loser must beat the
-    minor-semi winner in week 2 to reach the final; that survivor then
-    plays the bye team for the bracket's one promotion spot. entrants is a
-    list of 4 teams, seeded [strongest, 2nd, 3rd, weakest] -- paired
-    seed1-vs-seed4 as the major semi (protecting the strongest with an
-    easier draw) and seed2-vs-seed3 as the minor semi, a standard,
-    documented seeding choice rather than a literal replication of any one
-    historical draw."""
+def simulate_promotion_playoffs(conf_a_playoff_seeds, conf_b_playoff_seeds, samplers):
+    """The confirmed two-bracket finals format, as corrected directly:
+
+    Seeding: each conference's own playoff-eligible finishers are Seed 1
+    (best) through Seed 4 (worst) *within that conference*. Bracket 1 is
+    Conf A's Seed 1 + Seed 3 plus Conf B's Seed 2 + Seed 4; Bracket 2 is
+    the mirror (Conf B's Seed 1 + Seed 3, Conf A's Seed 2 + Seed 4).
+
+    Week 1: QF1 = A1 vs B2, EF1 = B4 vs A3 (Bracket 1's matches);
+    QF2 = B1 vs A2, EF2 = A4 vs B3 (Bracket 2's matches). QF winner gets
+    a bye to a Promotion Final; QF loser and EF winner both continue to
+    a Preliminary Final; EF loser is eliminated outright.
+
+    Week 2 -- first cross-over: Elimination Final winners swap brackets
+    for the Preliminary Final. PF1 = QF1 loser vs EF2 winner (not EF1);
+    PF2 = QF2 loser vs EF1 winner (not EF2). PF loser is eliminated.
+
+    Week 3 -- second, separate cross-over: Preliminary Final winners
+    swap brackets again for the Promotion Final. Bracket 1's Promotion
+    Final is QF1's bye winner vs PF2's winner; Bracket 2's is QF2's bye
+    winner vs PF1's winner. Each Promotion Final winner is promoted.
+
+    Returns the two promoted teams (one per bracket)."""
     def play(a, b):
         return a if samplers[a](1)[0] > samplers[b](1)[0] else b
 
-    major_a, major_b = entrants[0], entrants[3]
-    minor_a, minor_b = entrants[1], entrants[2]
-    major_winner = play(major_a, major_b)
-    major_loser = major_b if major_winner == major_a else major_a
-    minor_winner = play(minor_a, minor_b)
-    week2_survivor = play(major_loser, minor_winner)
-    champion = play(major_winner, week2_survivor)
-    return champion
+    a1, a2, a3, a4 = conf_a_playoff_seeds
+    b1, b2, b3, b4 = conf_b_playoff_seeds
+
+    qf1_winner = play(a1, b2)
+    qf1_loser = b2 if qf1_winner == a1 else a1
+    ef1_winner = play(b4, a3)
+
+    qf2_winner = play(b1, a2)
+    qf2_loser = a2 if qf2_winner == b1 else b1
+    ef2_winner = play(a4, b3)
+
+    # Week 2: elimination-final winners cross into the OPPOSITE bracket's prelim final
+    pf1_winner = play(qf1_loser, ef2_winner)
+    pf2_winner = play(qf2_loser, ef1_winner)
+
+    # Week 3: preliminary-final winners cross into the OPPOSITE bracket's promotion final
+    bracket1_champion = play(qf1_winner, pf2_winner)
+    bracket2_champion = play(qf2_winner, pf1_winner)
+
+    return bracket1_champion, bracket2_champion
 
 
 def simulate_promotion_market(conference_pairs, auto_slots, playoff_positions, team_coeffs, scale, history,
@@ -494,8 +519,9 @@ def simulate_promotion_market(conference_pairs, auto_slots, playoff_positions, t
     3A/3B. auto_slots: how many finishing positions per conference get
     automatic promotion (1 for Division 2, 2 for Division 3).
     playoff_positions: which conference finishing positions (1-indexed)
-    feed the playoff pool -- e.g. [2,3,4,5] for Division 2, [3,4,5,6] for
-    Division 3.
+    feed the playoff pool, in best-to-worst order -- e.g. [2,3,4,5] for
+    Division 2, [3,4,5,6] for Division 3. These positions double as the
+    Seed 1-4 numbering within each conference for the playoff bracket.
 
     Charity promotions are deliberately not modelled here -- they only
     exist to backfill unpredictable departures, and per instruction never
@@ -522,18 +548,13 @@ def simulate_promotion_market(conference_pairs, auto_slots, playoff_positions, t
                 promoted_counts[ranked_a[i]] += 1
                 promoted_counts[ranked_b[i]] += 1
 
-            entrants = [ranked_a[p - 1] for p in playoff_positions] + [ranked_b[p - 1] for p in playoff_positions]
-            # seed the pooled 8 by actual finishing rank in their own conference, so the
-            # two brackets end up balanced rather than one being stacked with stronger teams.
-            def finishing_rank(t):
-                if t in ranked_a: return ranked_a.index(t)
-                return ranked_b.index(t)
-            entrants_sorted = sorted(entrants, key=finishing_rank)
-            bracket1 = [entrants_sorted[0], entrants_sorted[2], entrants_sorted[5], entrants_sorted[7]]
-            bracket2 = [entrants_sorted[1], entrants_sorted[3], entrants_sorted[4], entrants_sorted[6]]
+            # playoff_positions is already best-to-worst (e.g. [2,3,4,5]),
+            # so indexing it in order directly gives Seed 1 through Seed 4
+            # within each conference -- no separate re-sort needed.
+            conf_a_seeds = [ranked_a[p - 1] for p in playoff_positions]
+            conf_b_seeds = [ranked_b[p - 1] for p in playoff_positions]
 
-            champ1 = simulate_promotion_bracket(bracket1, samplers)
-            champ2 = simulate_promotion_bracket(bracket2, samplers)
+            champ1, champ2 = simulate_promotion_playoffs(conf_a_seeds, conf_b_seeds, samplers)
             promoted_counts[champ1] += 1
             promoted_counts[champ2] += 1
 
