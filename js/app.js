@@ -264,7 +264,7 @@
   const K = 8;
 
   const FUTURE_DIVS = Object.keys(FUTURES.divisions);
-  const BASE_TABS = ['HOME', ...FUTURE_DIVS, 'RODDY', 'FA CUP', 'ECL', 'H2H', 'PLAYOFFS', 'SPECIALS', 'STATS', 'MY BETS'];
+  const BASE_TABS = ['HOME', 'FUTURES', 'RODDY', 'FA CUP', 'ECL', 'H2H', 'PLAYOFFS', 'SPECIALS', 'STATS', 'MY BETS'];
   function currentTabs(){ return state.user && state.user.isAdmin ? [...BASE_TABS, 'ADMIN'] : BASE_TABS; }
 
   let state = {
@@ -274,6 +274,7 @@
     futureMarketTab: FUTURE_DIVS.length ? Object.keys(FUTURES.market_labels)[0] : null,
     teamA:'', teamB:'', h2hRound:1, h2hMarket:null,
     h2hSubTab: FUTURE_DIVS[0], h2hFixtureMarket: null,
+    futuresSubTab: FUTURE_DIVS[0],
     slip:[], stake:50, betMode:'multi', useBoost:false,
     myBets:null,
     adminPunters:null, adminBets:null, novelty:null, statsData:null, suggestions:null, suggestionText:'',
@@ -1085,7 +1086,7 @@
     };
     return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">' +
       currentTabs().map(t => {
-        const label = t==='RODDY'?'The Roddy':(t==='MY BETS'?'My Bets':(t==='ADMIN'?'Admin':(t==='H2H'?'H2H':(t==='HOME'?'Home':t.replace(' (D1)','')))));
+        const label = t==='RODDY'?'The Roddy':(t==='MY BETS'?'My Bets':(t==='ADMIN'?'Admin':(t==='H2H'?'H2H':(t==='HOME'?'Home':(t==='FUTURES'?'Futures':t.replace(' (D1)',''))))));
         const flag = (t==='ADMIN' && state.user && state.user.isAdmin && adminNeedsAttention())
           ? ' <span title="Needs attention" style="font-size:11px;">\u{1F6A9}</span>' : '';
         const kind = logoTabKind(t);
@@ -1099,9 +1100,9 @@
   function futuresMarketTabs(){
     return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">' +
       Object.entries(FUTURES.market_labels).filter(([key]) =>
-        (key !== 'promotion_pct' || state.activeTab !== 'ELIZA CUP (D1)') &&
-        (key !== 'relegation_pct' || !DIV3_TABS.includes(state.activeTab)) &&
-        (key !== 'bottom3_pct' || DIV3_TABS.includes(state.activeTab))
+        (key !== 'promotion_pct' || state.futuresSubTab !== 'ELIZA CUP (D1)') &&
+        (key !== 'relegation_pct' || !DIV3_TABS.includes(state.futuresSubTab)) &&
+        (key !== 'bottom3_pct' || DIV3_TABS.includes(state.futuresSubTab))
       ).map(([key,label]) =>
         `<div class="bb-tab ${state.futureMarketTab===key?'active':''}" data-marketkey="${key}" style="font-size:12px;padding:6px 10px;">${esc(label)}</div>`
       ).join('') +
@@ -1357,6 +1358,11 @@
       H2H_SUBTABS.map(t => `<div class="bb-tab ${state.h2hSubTab===t?'active':''}" data-h2hsubtab="${esc(t)}" style="font-size:12px;padding:6px 10px;">${t==='CUSTOM MATCHUP'?'Custom matchup':t.replace(' (D1)','')}</div>`).join('') +
       '</div>';
   }
+  function futuresSubTabBar(){
+    return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">' +
+      FUTURE_DIVS.map(t => `<div class="bb-tab ${state.futuresSubTab===t?'active '+divColorClass(t):''}" data-futuressubtab="${esc(t)}" style="font-size:12px;padding:6px 10px;">${t.replace(' (D1)','')}</div>`).join('') +
+      '</div>';
+  }
 
   const fixtureMarketCache = {};
   function getFixtureMarkets(div, round){
@@ -1408,12 +1414,14 @@
   }
 
   function renderH2HTab(){
+    const stripeClass = divColorClass(state.h2hSubTab);
+    const stripe = stripeClass ? `<div class="bb-div-stripe ${stripeClass}"></div>` : '';
     const roundBar = `<div class="bb-card" style="margin-bottom:1rem;display:flex;align-items:center;gap:10px;">
       <span style="font-size:12px;color:#9a9a9a;">Round</span>
       <select class="bb-select" id="h2h-round" style="width:140px;">${roundOptions(state.h2hRound)}</select>
     </div>`;
     if(state.h2hSubTab === 'CUSTOM MATCHUP'){
-      return roundBar + h2hSubTabBar() + `<div class="bb-card" style="margin-bottom:1rem;">
+      return stripe + roundBar + h2hSubTabBar() + `<div class="bb-card" style="margin-bottom:1rem;">
         <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
           <div style="flex:1;min-width:180px;"><span style="font-size:12px;color:#9a9a9a;display:block;margin-bottom:4px;">Team A</span>
             ${teamSearchInput('team-a', state.teamA)}</div>
@@ -1426,9 +1434,9 @@
       </div>${state.h2hMarket ? renderH2HMarket(state.h2hMarket) : ''}`;
     }
     if(state.h2hSubTab === 'FA CUP' || state.h2hSubTab === 'ECL'){
-      return h2hSubTabBar() + renderCupFixtures(state.h2hSubTab);
+      return stripe + h2hSubTabBar() + renderCupFixtures(state.h2hSubTab);
     }
-    return roundBar + h2hSubTabBar() + sectionRibbon() + renderFixtureList(state.h2hSubTab);
+    return stripe + roundBar + h2hSubTabBar() + sectionRibbon() + renderFixtureList(state.h2hSubTab);
   }
 
   function statusPill(status){
@@ -2453,9 +2461,9 @@
     if(state.activeTab === 'RODDY'){
       list = FUTURES.roddy[state.futureMarketTab];
       tagPrefix = 'FUT|RODDY|'+state.futureMarketTab+'|';
-    } else if(FUTURE_DIVS.includes(state.activeTab)){
-      list = FUTURES.divisions[state.activeTab][state.futureMarketTab];
-      tagPrefix = 'FUT|'+state.activeTab+'|'+state.futureMarketTab+'|';
+    } else if(state.activeTab === 'FUTURES' && FUTURE_DIVS.includes(state.futuresSubTab)){
+      list = FUTURES.divisions[state.futuresSubTab][state.futureMarketTab];
+      tagPrefix = 'FUT|'+state.futuresSubTab+'|'+state.futureMarketTab+'|';
     } else {
       return;
     }
@@ -2827,11 +2835,13 @@
       body = renderStatsTab();
     } else if(state.activeTab === 'ADMIN'){
       body = renderAdminTab();
+    } else if(state.activeTab === 'FUTURES'){
+      const stripeClass = divColorClass(state.futuresSubTab);
+      body = (stripeClass ? `<div class="bb-div-stripe ${stripeClass}"></div>` : '') + futuresSubTabBar() + futuresMarketTabs() + (state.futureMarketTab === 'leading_at'
+        ? renderLeadingAtMarket(state.futuresSubTab)
+        : `<button class="bb-btn ghost" id="surprise-me-btn" style="margin-bottom:10px;padding:6px 12px;font-size:12px;">\u{1F3B2} Surprise me</button>` + sectionRibbon() + `<div id="outcomes-list">${futuresOutcomesList(state.futuresSubTab, state.futureMarketTab)}</div>`);
     } else {
-      const stripeClass = divColorClass(state.activeTab);
-      body = (stripeClass ? `<div class="bb-div-stripe ${stripeClass}"></div>` : '') + futuresMarketTabs() + (state.futureMarketTab === 'leading_at'
-        ? renderLeadingAtMarket(state.activeTab)
-        : `<button class="bb-btn ghost" id="surprise-me-btn" style="margin-bottom:10px;padding:6px 12px;font-size:12px;">\u{1F3B2} Surprise me</button>` + sectionRibbon() + `<div id="outcomes-list">${futuresOutcomesList(state.activeTab, state.futureMarketTab)}</div>`);
+      body = `<p style="color:#9a9a9a;">Unknown tab.</p>`;
     }
     return `<div>${renderStorageWarning()}${header()}${renderTeamSearchPanel()}${mainTabs()}${body}${renderFooter()}</div>${['ADMIN','STATS'].includes(state.activeTab) ? '' : slipBar()}${state.loginModalOpen ? renderLoginModal() : ''}${state.tosModalOpen ? renderTosModal() : ''}${state.readMeModalOpen ? renderReadMeModal() : ''}${teamsDatalist()}`;
   }
@@ -3164,6 +3174,15 @@
     }
     const getBtn = $('#get-market'); if(getBtn) getBtn.onclick = () => { state.h2hMarket = computeH2HMarket(state.teamA, state.teamB, state.h2hRound); render(); };
     document.querySelectorAll('[data-h2hsubtab]').forEach(el => el.onclick = () => { state.h2hSubTab = el.dataset.h2hsubtab; state.h2hFixtureMarket=null; state.cupFixtureMarket=null; render(); });
+    document.querySelectorAll('[data-futuressubtab]').forEach(el => el.onclick = () => {
+      state.futuresSubTab = el.dataset.futuressubtab;
+      // a market valid for the previous division isn't necessarily valid for
+      // the new one (promotion_pct/relegation_pct/bottom3_pct are division-
+      // specific) -- reset to the first market rather than risk landing on
+      // one that gets filtered out and silently shows nothing
+      state.futureMarketTab = Object.keys(FUTURES.market_labels)[0];
+      render();
+    });
     document.querySelectorAll('[data-fixture-expand]').forEach(el => el.onclick = () => {
       const [div, idx] = el.dataset.fixtureExpand.split('|');
       state.h2hFixtureMarket = getFixtureMarkets(div, state.h2hRound)[parseInt(idx,10)];
