@@ -286,6 +286,7 @@
     cupFixtureMarketStage: null,
     playoffFixtureMarketStage: null,
     specialsSelection: { win_round: '', lose_round: '', charity: '', philanthropy: '' },
+    specialsSubTab: 'round',
     teamSearchOpen: false, teamSearchQuery: '',
     registeringMode: false,
     tosModalOpen: false, tosMode: 'view', tosAgreed: false, readMeModalOpen: false,
@@ -1681,16 +1682,36 @@
     </div>`;
   }
 
+  function specialsSubTabBar(){
+    const TABS = [
+      {key:'round', label:'Round Specials'},
+      {key:'season', label:'Season Specials'},
+      {key:'novelty', label:'Novelty &amp; Suggestions'},
+    ];
+    return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">' +
+      TABS.map(t => `<div class="bb-tab ${state.specialsSubTab===t.key?'active':''}" data-specialssubtab="${t.key}" style="font-size:12px;padding:6px 10px;">${t.label}</div>`).join('') +
+      '</div>';
+  }
+
   function renderSpecialsTab(){
     if(state.novelty === null) return '<p style="color:#9a9a9a;">Loading&hellip;</p>';
-    let html = '<h3 style="margin-top:0;">Specials</h3>';
-    html += `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">Round-based markets let you pick any upcoming round. Season-long markets cover all 26 rounds.</p>`;
-    html += renderRoundExtremeMarket('win_round');
-    html += renderRoundExtremeMarket('lose_round');
-    html += fixedSpecialDropdown('SPECIALFIX|charity', 'Most Charity (least points conceded all season)', SPECIAL_MARKETS.charity, state.specialsSelection.charity, 'special-charity');
-    html += fixedSpecialDropdown('SPECIALFIX|philanthropy', 'Most Philanthropy (most points conceded all season)', SPECIAL_MARKETS.philanthropy, state.specialsSelection.philanthropy, 'special-philanthropy');
+    let html = '<h3 style="margin-top:0;">Specials</h3>' + specialsSubTabBar();
 
-    html += '<h3>Novelty &amp; one-offs</h3>';
+    if(state.specialsSubTab === 'round'){
+      html += `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">Pick any upcoming round to back who'll be leading or trailing after it.</p>`;
+      html += renderRoundExtremeMarket('win_round');
+      html += renderRoundExtremeMarket('lose_round');
+      return html;
+    }
+
+    if(state.specialsSubTab === 'season'){
+      html += `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">These cover the whole season -- set once, resolved at the end of Round 26.</p>`;
+      html += fixedSpecialDropdown('SPECIALFIX|charity', 'Most Charity (least points conceded all season)', SPECIAL_MARKETS.charity, state.specialsSelection.charity, 'special-charity');
+      html += fixedSpecialDropdown('SPECIALFIX|philanthropy', 'Most Philanthropy (most points conceded all season)', SPECIAL_MARKETS.philanthropy, state.specialsSelection.philanthropy, 'special-philanthropy');
+      return html;
+    }
+
+    // state.specialsSubTab === 'novelty'
     const open = state.novelty.filter(n => n.status === 'OPEN');
     const settled = state.novelty.filter(n => n.status !== 'OPEN').sort((a,b)=>b.createdAt-a.createdAt);
     if(!open.length && !settled.length){
@@ -3205,6 +3226,7 @@
       else state.futureMarketTab = Object.keys(FUTURES.market_labels)[0];
       render();
     });
+    document.querySelectorAll('[data-specialssubtab]').forEach(el => el.onclick = () => { state.specialsSubTab = el.dataset.specialssubtab; render(); });
     document.querySelectorAll('[data-fixture-expand]').forEach(el => el.onclick = () => {
       const [div, idx] = el.dataset.fixtureExpand.split('|');
       state.h2hFixtureMarket = getFixtureMarkets(div, state.h2hRound)[parseInt(idx,10)];
