@@ -673,8 +673,10 @@
     return { id, team, opp, pct: dogPct, baseOdds: oddsInfo.odds, odds: boosted, division, ...extra };
   }
 
+  const featuredFixturesCache = {};
   function computeFeaturedFixtures(){
     const round = state.currentRound;
+    if(featuredFixturesCache[round]) return featuredFixturesCache[round];
     const roundTag = 'R' + round;
     const MAX_TOTAL = 10, MAX_PER_DIV = 2;
     const selected = [];
@@ -720,6 +722,7 @@
         selected.push(p);
       }
     }
+    featuredFixturesCache[round] = selected;
     return selected;
   }
 
