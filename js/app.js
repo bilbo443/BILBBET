@@ -857,26 +857,27 @@
     const futures = computeFeaturedFutures();
 
     const fixtureCards = fixtures.length ? fixtures.map(p => `
-      <div class="bb-card" style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;">
-        <div style="min-width:0;">
+      <div class="bb-card" style="display:flex;align-items:stretch;gap:12px;margin-bottom:8px;">
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:3px;">
           <div style="font-size:11px;color:#9a9a9a;">${p.isCup ? esc(p.stage) + ' \u2014 ' + esc(p.division) : esc(p.division.replace(' (D1)',''))}</div>
-          <div style="font-weight:600;display:flex;align-items:center;gap:6px;">${teamLogo(p.team,18)}${esc(p.team)} <span style="color:#6a6a6a;font-weight:400;font-size:12px;">to beat ${esc(p.opp)}</span></div>
+          <div style="font-weight:600;display:flex;align-items:center;gap:6px;">${teamLogo(p.team,18)}${esc(p.team)}</div>
+          <div style="font-weight:600;display:flex;align-items:center;gap:6px;color:#9a9a9a;font-size:13px;">vs ${esc(p.opp)}</div>
         </div>
-        <div style="text-align:right;flex-shrink:0;">
-          <div style="font-size:10px;color:#6a6a6a;text-decoration:line-through;">${p.baseOdds.toFixed(2)}</div>
-          ${quickOddsButton(p.id, p.team + ' to win (boosted)', p.team, {odds:p.odds, suspended:false})}
+        <div style="width:88px;flex-shrink:0;display:flex;flex-direction:column;justify-content:center;gap:2px;">
+          <div style="font-size:10px;color:#6a6a6a;text-decoration:line-through;text-align:center;">${p.baseOdds.toFixed(2)}</div>
+          ${priceOnlyButton(p.id, p.team + ' to win (boosted)', {odds:p.odds, suspended:false})}
         </div>
       </div>`).join('') : `<div class="bb-card" style="text-align:center;padding:1.5rem;color:#9a9a9a;">No featured fixtures this round yet \u2014 check back once the round's matches are set.</div>`;
 
     const futureCards = futures.length ? futures.map(p => `
-      <div class="bb-card" style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;">
-        <div style="min-width:0;">
+      <div class="bb-card" style="display:flex;align-items:stretch;gap:12px;margin-bottom:8px;">
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:3px;">
           <div style="font-size:11px;color:#9a9a9a;">${esc(p.market)} \u2014 ${esc(String(p.division).replace(' (D1)',''))}</div>
           <div style="font-weight:600;display:flex;align-items:center;gap:6px;">${teamLogo(p.team,18)}${esc(p.team)}</div>
         </div>
-        <div style="text-align:right;flex-shrink:0;">
-          <div style="font-size:10px;color:#6a6a6a;text-decoration:line-through;">${p.baseOdds.toFixed(2)}</div>
-          ${quickOddsButton(p.id, esc(p.team) + ' ' + esc(p.market) + ' (boosted)', p.team, {odds:p.odds, suspended:false})}
+        <div style="width:88px;flex-shrink:0;display:flex;flex-direction:column;justify-content:center;gap:2px;">
+          <div style="font-size:10px;color:#6a6a6a;text-decoration:line-through;text-align:center;">${p.baseOdds.toFixed(2)}</div>
+          ${priceOnlyButton(p.id, esc(p.team) + ' ' + esc(p.market) + ' (boosted)', {odds:p.odds, suspended:false})}
         </div>
       </div>`).join('') : `<div class="bb-card" style="text-align:center;padding:1.5rem;color:#9a9a9a;">${state.currentRound >= 24 ? "No futures featured this late in the season \u2014 not much left for a season-long bet to play out." : "No standout futures right now \u2014 check back soon."}</div>`;
 
@@ -1464,6 +1465,16 @@
     const selected = state.slip.some(s=>s.id===pickId);
     return `<button class="bb-btn ${selected?'':'ghost'}" data-pick="${esc(pickId)}" data-label="${esc(label)}" data-odds="${oddsInfo.odds}" style="padding:6px 10px;font-size:12px;display:inline-flex;align-items:center;gap:6px;">${teamLogo(teamLabel,16)}${esc(teamLabel)} ${oddsInfo.odds.toFixed(2)}</button>`;
   }
+  // Same pick/click mechanics as quickOddsButton, just without the repeated
+  // team logo+name -- for layouts where the team is already shown once,
+  // separately, and only the price itself needs to sit in its own box.
+  function priceOnlyButton(pickId, label, oddsInfo){
+    if(oddsInfo.suspended){
+      return `<span class="bb-btn ghost" style="padding:8px 14px;font-size:13px;opacity:0.5;cursor:default;width:100%;text-align:center;">susp.</span>`;
+    }
+    const selected = state.slip.some(s=>s.id===pickId);
+    return `<button class="bb-btn ${selected?'':'ghost'}" data-pick="${esc(pickId)}" data-label="${esc(label)}" data-odds="${oddsInfo.odds}" style="padding:8px 14px;font-size:13px;font-weight:700;width:100%;text-align:center;">${oddsInfo.odds.toFixed(2)}</button>`;
+  }
 
   function renderFixtureList(div){
     if(state.h2hFixtureMarket){
@@ -1484,13 +1495,16 @@
         const roundTag = 'R' + m.round;
         const aId = 'H2H|res-a|'+roundTag+'|'+m.teamA+'|'+m.teamB;
         const bId = 'H2H|res-b|'+roundTag+'|'+m.teamA+'|'+m.teamB;
-        return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;flex-wrap:wrap;${i<markets.length-1?'border-bottom:1px solid #3d3d3d;':''}">
-          <div style="display:flex;align-items:center;gap:8px;">
-            ${quickOddsButton(aId, roundTag+': '+m.teamA+' to win', m.teamA, toOdds(m.aWinPct))}
-            <span style="color:#9a9a9a;font-size:12px;">vs</span>
-            ${quickOddsButton(bId, roundTag+': '+m.teamB+' to win', m.teamB, toOdds(m.bWinPct))}
+        return `<div style="display:flex;align-items:stretch;gap:12px;padding:12px 16px;${i<markets.length-1?'border-bottom:1px solid #3d3d3d;':''}">
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:3px;">
+            <div style="display:flex;align-items:center;gap:6px;font-weight:600;">${teamLogo(m.teamA,18)}${esc(m.teamA)}</div>
+            <div style="display:flex;align-items:center;gap:6px;font-weight:600;"><span style="color:#9a9a9a;font-weight:400;">vs</span> ${teamLogo(m.teamB,18)}${esc(m.teamB)}</div>
+            <span class="bb-btn ghost" data-fixture-expand="${esc(div)}|${i}" style="align-self:flex-start;padding:3px 9px;font-size:10px;margin-top:2px;">Full market (draw &amp; handicap)</span>
           </div>
-          <span class="bb-btn ghost" data-fixture-expand="${esc(div)}|${i}" style="padding:5px 10px;font-size:11px;">Full market (draw &amp; handicap)</span>
+          <div style="width:88px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;justify-content:center;">
+            ${priceOnlyButton(aId, roundTag+': '+m.teamA+' to win', toOdds(m.aWinPct))}
+            ${priceOnlyButton(bId, roundTag+': '+m.teamB+' to win', toOdds(m.bWinPct))}
+          </div>
         </div>`;
       }).join('') +
       '</div>' +
