@@ -64,10 +64,16 @@
       // an empty object is the legitimate pre-season state -- nothing to validate yet
       if(vals.length && !vals.every(isArray)) return 'should be {team: [scores]}, but found something else';
     }
+    if(name === 'aleague_round_projection'){
+      const vals = Object.values(data);
+      if(vals.length !== 26) return 'should have exactly 26 rounds, found ' + vals.length;
+      if(!vals.every(v => v && typeof v.baseline === 'number' && isArray(v.byes) && isArray(v.doubles)))
+        return 'should be {round: {baseline, byes:[...], doubles:[...]}}, but found something else';
+    }
     return null;
   }
   async function loadAllData(){
-    const files = ['futures','h2h_history','h2h_divisions','h2h_shift','h2h_cup_shift','h2h_variance_widen','h2h_schedule','leading_at','special_markets','h2h_record','cup_calendar','carry_balances','round_dates','div23_schedule_exceptions','real_results'];
+    const files = ['futures','h2h_history','h2h_divisions','h2h_shift','h2h_cup_shift','h2h_variance_widen','h2h_schedule','leading_at','special_markets','h2h_record','cup_calendar','carry_balances','round_dates','div23_schedule_exceptions','real_results','aleague_round_projection'];
     const failures = [];
     const results = await Promise.all(files.map(async name => {
       const path = './data/' + name + '.json';
@@ -160,6 +166,7 @@
   }
   const CARRY_BALANCES = DATA.carry_balances; // {teamName: {carry, historicalRecord}}
   const ROUND_DATES = DATA.round_dates; // {round: 'YYYY-MM-DD' kickoff date}
+  const ALEAGUE_PROJECTION = DATA.aleague_round_projection; // {round: {baseline, byes:[...], doubles:[...]}}
   const DIV23_EXCEPTIONS = DATA.div23_schedule_exceptions; // {div: {no_fixture_rounds, playoff_rounds}}
   function hasNoFixtures(div, round){
     const ex = DIV23_EXCEPTIONS[div];
@@ -676,6 +683,33 @@
   }
 
   const featuredFixturesCache = {};
+  // A-League fantasy point projection: pro-rates the new platform's median
+  // team score (11 scoring players x 3.7 median, plus one extra copy for
+  // the captain's double = 44.4) against how many real A-League matches
+  // each club actually has that round -- a bye pulls the baseline down, a
+  // double gameweek pushes it up. Purely a projection display; doesn't
+  // feed into odds or any other part of the platform.
+  function renderPointProjection(round){
+    const proj = ALEAGUE_PROJECTION[round];
+    if(!proj) return '';
+    const STANDARD = 44.4;
+    let note;
+    if(proj.byes.length){
+      note = `Down from the usual ${STANDARD} \u2014 ${proj.byes.join(' and ')} ${proj.byes.length>1?'are':'is'} on a bye.`;
+    } else if(proj.doubles.length){
+      note = `Up from the usual ${STANDARD} \u2014 ${proj.doubles.join(' and ')} ${proj.doubles.length>1?'have':'has'} a double this round.`;
+    } else {
+      note = 'A standard round \u2014 every club plays exactly once.';
+    }
+    return `<div class="bb-card" style="margin-bottom:1rem;">
+      <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">
+        <span style="font-size:12px;color:#9a9a9a;text-transform:uppercase;letter-spacing:0.05em;">Round ${round} projected score</span>
+        <span style="font-size:20px;font-weight:800;color:#ffdd00;">${proj.baseline.toFixed(1)} pts</span>
+      </div>
+      <div style="font-size:12px;color:#9a9a9a;margin-top:2px;">${note}</div>
+    </div>`;
+  }
+
   function computeFeaturedFixtures(){
     const round = state.currentRound;
     if(featuredFixturesCache[round]) return featuredFixturesCache[round];
@@ -872,6 +906,7 @@
         <div style="font-size:12px;letter-spacing:0.08em;color:#ffdd00;text-transform:uppercase;font-weight:700;">This week's boosted odds</div>
         <div style="font-size:12px;color:#9a9a9a;margin-top:4px;">Every pick below is +${Math.round((FEATURED_BOOST_MULTIPLIER-1)*100)}% on the normal price \u2014 just for being featured.</div>
       </div>
+      ${renderPointProjection(state.currentRound)}
       <h3 style="margin-top:0;">Featured fixtures</h3>
       ${fixtureCards}
       <h3>Featured futures</h3>
@@ -1433,7 +1468,7 @@
     const roundBar = `<div class="bb-card" style="margin-bottom:1rem;display:flex;align-items:center;gap:10px;">
       <span style="font-size:12px;color:#9a9a9a;">Round</span>
       <select class="bb-select" id="h2h-round" style="width:140px;">${roundOptions(state.h2hRound)}</select>
-    </div>`;
+    </div>` + renderPointProjection(state.h2hRound);
     if(state.h2hSubTab === 'CUSTOM MATCHUP'){
       return stripe + roundBar + h2hSubTabBar() + `<div class="bb-card" style="margin-bottom:1rem;">
         <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
