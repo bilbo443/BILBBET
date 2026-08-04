@@ -315,7 +315,7 @@
     playoffAdminEntry: { 'DIVISION 2': {teamA:'',teamB:'',stage:'Qualifying Final'}, 'DIVISION 3': {teamA:'',teamB:'',stage:'Qualifying Final'} },
     adminSubTab: 'season',
     betSubmissionInProgress: false,
-    homeBestValueWinner: null, homeBestBet: null,
+    homeBestValueWinner: null, homeBestBet: null, featuredFixturesData: null,
     eclGroups: { A: [], B: [], C: [] },
     eclGroupAdminPick: '',
     roundBettingOpen: true,
@@ -690,7 +690,6 @@
     return { id, team, opp, pct: dogPct, baseOdds: oddsInfo.odds, odds: boosted, division, ...extra };
   }
 
-  const featuredFixturesCache = {};
   // A-League fantasy point projection: pro-rates the new platform's median
   // team score (11 scoring players x 3.7 median, plus one extra copy for
   // the captain's double = 44.4) against how many real A-League matches
@@ -720,7 +719,6 @@
 
   function computeFeaturedFixtures(){
     const round = state.currentRound;
-    if(featuredFixturesCache[round]) return featuredFixturesCache[round];
     const roundTag = 'R' + round;
     const MAX_TOTAL = 10, MAX_PER_DIV = 2;
     const selected = [];
@@ -745,7 +743,15 @@
       }
     }
 
-    // Regular divisional fixtures, ~15-25% of that division's matches this round
+    // Regular divisional fixtures, ~15-25% of that division's matches this
+    // round. Deliberately reuses getFixtureMarkets (the same function the
+    // H2H tab itself calls) rather than computing independently -- found
+    // via testing that computeH2HMarket draws a fresh random sample every
+    // single call, so two separate computations for the identical fixture
+    // could show two different numbers even moments apart. Going through
+    // the same cached function guarantees the featured card's crossed-out
+    // price and the H2H page's price are reading the exact same value,
+    // not just the same underlying data.
     for(const div of FUTURE_DIVS){
       if(selected.length >= MAX_TOTAL) break;
       const alreadyInDiv = selected.filter(s => s.division === div).length;
@@ -753,9 +759,9 @@
       if(remaining <= 0) continue;
       const pairs = (H2H_SCHEDULE[div] && H2H_SCHEDULE[div][round - 1]) || [];
       if(!pairs.length) continue;
+      const markets = getFixtureMarkets(div, round);
       const picks = [];
-      for(const [teamA, teamB] of pairs){
-        const m = computeH2HMarket(teamA, teamB, round, 4000);
+      for(const m of markets){
         const pick = pickValueSide(m, roundTag, div, { isCup: false });
         if(pick) picks.push(pick);
       }
@@ -766,7 +772,6 @@
         selected.push(p);
       }
     }
-    featuredFixturesCache[round] = selected;
     return selected;
   }
 
@@ -835,25 +840,66 @@
   // The highest-odds bet that actually WON last round, among bets punters
   // genuinely placed -- if nobody's winning bet cleared, that's worth
   // saying plainly rather than just showing an empty section.
+  //
+  // Both featured fixtures and best-value-winner rely on the same random
+  // simulation used throughout the app -- fine for a displayed odds number
+  // (an invisible, sub-decimal wobble), but a problem for a *discrete
+  // selection*: which fixture ranks as "most competitive" among several
+  // close ones can flip on a fresh page load, especially in Eliza Cup (14
+  // teams, 7 fixtures/round, the most of any division, so the most chances
+  // for a close call to go either way) -- confirmed this was happening on
+  // every reload, not just occasionally. The underlying sampler bakes
+  // Math.random() into its pools at construction time, so making the
+  // simulation itself reproducible would mean touching the sampling
+  // infrastructure every market in the app depends on -- too much risk for
+  // this. Persisting the computed result instead, keyed by round, means
+  // it's genuinely computed once -- by whoever loads the page first for
+  // that round -- and every visitor after that, on any device, on any
+  // future reload, sees that exact same result until the round changes.
   async function loadHomeStats(){
-    const round = state.currentRound - 1;
-    state.homeBestValueWinner = computeBestValueWinner();
-    if(round < 1){
+    const round = state.currentRound;
+    const prevRound = round - 1;
+
+    const featuredKey = 'bilbbet2_featured_fixtures_R' + round;
+    let featured = await sget(featuredKey);
+    if(!featured){
+      featured = computeFeaturedFixtures();
+      await sset(featuredKey, featured);
+    }
+    state.featuredFixturesData = featured;
+    render();
+
+    if(prevRound < 1){
+      state.homeBestValueWinner = null;
       state.homeBestBet = { none: true, noPriorRound: true };
       render();
       return;
     }
+    const bvwKey = 'bilbbet2_best_value_winner_R' + prevRound;
+    let bvw = await sget(bvwKey);
+    if(bvw === null){
+      // sget returning null is ambiguous between "not cached yet" and
+      // "cached, and the answer is genuinely nothing" -- store an explicit
+      // marker so a real "no winner" result doesn't get recomputed (and
+      // risk changing) on every subsequent load.
+      bvw = computeBestValueWinner() || { none: true };
+      await sset(bvwKey, bvw);
+    }
+    state.homeBestValueWinner = bvw.none ? null : bvw;
+    render();
+
     const betIds = await getIndex('bilbbet2_all_bets_index');
     const bets = (await Promise.all(betIds.map(id => sget('bilbbet2_bet:' + id)))).filter(Boolean);
     const wonThisRound = bets.filter(b => b.status === 'WON' &&
-      b.selections.some(s => getPickRound(s.id) === round));
+      b.selections.some(s => getPickRound(s.id) === prevRound));
     wonThisRound.sort((a, b) => b.combinedOdds - a.combinedOdds);
     state.homeBestBet = wonThisRound[0] || { none: true };
     render();
   }
 
   function renderHomeTab(){
-    const fixtures = computeFeaturedFixtures();
+    const fixtures = state.featuredFixturesData || [];
+    const fixturesLoading = state.featuredFixturesData === null;
     const futures = computeFeaturedFutures();
 
     const fixtureCards = fixtures.length ? fixtures.map(p => `
@@ -867,7 +913,7 @@
           <div style="font-size:10px;color:#6a6a6a;text-decoration:line-through;text-align:center;">${p.baseOdds.toFixed(2)}</div>
           ${priceOnlyButton(p.id, p.team + ' to win (boosted)', {odds:p.odds, suspended:false})}
         </div>
-      </div>`).join('') : `<div class="bb-card" style="text-align:center;padding:1.5rem;color:#9a9a9a;">No featured fixtures this round yet \u2014 check back once the round's matches are set.</div>`;
+      </div>`).join('') : `<div class="bb-card" style="text-align:center;padding:1.5rem;color:#9a9a9a;">${fixturesLoading ? 'Loading&hellip;' : "No featured fixtures this round yet \u2014 check back once the round's matches are set."}</div>`;
 
     const futureCards = futures.length ? futures.map(p => `
       <div class="bb-card" style="display:flex;align-items:stretch;gap:12px;margin-bottom:8px;">
@@ -2592,6 +2638,10 @@
     const pick = eligible[Math.floor(Math.random()*eligible.length)];
     const id = tagPrefix + pick.team;
     if(state.slip.some(s=>s.id===id)){ alert(pick.team+' is already in your slip!'); return; }
+    if(isFeaturedPick(id) && state.user && state.user.featuredPickUsedRound === state.currentRound){
+      alert("You've already used this round's featured pick in another bet \u2014 only one featured (boosted) pick per round.");
+      return;
+    }
     const conflict = findConflict(id);
     if(conflict){ alert("Can't add that selection \u2014 " + conflict.msg + "."); return; }
     state.slip.push({id, label: pick.team, odds: pick.odds, singleStake: state.stake});
@@ -2645,6 +2695,21 @@
       if(u){
         u.balance -= settlementCredit(prevStatus, bet);
         u.balance += settlementCredit(newStatus, bet);
+        // A void means "as if this bet never happened" -- so if it had
+        // used this round's featured pick or free multi-boost, that
+        // allowance needs to come back too, not stay silently spent on a
+        // bet that never actually resolved. Only restores if THIS bet is
+        // the one that set it (checked by round, stored on the bet itself
+        // at placement time) -- guards against a stale bet from an older
+        // round accidentally clearing a genuinely-in-use current one.
+        if(newStatus === 'VOID'){
+          if(bet.featuredPickRound && u.featuredPickUsedRound === bet.featuredPickRound){
+            u.featuredPickUsedRound = null;
+          }
+          if(bet.boostRound && u.boostUsedRound === bet.boostRound){
+            u.boostUsedRound = null;
+          }
+        }
         await saveUser(u);
         if(state.user.username.toLowerCase() === bet.username.toLowerCase()) state.user = u;
       }
@@ -2705,6 +2770,14 @@
           if(statusChanged){
             u.balance -= settlementCredit(prevOverall, bet);
             u.balance += settlementCredit(newOverall, bet);
+            if(newOverall === 'VOID'){
+              if(bet.featuredPickRound && u.featuredPickUsedRound === bet.featuredPickRound){
+                u.featuredPickUsedRound = null;
+              }
+              if(bet.boostRound && u.boostUsedRound === bet.boostRound){
+                u.boostUsedRound = null;
+              }
+            }
           }
           if(bonusNeedsClawback){
             u.balance -= bet.stake;
@@ -3034,8 +3107,30 @@
     return null;
   }
 
+  // A pick counts as "featured" if it matches one of the current round's
+  // Home-tab featured selections (fixtures or futures) -- the boosted
+  // price only applies to picks actually offered there, so this is the
+  // single source of truth both the slip-limit check and the boost-
+  // eligibility check below key off of.
+  function isFeaturedPick(pickId){
+    const fixtures = state.featuredFixturesData || [];
+    if(fixtures.some(p => p.id === pickId)) return true;
+    const futures = computeFeaturedFutures();
+    return futures.some(p => p.id === pickId);
+  }
   function findConflict(newId){
     const np = parsePick(newId);
+
+    // Only one featured (boosted) pick allowed per slip -- and, checked at
+    // placement time in placeBet/placeBetsAsSingles, only one per round
+    // even across separate bets. The promotional boost is meant as one
+    // genuine highlight per punter per round, not something to stack.
+    if(isFeaturedPick(newId)){
+      const existingFeatured = state.slip.find(s => isFeaturedPick(s.id));
+      if(existingFeatured){
+        return { reason:'featured-limit', msg: `only one featured (boosted) pick allowed per round \u2014 you already have ${existingFeatured.label} in this slip` };
+      }
+    }
     for(const s of state.slip){
       const ep = parsePick(s.id);
 
@@ -3161,7 +3256,8 @@
     }
 
     const combined = combinedOdds(), potential = state.stake*combined;
-    const boostEligible = state.user && state.slip.length >= 3 && (!state.user.boostUsedRound || state.user.boostUsedRound !== state.currentRound);
+    const hasFeaturedInSlip = state.slip.some(s => isFeaturedPick(s.id));
+    const boostEligible = state.user && !hasFeaturedInSlip && state.slip.length >= 3 && (!state.user.boostUsedRound || state.user.boostUsedRound !== state.currentRound);
     const boostApplied = boostEligible && state.useBoost;
     const displayedCombined = boostApplied ? combined * BOOST_MULTIPLIER : combined;
     const displayedPotential = state.stake * displayedCombined;
@@ -3169,7 +3265,8 @@
       <label style="display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:8px;background:#4a3a10;border-radius:8px;padding:8px 10px;">
         <input type="checkbox" id="use-boost-checkbox" ${state.useBoost?'checked':''}/>
         <span style="color:#ffdd00;">Use your Round ${state.currentRound} boosted odd \u2014 free +${Math.round((BOOST_MULTIPLIER-1)*100)}% on this multi (one per round).</span>
-      </label>` : '';
+      </label>` : (hasFeaturedInSlip ? `
+      <div style="font-size:11px;color:#9a9a9a;margin-bottom:8px;">This slip already includes a featured (boosted) pick, so the separate multi-boost can't also be applied.</div>` : '');
     return `<div class="bb-slip"><div class="bb-slip-inner">
       ${modeToggle}${header}
       <div style="max-height:100px;overflow-y:auto;margin-bottom:8px;">
@@ -3348,6 +3445,10 @@
         alert(state.closeScope === 'all'
           ? 'Betting is currently closed while Round '+state.currentRound+' is being resolved.'
           : 'Betting for Round '+state.currentRound+' is currently closed.');
+        return;
+      }
+      if(isFeaturedPick(id) && state.user.featuredPickUsedRound === state.currentRound){
+        alert("You've already used this round's featured pick in another bet \u2014 only one featured (boosted) pick per round.");
         return;
       }
       const conflict = findConflict(id);
@@ -3556,18 +3657,39 @@
       // saved bet would pay out at multi-leg odds for what's effectively a
       // single easy bet.
       const slipSnapshot = state.slip.slice();
-      const boostEligible = slipSnapshot.length >= 3 && (!state.user.boostUsedRound || state.user.boostUsedRound !== state.currentRound);
+      const hasFeatured = slipSnapshot.some(s => isFeaturedPick(s.id));
+      // A featured pick already carries its own boosted price -- stacking
+      // the separate +10% multi-boost on top would be a second discount on
+      // the same bet, not the single promotional highlight this is meant
+      // to be.
+      const boostEligible = !hasFeatured && slipSnapshot.length >= 3 && (!state.user.boostUsedRound || state.user.boostUsedRound !== state.currentRound);
       const boostApplied = boostEligible && state.useBoost;
       const combined = combinedOddsFor(slipSnapshot) * (boostApplied ? BOOST_MULTIPLIER : 1);
       const u = await withUserLock(state.user.username, async () => {
         const fresh = await getUser(state.user.username);
+        // Re-checked here, inside the lock, against freshly-read data --
+        // not the stale local copy from before this bet started submitting.
+        // Two separate tabs for the same account could each pass a check
+        // made from their own local state before either has actually
+        // recorded using this round's featured pick; only a check against
+        // what's genuinely in storage, serialized by the lock, closes that.
+        if(hasFeatured && fresh.featuredPickUsedRound === state.currentRound){
+          return null; // signals: blocked, handled by the caller below
+        }
         fresh.balance -= stake;
         if(boostApplied) fresh.boostUsedRound = state.currentRound;
+        if(hasFeatured) fresh.featuredPickUsedRound = state.currentRound;
         await saveUser(fresh);
         return fresh;
       });
+      if(u === null){
+        alert("You've already used this round's featured pick in another bet \u2014 only one featured (boosted) pick per round.");
+        return;
+      }
       state.user = u;
       const bet = { id: uid(), username: u.username, selections: slipSnapshot, stake, combinedOdds: combined, boosted: boostApplied,
+                    featuredPickRound: hasFeatured ? state.currentRound : null,
+                    boostRound: boostApplied ? state.currentRound : null,
                     potentialReturn: Math.round(stake*combined), timestamp: Date.now(), status: 'PENDING' };
       await sset('bilbbet2_bet:'+bet.id, bet);
       await addToIndex('bilbbet2_bets_index_' + u.username.toLowerCase(), bet.id);
@@ -3601,16 +3723,26 @@
     state.betSubmissionInProgress = true;
     try {
       const slipSnapshot = state.slip.slice();
+      const hasFeatured = slipSnapshot.some(s => isFeaturedPick(s.id));
       const u = await withUserLock(state.user.username, async () => {
         const fresh = await getUser(state.user.username);
+        if(hasFeatured && fresh.featuredPickUsedRound === state.currentRound){
+          return null;
+        }
         fresh.balance -= totalStake;
+        if(hasFeatured) fresh.featuredPickUsedRound = state.currentRound;
         await saveUser(fresh);
         return fresh;
       });
+      if(u === null){
+        alert("You've already used this round's featured pick in another bet \u2014 only one featured (boosted) pick per round.");
+        return;
+      }
       state.user = u;
       for(const item of slipSnapshot){
         const stake = Math.max(1, item.singleStake||0);
         const bet = { id: uid(), username: u.username, selections: [item], stake, combinedOdds: item.odds,
+                      featuredPickRound: isFeaturedPick(item.id) ? state.currentRound : null,
                       potentialReturn: Math.round(stake*item.odds), timestamp: Date.now(), status: 'PENDING' };
         await sset('bilbbet2_bet:'+bet.id, bet);
         await addToIndex('bilbbet2_bets_index_' + u.username.toLowerCase(), bet.id);
