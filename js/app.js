@@ -264,13 +264,13 @@
   const K = 8;
 
   const FUTURE_DIVS = Object.keys(FUTURES.divisions);
-  const BASE_TABS = [...FUTURE_DIVS, 'RODDY', 'FA CUP', 'ECL', 'H2H', 'PLAYOFFS', 'SPECIALS', 'STATS', 'MY BETS'];
+  const BASE_TABS = ['HOME', ...FUTURE_DIVS, 'RODDY', 'FA CUP', 'ECL', 'H2H', 'PLAYOFFS', 'SPECIALS', 'STATS', 'MY BETS'];
   function currentTabs(){ return state.user && state.user.isAdmin ? [...BASE_TABS, 'ADMIN'] : BASE_TABS; }
 
   let state = {
     screen:'main', user:null, error:'', info:'', loginModalOpen:false,
     username:'', pin:'', adminLoginMode:false, storageDegraded:false,
-    activeTab:'H2H',
+    activeTab:'HOME',
     futureMarketTab: FUTURE_DIVS.length ? Object.keys(FUTURES.market_labels)[0] : null,
     teamA:'', teamB:'', h2hRound:1, h2hMarket:null,
     h2hSubTab: FUTURE_DIVS[0], h2hFixtureMarket: null,
@@ -298,6 +298,7 @@
     playoffAdminEntry: { 'DIVISION 2': {teamA:'',teamB:'',stage:'Qualifying Final'}, 'DIVISION 3': {teamA:'',teamB:'',stage:'Qualifying Final'} },
     adminSubTab: 'season',
     betSubmissionInProgress: false,
+    homeBestValueWinner: null, homeBestBet: null,
     eclGroups: { A: [], B: [], C: [] },
     eclGroupAdminPick: '',
     roundBettingOpen: true,
@@ -650,6 +651,233 @@
     return { odds, suspended:false };
   }
 
+  // Selects this round's featured H2H-style picks for the Home tab: cup/
+  // playoff/ECL fixtures (if scheduled this round) get priority, then each
+  // division contributes roughly 15-25% of its own match count for the
+  // round (rounded, capped at 2), always backing whichever side is the
+  // more competitive underdog -- a genuine, non-trivial chance, not a
+  // near-hopeless punt -- so every pick is framed as a positive "to win"
+  // outcome, never "to lose". Capped at 10 total across everything.
+  const FEATURED_BOOST_MULTIPLIER = 1.25; // the promotional boost on every Home-tab featured pick
+  function pickValueSide(m, roundTag, division, extra){
+    const aIsDog = m.aWinPct < m.bWinPct;
+    const dogPct = aIsDog ? m.aWinPct : m.bWinPct;
+    if(dogPct < 20) return null; // too much of a long-shot to read as genuine value
+    const team = aIsDog ? m.teamA : m.teamB;
+    const opp = aIsDog ? m.teamB : m.teamA;
+    const side = aIsDog ? 'res-a' : 'res-b';
+    const oddsInfo = toOdds(dogPct);
+    if(oddsInfo.suspended) return null;
+    const id = 'H2H|' + side + '|' + roundTag + '|' + m.teamA + '|' + m.teamB;
+    const boosted = Math.round(oddsInfo.odds * FEATURED_BOOST_MULTIPLIER * 100) / 100;
+    return { id, team, opp, pct: dogPct, baseOdds: oddsInfo.odds, odds: boosted, division, ...extra };
+  }
+
+  function computeFeaturedFixtures(){
+    const round = state.currentRound;
+    const roundTag = 'R' + round;
+    const MAX_TOTAL = 10, MAX_PER_DIV = 2;
+    const selected = [];
+
+    // Cup/playoff/ECL fixtures scheduled this round, prioritized
+    for(const comp of ['FA CUP', 'ECL']){
+      if(!getCupRoundInfo(comp, round)) continue;
+      for(const f of (state.cupFixtures[comp] || [])){
+        if(selected.length >= MAX_TOTAL) break;
+        const m = computeH2HMarket(f.teamA, f.teamB, round, 4000);
+        const pick = pickValueSide(m, roundTag, comp, { stage: f.stage, isCup: true });
+        if(pick) selected.push(pick);
+      }
+    }
+    for(const div of ['DIVISION 2', 'DIVISION 3']){
+      if(!isPlayoffRound(div, round)) continue;
+      for(const f of (state.playoffFixtures[div] || [])){
+        if(selected.length >= MAX_TOTAL) break;
+        const m = computeH2HMarket(f.teamA, f.teamB, round, 4000);
+        const pick = pickValueSide(m, roundTag, div, { stage: f.stage, isCup: true });
+        if(pick) selected.push(pick);
+      }
+    }
+
+    // Regular divisional fixtures, ~15-25% of that division's matches this round
+    for(const div of FUTURE_DIVS){
+      if(selected.length >= MAX_TOTAL) break;
+      const alreadyInDiv = selected.filter(s => s.division === div).length;
+      let remaining = MAX_PER_DIV - alreadyInDiv;
+      if(remaining <= 0) continue;
+      const pairs = (H2H_SCHEDULE[div] && H2H_SCHEDULE[div][round - 1]) || [];
+      if(!pairs.length) continue;
+      const picks = [];
+      for(const [teamA, teamB] of pairs){
+        const m = computeH2HMarket(teamA, teamB, round, 4000);
+        const pick = pickValueSide(m, roundTag, div, { isCup: false });
+        if(pick) picks.push(pick);
+      }
+      picks.sort((a, b) => b.pct - a.pct); // most competitive underdog first
+      const targetCount = Math.max(1, Math.round(pairs.length * 0.20)); // midpoint of the 15-25% range
+      for(const p of picks.slice(0, Math.min(targetCount, remaining))){
+        if(selected.length >= MAX_TOTAL) break;
+        selected.push(p);
+      }
+    }
+    return selected;
+  }
+
+  // 2-4 season-long futures picks for the Home tab -- deliberately not
+  // shown in the final 3 rounds of the season, since backing a future
+  // outcome stops making sense when there's barely any season left for it
+  // to play out. Same "genuine, non-trivial chance" value definition used
+  // for the external cross-promotion widget: a real shot, not a
+  // near-certainty and not a hopeless longshot.
+  const POSITIVE_FUTURE_MARKETS = { win_div_pct: 'Win Division', top3_pct: 'Top 3 Finish',
+                                     promotion_pct: 'Promotion', roddy_win_pct: 'Roddy Winner' };
+  function computeFeaturedFutures(){
+    if(state.currentRound >= 24) return []; // final 3 rounds of the 26-round season
+    const candidates = [];
+    for(const div of FUTURE_DIVS){
+      for(const key in POSITIVE_FUTURE_MARKETS){
+        for(const r of (FUTURES.divisions[div][key] || [])){
+          if(r.suspended) continue;
+          const pct = 100 / (r.odds * 1.05);
+          if(pct >= 8 && pct <= 25){
+            candidates.push({ team: r.team, market: POSITIVE_FUTURE_MARKETS[key], division: div, odds: r.odds,
+                               id: 'FUT|' + div + '|' + key + '|' + r.team });
+          }
+        }
+      }
+    }
+    for(const r of (FUTURES.roddy.roddy_win_pct || [])){
+      if(r.suspended) continue;
+      const pct = 100 / (r.odds * 1.05);
+      if(pct >= 8 && pct <= 25){
+        candidates.push({ team: r.team, market: 'Roddy Winner', division: 'RODDY', odds: r.odds,
+                           id: 'FUT|RODDY|roddy_win_pct|' + r.team });
+      }
+    }
+    candidates.sort((a, b) => b.odds - a.odds);
+    return candidates.slice(0, 4).map(c => ({ ...c, baseOdds: c.odds, odds: Math.round(c.odds * FEATURED_BOOST_MULTIPLIER * 100) / 100 }));
+  }
+
+  // The highest-odds market that actually won last round, regardless of
+  // whether anyone backed it -- a genuine "you'd have loved this" stat,
+  // not tied to what the community actually staked.
+  function computeBestValueWinner(){
+    const round = state.currentRound - 1;
+    if(round < 1) return null;
+    let best = null;
+    for(const div of FUTURE_DIVS){
+      const pairs = (H2H_SCHEDULE[div] && H2H_SCHEDULE[div][round - 1]) || [];
+      for(const [teamA, teamB] of pairs){
+        const scoreA = REAL_RESULTS[teamA] && REAL_RESULTS[teamA][round - 1];
+        const scoreB = REAL_RESULTS[teamB] && REAL_RESULTS[teamB][round - 1];
+        if(scoreA == null || scoreB == null || scoreA === scoreB) continue;
+        const teamAWon = scoreA > scoreB;
+        const winner = teamAWon ? teamA : teamB, loser = teamAWon ? teamB : teamA;
+        const m = computeH2HMarket(teamA, teamB, round, 4000);
+        const winnerPct = teamAWon ? m.aWinPct : m.bWinPct;
+        const oddsInfo = toOdds(winnerPct);
+        if(oddsInfo.suspended) continue;
+        if(!best || oddsInfo.odds > best.odds){
+          best = { team: winner, opp: loser, division: div, odds: oddsInfo.odds, round };
+        }
+      }
+    }
+    return best;
+  }
+
+  // The highest-odds bet that actually WON last round, among bets punters
+  // genuinely placed -- if nobody's winning bet cleared, that's worth
+  // saying plainly rather than just showing an empty section.
+  async function loadHomeStats(){
+    const round = state.currentRound - 1;
+    state.homeBestValueWinner = computeBestValueWinner();
+    if(round < 1){
+      state.homeBestBet = { none: true, noPriorRound: true };
+      render();
+      return;
+    }
+    const betIds = await getIndex('bilbbet2_all_bets_index');
+    const bets = (await Promise.all(betIds.map(id => sget('bilbbet2_bet:' + id)))).filter(Boolean);
+    const wonThisRound = bets.filter(b => b.status === 'WON' &&
+      b.selections.some(s => getPickRound(s.id) === round));
+    wonThisRound.sort((a, b) => b.combinedOdds - a.combinedOdds);
+    state.homeBestBet = wonThisRound[0] || { none: true };
+    render();
+  }
+
+  function renderHomeTab(){
+    const fixtures = computeFeaturedFixtures();
+    const futures = computeFeaturedFutures();
+
+    const fixtureCards = fixtures.length ? fixtures.map(p => `
+      <div class="bb-card" style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;">
+        <div style="min-width:0;">
+          <div style="font-size:11px;color:#9a9a9a;">${p.isCup ? esc(p.stage) + ' \\u2014 ' + esc(p.division) : esc(p.division.replace(' (D1)',''))}</div>
+          <div style="font-weight:600;display:flex;align-items:center;gap:6px;">${teamLogo(p.team,18)}${esc(p.team)} <span style="color:#6a6a6a;font-weight:400;font-size:12px;">to beat ${esc(p.opp)}</span></div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:10px;color:#6a6a6a;text-decoration:line-through;">${p.baseOdds.toFixed(2)}</div>
+          ${quickOddsButton(p.id, p.team + ' to win (boosted)', p.team, {odds:p.odds, suspended:false})}
+        </div>
+      </div>`).join('') : `<div class="bb-card" style="text-align:center;padding:1.5rem;color:#9a9a9a;">No featured fixtures this round yet \\u2014 check back once the round's matches are set.</div>`;
+
+    const futureCards = futures.length ? futures.map(p => `
+      <div class="bb-card" style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;">
+        <div style="min-width:0;">
+          <div style="font-size:11px;color:#9a9a9a;">${esc(p.market)} \\u2014 ${esc(String(p.division).replace(' (D1)',''))}</div>
+          <div style="font-weight:600;display:flex;align-items:center;gap:6px;">${teamLogo(p.team,18)}${esc(p.team)}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:10px;color:#6a6a6a;text-decoration:line-through;">${p.baseOdds.toFixed(2)}</div>
+          ${quickOddsButton(p.id, esc(p.team) + ' ' + esc(p.market) + ' (boosted)', p.team, {odds:p.odds, suspended:false})}
+        </div>
+      </div>`).join('') : `<div class="bb-card" style="text-align:center;padding:1.5rem;color:#9a9a9a;">${state.currentRound >= 24 ? "No futures featured this late in the season \\u2014 not much left for a season-long bet to play out." : "No standout futures right now \\u2014 check back soon."}</div>`;
+
+    const bvw = state.homeBestValueWinner;
+    const bestValueCard = bvw ? `
+      <div class="bb-card" style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:22px;">\\u{1F48E}</span>
+        <div>
+          <div style="font-weight:600;display:flex;align-items:center;gap:6px;">${teamLogo(bvw.team,18)}${esc(bvw.team)} beat ${esc(bvw.opp)}</div>
+          <div style="font-size:12px;color:#9a9a9a;">Round ${bvw.round} &middot; ${esc(bvw.division.replace(' (D1)',''))} &middot; would have paid <span style="color:#ffdd00;font-weight:600;">${bvw.odds.toFixed(2)}</span> \\u2014 whether anyone backed it or not</div>
+        </div>
+      </div>` : `<div class="bb-card" style="text-align:center;padding:1.5rem;color:#9a9a9a;">No results in yet for last round.</div>`;
+
+    const bb = state.homeBestBet;
+    let bestBetCard;
+    if(bb === null){
+      bestBetCard = `<div class="bb-card" style="text-align:center;padding:1.5rem;color:#9a9a9a;">Loading&hellip;</div>`;
+    } else if(bb.noPriorRound){
+      bestBetCard = `<div class="bb-card" style="text-align:center;padding:1.5rem;color:#9a9a9a;">No round completed yet this season \\u2014 check back after Round 1.</div>`;
+    } else if(bb.none){
+      bestBetCard = `<div class="bb-card" style="text-align:center;padding:1.5rem;color:#9a9a9a;">Nobody landed a winning bet last round \\u2014 the community isn't betting enough! Get involved for next round.</div>`;
+    } else {
+      bestBetCard = `
+      <div class="bb-card" style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:22px;">\\u{1F3C6}</span>
+        <div>
+          <div style="font-weight:600;">${esc(bb.username)}'s bet won at ${bb.combinedOdds.toFixed(2)}</div>
+          <div style="font-size:12px;color:#9a9a9a;">${bb.selections.length} selection${bb.selections.length>1?'s':''} &middot; ${fmt(bb.stake)} staked &middot; returned <span style="color:#ffdd00;font-weight:600;">${fmt(bb.potentialReturn)}</span> clams</div>
+        </div>
+      </div>`;
+    }
+
+    return `
+      <div class="bb-card" style="background:linear-gradient(135deg,#2a2410,#1a1a1a);border-color:#4a3a10;margin-bottom:16px;text-align:center;padding:1.25rem;">
+        <div style="font-size:12px;letter-spacing:0.08em;color:#ffdd00;text-transform:uppercase;font-weight:700;">This week's boosted odds</div>
+        <div style="font-size:12px;color:#9a9a9a;margin-top:4px;">Every pick below is +${Math.round((FEATURED_BOOST_MULTIPLIER-1)*100)}% on the normal price \\u2014 just for being featured.</div>
+      </div>
+      <h3 style="margin-top:0;">Featured fixtures</h3>
+      ${fixtureCards}
+      <h3>Featured futures</h3>
+      ${futureCards}
+      <h3>Best value that actually won last round</h3>
+      ${bestValueCard}
+      <h3>Best winning bet last round</h3>
+      ${bestBetCard}
+    `;
+  }
+
   // Open-field "who tops/bottoms the current round" market -- genuinely
   // round-dependent (moves as the admin advances the season), so this is
   // computed live in the browser from the same samplers as everything else,
@@ -854,7 +1082,7 @@
     };
     return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">' +
       currentTabs().map(t => {
-        const label = t==='RODDY'?'The Roddy':(t==='MY BETS'?'My Bets':(t==='ADMIN'?'Admin':(t==='H2H'?'H2H':t.replace(' (D1)',''))));
+        const label = t==='RODDY'?'The Roddy':(t==='MY BETS'?'My Bets':(t==='ADMIN'?'Admin':(t==='H2H'?'H2H':(t==='HOME'?'Home':t.replace(' (D1)','')))));
         const flag = (t==='ADMIN' && state.user && state.user.isAdmin && adminNeedsAttention())
           ? ' <span title="Needs attention" style="font-size:11px;">\u{1F6A9}</span>' : '';
         const kind = logoTabKind(t);
@@ -2567,7 +2795,9 @@
   function renderMain(){
     if(state.activeTab === 'ADMIN' && !(state.user && state.user.isAdmin)) state.activeTab = 'H2H';
     let body = '';
-    if(state.activeTab === 'H2H'){
+    if(state.activeTab === 'HOME'){
+      body = renderHomeTab();
+    } else if(state.activeTab === 'H2H'){
       body = renderH2HTab();
     } else if(state.activeTab === 'RODDY'){
       body = `<div class="bb-div-stripe div-roddy"></div>` + roddyMarketTabs() + (state.futureMarketTab === 'leading_at'
@@ -2865,7 +3095,7 @@
     const tosCheckboxInline = $('#tos-agree-checkbox-inline');
     if(tosCheckboxInline) tosCheckboxInline.onchange = e => { state.tosAgreed = e.target.checked; render(); };
     const logoutBtn = $('#logout-btn');
-    if(logoutBtn) logoutBtn.onclick = () => { state = {...state, screen:'main', user:null, username:'', pin:'', adminLoginMode:false, registeringMode:false, tosAgreed:false, error:'', info:'', loginModalOpen:false, slip:[], betMode:'multi', activeTab:'H2H', h2hMarket:null, h2hFixtureMarket:null, myBets:null, adminPunters:null, adminBets:null, novelty:null, statsData:null}; render(); };
+    if(logoutBtn) logoutBtn.onclick = () => { state = {...state, screen:'main', user:null, username:'', pin:'', adminLoginMode:false, registeringMode:false, tosAgreed:false, error:'', info:'', loginModalOpen:false, slip:[], betMode:'multi', activeTab:'HOME', h2hMarket:null, h2hFixtureMarket:null, myBets:null, adminPunters:null, adminBets:null, novelty:null, statsData:null}; render(); };
     const openLoginBtn = $('#open-login-btn'); if(openLoginBtn) openLoginBtn.onclick = () => { state.loginModalOpen = true; state.adminLoginMode=false; state.error=''; state.info=''; render(); };
     const openTeamSearchBtn = $('#open-team-search-btn'); if(openTeamSearchBtn) openTeamSearchBtn.onclick = () => { state.teamSearchOpen = true; render(); };
     const closeTeamSearchBtn = $('#close-team-search'); if(closeTeamSearchBtn) closeTeamSearchBtn.onclick = () => { state.teamSearchOpen = false; state.teamSearchQuery=''; render(); };
@@ -3265,7 +3495,7 @@
         await addToIndex('bilbbet2_users_index', 'admin');
       }
       state.user = adminUser; state.error=''; state.username=''; state.pin=''; state.adminLoginMode=false; state.screen='main'; state.loginModalOpen=false;
-      state.activeTab='H2H'; state.adminPunters=null; state.adminBets=null; state.novelty=null; state.statsData=null; state.myBets=null;
+      state.activeTab='HOME'; state.adminPunters=null; state.adminBets=null; state.novelty=null; state.statsData=null; state.myBets=null;
       render();
       loadAdminData();  // background load so the attention flag is accurate from the start, not just after visiting Admin
       return;
@@ -3283,7 +3513,7 @@
     if(status === 'REJECTED'){ state.error='Your registration was rejected. Contact the admin if you think that\u2019s a mistake.'; state.username=''; state.pin=''; render(); return; }
     if(status === 'KICKED'){ state.error='Your account has been removed by Bilbbet management. Contact the admin if you think that\u2019s a mistake.'; state.username=''; state.pin=''; render(); return; }
     state.user = u; state.error=''; state.username=''; state.pin=''; state.screen='main'; state.loginModalOpen=false;
-    state.activeTab='H2H'; state.adminPunters=null; state.adminBets=null; state.novelty=null; state.statsData=null; state.myBets=null;
+    state.activeTab='HOME'; state.adminPunters=null; state.adminBets=null; state.novelty=null; state.statsData=null; state.myBets=null;
     render();
     // a punter who's genuinely punted before (not brand new) and ended last
     // season under 500 clams gets a little needling on the way in.
@@ -3318,7 +3548,7 @@
     state.registeringMode = false; state.tosAgreed = false;
     if(isFirstEver){
       state.user = u; state.error=''; state.username=''; state.pin=''; state.screen='main'; state.loginModalOpen=false;
-      state.activeTab='H2H'; state.adminPunters=null; state.adminBets=null; state.novelty=null; state.statsData=null; state.myBets=null;
+      state.activeTab='HOME'; state.adminPunters=null; state.adminBets=null; state.novelty=null; state.statsData=null; state.myBets=null;
     } else {
       state.username=''; state.pin=''; state.error='';
       state.info = `Registration submitted for ${username} \u2014 an admin needs to approve your account before you can log in and get your starting clams.`;
@@ -3359,4 +3589,5 @@
   if(savedOddsRefreshRequested !== null){ state.oddsRefreshRequested = savedOddsRefreshRequested; }
 
   render();
+  loadHomeStats(); // not awaited -- the initial render shows a loading state, this fills it in once ready
 })();
