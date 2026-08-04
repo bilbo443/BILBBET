@@ -812,34 +812,34 @@
     const fixtureCards = fixtures.length ? fixtures.map(p => `
       <div class="bb-card" style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;">
         <div style="min-width:0;">
-          <div style="font-size:11px;color:#9a9a9a;">${p.isCup ? esc(p.stage) + ' \\u2014 ' + esc(p.division) : esc(p.division.replace(' (D1)',''))}</div>
+          <div style="font-size:11px;color:#9a9a9a;">${p.isCup ? esc(p.stage) + ' \u2014 ' + esc(p.division) : esc(p.division.replace(' (D1)',''))}</div>
           <div style="font-weight:600;display:flex;align-items:center;gap:6px;">${teamLogo(p.team,18)}${esc(p.team)} <span style="color:#6a6a6a;font-weight:400;font-size:12px;">to beat ${esc(p.opp)}</span></div>
         </div>
         <div style="text-align:right;flex-shrink:0;">
           <div style="font-size:10px;color:#6a6a6a;text-decoration:line-through;">${p.baseOdds.toFixed(2)}</div>
           ${quickOddsButton(p.id, p.team + ' to win (boosted)', p.team, {odds:p.odds, suspended:false})}
         </div>
-      </div>`).join('') : `<div class="bb-card" style="text-align:center;padding:1.5rem;color:#9a9a9a;">No featured fixtures this round yet \\u2014 check back once the round's matches are set.</div>`;
+      </div>`).join('') : `<div class="bb-card" style="text-align:center;padding:1.5rem;color:#9a9a9a;">No featured fixtures this round yet \u2014 check back once the round's matches are set.</div>`;
 
     const futureCards = futures.length ? futures.map(p => `
       <div class="bb-card" style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;">
         <div style="min-width:0;">
-          <div style="font-size:11px;color:#9a9a9a;">${esc(p.market)} \\u2014 ${esc(String(p.division).replace(' (D1)',''))}</div>
+          <div style="font-size:11px;color:#9a9a9a;">${esc(p.market)} \u2014 ${esc(String(p.division).replace(' (D1)',''))}</div>
           <div style="font-weight:600;display:flex;align-items:center;gap:6px;">${teamLogo(p.team,18)}${esc(p.team)}</div>
         </div>
         <div style="text-align:right;flex-shrink:0;">
           <div style="font-size:10px;color:#6a6a6a;text-decoration:line-through;">${p.baseOdds.toFixed(2)}</div>
           ${quickOddsButton(p.id, esc(p.team) + ' ' + esc(p.market) + ' (boosted)', p.team, {odds:p.odds, suspended:false})}
         </div>
-      </div>`).join('') : `<div class="bb-card" style="text-align:center;padding:1.5rem;color:#9a9a9a;">${state.currentRound >= 24 ? "No futures featured this late in the season \\u2014 not much left for a season-long bet to play out." : "No standout futures right now \\u2014 check back soon."}</div>`;
+      </div>`).join('') : `<div class="bb-card" style="text-align:center;padding:1.5rem;color:#9a9a9a;">${state.currentRound >= 24 ? "No futures featured this late in the season \u2014 not much left for a season-long bet to play out." : "No standout futures right now \u2014 check back soon."}</div>`;
 
     const bvw = state.homeBestValueWinner;
     const bestValueCard = bvw ? `
       <div class="bb-card" style="display:flex;align-items:center;gap:10px;">
-        <span style="font-size:22px;">\\u{1F48E}</span>
+        <span style="font-size:22px;">\u{1F48E}</span>
         <div>
           <div style="font-weight:600;display:flex;align-items:center;gap:6px;">${teamLogo(bvw.team,18)}${esc(bvw.team)} beat ${esc(bvw.opp)}</div>
-          <div style="font-size:12px;color:#9a9a9a;">Round ${bvw.round} &middot; ${esc(bvw.division.replace(' (D1)',''))} &middot; would have paid <span style="color:#ffdd00;font-weight:600;">${bvw.odds.toFixed(2)}</span> \\u2014 whether anyone backed it or not</div>
+          <div style="font-size:12px;color:#9a9a9a;">Round ${bvw.round} &middot; ${esc(bvw.division.replace(' (D1)',''))} &middot; would have paid <span style="color:#ffdd00;font-weight:600;">${bvw.odds.toFixed(2)}</span> \u2014 whether anyone backed it or not</div>
         </div>
       </div>` : `<div class="bb-card" style="text-align:center;padding:1.5rem;color:#9a9a9a;">No results in yet for last round.</div>`;
 
@@ -848,13 +848,13 @@
     if(bb === null){
       bestBetCard = `<div class="bb-card" style="text-align:center;padding:1.5rem;color:#9a9a9a;">Loading&hellip;</div>`;
     } else if(bb.noPriorRound){
-      bestBetCard = `<div class="bb-card" style="text-align:center;padding:1.5rem;color:#9a9a9a;">No round completed yet this season \\u2014 check back after Round 1.</div>`;
+      bestBetCard = `<div class="bb-card" style="text-align:center;padding:1.5rem;color:#9a9a9a;">No round completed yet this season \u2014 check back after Round 1.</div>`;
     } else if(bb.none){
-      bestBetCard = `<div class="bb-card" style="text-align:center;padding:1.5rem;color:#9a9a9a;">Nobody landed a winning bet last round \\u2014 the community isn't betting enough! Get involved for next round.</div>`;
+      bestBetCard = `<div class="bb-card" style="text-align:center;padding:1.5rem;color:#9a9a9a;">Nobody landed a winning bet last round \u2014 the community isn't betting enough! Get involved for next round.</div>`;
     } else {
       bestBetCard = `
       <div class="bb-card" style="display:flex;align-items:center;gap:10px;">
-        <span style="font-size:22px;">\\u{1F3C6}</span>
+        <span style="font-size:22px;">\u{1F3C6}</span>
         <div>
           <div style="font-weight:600;">${esc(bb.username)}'s bet won at ${bb.combinedOdds.toFixed(2)}</div>
           <div style="font-size:12px;color:#9a9a9a;">${bb.selections.length} selection${bb.selections.length>1?'s':''} &middot; ${fmt(bb.stake)} staked &middot; returned <span style="color:#ffdd00;font-weight:600;">${fmt(bb.potentialReturn)}</span> clams</div>
@@ -865,7 +865,7 @@
     return `
       <div class="bb-card" style="background:linear-gradient(135deg,#2a2410,#1a1a1a);border-color:#4a3a10;margin-bottom:16px;text-align:center;padding:1.25rem;">
         <div style="font-size:12px;letter-spacing:0.08em;color:#ffdd00;text-transform:uppercase;font-weight:700;">This week's boosted odds</div>
-        <div style="font-size:12px;color:#9a9a9a;margin-top:4px;">Every pick below is +${Math.round((FEATURED_BOOST_MULTIPLIER-1)*100)}% on the normal price \\u2014 just for being featured.</div>
+        <div style="font-size:12px;color:#9a9a9a;margin-top:4px;">Every pick below is +${Math.round((FEATURED_BOOST_MULTIPLIER-1)*100)}% on the normal price \u2014 just for being featured.</div>
       </div>
       <h3 style="margin-top:0;">Featured fixtures</h3>
       ${fixtureCards}
