@@ -1077,6 +1077,20 @@
     if(tabName === 'DIVISION 3') return 'div-3a';
     return '';
   }
+  // A prominent, on-brand header banner for whichever division/competition
+  // is currently selected -- built to replace the old top-level tabs' logos
+  // with something more visible than a thin color stripe, while the stripe
+  // itself stays available too for anywhere a lighter touch fits better.
+  function divisionHeaderBanner(name){
+    const cls = divColorClass(name);
+    if(!cls) return '';
+    const kind = FUTURE_DIVS.includes(name) ? 'division' : 'competition';
+    const displayName = name === 'RODDY' ? 'The Roddy' : name.replace(' (D1)', '');
+    return `<div class="bb-div-banner ${cls}">
+      ${logoBadge(kind, name, 40)}
+      <span class="bb-div-banner-name">${esc(displayName)}</span>
+    </div>`;
+  }
 
   function mainTabs(){
     return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">' +
@@ -1346,15 +1360,21 @@
 
   const H2H_SUBTABS = [...FUTURE_DIVS, 'FA CUP', 'ECL', 'PLAYOFFS', 'CUSTOM MATCHUP'];
 
+  function subTabLogo(t){
+    const cls = divColorClass(t);
+    if(!cls) return '';
+    const kind = FUTURE_DIVS.includes(t) ? 'division' : 'competition';
+    return logoBadge(kind, t, 16) + ' ';
+  }
   function h2hSubTabBar(){
     return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">' +
-      H2H_SUBTABS.map(t => `<div class="bb-tab ${state.h2hSubTab===t?'active':''}" data-h2hsubtab="${esc(t)}" style="font-size:12px;padding:6px 10px;">${t==='CUSTOM MATCHUP'?'Custom matchup':(t==='PLAYOFFS'?'Playoffs':t.replace(' (D1)',''))}</div>`).join('') +
+      H2H_SUBTABS.map(t => `<div class="bb-tab ${state.h2hSubTab===t?'active':''}" data-h2hsubtab="${esc(t)}" style="font-size:12px;padding:6px 10px;display:flex;align-items:center;gap:4px;">${subTabLogo(t)}${t==='CUSTOM MATCHUP'?'Custom matchup':(t==='PLAYOFFS'?'Playoffs':t.replace(' (D1)',''))}</div>`).join('') +
       '</div>';
   }
   const FUTURES_SUBTABS = [...FUTURE_DIVS, 'RODDY', 'FA CUP', 'ECL'];
   function futuresSubTabBar(){
     return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">' +
-      FUTURES_SUBTABS.map(t => `<div class="bb-tab ${state.futuresSubTab===t?'active '+divColorClass(t):''}" data-futuressubtab="${esc(t)}" style="font-size:12px;padding:6px 10px;">${t==='RODDY'?'The Roddy':t.replace(' (D1)','')}</div>`).join('') +
+      FUTURES_SUBTABS.map(t => `<div class="bb-tab ${state.futuresSubTab===t?'active '+divColorClass(t):''}" data-futuressubtab="${esc(t)}" style="font-size:12px;padding:6px 10px;display:flex;align-items:center;gap:4px;">${subTabLogo(t)}${t==='RODDY'?'The Roddy':t.replace(' (D1)','')}</div>`).join('') +
       '</div>';
   }
 
@@ -1408,8 +1428,7 @@
   }
 
   function renderH2HTab(){
-    const stripeClass = divColorClass(state.h2hSubTab);
-    const stripe = stripeClass ? `<div class="bb-div-stripe ${stripeClass}"></div>` : '';
+    const stripe = divisionHeaderBanner(state.h2hSubTab);
     const roundBar = `<div class="bb-card" style="margin-bottom:1rem;display:flex;align-items:center;gap:10px;">
       <span style="font-size:12px;color:#9a9a9a;">Round</span>
       <select class="bb-select" id="h2h-round" style="width:140px;">${roundOptions(state.h2hRound)}</select>
@@ -2816,8 +2835,7 @@
     } else if(state.activeTab === 'ADMIN'){
       body = renderAdminTab();
     } else if(state.activeTab === 'FUTURES'){
-      const stripeClass = divColorClass(state.futuresSubTab);
-      const stripe = stripeClass ? `<div class="bb-div-stripe ${stripeClass}"></div>` : '';
+      const stripe = divisionHeaderBanner(state.futuresSubTab);
       if(state.futuresSubTab === 'RODDY'){
         body = stripe + futuresSubTabBar() + roddyMarketTabs() + (state.futureMarketTab === 'leading_at'
           ? renderLeadingAtMarket('RODDY')
