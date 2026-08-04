@@ -274,6 +274,14 @@
   const BASE_TABS = ['HOME', 'FUTURES', 'H2H', 'SPECIALS', 'STATS', 'MY BETS'];
   function currentTabs(){ return state.user && state.user.isAdmin ? [...BASE_TABS, 'ADMIN'] : BASE_TABS; }
 
+  // Embed mode: a stripped-down, read-only view of just the Home tab, for
+  // embedding on other sites (e.g. the Eliza Cup site's own page) via
+  // iframe. Detected once from the URL and never changes for the life of
+  // this page load. Deliberately checked via a real query param rather
+  // than assumed from context, so the normal in-app experience is 100%
+  // unaffected unless this exact param is present.
+  const EMBED_MODE = new URLSearchParams(window.location.search).get('embed') === 'home';
+
   let state = {
     screen:'main', user:null, error:'', info:'', loginModalOpen:false,
     username:'', pin:'', adminLoginMode:false, storageDegraded:false,
@@ -952,8 +960,34 @@
 
   // ---------- rendering ----------
   function render(){
+    if(EMBED_MODE){
+      document.getElementById('app').innerHTML = renderEmbedHome();
+      return; // deliberately no attachHandlers() -- embed mode is read-only, see renderEmbedHome
+    }
     document.getElementById('app').innerHTML = renderMain();
     attachHandlers();
+  }
+
+  // The embed view: the real, live Home tab content (never a separate copy
+  // of its logic, so it can't silently drift out of sync with the actual
+  // site), wrapped in a compact, read-only container suitable for an
+  // iframe on another site. Read-only via pointer-events:none rather than
+  // by skipping click handlers -- picking one of these picks would either
+  // silently do nothing or pop a login modal inside a small foreign iframe,
+  // both worse than just not being clickable. The CTA link sits outside
+  // that wrapper so it's the one thing that stays clickable.
+  function renderEmbedHome(){
+    return `<div style="max-width:480px;margin:0 auto;padding:14px;">
+      <div style="pointer-events:none;">
+        ${renderHomeTab()}
+      </div>
+      <div style="text-align:center;margin-top:4px;">
+        <a href="https://bilbo443.github.io/BILBBET/" target="_blank" rel="noopener noreferrer"
+           style="display:inline-block;background:#ffdd00;color:#1a1a1a;font-weight:700;font-size:12px;padding:9px 18px;border-radius:4px;text-decoration:none;letter-spacing:0.02em;">
+          See full odds &amp; place a bet &rarr;
+        </a>
+      </div>
+    </div>`;
   }
 
   function teamsDatalist(){
@@ -3691,4 +3725,10 @@
 
   render();
   loadHomeStats(); // not awaited -- the initial render shows a loading state, this fills it in once ready
+  if(EMBED_MODE){
+    // loadAllData only runs once at boot -- a periodic full reload is the
+    // simplest reliable way for an embedded, long-lived iframe to keep
+    // showing genuinely current odds rather than a stale first snapshot.
+    setInterval(() => window.location.reload(), 3 * 60 * 1000);
+  }
 })();
