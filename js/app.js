@@ -264,7 +264,7 @@
   const K = 8;
 
   const FUTURE_DIVS = Object.keys(FUTURES.divisions);
-  const BASE_TABS = ['HOME', 'FUTURES', 'RODDY', 'FA CUP', 'ECL', 'H2H', 'PLAYOFFS', 'SPECIALS', 'STATS', 'MY BETS'];
+  const BASE_TABS = ['HOME', 'FUTURES', 'H2H', 'SPECIALS', 'STATS', 'MY BETS'];
   function currentTabs(){ return state.user && state.user.isAdmin ? [...BASE_TABS, 'ADMIN'] : BASE_TABS; }
 
   let state = {
@@ -1079,19 +1079,12 @@
   }
 
   function mainTabs(){
-    const logoTabKind = t => {
-      if(t === 'RODDY' || t === 'FA CUP' || t === 'ECL') return 'competition';
-      if(FUTURE_DIVS.includes(t)) return 'division';
-      return null;
-    };
     return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">' +
       currentTabs().map(t => {
-        const label = t==='RODDY'?'The Roddy':(t==='MY BETS'?'My Bets':(t==='ADMIN'?'Admin':(t==='H2H'?'H2H':(t==='HOME'?'Home':(t==='FUTURES'?'Futures':t.replace(' (D1)',''))))));
+        const label = t==='MY BETS'?'My Bets':(t==='ADMIN'?'Admin':(t==='H2H'?'H2H':(t==='HOME'?'Home':(t==='FUTURES'?'Futures':t))));
         const flag = (t==='ADMIN' && state.user && state.user.isAdmin && adminNeedsAttention())
           ? ' <span title="Needs attention" style="font-size:11px;">\u{1F6A9}</span>' : '';
-        const kind = logoTabKind(t);
-        const logo = kind ? logoBadge(kind, t, 16) + ' ' : '';
-        return `<div class="bb-tab ${state.activeTab===t?'active '+divColorClass(t):''}" data-tab="${esc(t)}" style="display:flex;align-items:center;gap:5px;">${logo}${label}${flag}</div>`;
+        return `<div class="bb-tab ${state.activeTab===t?'active':''}" data-tab="${esc(t)}" style="display:flex;align-items:center;gap:5px;">${label}${flag}</div>`;
       }).join('') +
       '</div>';
   }
@@ -1351,16 +1344,17 @@
     return html;
   }
 
-  const H2H_SUBTABS = [...FUTURE_DIVS, 'FA CUP', 'ECL', 'CUSTOM MATCHUP'];
+  const H2H_SUBTABS = [...FUTURE_DIVS, 'FA CUP', 'ECL', 'PLAYOFFS', 'CUSTOM MATCHUP'];
 
   function h2hSubTabBar(){
     return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">' +
-      H2H_SUBTABS.map(t => `<div class="bb-tab ${state.h2hSubTab===t?'active':''}" data-h2hsubtab="${esc(t)}" style="font-size:12px;padding:6px 10px;">${t==='CUSTOM MATCHUP'?'Custom matchup':t.replace(' (D1)','')}</div>`).join('') +
+      H2H_SUBTABS.map(t => `<div class="bb-tab ${state.h2hSubTab===t?'active':''}" data-h2hsubtab="${esc(t)}" style="font-size:12px;padding:6px 10px;">${t==='CUSTOM MATCHUP'?'Custom matchup':(t==='PLAYOFFS'?'Playoffs':t.replace(' (D1)',''))}</div>`).join('') +
       '</div>';
   }
+  const FUTURES_SUBTABS = [...FUTURE_DIVS, 'RODDY', 'FA CUP', 'ECL'];
   function futuresSubTabBar(){
     return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">' +
-      FUTURE_DIVS.map(t => `<div class="bb-tab ${state.futuresSubTab===t?'active '+divColorClass(t):''}" data-futuressubtab="${esc(t)}" style="font-size:12px;padding:6px 10px;">${t.replace(' (D1)','')}</div>`).join('') +
+      FUTURES_SUBTABS.map(t => `<div class="bb-tab ${state.futuresSubTab===t?'active '+divColorClass(t):''}" data-futuressubtab="${esc(t)}" style="font-size:12px;padding:6px 10px;">${t==='RODDY'?'The Roddy':t.replace(' (D1)','')}</div>`).join('') +
       '</div>';
   }
 
@@ -1435,6 +1429,9 @@
     }
     if(state.h2hSubTab === 'FA CUP' || state.h2hSubTab === 'ECL'){
       return stripe + h2hSubTabBar() + renderCupFixtures(state.h2hSubTab);
+    }
+    if(state.h2hSubTab === 'PLAYOFFS'){
+      return h2hSubTabBar() + renderPlayoffsTab();
     }
     return stripe + roundBar + h2hSubTabBar() + sectionRibbon() + renderFixtureList(state.h2hSubTab);
   }
@@ -2458,7 +2455,7 @@
 
   function surpriseMe(){
     let list, tagPrefix;
-    if(state.activeTab === 'RODDY'){
+    if(state.activeTab === 'FUTURES' && state.futuresSubTab === 'RODDY'){
       list = FUTURES.roddy[state.futureMarketTab];
       tagPrefix = 'FUT|RODDY|'+state.futureMarketTab+'|';
     } else if(state.activeTab === 'FUTURES' && FUTURE_DIVS.includes(state.futuresSubTab)){
@@ -2810,23 +2807,6 @@
       body = renderHomeTab();
     } else if(state.activeTab === 'H2H'){
       body = renderH2HTab();
-    } else if(state.activeTab === 'RODDY'){
-      body = `<div class="bb-div-stripe div-roddy"></div>` + roddyMarketTabs() + (state.futureMarketTab === 'leading_at'
-        ? renderLeadingAtMarket('RODDY')
-        : `<button class="bb-btn ghost" id="surprise-me-btn" style="margin-bottom:10px;padding:6px 12px;font-size:12px;">\u{1F3B2} Surprise me</button>` + sectionRibbon() + `<div id="outcomes-list">${futuresOutcomesList('RODDY', state.futureMarketTab)}</div>`);
-    } else if(state.activeTab === 'FA CUP'){
-      body = `<div class="bb-div-stripe div-facup"></div>` + cupMarketTabs('fa_cup_labels') + sectionRibbon() +
-        (state.futureMarketTab === 'fixtures' ? renderCupFixtures('FA CUP') :
-          `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">Real Round of 64 draw from the 26/27 file: 62 entrants plus confirmed byes for Big Mac FC and Harvey Frekes. No matches played yet, so the whole bracket is simulated.</p>` +
-          `<div id="outcomes-list">${cupOutcomesList('fa_cup_markets', state.futureMarketTab)}</div>`);
-    } else if(state.activeTab === 'ECL'){
-      body = `<div class="bb-div-stripe div-ecl"></div>` + cupMarketTabs('ecl_labels') + sectionRibbon() +
-        (state.futureMarketTab === 'fixtures' ? renderCupFixtures('ECL') :
-         state.futureMarketTab === 'groups' ? renderEclGroups() :
-          `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">12 confirmed qualifiers for the 26/27 ECL, group draw not yet assigned (see the Groups tab). Stage odds below assume the field regardless of group -- they'll sharpen once groups are confirmed.</p>` +
-          `<div id="outcomes-list">${cupOutcomesList('ecl_markets', state.futureMarketTab)}</div>`);
-    } else if(state.activeTab === 'PLAYOFFS'){
-      body = renderPlayoffsTab();
     } else if(state.activeTab === 'MY BETS'){
       body = renderMyBetsTab();
     } else if(state.activeTab === 'SPECIALS'){
@@ -2837,9 +2817,27 @@
       body = renderAdminTab();
     } else if(state.activeTab === 'FUTURES'){
       const stripeClass = divColorClass(state.futuresSubTab);
-      body = (stripeClass ? `<div class="bb-div-stripe ${stripeClass}"></div>` : '') + futuresSubTabBar() + futuresMarketTabs() + (state.futureMarketTab === 'leading_at'
-        ? renderLeadingAtMarket(state.futuresSubTab)
-        : `<button class="bb-btn ghost" id="surprise-me-btn" style="margin-bottom:10px;padding:6px 12px;font-size:12px;">\u{1F3B2} Surprise me</button>` + sectionRibbon() + `<div id="outcomes-list">${futuresOutcomesList(state.futuresSubTab, state.futureMarketTab)}</div>`);
+      const stripe = stripeClass ? `<div class="bb-div-stripe ${stripeClass}"></div>` : '';
+      if(state.futuresSubTab === 'RODDY'){
+        body = stripe + futuresSubTabBar() + roddyMarketTabs() + (state.futureMarketTab === 'leading_at'
+          ? renderLeadingAtMarket('RODDY')
+          : `<button class="bb-btn ghost" id="surprise-me-btn" style="margin-bottom:10px;padding:6px 12px;font-size:12px;">\u{1F3B2} Surprise me</button>` + sectionRibbon() + `<div id="outcomes-list">${futuresOutcomesList('RODDY', state.futureMarketTab)}</div>`);
+      } else if(state.futuresSubTab === 'FA CUP'){
+        body = stripe + futuresSubTabBar() + cupMarketTabs('fa_cup_labels') + sectionRibbon() +
+          (state.futureMarketTab === 'fixtures' ? renderCupFixtures('FA CUP') :
+            `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">Real Round of 64 draw from the 26/27 file: 62 entrants plus confirmed byes for Big Mac FC and Harvey Frekes. No matches played yet, so the whole bracket is simulated.</p>` +
+            `<div id="outcomes-list">${cupOutcomesList('fa_cup_markets', state.futureMarketTab)}</div>`);
+      } else if(state.futuresSubTab === 'ECL'){
+        body = stripe + futuresSubTabBar() + cupMarketTabs('ecl_labels') + sectionRibbon() +
+          (state.futureMarketTab === 'fixtures' ? renderCupFixtures('ECL') :
+           state.futureMarketTab === 'groups' ? renderEclGroups() :
+            `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">12 confirmed qualifiers for the 26/27 ECL, group draw not yet assigned (see the Groups tab). Stage odds below assume the field regardless of group -- they'll sharpen once groups are confirmed.</p>` +
+            `<div id="outcomes-list">${cupOutcomesList('ecl_markets', state.futureMarketTab)}</div>`);
+      } else {
+        body = stripe + futuresSubTabBar() + futuresMarketTabs() + (state.futureMarketTab === 'leading_at'
+          ? renderLeadingAtMarket(state.futuresSubTab)
+          : `<button class="bb-btn ghost" id="surprise-me-btn" style="margin-bottom:10px;padding:6px 12px;font-size:12px;">\u{1F3B2} Surprise me</button>` + sectionRibbon() + `<div id="outcomes-list">${futuresOutcomesList(state.futuresSubTab, state.futureMarketTab)}</div>`);
+      }
     } else {
       body = `<p style="color:#9a9a9a;">Unknown tab.</p>`;
     }
@@ -3123,10 +3121,12 @@
       state.activeTab = el.dataset.tab;
       state.cupFixtureMarket = null;
       state.playoffFixtureMarket = null;
-      if(state.activeTab === 'RODDY') state.futureMarketTab = Object.keys(FUTURES.roddy_labels)[0];
-      else if(state.activeTab === 'FA CUP') state.futureMarketTab = Object.keys(FUTURES.fa_cup_labels)[0];
-      else if(state.activeTab === 'ECL') state.futureMarketTab = Object.keys(FUTURES.ecl_labels)[0];
-      else if(!['H2H','MY BETS','ADMIN','SPECIALS','STATS','PLAYOFFS'].includes(state.activeTab)) state.futureMarketTab = Object.keys(FUTURES.market_labels)[0];
+      if(state.activeTab === 'FUTURES'){
+        if(state.futuresSubTab === 'RODDY') state.futureMarketTab = Object.keys(FUTURES.roddy_labels)[0];
+        else if(state.futuresSubTab === 'FA CUP') state.futureMarketTab = Object.keys(FUTURES.fa_cup_labels)[0];
+        else if(state.futuresSubTab === 'ECL') state.futureMarketTab = Object.keys(FUTURES.ecl_labels)[0];
+        else state.futureMarketTab = Object.keys(FUTURES.market_labels)[0];
+      }
       if(state.activeTab === 'MY BETS'){ if(!state.user){ render(); return; } state.myBets = null; render(); loadMyBets(); return; }
       if(state.activeTab === 'ADMIN'){ state.adminPunters = null; state.adminBets = null; render(); loadAdminData(); return; }
       if(state.activeTab === 'SPECIALS'){ state.novelty = null; state.suggestions = null; render(); loadNovelty(); loadSuggestions(); return; }
@@ -3176,11 +3176,15 @@
     document.querySelectorAll('[data-h2hsubtab]').forEach(el => el.onclick = () => { state.h2hSubTab = el.dataset.h2hsubtab; state.h2hFixtureMarket=null; state.cupFixtureMarket=null; render(); });
     document.querySelectorAll('[data-futuressubtab]').forEach(el => el.onclick = () => {
       state.futuresSubTab = el.dataset.futuressubtab;
-      // a market valid for the previous division isn't necessarily valid for
-      // the new one (promotion_pct/relegation_pct/bottom3_pct are division-
-      // specific) -- reset to the first market rather than risk landing on
-      // one that gets filtered out and silently shows nothing
-      state.futureMarketTab = Object.keys(FUTURES.market_labels)[0];
+      // Each sub-tab has its own market set (Roddy/FA Cup/ECL each have
+      // their own labels, divisions share market_labels but even among
+      // those promotion_pct/relegation_pct/bottom3_pct are division-
+      // specific) -- reset to that set's first market rather than risk
+      // landing on one that gets filtered out and silently shows nothing.
+      if(state.futuresSubTab === 'RODDY') state.futureMarketTab = Object.keys(FUTURES.roddy_labels)[0];
+      else if(state.futuresSubTab === 'FA CUP') state.futureMarketTab = Object.keys(FUTURES.fa_cup_labels)[0];
+      else if(state.futuresSubTab === 'ECL') state.futureMarketTab = Object.keys(FUTURES.ecl_labels)[0];
+      else state.futureMarketTab = Object.keys(FUTURES.market_labels)[0];
       render();
     });
     document.querySelectorAll('[data-fixture-expand]').forEach(el => el.onclick = () => {
