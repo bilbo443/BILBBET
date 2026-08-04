@@ -379,7 +379,7 @@
     const initial = esc(logoInitials(name));
     return `<span style="position:relative;display:inline-block;width:${size}px;height:${size}px;min-width:${size}px;vertical-align:middle;">
       <span style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;border-radius:50%;background:${color};color:${fg};font-size:${Math.round(size*0.38)}px;font-weight:700;">${initial}</span>
-      <img src="${esc(path)}" alt="" style="position:absolute;top:0;left:0;width:100%;height:100%;border-radius:50%;object-fit:contain;" onerror="this.style.display='none';"/>
+      <img src="${esc(path)}" alt="" style="position:absolute;top:0;left:0;width:100%;height:100%;border-radius:50%;object-fit:contain;" onerror="this.style.display='none';" onload="this.previousElementSibling.style.background='#fff';this.previousElementSibling.textContent='';"/>
     </span>`;
   }
   function teamLogo(name, size){ return logoBadge('team', name, size); }
@@ -389,7 +389,7 @@
     size = size || 32;
     return `<span style="position:relative;display:inline-block;width:${size}px;height:${size}px;min-width:${size}px;vertical-align:middle;">
       <span style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;border-radius:50%;background:#ffdd00;color:#1b1b1b;font-size:${Math.round(size*0.42)}px;font-weight:700;">B</span>
-      <img src="assets/logos/site.png" alt="" style="position:absolute;top:0;left:0;width:100%;height:100%;border-radius:50%;object-fit:contain;" onerror="this.style.display='none';"/>
+      <img src="assets/logos/site.png" alt="" style="position:absolute;top:0;left:0;width:100%;height:100%;border-radius:50%;object-fit:contain;" onerror="this.style.display='none';" onload="this.previousElementSibling.style.background='#fff';this.previousElementSibling.textContent='';"/>
     </span>`;
   }
   // Platform-wide rule: every date/time shown anywhere is Sydney time, correct
