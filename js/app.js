@@ -864,6 +864,23 @@
   // it's genuinely computed once -- by whoever loads the page first for
   // that round -- and every visitor after that, on any device, on any
   // future reload, sees that exact same result until the round changes.
+  // Admin escape hatch for the exact situation that motivated this: the
+  // featured-fixtures selection is computed once per round and locked in
+  // by design (so it never randomly changes for punters) -- but that
+  // means if a bug in the selection logic gets fixed in code, any round
+  // that already has a stored value keeps showing the OLD, buggy result
+  // forever, since the code has no way to know a stored value is stale.
+  // This clears that one round's stored value and forces a fresh
+  // recompute against the current code, without needing direct database
+  // access to do it.
+  async function refreshFeaturedFixtures(){
+    const featuredKey = 'bilbbet2_featured_fixtures_R' + state.currentRound;
+    await sset(featuredKey, null);
+    state.featuredFixturesData = null; // show the loading state while it recomputes
+    render();
+    await loadHomeStats();
+  }
+
   async function loadHomeStats(){
     const round = state.currentRound;
     const prevRound = round - 1;
@@ -1975,6 +1992,10 @@
         </select>
         <button class="bb-btn" id="save-current-round">Update</button>
         <span style="font-size:12px;color:#9a9a9a;">Rounds before this are greyed out everywhere as already played. Advancing this reopens betting fresh.</span>
+      </div>
+      <div class="bb-card" style="margin-bottom:1.5rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <span style="font-size:13px;color:#9a9a9a;">Home tab's featured picks are computed once per round and then locked in -- if the selection logic changes, an already-computed round won't pick up the fix on its own.</span>
+        <button class="bb-btn ghost" id="refresh-featured-fixtures">Force recompute for Round ${state.currentRound}</button>
       </div>
       <h3>End of season</h3>
       <div class="bb-card" style="margin-bottom:1.5rem;border-color:#a3402f;">
@@ -3597,6 +3618,8 @@
       const sel = document.getElementById('admin-current-round');
       saveCurrentRound(parseInt(sel.value, 10));
     };
+    const refreshFeaturedBtn = $('#refresh-featured-fixtures');
+    if(refreshFeaturedBtn) refreshFeaturedBtn.onclick = refreshFeaturedFixtures;
     const endSeasonBtn = $('#end-season-btn');
     if(endSeasonBtn) endSeasonBtn.onclick = () => endSeasonRollover();
     const closeBettingBtn = $('#close-betting-btn'); if(closeBettingBtn) closeBettingBtn.onclick = () => closeBettingNow(state.closeScope);
