@@ -313,6 +313,7 @@
     teamSearchOpen: false, teamSearchQuery: '',
     registeringMode: false,
     tosModalOpen: false, tosMode: 'view', tosAgreed: false, readMeModalOpen: false,
+    tutorialModalOpen: false, tutorialStep: 0, welcomeModalOpen: false,
     cupFixtures: { 'FA CUP': [], 'ECL': [] },
     cupFixtureMarket: null,
     cupAdminEntry: { 'FA CUP': {teamA:'', teamB:''}, 'ECL': {teamA:'', teamB:''} },
@@ -1172,6 +1173,61 @@
       </div>`;
   }
 
+  // One entry per top-level tab, in the same left-to-right order they
+  // appear in the nav -- kept as plain data so adding/editing a tab's
+  // description doesn't touch the modal's rendering logic at all.
+  const TUTORIAL_STEPS = [
+    { tab: 'HOME', title: 'Home', body: 'Your starting point each visit. A handful of featured picks are boosted for the round (extra odds, one per punter per round), alongside the A-League fantasy point projection and the best-value bet that actually won last round.' },
+    { tab: 'FUTURES', title: 'Futures', body: 'Season-long bets that only settle at the end of the season -- who wins each division, gets promoted or relegated, tops the Roddy, or lifts the FA Cup or ECL. Use the sub-tabs to switch between divisions and competitions.' },
+    { tab: 'H2H', title: 'H2H', body: 'Head-to-head bets for a specific round\'s fixtures -- who wins, the draw, and handicap lines. Switch between divisions, FA Cup, ECL, Playoffs, or set up a custom matchup between any two teams yourself.' },
+    { tab: 'SPECIALS', title: 'Specials', body: 'Round-by-round and season-long novelty bets -- who\'ll be leading or trailing after a given round, most charity, most philanthropy, plus a spot to suggest your own bet for others to weigh in on.' },
+    { tab: 'STATS', title: 'Stats', body: 'Leaderboards across the platform -- biggest stakes, best multis, most wins, and (once a handful of rounds are played) which teams are consistently beating or missing their own odds.' },
+    { tab: 'MY BETS', title: 'My Bets', body: 'Every bet you\'ve placed, with its current status -- pending, won, lost, or void -- and your running record across the season.' },
+  ];
+  const TUTORIAL_STEPS_ADMIN = [
+    { tab: 'ADMIN', title: 'Admin', body: 'Runs the season -- advance rounds, enter results, resolve bets, review punter registrations, and manage specials and novelty suggestions. Sub-tabs flag with a yellow dot when something there needs attention.' },
+  ];
+  function tutorialStepsFor(){
+    return state.user && state.user.isAdmin ? TUTORIAL_STEPS.concat(TUTORIAL_STEPS_ADMIN) : TUTORIAL_STEPS;
+  }
+  function renderWelcomeModal(){
+    const carry = (state.user && state.user.dormantCarry) || 0;
+    return `
+      <div id="welcome-modal-backdrop" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:110;display:flex;align-items:center;justify-content:center;padding:1rem;">
+        <div class="bb-card" style="max-width:380px;width:100%;text-align:center;">
+          <h3 style="margin:4px 0 10px;">Welcome, ${esc(state.user.username)}!</h3>
+          <p style="font-size:14px;line-height:1.6;">You're approved and ready to go \u2014 ${fmt(state.user.balance)} clams${carry > 0 ? ` are already in your account, including ${fmt(carry)} carried over from last season` : ' are already in your account'}.</p>
+          <p style="font-size:13px;color:#9a9a9a;line-height:1.6;">New to Bilbbet? The <span id="welcome-open-tutorial" style="text-decoration:underline;cursor:pointer;color:#ffdd00;">tutorial</span> walks through what each tab does.</p>
+          <button class="bb-btn" id="close-welcome-modal" style="width:100%;margin-top:8px;">Let's go</button>
+        </div>
+      </div>`;
+  }
+  function renderTutorialModal(){
+    const steps = tutorialStepsFor();
+    const i = Math.max(0, Math.min(state.tutorialStep, steps.length - 1));
+    const step = steps[i];
+    return `
+      <div id="tutorial-modal-backdrop" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:110;display:flex;align-items:center;justify-content:center;padding:1rem;">
+        <div class="bb-card" style="max-width:420px;width:100%;">
+          ${state.info ? `<div style="color:#7fbf8f;font-size:13px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #3d3d3d;">${esc(state.info)}</div>` : ''}
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <span style="font-size:12px;color:#9a9a9a;">Step ${i+1} of ${steps.length}</span>
+            <span style="font-size:12px;color:#9a9a9a;cursor:pointer;" id="close-tutorial-modal-x">&times;</span>
+          </div>
+          <h3 style="margin:4px 0 10px;">${esc(step.title)}</h3>
+          <p style="font-size:14px;line-height:1.6;margin:0 0 16px;">${esc(step.body)}</p>
+          <div style="display:flex;gap:8px;margin-bottom:10px;">
+            ${steps.map((s,idx) => `<span style="flex:1;height:4px;border-radius:2px;background:${idx<=i?'var(--bb-accent)':'#3d3d3d'};"></span>`).join('')}
+          </div>
+          <div style="display:flex;gap:8px;">
+            ${i>0 ? `<button class="bb-btn ghost" id="tutorial-back" style="flex:1;">Back</button>` : ''}
+            ${i<steps.length-1
+              ? `<button class="bb-btn" id="tutorial-next" style="flex:1;">Next</button>`
+              : `<button class="bb-btn" id="tutorial-done" style="flex:1;">Done</button>`}
+          </div>
+        </div>
+      </div>`;
+  }
   function renderReadMeModal(){
     return `
       <div id="readme-modal-backdrop" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:110;display:flex;align-items:center;justify-content:center;padding:1rem;">
@@ -1232,6 +1288,7 @@
         <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 4px;border-bottom:5px solid var(--bb-accent);margin-bottom:1rem;">
           ${brand}
           <div style="display:flex;align-items:center;gap:10px;">
+            <button class="bb-btn ghost" id="open-tutorial-btn" style="padding:6px 12px;font-size:13px;" title="New here? Take the tour">? Tutorial</button>
             <button class="bb-btn ghost" id="open-team-search-btn" style="padding:6px 12px;font-size:13px;">Find a team</button>
             <button class="bb-btn" id="open-login-btn" style="padding:7px 14px;">Log in</button>
           </div>
@@ -1241,6 +1298,7 @@
       <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 4px;border-bottom:5px solid var(--bb-accent);margin-bottom:1rem;flex-wrap:wrap;gap:8px;">
         ${brand}
         <div style="display:flex;align-items:center;gap:14px;font-size:14px;">
+          <button class="bb-btn ghost" id="open-tutorial-btn" style="padding:6px 12px;font-size:13px;" title="New here? Take the tour">? Tutorial</button>
           <button class="bb-btn ghost" id="open-team-search-btn" style="padding:6px 12px;font-size:13px;">Find a team</button>
           <span>${fmt(state.user.balance)} clams</span>
           <span style="color:#9a9a9a;">${esc(state.user.username)}${(state.user.isAdmin && adminNeedsAttention()) ? ' <span title="Needs attention" style="font-size:12px;">\u{1F6A9}</span>' : ''}</span>
@@ -3179,11 +3237,65 @@
     } else {
       body = `<p style="color:#9a9a9a;">Unknown tab.</p>`;
     }
-    return `<div>${renderStorageWarning()}${header()}${renderTeamSearchPanel()}${mainTabs()}${body}${renderFooter()}</div>${['ADMIN','STATS'].includes(state.activeTab) ? '' : slipBar()}${state.loginModalOpen ? renderLoginModal() : ''}${state.tosModalOpen ? renderTosModal() : ''}${state.readMeModalOpen ? renderReadMeModal() : ''}${teamsDatalist()}`;
+    return `<div>${renderStorageWarning()}${header()}${renderTeamSearchPanel()}${mainTabs()}${body}${renderFooter()}</div>${['ADMIN','STATS'].includes(state.activeTab) ? '' : slipBar()}${state.loginModalOpen ? renderLoginModal() : ''}${state.tosModalOpen ? renderTosModal() : ''}${state.readMeModalOpen ? renderReadMeModal() : ''}${state.tutorialModalOpen ? renderTutorialModal() : ''}${state.welcomeModalOpen ? renderWelcomeModal() : ''}${teamsDatalist()}`;
   }
 
   function combinedOdds(){ return combinedOddsFor(state.slip); }
-  function combinedOddsFor(slip){ return slip.reduce((acc,s)=>acc*s.odds,1); }
+  function combinedOddsFor(slip){
+    const naive = slip.reduce((acc,s)=>acc*s.odds,1);
+    return naive * placesDependencyAdjustment(slip);
+  }
+  // Approximates the reduced likelihood of multiple different teams ALL
+  // occupying the same limited set of "places" (top 3, top half, etc) --
+  // e.g. in a 12-team division with 6 top-half spots, a second team's real
+  // chance of ALSO finishing top-half, given the first one already has,
+  // is closer to 5/11 than its own standalone 6/12, since they're
+  // competing for the same shrinking pool of spots, not independent
+  // events. Deliberately an approximation (assumes roughly even spacing
+  // between teams' individual chances within one pool, rather than a full
+  // joint simulation of the season) -- accepted as a fair trade-off for a
+  // for-fun platform rather than building out true joint simulation.
+  function placesDependencyAdjustment(slip){
+    const groups = {}; // poolKey -> {places, totalTeams, teams: Set}
+    for(const s of slip){
+      const p = parsePick(s.id);
+      let places, totalTeams, poolKey;
+      if(p.type === 'fut'){
+        places = placesCountFor(p.div, p.marketKey);
+        if(places === null) continue;
+        // Roddy is cross-divisional -- not one of the 5 regular divisions
+        // in H2H_DIVISIONS, so it needs its own confirmed total (62, the
+        // full roster across every division) rather than silently getting
+        // skipped for having an unknown size.
+        totalTeams = p.div === 'RODDY' ? 62 : (H2H_DIVISIONS[p.div] || []).length;
+        if(!totalTeams) continue;
+        poolKey = (p.marketKey === 'promotion_pct' ? promotionPoolKey(p.div) : p.div) + '|' + p.marketKey;
+      } else if(p.type === 'facup'){
+        places = FA_CUP_PLACES[p.marketKey];
+        if(places === undefined) continue;
+        totalTeams = FA_CUP_TOTAL_ENTRANTS;
+        poolKey = 'FACUP|' + p.marketKey;
+      } else {
+        continue; // ECL intentionally excluded -- see FA_CUP_PLACES comment above
+      }
+      if(!groups[poolKey]) groups[poolKey] = { places, totalTeams, teams: new Set() };
+      groups[poolKey].teams.add(p.team);
+    }
+    let factor = 1;
+    for(const key in groups){
+      const g = groups[key];
+      const n = g.teams.size;
+      if(n < 2) continue; // only one team picked from this pool -- no correction needed
+      const baseline = g.places / g.totalTeams;
+      let conditional = 1; // the actual hypergeometric probability of all n landing in the places together
+      for(let i=0;i<n;i++){ conditional *= (g.places - i) / (g.totalTeams - i); }
+      // baseline^n is what naive, independent multiplication assumes; the
+      // ratio to the true (lower) joint probability is how much the
+      // combined ODDS need scaling up to reflect the real, rarer outcome.
+      factor *= Math.pow(baseline, n) / conditional;
+    }
+    return factor;
+  }
   const BOOST_MULTIPLIER = 1.10; // one free +10% odds boost per punter per round, on a 3+ leg multi
 
   // ---------- conflict detection ----------
@@ -3201,6 +3313,48 @@
   const RODDY_CHAIN = ['roddy_win_pct','roddy_top3_pct','roddy_top5_pct','roddy_top10_pct'];
   const UPPER_SET = new Set(UPPER_CHAIN), LOWER_SET = new Set(LOWER_CHAIN);
   const SINGLE_WINNER_FUT_MARKETS = new Set(['win_div_pct','wooden_spoon_pct','roddy_win_pct']);
+
+  // How many teams can genuinely occupy a given "places" market's outcome --
+  // e.g. only 3 teams can ever finish top 3, so a slip picking a 4th
+  // different team for the same market is picking something that literally
+  // cannot happen, not just an unlikely combination. win_div_pct/
+  // wooden_spoon_pct/roddy_win_pct aren't listed here since those already
+  // have exactly 1 place, handled separately via SINGLE_WINNER_FUT_MARKETS.
+  function placesCountFor(div, marketKey){
+    switch(marketKey){
+      case 'top3_pct': case 'bottom3_pct': case 'roddy_top3_pct': return 3;
+      case 'roddy_top5_pct': return 5;
+      case 'roddy_top10_pct': return 10;
+      case 'top_half_pct': case 'bottom_half_pct': {
+        const size = (H2H_DIVISIONS[div] || []).length;
+        return size ? Math.floor(size / 2) : null; // unknown division size -- don't block on a guess
+      }
+      case 'relegation_pct': return div.startsWith('ELIZA') ? 4 : 3;
+      case 'promotion_pct': return div.startsWith('DIVISION 3') ? 6 : 4;
+      default: return null; // not a fixed-places market, or already handled elsewhere
+    }
+  }
+  // FA Cup's bracket places, verified directly against the pipeline's
+  // simulation code (build_fa_cup_bracket / simulate_fa_cup_bracket) --
+  // Round of 64 entry, standard knockout halving down to the Final.
+  // ECL deliberately excluded from this and from the odds adjustment
+  // below: no real simulation exists for it yet (its bracket data is a
+  // known placeholder, not something with a confirmed entrant count) --
+  // guessing a number here would risk mispricing real multis rather than
+  // just leaving ECL uncorrected until that's actually confirmed.
+  const FA_CUP_PLACES = { reach_r32_pct: 32, reach_r16_pct: 16, reach_qf_pct: 8, reach_sf_pct: 4, reach_final_pct: 2 };
+  const FA_CUP_TOTAL_ENTRANTS = 64;
+  // promotion_pct's places are shared across BOTH conferences of a division
+  // (2A and 2B teams compete for the same 4 promotion spots via the shared
+  // playoff bracket), not 4 separate spots within each conference -- so
+  // picks from either conference need to be grouped together for this
+  // specific market, unlike every other places market which stays within
+  // its own single division/conference.
+  function promotionPoolKey(div){
+    if(div.startsWith('DIVISION 2')) return 'DIVISION 2';
+    if(div.startsWith('DIVISION 3')) return 'DIVISION 3';
+    return div;
+  }
 
   function parsePick(id){
     const parts = id.split('|');
@@ -3274,6 +3428,28 @@
         return { reason:'featured-limit', msg: `only one featured (boosted) pick allowed per round \u2014 you already have ${existingFeatured.label} in this slip` };
       }
     }
+
+    // Blocking picks that literally cannot all come true together -- e.g.
+    // 4 different teams all "to finish top 3" in the same division is a
+    // mathematically impossible outcome, not just a long shot, since only 3
+    // teams can ever occupy those 3 spots. Same logic applies to FA Cup's
+    // bracket stages -- only 4 teams can ever reach the Semi-Final, etc.
+    if(np.type === 'fut' || np.type === 'facup'){
+      const places = np.type === 'fut' ? placesCountFor(np.div, np.marketKey) : FA_CUP_PLACES[np.marketKey];
+      if(places !== null && places !== undefined){
+        const poolKey = np.type === 'fut' ? (np.marketKey === 'promotion_pct' ? promotionPoolKey(np.div) : np.div) : 'FACUP';
+        const existingInPool = state.slip.filter(s => {
+          const ep = parsePick(s.id);
+          if(ep.type !== np.type || ep.marketKey !== np.marketKey) return false;
+          const epPoolKey = ep.type === 'fut' ? (ep.marketKey === 'promotion_pct' ? promotionPoolKey(ep.div) : ep.div) : 'FACUP';
+          return epPoolKey === poolKey && ep.team !== np.team;
+        });
+        if(existingInPool.length >= places){
+          return { reason:'places-exceeded', msg: `only ${places} team${places!==1?'s':''} can actually finish in that market's outcome \u2014 you already have ${places} different team${places!==1?'s':''} picked for it` };
+        }
+      }
+    }
+
     for(const s of state.slip){
       const ep = parsePick(s.id);
 
@@ -3463,6 +3639,22 @@
     if(openReadMeLink) openReadMeLink.onclick = () => { state.readMeModalOpen = true; render(); };
     const closeReadMeBtn = $('#close-readme-modal');
     if(closeReadMeBtn) closeReadMeBtn.onclick = () => { state.readMeModalOpen = false; render(); };
+
+    const openTutorialBtn = $('#open-tutorial-btn');
+    if(openTutorialBtn) openTutorialBtn.onclick = () => { state.tutorialStep = 0; state.info=''; state.tutorialModalOpen = true; render(); };
+    const closeTutorialX = $('#close-tutorial-modal-x');
+    if(closeTutorialX) closeTutorialX.onclick = () => { state.tutorialModalOpen = false; state.info=''; render(); };
+    const tutorialDone = $('#tutorial-done');
+    if(tutorialDone) tutorialDone.onclick = () => { state.tutorialModalOpen = false; state.info=''; render(); };
+    const tutorialNext = $('#tutorial-next');
+    if(tutorialNext) tutorialNext.onclick = () => { state.tutorialStep++; render(); };
+    const tutorialBack = $('#tutorial-back');
+    if(tutorialBack) tutorialBack.onclick = () => { state.tutorialStep--; render(); };
+
+    const closeWelcomeBtn = $('#close-welcome-modal');
+    if(closeWelcomeBtn) closeWelcomeBtn.onclick = () => { state.welcomeModalOpen = false; render(); };
+    const welcomeOpenTutorial = $('#welcome-open-tutorial');
+    if(welcomeOpenTutorial) welcomeOpenTutorial.onclick = () => { state.welcomeModalOpen = false; state.tutorialStep = 0; state.tutorialModalOpen = true; render(); };
     const tosCheckbox = $('#tos-agree-checkbox');
     if(tosCheckbox) tosCheckbox.onchange = e => { state.tosAgreed = e.target.checked; render(); };
     const tosCheckboxInline = $('#tos-agree-checkbox-inline');
@@ -3916,7 +4108,7 @@
       if(pin !== '2845'){ state.error='Wrong PIN.'; render(); return; }
       let adminUser = await getUser('admin');
       if(!adminUser){
-        adminUser = { username: 'admin', pinHash: simpleHash('2845'), balance: 0, isAdmin: true, status: 'APPROVED', everFunded: true };
+        adminUser = { username: 'admin', pinHash: simpleHash('2845'), balance: 0, isAdmin: true, status: 'APPROVED', everFunded: true, welcomeSeen: true };
         await saveUser(adminUser);
         await addToIndex('bilbbet2_users_index', 'admin');
       }
@@ -3940,6 +4132,13 @@
     if(status === 'KICKED'){ state.error='Your account has been removed by Bilbbet management. Contact the admin if you think that\u2019s a mistake.'; state.username=''; state.pin=''; render(); return; }
     state.user = u; state.error=''; state.username=''; state.pin=''; state.screen='main'; state.loginModalOpen=false;
     state.activeTab='HOME'; state.adminPunters=null; state.adminBets=null; state.novelty=null; state.statsData=null; state.myBets=null;
+    // A punter's genuine first successful login, distinct from the pending-
+    // approval wait -- shown once, ever, per account.
+    if(!u.welcomeSeen){
+      state.welcomeModalOpen = true;
+      u.welcomeSeen = true;
+      saveUser(u); // fire-and-forget -- the modal shouldn't wait on this to appear
+    }
     render();
     // a punter who's genuinely punted before (not brand new) and ended last
     // season under 500 clams gets a little needling on the way in.
@@ -3965,8 +4164,8 @@
     // until approval, at which point it's added on top of the usual 1,000
     // registration bonus.
     const u = isFirstEver
-      ? { username, pinHash: simpleHash(pin), balance: 1000, isAdmin: true, status: 'APPROVED', everFunded: true }
-      : { username, pinHash: simpleHash(pin), balance: 0, isAdmin: false, status: 'PENDING', everFunded: false,
+      ? { username, pinHash: simpleHash(pin), balance: 1000, isAdmin: true, status: 'APPROVED', everFunded: true, welcomeSeen: false }
+      : { username, pinHash: simpleHash(pin), balance: 0, isAdmin: false, status: 'PENDING', everFunded: false, welcomeSeen: false,
           dormantCarry: carryData ? carryData.carry : 0, historicalRecord: carryData ? carryData.historicalRecord : null };
     const saved = await sset('bilbbet2_user:' + username.toLowerCase(), u);
     if(!saved){ state.error='Could not save your account (storage unavailable). Try reloading.'; render(); return; }
@@ -3978,6 +4177,13 @@
     } else {
       state.username=''; state.pin=''; state.error='';
       state.info = `Registration submitted for ${username} \u2014 an admin needs to approve your account before you can log in and get your starting clams.`;
+      // Offering the tour right here, not forcing it on every visit -- this
+      // is genuinely the one moment it's most useful (they're about to have
+      // a wait ahead of them anyway) and it's just as dismissable as the
+      // Read Me link, not a blocking gate.
+      state.loginModalOpen = false;
+      state.tutorialStep = 0;
+      state.tutorialModalOpen = true;
     }
     render();
   }
