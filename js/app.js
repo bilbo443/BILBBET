@@ -296,7 +296,7 @@
     currentRound: 1,       // the next round yet to be played; anything before this is "past"
     leadingAtRound: 1,
     specialsRound: 1,
-    specialsExtremeExpanded: null, // 'win_round' | 'lose_round' | null -- which list is open
+    specialsExtremeExpanded: null, // 'win_round' | 'lose_round' | 'charity' | 'philanthropy' | null -- which list is open
     editingNoveltyId: null,
     cupFixtureMarketStage: null,
     playoffFixtureMarketStage: null,
@@ -1799,6 +1799,7 @@
   }
 
   function fixedSpecialDropdown(pickPrefix, marketLabel, outcomes, selectedTeam, selectId){
+    const kind = pickPrefix.split('|')[1]; // 'charity' or 'philanthropy' -- reuses the same toggle-list click handler as win_round/lose_round, which reads this generically off the button's data attribute
     let odds_row = '';
     if(selectedTeam){
       const o = outcomes.find(x => x.team === selectedTeam);
@@ -1814,10 +1815,24 @@
           <span>${esc(selectedTeam)}</span><span class="bb-odds">${o.odds.toFixed(2)}</span></div>`;
       }
     }
+    const expanded = state.specialsExtremeExpanded === kind;
+    let listHtml = `<button class="bb-btn ghost" data-toggle-extreme-list="${kind}" style="margin-top:10px;font-size:12px;padding:6px 12px;">${expanded ? 'Hide full list \u25b4' : 'Show every team in odds order \u25be'}</button>`;
+    if(expanded){
+      listHtml += `<div style="margin-top:10px;max-height:400px;overflow-y:auto;">` + outcomes.map(o => {
+        if(o.suspended){
+          return `<div class="bb-outcome" style="opacity:0.5;cursor:default;"><span>${esc(o.team)}</span><span class="bb-odds" style="color:#9a9a9a;">suspended</span></div>`;
+        }
+        const id = pickPrefix + '|' + o.team;
+        const isSelected = state.slip.some(s=>s.id===id);
+        return `<div class="bb-outcome ${isSelected?'selected':''}" data-pick="${esc(id)}" data-team="${esc(o.team)}" data-odds="${o.odds}" data-label="${esc(o.team)} \u2014 ${esc(marketLabel)}">
+          <span>${esc(o.team)}</span><span class="bb-odds">${o.odds.toFixed(2)}</span></div>`;
+      }).join('') + `</div>`;
+    }
     return `<div class="bb-card" style="margin-bottom:10px;">
       <div style="font-size:13px;font-weight:600;margin-bottom:8px;">${esc(marketLabel)}</div>
       ${teamSearchInput(selectId, selectedTeam)}
       ${odds_row}
+      ${listHtml}
     </div>`;
   }
 
