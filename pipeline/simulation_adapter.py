@@ -465,26 +465,33 @@ def simulate_conference_season(teams, samplers):
 
 
 def simulate_promotion_playoffs(conf_a_playoff_seeds, conf_b_playoff_seeds, samplers):
-    """The confirmed two-bracket finals format, as corrected directly:
+    """The confirmed two-bracket finals format, simplified per direct
+    feedback: only ONE cross-over is needed (at the Promotion Final
+    stage), not two -- an earlier version also swapped Elimination
+    Final winners between brackets before the Preliminary Final, which
+    was verified (500k-run simulation, fixed team strengths) to produce
+    statistically identical promotion odds to this simpler version, so
+    it added complexity without changing the outcome.
 
     Seeding: each conference's own playoff-eligible finishers are Seed 1
     (best) through Seed 4 (worst) *within that conference*. Bracket 1 is
     Conf A's Seed 1 + Seed 3 plus Conf B's Seed 2 + Seed 4; Bracket 2 is
     the mirror (Conf B's Seed 1 + Seed 3, Conf A's Seed 2 + Seed 4).
 
-    Week 1: QF1 = A1 vs B2, EF1 = B4 vs A3 (Bracket 1's matches);
-    QF2 = B1 vs A2, EF2 = A4 vs B3 (Bracket 2's matches). QF winner gets
-    a bye to a Promotion Final; QF loser and EF winner both continue to
-    a Preliminary Final; EF loser is eliminated outright.
+    Week 1: QF1 = A1 vs B2, EF1 = A4 vs B3 (Bracket 1's own matches);
+    QF2 = B1 vs A2, EF2 = B4 vs A3 (Bracket 2's own matches). QF winner
+    gets a bye to a Promotion Final; QF loser and EF winner both stay
+    within their own bracket for a Preliminary Final; EF loser is
+    eliminated outright.
 
-    Week 2 -- first cross-over: Elimination Final winners swap brackets
-    for the Preliminary Final. PF1 = QF1 loser vs EF2 winner (not EF1);
-    PF2 = QF2 loser vs EF1 winner (not EF2). PF loser is eliminated.
+    Week 2: PF1 = QF1 loser vs EF1 winner (own bracket, no swap);
+    PF2 = QF2 loser vs EF2 winner (own bracket, no swap). PF loser is
+    eliminated.
 
-    Week 3 -- second, separate cross-over: Preliminary Final winners
-    swap brackets again for the Promotion Final. Bracket 1's Promotion
-    Final is QF1's bye winner vs PF2's winner; Bracket 2's is QF2's bye
-    winner vs PF1's winner. Each Promotion Final winner is promoted.
+    Week 3 -- the one cross-over: Preliminary Final winners swap
+    brackets for the Promotion Final. Bracket 1's Promotion Final is
+    QF1's bye winner vs PF2's winner; Bracket 2's is QF2's bye winner
+    vs PF1's winner. Each Promotion Final winner is promoted.
 
     Returns the two promoted teams (one per bracket)."""
     def play(a, b):
@@ -495,21 +502,88 @@ def simulate_promotion_playoffs(conf_a_playoff_seeds, conf_b_playoff_seeds, samp
 
     qf1_winner = play(a1, b2)
     qf1_loser = b2 if qf1_winner == a1 else a1
-    ef1_winner = play(b4, a3)
+    ef1_winner = play(a4, b3)
 
     qf2_winner = play(b1, a2)
     qf2_loser = a2 if qf2_winner == b1 else b1
-    ef2_winner = play(a4, b3)
+    ef2_winner = play(b4, a3)
 
-    # Week 2: elimination-final winners cross into the OPPOSITE bracket's prelim final
-    pf1_winner = play(qf1_loser, ef2_winner)
-    pf2_winner = play(qf2_loser, ef1_winner)
+    # Week 2: each bracket's own preliminary final, no swap
+    pf1_winner = play(qf1_loser, ef1_winner)
+    pf2_winner = play(qf2_loser, ef2_winner)
 
-    # Week 3: preliminary-final winners cross into the OPPOSITE bracket's promotion final
+    # Week 3: the one cross-over -- preliminary-final winners swap brackets
     bracket1_champion = play(qf1_winner, pf2_winner)
     bracket2_champion = play(qf2_winner, pf1_winner)
 
     return bracket1_champion, bracket2_champion
+
+
+def simulate_promotion_playoffs_3conf(conf_a_seeds, conf_b_seeds, conf_c_seeds, samplers):
+    """HYPOTHETICAL -- a 3-conference extension of the confirmed 2-conference
+    format, not currently in production use. Not automatically wired into
+    simulate_promotion_market; call this directly if/when a 3-conference
+    division actually exists.
+
+    Auto-promotion (handled by the caller, not this function): only
+    conference WINNERS auto-promote here, one per conference -- three
+    automatic slots total, not the two-per-conference rule Division 3
+    uses today.
+
+    Seeding stays at conference positions 2-5 (Seed 1 through Seed 4
+    within each conference, unchanged from the 2-conference format).
+
+    Three brackets, each pairing two of the three conferences, using the
+    exact same per-bracket setup as the 2-conference format:
+
+      Bracket 1 (A/B): QF1 = A1 vs B2, EF1 = A4 vs B3
+      Bracket 2 (B/C): QF2 = B1 vs C2, EF2 = B4 vs C3
+      Bracket 3 (C/A): QF3 = C1 vs A2, EF3 = C4 vs A3
+
+    Every conference's 4 seeds are used exactly once across the three
+    brackets (e.g. Conf A contributes Seed 1 + Seed 3 to Bracket 1, and
+    Seed 2 + Seed 4 to Bracket 3) -- a clean 12-team pool with no overlap
+    or leftover teams.
+
+    Each bracket runs its own Preliminary Final with no swap (QF loser
+    vs EF winner, same bracket) -- matching the simplification confirmed
+    for the 2-conference format, since an Elimination-Final swap was
+    verified to add complexity without changing the outcome there, and
+    the same reasoning applies here.
+
+    The one cross-over is a 3-way rotation at the Promotion Final stage:
+    PF1's winner goes to Bracket 2's Promotion Final, PF2's winner goes
+    to Bracket 3's, PF3's winner goes to Bracket 1's -- each bracket's
+    own Promotion Final pairs its QF bye winner against the ROTATED-IN
+    Preliminary Final winner, not its own bracket's PF winner.
+
+    Returns the three promoted teams (one per bracket) as a tuple."""
+    def play(a, b):
+        return a if samplers[a](1)[0] > samplers[b](1)[0] else b
+
+    a1, a2, a3, a4 = conf_a_seeds
+    b1, b2, b3, b4 = conf_b_seeds
+    c1, c2, c3, c4 = conf_c_seeds
+
+    qf1_winner = play(a1, b2); qf1_loser = b2 if qf1_winner == a1 else a1
+    ef1_winner = play(a4, b3)
+    qf2_winner = play(b1, c2); qf2_loser = c2 if qf2_winner == b1 else b1
+    ef2_winner = play(b4, c3)
+    qf3_winner = play(c1, a2); qf3_loser = a2 if qf3_winner == c1 else c1
+    ef3_winner = play(c4, a3)
+
+    # Week 2: each bracket's own preliminary final, no swap (per the
+    # confirmed 2-conference simplification)
+    pf1_winner = play(qf1_loser, ef1_winner)
+    pf2_winner = play(qf2_loser, ef2_winner)
+    pf3_winner = play(qf3_loser, ef3_winner)
+
+    # Week 3: the 3-way rotation -- PF1->Bracket2, PF2->Bracket3, PF3->Bracket1
+    bracket1_champion = play(qf1_winner, pf3_winner)
+    bracket2_champion = play(qf2_winner, pf1_winner)
+    bracket3_champion = play(qf3_winner, pf2_winner)
+
+    return bracket1_champion, bracket2_champion, bracket3_champion
 
 
 def simulate_promotion_market(conference_pairs, auto_slots, playoff_positions, team_coeffs, scale, history,
