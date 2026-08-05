@@ -1906,7 +1906,12 @@
       leaderboard('Most popular selection', s.mostPopular, v=>v+' bet'+(v>1?'s':'')) +
       leaderboard('Kitty leaderboard (richest punters)', s.topKitty, v=>fmt(v)) +
       (s.myKittyRank ? `<p style="color:#9a9a9a;font-size:12px;margin-top:-10px;margin-bottom:1.25rem;">You're ranked #${s.myKittyRank.rank} of ${s.myKittyRank.of} punters by balance.</p>` : '') +
-      leaderboard('Most career wins (carried over from previous seasons)', s.topCareerWins, v=>v+' win'+(v!==1?'s':''));
+      leaderboard('Most career wins (carried over from previous seasons)', s.topCareerWins, v=>v+' win'+(v!==1?'s':'')) +
+      '<h4 style="color:#9a9a9a;margin-bottom:6px;">Beating the line</h4>' +
+      (s.lineBeat.ready
+        ? leaderboard('Cover their line most often', s.lineBeat.best.map(r => ({ label: r.team+' \u2014 '+r.covered+'/'+r.total, value: r.pct })), v=>v.toFixed(0)+'%') +
+          leaderboard('Miss their line most often', s.lineBeat.worst.map(r => ({ label: r.team+' \u2014 '+r.covered+'/'+r.total, value: r.pct })), v=>v.toFixed(0)+'%')
+        : '<p style="color:#9a9a9a;font-size:13px;">Not enough completed rounds yet to make this meaningful \u2014 check back around Round 5.</p>');
   }
 
   function renderAdminTab(){
@@ -2957,6 +2962,53 @@
   }
 
   // ---------- Stats ----------
+  // Which teams most often beat (or miss) their own pre-match projected
+  // line -- a genuine cover record, not just win/loss. A team can lose
+  // outright and still have covered a big underdog line, or win outright
+  // and still have missed a big favourite line. Reuses getFixtureMarkets
+  // (the same cached function the H2H tab and featured picks both already
+  // go through) so this reads the exact same line every other part of the
+  // app would show for that fixture, not a separately-computed one.
+  //
+  // Gated behind a minimum games-played count -- a team 1-for-1 (100%) is
+  // noise, not a real pattern, so it shouldn't outrank a team 8-for-10
+  // (80%) with an actual sample behind it. In practice this means the
+  // whole stat has nothing meaningful to show before roughly Round 5.
+  function computeLineBeatStats(){
+    const MIN_GAMES = 4;
+    const record = {}; // team -> {covered, total}
+    const roundsPlayed = state.currentRound - 1;
+
+    for(let round = 1; round <= roundsPlayed; round++){
+      for(const div of FUTURE_DIVS){
+        if(hasNoFixtures(div, round)) continue;
+        const markets = getFixtureMarkets(div, round);
+        for(const m of markets){
+          const scoreA = REAL_RESULTS[m.teamA] && REAL_RESULTS[m.teamA][round - 1];
+          const scoreB = REAL_RESULTS[m.teamB] && REAL_RESULTS[m.teamB][round - 1];
+          if(scoreA == null || scoreB == null) continue; // result not in yet
+          const actualMargin = scoreA - scoreB;
+          const aCovered = actualMargin > m.line; // m.line is always a .5 value, so no pushes
+          if(!record[m.teamA]) record[m.teamA] = { covered: 0, total: 0 };
+          if(!record[m.teamB]) record[m.teamB] = { covered: 0, total: 0 };
+          record[m.teamA].total++;
+          record[m.teamB].total++;
+          if(aCovered) record[m.teamA].covered++; else record[m.teamB].covered++;
+        }
+      }
+    }
+
+    const eligible = Object.entries(record)
+      .filter(([, r]) => r.total >= MIN_GAMES)
+      .map(([team, r]) => ({ team, covered: r.covered, total: r.total, pct: 100 * r.covered / r.total }));
+
+    return {
+      ready: eligible.length > 0,
+      best: eligible.slice().sort((a, b) => b.pct - a.pct || b.covered - a.covered).slice(0, 5),
+      worst: eligible.slice().sort((a, b) => a.pct - b.pct || a.covered - b.covered).slice(0, 5),
+    };
+  }
+
   async function loadStats(){
     const usernames = await getIndex('bilbbet2_users_index');
     const allUsers = (await Promise.all(usernames.map(getUser))).filter(Boolean);
@@ -2997,11 +3049,14 @@
       .slice(0,5)
       .map(u => ({ label: u.username+' \u2014 '+u.historicalRecord.totalBets+' bets carried over', value: u.historicalRecord.winningBets }));
 
+    const lineBeat = computeLineBeatStats();
+
     state.statsData = {
       totalWagered: bets.reduce((s,b)=>s+b.stake,0),
       totalBets: bets.length,
       totalPunters: users.length,
       topStakes, topMultis, topWins, topLosses, topOdds, mostPopular, topKitty, topCareerWins, myKittyRank,
+      lineBeat,
     };
     render();
   }
