@@ -211,6 +211,13 @@
     const round = parseInt(parts[2].replace('R',''), 10);
     const teamA = parts[3], teamB = parts[4];
     if(!teamA || !teamB || isNaN(round)) return null;
+    // Defensive: a no-fixture round (e.g. Division 2/3's Round 1) should
+    // never have a real result to suggest -- the bet-placement path
+    // already prevents such a bet from existing in the first place, but
+    // this guards against a stray sheet value or an old bet from before
+    // that protection existed.
+    const div = FUTURE_DIVS.find(d => (H2H_SCHEDULE[d] || []).some(pairs => pairs.some(([a,b]) => (a===teamA&&b===teamB)||(a===teamB&&b===teamA))));
+    if(div && hasNoFixtures(div, round)) return null;
     const scoresA = REAL_RESULTS[teamA], scoresB = REAL_RESULTS[teamB];
     if(!scoresA || !scoresB) return null;
     const scoreA = scoresA[round-1], scoreB = scoresB[round-1];
