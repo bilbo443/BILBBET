@@ -862,9 +862,18 @@
 
     const featuredKey = 'bilbbet2_featured_fixtures_R' + round;
     let featured = await sget(featuredKey);
+    // Diagnostic logging -- temporary, kept until the "featured match
+    // changes on every app.js update" report is pinned down. Check the
+    // browser console (F12) next time this reproduces: if "FOUND stored
+    // value" shows every time, the storage layer is fine and the change
+    // must be happening somewhere else (e.g. in rendering); if it shows
+    // "NO stored value, computing fresh" right after an app.js upload,
+    // that's the actual smoking gun and narrows this down precisely.
+    console.log('[featured-fixtures debug] round=' + round, featured ? 'FOUND stored value' : 'NO stored value, computing fresh');
     if(!featured){
       featured = computeFeaturedFixtures();
-      await sset(featuredKey, featured);
+      const wrote = await sset(featuredKey, featured);
+      console.log('[featured-fixtures debug] wrote fresh value, sset returned:', wrote);
     }
     state.featuredFixturesData = featured;
     render();
