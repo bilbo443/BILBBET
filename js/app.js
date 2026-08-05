@@ -314,6 +314,7 @@
     registeringMode: false,
     tosModalOpen: false, tosMode: 'view', tosAgreed: false, readMeModalOpen: false,
     tutorialModalOpen: false, tutorialStep: 0, welcomeModalOpen: false,
+    formModalOpen: false, formModalTeam: null,
     cupFixtures: { 'FA CUP': [], 'ECL': [] },
     cupFixtureMarket: null,
     cupAdminEntry: { 'FA CUP': {teamA:'', teamB:''}, 'ECL': {teamA:'', teamB:''} },
@@ -1231,6 +1232,57 @@
   function tutorialStepsFor(){
     return state.user && state.user.isAdmin ? TUTORIAL_STEPS.concat(TUTORIAL_STEPS_ADMIN) : TUTORIAL_STEPS;
   }
+  // Recent results/"form" for one team, on demand -- distinct from the
+  // existing team-search panel, which shows current ODDS across every
+  // market that team is in, not what they've actually scored. This shows
+  // this season's real, round-by-round results where they exist; before
+  // the season has real data, shows last season's history instead of an
+  // empty modal, clearly labelled as historical so it's never confused
+  // with genuine current-season form.
+  function renderFormModal(){
+    const team = state.formModalTeam;
+    if(!team) return '';
+    const real = REAL_RESULTS[team];
+    const roundsPlayed = state.currentRound - 1;
+    const thisSeasonRows = [];
+    if(real){
+      for(let r = 0; r < roundsPlayed; r++){
+        if(real[r] != null) thisSeasonRows.push({ round: r+1, score: real[r] });
+      }
+    }
+    let body;
+    if(thisSeasonRows.length){
+      const scores = thisSeasonRows.map(r=>r.score);
+      const avg = scores.reduce((a,b)=>a+b,0) / scores.length;
+      body = `<div style="font-size:12px;color:#9a9a9a;margin-bottom:8px;">This season, ${thisSeasonRows.length} round${thisSeasonRows.length!==1?'s':''} played \u2014 average ${avg.toFixed(1)}.</div>
+        <div style="max-height:320px;overflow-y:auto;">
+          ${thisSeasonRows.slice().reverse().map(r => `<div style="display:flex;justify-content:space-between;padding:7px 4px;border-bottom:1px solid #3d3d3d;font-size:13px;">
+            <span style="color:#9a9a9a;">Round ${r.round}</span><span style="font-weight:600;">${r.score}</span>
+          </div>`).join('')}
+        </div>`;
+    } else {
+      const hist = H2H_HISTORY[team];
+      if(hist && hist.length){
+        const avg = hist.reduce((a,b)=>a+b,0) / hist.length;
+        body = `<div style="font-size:12px;color:#9a9a9a;margin-bottom:8px;">No results yet this season. Showing a sample of historical scores instead (${hist.length} total on record, average ${avg.toFixed(1)}) \u2014 not necessarily in chronological order, just the most recent real data available until this season's results come in.</div>
+          <div style="max-height:320px;overflow-y:auto;display:flex;flex-wrap:wrap;gap:6px;">
+            ${hist.slice(0, 20).map(s => `<span style="background:#2a2a2a;border-radius:4px;padding:4px 8px;font-size:12px;">${Math.round(s)}</span>`).join('')}
+          </div>`;
+      } else {
+        body = `<p style="color:#9a9a9a;font-size:13px;">No results on record for this team yet.</p>`;
+      }
+    }
+    return `
+      <div id="form-modal-backdrop" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:110;display:flex;align-items:center;justify-content:center;padding:1rem;">
+        <div class="bb-card" style="max-width:380px;width:100%;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <h3 style="margin:0;display:flex;align-items:center;gap:8px;">${teamLogo(team,22)}${esc(team)}</h3>
+            <span style="font-size:12px;color:#9a9a9a;cursor:pointer;" id="close-form-modal-x">&times;</span>
+          </div>
+          ${body}
+        </div>
+      </div>`;
+  }
   function renderWelcomeModal(){
     const carry = (state.user && state.user.dormantCarry) || 0;
     return `
@@ -1710,8 +1762,8 @@
         const bId = 'H2H|res-b|'+roundTag+'|'+m.teamA+'|'+m.teamB;
         return `<div style="display:flex;align-items:stretch;gap:12px;padding:12px 16px;${i<markets.length-1?'border-bottom:1px solid #3d3d3d;':''}">
           <div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:3px;">
-            <div style="display:flex;align-items:center;gap:6px;font-weight:600;">${teamLogo(m.teamA,18)}${esc(m.teamA)}</div>
-            <div style="display:flex;align-items:center;gap:6px;font-weight:600;"><span style="color:#9a9a9a;font-weight:400;">vs</span> ${teamLogo(m.teamB,18)}${esc(m.teamB)}</div>
+            <div style="display:flex;align-items:center;gap:6px;font-weight:600;cursor:pointer;" data-show-form="${esc(m.teamA)}" title="See ${esc(m.teamA)}'s results">${teamLogo(m.teamA,18)}${esc(m.teamA)}</div>
+            <div style="display:flex;align-items:center;gap:6px;font-weight:600;cursor:pointer;" data-show-form="${esc(m.teamB)}" title="See ${esc(m.teamB)}'s results"><span style="color:#9a9a9a;font-weight:400;">vs</span> ${teamLogo(m.teamB,18)}${esc(m.teamB)}</div>
             <span class="bb-btn ghost" data-fixture-expand="${esc(div)}|${i}" style="align-self:flex-start;padding:3px 9px;font-size:10px;margin-top:2px;">Full market (draw &amp; handicap)</span>
           </div>
           <div style="width:88px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;justify-content:center;">
@@ -3278,7 +3330,7 @@
     } else {
       body = `<p style="color:#9a9a9a;">Unknown tab.</p>`;
     }
-    return `<div>${renderStorageWarning()}${header()}${renderTeamSearchPanel()}${mainTabs()}${body}${renderFooter()}</div>${['ADMIN','STATS'].includes(state.activeTab) ? '' : slipBar()}${state.loginModalOpen ? renderLoginModal() : ''}${state.tosModalOpen ? renderTosModal() : ''}${state.readMeModalOpen ? renderReadMeModal() : ''}${state.tutorialModalOpen ? renderTutorialModal() : ''}${state.welcomeModalOpen ? renderWelcomeModal() : ''}${teamsDatalist()}`;
+    return `<div>${renderStorageWarning()}${header()}${renderTeamSearchPanel()}${mainTabs()}${body}${renderFooter()}</div>${['ADMIN','STATS'].includes(state.activeTab) ? '' : slipBar()}${state.loginModalOpen ? renderLoginModal() : ''}${state.tosModalOpen ? renderTosModal() : ''}${state.readMeModalOpen ? renderReadMeModal() : ''}${state.tutorialModalOpen ? renderTutorialModal() : ''}${state.welcomeModalOpen ? renderWelcomeModal() : ''}${state.formModalOpen ? renderFormModal() : ''}${teamsDatalist()}`;
   }
 
   function combinedOdds(){ return combinedOddsFor(state.slip); }
@@ -3694,6 +3746,15 @@
 
     const closeWelcomeBtn = $('#close-welcome-modal');
     if(closeWelcomeBtn) closeWelcomeBtn.onclick = () => { state.welcomeModalOpen = false; render(); };
+
+    const closeFormX = $('#close-form-modal-x');
+    if(closeFormX) closeFormX.onclick = () => { state.formModalOpen = false; state.formModalTeam = null; render(); };
+    document.querySelectorAll('[data-show-form]').forEach(el => el.onclick = (e) => {
+      e.stopPropagation(); // team names sit inside clickable rows/buttons elsewhere -- this opens the form popup without also triggering whatever that row's own click does
+      state.formModalTeam = el.dataset.showForm;
+      state.formModalOpen = true;
+      render();
+    });
     const welcomeOpenTutorial = $('#welcome-open-tutorial');
     if(welcomeOpenTutorial) welcomeOpenTutorial.onclick = () => { state.welcomeModalOpen = false; state.tutorialStep = 0; state.tutorialModalOpen = true; render(); };
     const tosCheckbox = $('#tos-agree-checkbox');
