@@ -304,6 +304,7 @@
     leadingAtRound: 1,
     specialsRound: 1,
     specialsExtremeExpanded: null, // 'win_round' | 'lose_round' | 'charity' | 'philanthropy' | null -- which list is open
+    refreshingFeatured: false, refreshedFeaturedInfo: '',
     editingNoveltyId: null,
     cupFixtureMarketStage: null,
     playoffFixtureMarketStage: null,
@@ -893,11 +894,16 @@
   // recompute against the current code, without needing direct database
   // access to do it.
   async function refreshFeaturedFixtures(){
+    state.refreshingFeatured = true;
+    state.refreshedFeaturedInfo = '';
+    render();
     const featuredKey = 'bilbbet2_featured_fixtures_R' + state.currentRound;
     await sdelete(featuredKey);
-    state.featuredFixturesData = null; // show the loading state while it recomputes
-    render();
+    state.featuredFixturesData = null; // show the loading state on the Home tab while it recomputes
     await loadHomeStats();
+    state.refreshingFeatured = false;
+    state.refreshedFeaturedInfo = `\u2713 Refreshed just now \u2014 ${(state.featuredFixturesData||[]).length} featured pick(s) now showing for Round ${state.currentRound}.`;
+    render();
   }
 
   async function loadHomeStats(){
@@ -2014,7 +2020,8 @@
       </div>
       <div class="bb-card" style="margin-bottom:1.5rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
         <span style="font-size:13px;color:#9a9a9a;">Home tab's featured picks are computed once per round and then locked in -- if the selection logic changes, an already-computed round won't pick up the fix on its own.</span>
-        <button class="bb-btn ghost" id="refresh-featured-fixtures">Force recompute for Round ${state.currentRound}</button>
+        <button class="bb-btn ghost" id="refresh-featured-fixtures" ${state.refreshingFeatured?'disabled':''}>${state.refreshingFeatured?'Refreshing\u2026':'Force recompute for Round '+state.currentRound}</button>
+        ${state.refreshedFeaturedInfo ? `<span style="font-size:12px;color:#8fc98f;width:100%;">${esc(state.refreshedFeaturedInfo)}</span>` : ''}
       </div>
       <h3>End of season</h3>
       <div class="bb-card" style="margin-bottom:1.5rem;border-color:#a3402f;">
