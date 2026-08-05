@@ -718,16 +718,28 @@
     return { id, team, opp, pct: dogPct, baseOdds: oddsInfo.odds, odds: boosted, division, ...extra };
   }
 
-  // A-League fantasy point projection: pro-rates the new platform's median
-  // team score (11 scoring players x 3.7 median, plus one extra copy for
-  // the captain's double = 44.4) against how many real A-League matches
-  // each club actually has that round -- a bye pulls the baseline down, a
-  // double gameweek pushes it up. Purely a projection display; doesn't
-  // feed into odds or any other part of the platform.
+  // A-League fantasy point projection: pro-rates a baseline team score
+  // against how many real A-League matches each club actually has that
+  // round -- a bye pulls the baseline down, a double gameweek pushes it
+  // up. Purely a projection display; doesn't feed into odds or any other
+  // part of the platform.
+  //
+  // Baseline corrected after review: an earlier version used the median
+  // score across ALL players on the platform (3.7/player x 12 "slots" =
+  // 44.4) -- but a real fantasy squad isn't a random sample of the whole
+  // player pool, it's deliberately curated toward the better performers,
+  // so that median understated what an actual team would score. Replaced
+  // with last season's real, whole-team historical average (roddy_history,
+  // 60.1 across 3,796 team-round entries) plus a 10% adjustment for this
+  // season's increased scoring values, per direct instruction -- giving
+  // 66.1 as the new standard-round baseline. Bye/double-round figures were
+  // rescaled by the same ratio to the old baseline, not recomputed from
+  // scratch, so the underlying "how many of 12 slots are affected" logic
+  // stays exactly as it was, just applied to the corrected number.
   function renderPointProjection(round){
     const proj = ALEAGUE_PROJECTION[round];
     if(!proj) return '';
-    const STANDARD = 44.4;
+    const STANDARD = 66.1;
     let note;
     if(proj.byes.length){
       note = `Down from the usual ${STANDARD} \u2014 ${proj.byes.join(' and ')} ${proj.byes.length>1?'are':'is'} on a bye.`;
