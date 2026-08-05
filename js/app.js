@@ -482,6 +482,25 @@
     }
     try{ await window.storage.set(key, JSON.stringify(val), true); return true; }catch(e){ return false; }
   }
+  // A genuine delete, not sset(key, null) -- the kv_store table's value
+  // column is NOT NULL, so upserting a JS null there fails the Supabase
+  // write outright and silently falls back to in-memory storage (which
+  // is exactly what triggered the "running without a persistent
+  // connection" banner after this was first written the wrong way).
+  async function sdelete(key){
+    if(supabaseClient){
+      try {
+        const { error } = await supabaseClient.from('kv_store').delete().eq('key', key);
+        if(error) throw error;
+        return true;
+      } catch(e) { console.error('Supabase delete failed for', key, '-- falling back:', e.message); }
+    }
+    if(!hasRealStorage){
+      delete memoryStore[key];
+      return true;
+    }
+    try{ await window.storage.delete(key, true); return true; }catch(e){ return false; }
+  }
   async function getIndex(name){ return (await sget(name)) || []; }
   async function addToIndex(name, id){ const list = await getIndex(name); if(!list.includes(id)){ list.push(id); await sset(name, list); } }
   async function getUser(u){ return await sget('bilbbet2_user:' + u.toLowerCase()); }
@@ -875,7 +894,7 @@
   // access to do it.
   async function refreshFeaturedFixtures(){
     const featuredKey = 'bilbbet2_featured_fixtures_R' + state.currentRound;
-    await sset(featuredKey, null);
+    await sdelete(featuredKey);
     state.featuredFixturesData = null; // show the loading state while it recomputes
     render();
     await loadHomeStats();
