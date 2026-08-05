@@ -732,10 +732,21 @@
   // with last season's real, whole-team historical average (roddy_history,
   // 60.1 across 3,796 team-round entries) plus a 10% adjustment for this
   // season's increased scoring values, per direct instruction -- giving
-  // 66.1 as the new standard-round baseline. Bye/double-round figures were
-  // rescaled by the same ratio to the old baseline, not recomputed from
-  // scratch, so the underlying "how many of 12 slots are affected" logic
-  // stays exactly as it was, just applied to the corrected number.
+  // 66.1 as the new standard-round baseline.
+  //
+  // Bye-round figures corrected a second time: originally scaled down
+  // proportionally as if the affected slots were lost entirely (10/12 of
+  // the baseline). Per direct correction, that overstated the real
+  // disadvantage -- squad rules allow a max of 3 players per A-League
+  // club out of a 15-player squad (11 + 4 bench) with a minimum of 2
+  // transfers per round, so even a worst-case double-bye is largely
+  // recoverable via bench and transfers for an active manager. The
+  // affected slots now regress to the platform-wide median player score
+  // (3.7) instead of dropping to zero, reflecting a deeper reliance on
+  // bench-quality players rather than a genuine loss of scoring slots;
+  // unaffected slots stay at the full curated-squad average. Doubles are
+  // untouched by this -- an extra fixture is a bonus, not a bench-reliance
+  // situation, so those slots stay at the full average.
   function renderPointProjection(round){
     const proj = ALEAGUE_PROJECTION[round];
     if(!proj) return '';
