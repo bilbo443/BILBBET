@@ -754,6 +754,7 @@
     // not just the same underlying data.
     for(const div of FUTURE_DIVS){
       if(selected.length >= MAX_TOTAL) break;
+      if(hasNoFixtures(div, round)) continue; // e.g. Division 2/3's Round 1 -- no real fixtures yet, matches what the H2H tab itself already shows
       const alreadyInDiv = selected.filter(s => s.division === div).length;
       let remaining = MAX_PER_DIV - alreadyInDiv;
       if(remaining <= 0) continue;
