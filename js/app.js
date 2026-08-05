@@ -724,37 +724,55 @@
   // up. Purely a projection display; doesn't feed into odds or any other
   // part of the platform.
   //
-  // Baseline corrected after review: an earlier version used the median
-  // score across ALL players on the platform (3.7/player x 12 "slots" =
-  // 44.4) -- but a real fantasy squad isn't a random sample of the whole
-  // player pool, it's deliberately curated toward the better performers,
-  // so that median understated what an actual team would score. Replaced
-  // with last season's real, whole-team historical average (roddy_history,
-  // 60.1 across 3,796 team-round entries) plus a 10% adjustment for this
-  // season's increased scoring values, per direct instruction -- giving
-  // 66.1 as the new standard-round baseline.
+  // Baseline is now LIVE, not a fixed historical number -- per direct
+  // instruction, this now waits for real, this-season data rather than
+  // continuing to lean on assumptions carried over from before the new
+  // platform/scoring system was in play. Hidden entirely until at least 3
+  // rounds have genuinely been played (not just scheduled), then computed
+  // as the actual average of every completed round's real team scores so
+  // far -- naturally updating and becoming more accurate as the season
+  // progresses, rather than staying fixed at a single point-in-time
+  // estimate for the whole season.
   //
-  // Bye-round figures corrected a second time: originally scaled down
-  // proportionally as if the affected slots were lost entirely (10/12 of
-  // the baseline). Per direct correction, that overstated the real
-  // disadvantage -- squad rules allow a max of 3 players per A-League
-  // club out of a 15-player squad (11 + 4 bench) with a minimum of 2
-  // transfers per round, so even a worst-case double-bye is largely
-  // recoverable via bench and transfers for an active manager. The
-  // affected slots now regress to the platform-wide median player score
-  // (3.7) instead of dropping to zero, reflecting a deeper reliance on
-  // bench-quality players rather than a genuine loss of scoring slots;
-  // unaffected slots stay at the full curated-squad average. Doubles are
-  // untouched by this -- an extra fixture is a bonus, not a bench-reliance
-  // situation, so those slots stay at the full average.
+  // The bye/double RATIOS (not the absolute numbers) are preserved from
+  // the earlier, carefully-derived methodology: bye-affected slots regress
+  // toward bench-quality performance rather than dropping to zero (squad
+  // rules allow max 3 players per A-League club out of 15, with a minimum
+  // of 2 transfers/round, so even a worst-case double-bye is largely
+  // recoverable for an active manager); doubles get a proportional boost
+  // since an extra fixture is a bonus, not a bench-reliance situation.
+  // Applying those same ratios to the live baseline means the shape of the
+  // adjustment stays grounded in that reasoning while the scale itself
+  // updates with real data.
+  const ALEAGUE_MIN_ROUNDS = 3;
+  const ALEAGUE_BYE_RATIO = 0.9455;
+  const ALEAGUE_DOUBLE_RATIO = 1.1664;
+  function computeLiveALeagueBaseline(){
+    const roundsPlayed = state.currentRound - 1;
+    if(roundsPlayed < ALEAGUE_MIN_ROUNDS) return null;
+    const allScores = [];
+    for(const team in REAL_RESULTS){
+      for(let r = 0; r < roundsPlayed; r++){
+        const s = REAL_RESULTS[team][r];
+        if(s != null) allScores.push(s);
+      }
+    }
+    if(!allScores.length) return null; // round count says results should exist, but they haven't actually landed yet
+    return allScores.reduce((a,b)=>a+b, 0) / allScores.length;
+  }
   function renderPointProjection(round){
     const proj = ALEAGUE_PROJECTION[round];
     if(!proj) return '';
-    const STANDARD = 66.1;
+    const liveStandard = computeLiveALeagueBaseline();
+    if(liveStandard === null) return ''; // not enough real data yet -- nothing shown at all, rather than a guess
+    const STANDARD = Math.round(liveStandard * 10) / 10;
+    let baseline = STANDARD;
     let note;
     if(proj.byes.length){
+      baseline = Math.round(liveStandard * ALEAGUE_BYE_RATIO * 10) / 10;
       note = `Down from the usual ${STANDARD} \u2014 ${proj.byes.join(' and ')} ${proj.byes.length>1?'are':'is'} on a bye.`;
     } else if(proj.doubles.length){
+      baseline = Math.round(liveStandard * ALEAGUE_DOUBLE_RATIO * 10) / 10;
       note = `Up from the usual ${STANDARD} \u2014 ${proj.doubles.join(' and ')} ${proj.doubles.length>1?'have':'has'} a double this round.`;
     } else {
       note = 'A standard round \u2014 every club plays exactly once.';
@@ -762,7 +780,7 @@
     return `<div class="bb-card" style="margin-bottom:1rem;">
       <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">
         <span style="font-size:12px;color:#9a9a9a;text-transform:uppercase;letter-spacing:0.05em;">Round ${round} projected score</span>
-        <span style="font-size:20px;font-weight:800;color:#ffdd00;">${proj.baseline.toFixed(1)} pts</span>
+        <span style="font-size:20px;font-weight:800;color:#ffdd00;">${baseline.toFixed(1)} pts</span>
       </div>
       <div style="font-size:12px;color:#9a9a9a;margin-top:2px;">${note}</div>
     </div>`;
