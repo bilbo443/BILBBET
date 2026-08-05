@@ -898,11 +898,20 @@
     state.refreshedFeaturedInfo = '';
     render();
     const featuredKey = 'bilbbet2_featured_fixtures_R' + state.currentRound;
-    await sdelete(featuredKey);
-    state.featuredFixturesData = null; // show the loading state on the Home tab while it recomputes
-    await loadHomeStats();
+    // Directly overwrite with a freshly computed value (a plain sset/upsert)
+    // rather than delete-then-let-loadHomeStats-recompute. Found via testing:
+    // a delete under Supabase RLS can silently affect zero rows if the
+    // project's delete policy is missing (no error, no fallback, the stale
+    // row just stays exactly as it was) -- overwriting directly sidesteps
+    // that dependency entirely, since sset/upsert is already proven solid
+    // everywhere else in this app.
+    const fresh = computeFeaturedFixtures();
+    const wrote = await sset(featuredKey, fresh);
+    state.featuredFixturesData = fresh;
     state.refreshingFeatured = false;
-    state.refreshedFeaturedInfo = `\u2713 Refreshed just now \u2014 ${(state.featuredFixturesData||[]).length} featured pick(s) now showing for Round ${state.currentRound}.`;
+    state.refreshedFeaturedInfo = wrote
+      ? `\u2713 Refreshed just now \u2014 ${fresh.length} featured pick(s) now showing for Round ${state.currentRound}.`
+      : `\u26a0 Recomputed locally, but saving it failed \u2014 other visitors may still see the old picks until this succeeds.`;
     render();
   }
 
