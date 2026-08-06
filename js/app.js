@@ -3947,6 +3947,7 @@
   }
 
   function divisionFixtureCount(div, round){
+    if(hasNoFixtures(div, round)) return 0; // matches the same exclusion the H2H tab already respects -- the raw schedule data still has placeholder entries for these rounds, they just aren't real fixtures
     const sched = H2H_SCHEDULE[div] && H2H_SCHEDULE[div][round-1];
     return sched ? sched.length : 0;
   }
@@ -3964,7 +3965,9 @@
   // rest of the platform already relies on, rather than a parallel,
   // tipping-specific slip implementation.
   function makeMultiFromTips(div){
+    if(!state.tippingData) return; // defensive -- shouldn't be reachable via the UI (the picks button only renders once data's loaded), but don't crash if it somehow is
     const round = state.tippingRound;
+    if(hasNoFixtures(div, round)) return; // defensive -- the UI shouldn't offer this for a no-fixture round, but don't build a multi from placeholder fixtures if it somehow gets called anyway
     const sched = H2H_SCHEDULE[div] && H2H_SCHEDULE[div][round-1];
     if(!sched) return;
     let added = 0, skipped = 0;
@@ -4003,6 +4006,7 @@
         for(const key in data.picks){
           const [div, idxStr] = key.split('|');
           const idx = parseInt(idxStr, 10);
+          if(hasNoFixtures(div, r)) continue; // defensive -- don't score a tip against a placeholder fixture that was never real
           const sched = H2H_SCHEDULE[div] && H2H_SCHEDULE[div][r-1];
           if(!sched || !sched[idx]) continue;
           const [teamA, teamB] = sched[idx];
