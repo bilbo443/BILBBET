@@ -332,6 +332,89 @@ def simulate_fa_cup_bracket(bye_teams, r64_teams, team_coeffs, scale, history, e
     return rows
 
 
+def build_ecl_league_phase(teams, seed=11):
+    """The 3-matchday league phase, built the same way FA Cup's bracket is
+    built -- fixed once via round_robin_schedule (guaranteed no repeat
+    matchups across exactly 3 rounds for any field size), not re-drawn
+    every trial. A standard, defensible choice (round-robin subset, no
+    literal traditional "groups of 4") rather than a replication of any
+    specific real ECL draw, since no fixed schedule for this exists to
+    replicate."""
+    rng = np.random.RandomState(seed)
+    shuffled = list(teams)
+    rng.shuffle(shuffled)
+    return round_robin_schedule(shuffled, total_rounds=3)
+
+
+def simulate_ecl_market(ecl_teams, team_coeffs, scale, history, extracted_results=None, n_sim=25000, seed=7, schedule_seed=11):
+    """ecl_teams: the fixed 12-team field (9 Eliza Cup + 3 Division 2,
+    matching futures.json's current ecl_markets roster). Format: a
+    3-matchday league phase (round-robin subset, 3 points/win, 1/1 draw,
+    ranked by points then total score-for) with the top 8 advancing to a
+    standard, seeded knockout bracket -- 8 -> 4 (Semi-Final) -> 2 (Final)
+    -> 1 (winner). "reach_knockout_pct" is the top-8 cutoff itself, not a
+    separate stage before it."""
+    np.random.seed(seed)
+    if extracted_results:
+        shifts, _ = compute_adjusted_shifts(team_coeffs, scale, history, extracted_results, market='ecl')
+    else:
+        shifts = {}
+    samplers = {}
+    field_pool = [s for t in ecl_teams for s in history.get(t, [])] or [60]
+    for t in ecl_teams:
+        c = team_coeffs.get(t, {'ecl': 0.0, 'variance_widen': 0.5})
+        shift = shifts.get(t, scale * c.get('ecl', 0.0))
+        widen = c.get('variance_widen', 0.0)
+        samplers[t] = make_sampler(history.get(t, field_pool), shift, variance_widen=widen, wide_pool=field_pool)
+
+    schedule = build_ecl_league_phase(ecl_teams, seed=schedule_seed)
+
+    reached = {t: {'knockout': 0, 'sf': 0, 'final': 0, 'win': 0} for t in ecl_teams}
+
+    def play_match(a, b):
+        return a if samplers[a](1)[0] > samplers[b](1)[0] else b
+
+    for _ in range(n_sim):
+        pts = {t: 0 for t in ecl_teams}
+        sfor = {t: 0.0 for t in ecl_teams}
+        team_scores = {t: samplers[t](3) for t in ecl_teams}  # 3 matchdays' worth of draws per team
+        for matchday_idx, pairs in enumerate(schedule):
+            for a, b in pairs:
+                sa, sb = team_scores[a][matchday_idx], team_scores[b][matchday_idx]
+                sfor[a] += sa; sfor[b] += sb
+                if sa > sb: pts[a] += 3
+                elif sb > sa: pts[b] += 3
+                else: pts[a] += 1; pts[b] += 1
+
+        ranked = sorted(ecl_teams, key=lambda t: (-pts[t], -sfor[t]))
+        top8 = ranked[:8]
+        for t in top8: reached[t]['knockout'] += 1
+
+        # Standard seeded bracket -- 1v8, 4v5, 2v7, 3v6 -- protects the
+        # strongest league-phase finishers from meeting each other early,
+        # the same seeding intent already established for the promotion
+        # playoff bracket elsewhere in this pipeline.
+        qf_pairs = [(top8[0], top8[7]), (top8[3], top8[4]), (top8[1], top8[6]), (top8[2], top8[5])]
+        sf = [play_match(a, b) for a, b in qf_pairs]
+        for t in sf: reached[t]['sf'] += 1
+        final = [play_match(sf[0], sf[1]), play_match(sf[2], sf[3])]
+        for t in final: reached[t]['final'] += 1
+        winner = play_match(final[0], final[1])
+        reached[winner]['win'] += 1
+
+    rows = []
+    for t in ecl_teams:
+        r = reached[t]
+        rows.append({
+            'team': t,
+            'reach_knockout_pct': round(100 * r['knockout'] / n_sim, 2),
+            'reach_sf_pct': round(100 * r['sf'] / n_sim, 2),
+            'reach_final_pct': round(100 * r['final'] / n_sim, 2),
+            'win_pct': round(100 * r['win'] / n_sim, 2),
+        })
+    return rows
+
+
 def regenerate_roddy_and_fa_cup(extracted_results, coeffs_path='team_market_coeffs.json',
                                  divs_path='new_divs.json', history_path='roddy_history.json',
                                  fa_field_path='fa_cup_field.json'):
