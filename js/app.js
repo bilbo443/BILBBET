@@ -315,7 +315,8 @@
     tosModalOpen: false, tosMode: 'view', tosAgreed: false, readMeModalOpen: false,
     tutorialModalOpen: false, tutorialStep: 0, welcomeModalOpen: false,
     formModalOpen: false, formModalTeam: null,
-    tippingSubTab: 'PICKS', tippingRound: null, tippingDivisions: [], tippingData: null, tippingLeaderboard: null,
+    tippingSubTab: 'PICKS', tippingRound: null, tippingData: null, tippingPending: {},
+    tippingLeaderboardDiv: 'ALL', tippingLeaderboardMode: 'OVERALL', tippingLeaderboardRound: null, tippingLeaderboard: null,
     cupFixtures: { 'FA CUP': [], 'ECL': [] },
     cupFixtureMarket: null,
     cupAdminEntry: { 'FA CUP': {teamA:'', teamB:''}, 'ECL': {teamA:'', teamB:''} },
@@ -1801,83 +1802,101 @@
     if(!state.user){
       return `<div class="bb-card" style="text-align:center;padding:2rem 1rem;color:#9a9a9a;">Log in to make your tips.</div>`;
     }
-    const round = state.tippingRound || state.currentRound;
+    const round = state.currentRound;
     const locked = isRoundBlocked(round);
     const subTabs = `<div style="display:flex;gap:6px;margin-bottom:10px;">
-        <div class="bb-tab ${state.tippingSubTab==='PICKS'?'active':''}" data-tippingtab="PICKS" style="font-size:12px;padding:6px 10px;">This round's picks</div>
+        <div class="bb-tab ${state.tippingSubTab==='PICKS'?'active':''}" data-tippingtab="PICKS" style="font-size:12px;padding:6px 10px;">This week's tips</div>
         <div class="bb-tab ${state.tippingSubTab==='LEADERBOARD'?'active':''}" data-tippingtab="LEADERBOARD" style="font-size:12px;padding:6px 10px;">Leaderboard</div>
       </div>`;
-    const intro = `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">For fun, not clams \u2014 tip a winner for each fixture. Correct tips score two ways: a straight tally, and the odds of the team you tipped (upsets are worth more). Tip every fixture in a division and you can turn your picks into a real multi bet slip.</p>`;
+    const intro = `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">For fun, not clams \u2014 tip a winner for whichever fixtures you like, across whichever divisions you like. Correct tips score two ways: a straight tally, and what a 1-clam bet on that tip would have paid (upsets are worth more). Nothing saves until you hit Confirm, and you can come back and change your tips right up until this round locks.</p>`;
 
     if(state.tippingSubTab === 'LEADERBOARD'){
       return subTabs + intro + renderTippingLeaderboard();
     }
 
-    const picker = `<div class="bb-card" style="margin-bottom:1rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-        <span style="font-size:12px;color:#9a9a9a;">Round</span>
-        <select class="bb-select" id="tipping-round" style="width:170px;">${roundOptions(round)}</select>
-      </div>`;
-
     if(!state.tippingData || state.tippingData.round !== round){
       loadTipsForRound(round); // async -- fires off the fetch, current render shows a brief loading state
-      return subTabs + intro + picker + '<p style="color:#9a9a9a;">Loading your picks&hellip;</p>';
+      return subTabs + intro + '<p style="color:#9a9a9a;">Loading your tips&hellip;</p>';
     }
 
     if(locked){
-      const msg = round < state.currentRound
-        ? '\u{1F512} This round has already been played.'
-        : '\u{1F512} Tipping is closed for this round right now.';
-      return subTabs + intro + picker + `<div class="bb-card" style="text-align:center;padding:2rem 1rem;color:#9a9a9a;">${msg}</div>`;
+      return subTabs + intro + `<div class="bb-card" style="text-align:center;padding:2rem 1rem;color:#9a9a9a;">\u{1F512} Tipping is closed for Round ${round} right now.</div>`;
     }
 
-    const divPicker = `<div class="bb-card" style="margin-bottom:1rem;">
-      <div style="font-size:12px;color:#9a9a9a;margin-bottom:8px;">Which division(s) do you want to tip this round?</div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px;">
-        ${TIPPING_DIVS.filter(d => divisionFixtureCount(d, round) > 0).map(d => `
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;background:#2a2a2a;border-radius:6px;padding:6px 10px;cursor:pointer;">
-            <input type="checkbox" data-tipping-div="${esc(d)}" ${state.tippingDivisions.includes(d)?'checked':''}/> ${esc(d.replace(' (D1)',''))}
-          </label>`).join('')}
-      </div>
-    </div>`;
+    const divsWithFixtures = TIPPING_DIVS.filter(d => divisionFixtureCount(d, round) > 0);
+    if(!divsWithFixtures.length){
+      return subTabs + intro + `<div class="bb-card" style="text-align:center;padding:2rem 1rem;color:#9a9a9a;">No fixtures scheduled anywhere this round.</div>`;
+    }
 
-    const sections = state.tippingDivisions.filter(d => divisionFixtureCount(d, round) > 0).map(div => {
+    const dirty = JSON.stringify(state.tippingPending) !== JSON.stringify(state.tippingData.picks);
+    const pendingCount = Object.keys(state.tippingPending).length;
+
+    const sections = divsWithFixtures.map(div => {
       const sched = H2H_SCHEDULE[div][round-1];
-      const done = divisionTipsCompleted(div, round);
-      const complete = done === sched.length;
       const markets = getFixtureMarkets(div, round);
       const rows = sched.map(([teamA, teamB], i) => {
         const m = markets[i];
         const aOdds = toOdds(m.aWinPct), bOdds = toOdds(m.bWinPct);
-        const current = state.tippingData.picks[div+'|'+i];
-        const btn = (team, oddsInfo) => {
-          const picked = current && current.team === team;
-          if(oddsInfo.suspended) return `<span class="bb-btn ghost" style="padding:6px 10px;font-size:12px;opacity:0.5;flex:1;text-align:center;">susp.</span>`;
-          return `<button class="bb-btn ${picked?'':'ghost'}" data-tip="${esc(div)}|${i}|${esc(team)}|${oddsInfo.odds}" style="padding:6px 10px;font-size:12px;flex:1;">${esc(team)} ${formatOdds(oddsInfo.odds)}</button>`;
+        const key = div+'|'+i;
+        const current = state.tippingPending[key];
+        const radio = (team, oddsInfo, side) => {
+          if(oddsInfo.suspended) return `<span style="flex:1;text-align:center;font-size:12px;color:#9a9a9a;opacity:0.6;">susp.</span>`;
+          const checked = current && current.team === team;
+          return `<label style="flex:1;display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:6px;background:${checked?'#3a3320':'#2a2a2a'};cursor:pointer;font-size:12px;">
+              <input type="radio" name="tip-${esc(div)}-${i}" data-tip-radio="${esc(div)}|${i}|${side}|${esc(team)}|${oddsInfo.odds}" ${checked?'checked':''}/>
+              ${esc(team)} <span style="margin-left:auto;color:#ffdd00;font-weight:600;">${formatOdds(oddsInfo.odds)}</span>
+            </label>`;
         };
         return `<div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid #333333;">
-          ${btn(teamA, aOdds)}<span style="color:#9a9a9a;font-size:11px;">v</span>${btn(teamB, bOdds)}
+          ${radio(teamA, aOdds, 'home')}<span style="color:#9a9a9a;font-size:11px;">v</span>${radio(teamB, bOdds, 'away')}
         </div>`;
       }).join('');
+      const doneStored = divisionTipsCompleted(div, round);
       return `<div class="bb-card" style="margin-bottom:1rem;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
           <strong style="font-size:13px;">${esc(div.replace(' (D1)',''))}</strong>
-          <span style="font-size:12px;color:${complete?'#7fbf8f':'#9a9a9a'};">${done}/${sched.length} tipped</span>
+          <span style="font-size:12px;color:#9a9a9a;">${doneStored}/${sched.length} confirmed</span>
         </div>
         ${rows}
-        ${complete ? `<button class="bb-btn" data-make-multi="${esc(div)}" style="width:100%;margin-top:10px;">Make this a multi (${sched.length} legs)</button>` : ''}
+        ${doneStored === sched.length ? `<button class="bb-btn ghost" data-make-multi="${esc(div)}" style="width:100%;margin-top:10px;">Make this a multi (${sched.length} legs)</button>` : ''}
       </div>`;
     }).join('');
 
-    return subTabs + intro + picker + divPicker + (state.tippingDivisions.length ? sections : '<p style="color:#9a9a9a;">Pick a division above to start tipping.</p>');
+    const confirmBar = `<div class="bb-card" style="position:sticky;bottom:0;display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:1rem;">
+        <span style="font-size:12px;color:#9a9a9a;">${pendingCount} tip${pendingCount!==1?'s':''} selected${dirty?' \u2014 not yet saved':''}</span>
+        <button class="bb-btn" id="confirm-tips-btn" ${dirty?'':'disabled'}>Confirm tips</button>
+      </div>`;
+
+    return subTabs + intro + confirmBar + sections;
   }
 
   function renderTippingLeaderboard(){
+    const lastPlayed = state.currentRound - 1;
+    if(lastPlayed < 1){
+      return '<p style="color:#9a9a9a;">No rounds played yet \u2014 check back once Round 1 is done.</p>';
+    }
+    const viewRound = state.tippingLeaderboardRound || lastPlayed;
+    const controls = `<div class="bb-card" style="margin-bottom:1rem;display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+        <select class="bb-select" id="tipping-lb-div" style="width:180px;">
+          <option value="ALL" ${state.tippingLeaderboardDiv==='ALL'?'selected':''}>All competitions</option>
+          ${TIPPING_DIVS.map(d => `<option value="${esc(d)}" ${state.tippingLeaderboardDiv===d?'selected':''}>${esc(d.replace(' (D1)',''))}</option>`).join('')}
+        </select>
+        <div style="display:flex;gap:4px;">
+          <div class="bb-tab ${state.tippingLeaderboardMode==='WEEKLY'?'active':''}" data-tipping-lb-mode="WEEKLY" style="font-size:12px;padding:5px 10px;">Weekly</div>
+          <div class="bb-tab ${state.tippingLeaderboardMode==='OVERALL'?'active':''}" data-tipping-lb-mode="OVERALL" style="font-size:12px;padding:5px 10px;">Overall</div>
+        </div>
+        <span style="font-size:12px;color:#9a9a9a;">${state.tippingLeaderboardMode==='WEEKLY'?'Round':'Through round'}</span>
+        <select class="bb-select" id="tipping-lb-round" style="width:130px;">
+          ${Array.from({length:lastPlayed}, (_,i) => lastPlayed-i).map(r => `<option value="${r}" ${r===viewRound?'selected':''}>Round ${r}</option>`).join('')}
+        </select>
+      </div>`;
+
     if(state.tippingLeaderboard === null){
-      computeTippingLeaderboard(); // async -- fires off the computation, current render shows a loading state
-      return '<p style="color:#9a9a9a;">Crunching the leaderboard&hellip;</p>';
+      computeTippingLeaderboard(state.tippingLeaderboardDiv, state.tippingLeaderboardMode, viewRound); // async -- fires off the computation, current render shows a loading state
+      return controls + '<p style="color:#9a9a9a;">Crunching the leaderboard&hellip;</p>';
     }
     if(!state.tippingLeaderboard.length){
-      return '<p style="color:#9a9a9a;">No tips resolved yet \u2014 check back once a round or two has been played.</p>';
+      return controls + '<p style="color:#9a9a9a;">No tips resolved yet for this view.</p>';
     }
     const byOdds = state.tippingLeaderboard.slice().sort((a,b) => b.oddsPoints - a.oddsPoints).slice(0,10);
     const byCorrect = state.tippingLeaderboard.slice().sort((a,b) => b.correct - a.correct).slice(0,10);
@@ -1885,7 +1904,7 @@
         <span>${i+1}. ${esc(t.username)} <span style="color:#9a9a9a;font-size:11px;">(${t.correct}/${t.total})</span></span>
         <span style="font-weight:600;color:#ffdd00;">${valueFn(t)}</span>
       </div>`).join('');
-    return `<div class="bb-card" style="margin-bottom:1rem;">
+    return controls + `<div class="bb-card" style="margin-bottom:1rem;">
         <strong style="font-size:13px;">By odds points</strong>
         <div style="margin-top:6px;">${list(byOdds, t => t.oddsPoints.toFixed(2))}</div>
       </div>
@@ -3935,15 +3954,24 @@
     state.tippingRound = round;
     const data = await sget(tipStorageKey(state.user.username, round));
     state.tippingData = data || { round, picks: {} };
+    state.tippingPending = { ...state.tippingData.picks }; // a working copy -- edits here don't touch the stored record until Confirm
     render();
   }
 
-  async function saveTip(div, fixtureIdx, team, odds){
+  // Purely local -- no persistence at all. Nothing is saved until the
+  // punter explicitly hits Confirm, per direct instruction: a tip isn't
+  // "real" just because a radio button was clicked.
+  function setPendingTip(div, fixtureIdx, team, odds){
     if(!state.user || !state.tippingData) return;
-    const key = div + '|' + fixtureIdx;
-    state.tippingData.picks[key] = { team, odds };
-    render(); // optimistic -- shows the pick immediately, persists in the background
+    state.tippingPending = { ...state.tippingPending, [div+'|'+fixtureIdx]: { team, odds } };
+    render();
+  }
+
+  async function confirmTips(){
+    if(!state.user || !state.tippingData) return;
+    state.tippingData = { round: state.tippingData.round, picks: { ...state.tippingPending } };
     await sset(tipStorageKey(state.user.username, state.tippingRound), state.tippingData);
+    render();
   }
 
   function divisionFixtureCount(div, round){
@@ -3951,6 +3979,9 @@
     const sched = H2H_SCHEDULE[div] && H2H_SCHEDULE[div][round-1];
     return sched ? sched.length : 0;
   }
+  // Counts CONFIRMED (stored) tips specifically, not pending/unsaved
+  // selections -- the "make a multi" option is meant to reflect what's
+  // actually locked in, not a still-editable draft.
   function divisionTipsCompleted(div, round){
     if(!state.tippingData) return 0;
     const total = divisionFixtureCount(div, round);
@@ -3959,11 +3990,11 @@
     return done;
   }
 
-  // Builds the real H2H|res-X|... pick ids for every tip in a completed
-  // division and adds them straight to the actual bet slip -- reusing the
-  // exact same pick format and findConflict/combinedOdds machinery the
-  // rest of the platform already relies on, rather than a parallel,
-  // tipping-specific slip implementation.
+  // Builds the real H2H|res-X|... pick ids for every CONFIRMED tip in a
+  // completed division and adds them straight to the actual bet slip --
+  // reusing the exact same pick format and findConflict/combinedOdds
+  // machinery the rest of the platform already relies on, rather than a
+  // parallel, tipping-specific slip implementation.
   function makeMultiFromTips(div){
     if(!state.tippingData) return; // defensive -- shouldn't be reachable via the UI (the picks button only renders once data's loaded), but don't crash if it somehow is
     const round = state.tippingRound;
@@ -3992,22 +4023,27 @@
   // mechanical (compare a tip to the actual result, no judgement calls the
   // way a void or a disputed bet might need), so there's no real benefit
   // to a separate "resolve" step an admin could forget to run.
-  async function computeTippingLeaderboard(){
+  //
+  // div: a specific division name, or 'ALL' to combine every competition.
+  // mode: 'WEEKLY' scores only the exact round given; 'OVERALL' accumulates
+  // every round from 1 through the round given.
+  async function computeTippingLeaderboard(div, mode, throughRound){
     const usernames = await getIndex('bilbbet2_users_index');
     const allUsers = (await Promise.all(usernames.map(getUser))).filter(Boolean);
     const users = allUsers.filter(u => !u.isAdmin);
-    const roundsPlayed = state.currentRound - 1;
+    const fromRound = mode === 'WEEKLY' ? throughRound : 1;
     const totals = {}; // username -> {correct, total, oddsPoints}
     for(const u of users){ totals[u.username] = { correct:0, total:0, oddsPoints:0 }; }
     for(const u of users){
-      for(let r=1; r<=roundsPlayed; r++){
+      for(let r=fromRound; r<=throughRound; r++){
         const data = await sget(tipStorageKey(u.username, r));
         if(!data || !data.picks) continue;
         for(const key in data.picks){
-          const [div, idxStr] = key.split('|');
+          const [pickDiv, idxStr] = key.split('|');
+          if(div !== 'ALL' && pickDiv !== div) continue;
           const idx = parseInt(idxStr, 10);
-          if(hasNoFixtures(div, r)) continue; // defensive -- don't score a tip against a placeholder fixture that was never real
-          const sched = H2H_SCHEDULE[div] && H2H_SCHEDULE[div][r-1];
+          if(hasNoFixtures(pickDiv, r)) continue; // defensive -- don't score a tip against a placeholder fixture that was never real
+          const sched = H2H_SCHEDULE[pickDiv] && H2H_SCHEDULE[pickDiv][r-1];
           if(!sched || !sched[idx]) continue;
           const [teamA, teamB] = sched[idx];
           const scoreA = REAL_RESULTS[teamA] && REAL_RESULTS[teamA][r-1];
@@ -4242,19 +4278,21 @@
       if(state.tippingSubTab === 'LEADERBOARD') state.tippingLeaderboard = null; // force a fresh computation each visit
       render();
     });
-    const tippingRoundEl = $('#tipping-round');
-    if(tippingRoundEl) tippingRoundEl.onchange = e => { state.tippingData = null; loadTipsForRound(parseInt(e.target.value, 10)); };
-    document.querySelectorAll('[data-tipping-div]').forEach(el => el.onchange = e => {
-      const d = el.dataset.tippingDiv;
-      if(e.target.checked) state.tippingDivisions = [...state.tippingDivisions, d];
-      else state.tippingDivisions = state.tippingDivisions.filter(x => x !== d);
+    document.querySelectorAll('[data-tip-radio]').forEach(el => el.onchange = () => {
+      const [div, idxStr, side, team, oddsStr] = el.dataset.tipRadio.split('|');
+      setPendingTip(div, parseInt(idxStr, 10), team, parseFloat(oddsStr));
+    });
+    const confirmTipsBtn = $('#confirm-tips-btn'); if(confirmTipsBtn) confirmTipsBtn.onclick = confirmTips;
+    document.querySelectorAll('[data-make-multi]').forEach(el => el.onclick = () => makeMultiFromTips(el.dataset.makeMulti));
+    const tippingLbDiv = $('#tipping-lb-div');
+    if(tippingLbDiv) tippingLbDiv.onchange = e => { state.tippingLeaderboardDiv = e.target.value; state.tippingLeaderboard = null; render(); };
+    const tippingLbRound = $('#tipping-lb-round');
+    if(tippingLbRound) tippingLbRound.onchange = e => { state.tippingLeaderboardRound = parseInt(e.target.value, 10); state.tippingLeaderboard = null; render(); };
+    document.querySelectorAll('[data-tipping-lb-mode]').forEach(el => el.onclick = () => {
+      state.tippingLeaderboardMode = el.dataset.tippingLbMode;
+      state.tippingLeaderboard = null;
       render();
     });
-    document.querySelectorAll('[data-tip]').forEach(el => el.onclick = () => {
-      const [div, idxStr, team, oddsStr] = el.dataset.tip.split('|');
-      saveTip(div, parseInt(idxStr, 10), team, parseFloat(oddsStr));
-    });
-    document.querySelectorAll('[data-make-multi]').forEach(el => el.onclick = () => makeMultiFromTips(el.dataset.makeMulti));
     const copySlipBtn = $('#copy-slip'); if(copySlipBtn) copySlipBtn.onclick = copySlipToClipboard;
     document.querySelectorAll('[data-remove]').forEach(el => el.onclick = e => { e.stopPropagation(); state.slip = state.slip.filter(s=>s.id!==el.dataset.remove); render(); });
     const stakeInput = $('#stake-input'); if(stakeInput) stakeInput.oninput = e => { state.stake = Math.max(1, parseInt(e.target.value,10)||1); };
