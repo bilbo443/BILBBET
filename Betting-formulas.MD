@@ -304,14 +304,50 @@ Semi-Final, the Final, and whether they won it outright.
 
 ---
 
-## ECL -- explicitly not simulated
+## ECL
 
-Unlike everything above, ECL's market data is **not** backed by real
-simulation logic -- there's no `simulate_ecl_*` function in the pipeline.
-Its odds are placeholder data. Flagging this plainly rather than describe
-a methodology that doesn't actually exist: if ECL odds need the same
-rigor as FA Cup's, that's a real piece of build work, not a fix to
-something already there.
+Computed by the Python pipeline (`simulate_ecl_market`) -- previously
+placeholder data with no real methodology behind it; built out with the
+same rigor as FA Cup, once a confirmed entrant list existed to build
+against.
+
+**The field**: a fixed 12 teams (`futures.json`'s existing `ecl_markets`
+roster) -- 9 from Eliza Cup, 3 from Division 2 (1 from 2A, 2 from 2B).
+
+**Simulation size**: 25,000 trials.
+
+**Format**: a 3-matchday league phase, then a knockout bracket for the top
+8. The league-phase schedule is a round-robin subset (`round_robin_schedule`,
+taking just the first 3 rounds) -- fixed once, not re-randomized per
+trial, guaranteeing every team plays exactly 3 different opponents with no
+repeat matchups. This is a standard, defensible choice, not a replication
+of a specific real ECL draw, since no fixed real-world schedule for this
+exists to replicate -- the same reasoning already applied to FA Cup's
+Round-of-64 draw.
+
+**Process**: each matchday is decided by one random score draw per team
+(using the `ecl` coefficient), 3 points for a win, 1 point each for a
+draw, ranked by points then total score-for. The top 8 advance to a
+standard seeded knockout bracket (1v8, 4v5, 2v7, 3v6 -- protecting the
+strongest league-phase finishers from meeting early, the same seeding
+intent as the promotion playoff bracket), then Semi-Final -> Final ->
+winner, each decided the same way as a league-phase match.
+
+| Market | Stage | Confirmed field size |
+|---|---|---|
+| `win_pct` | Won the tournament | 1 of 12 |
+| `reach_final_pct` | Reached the Final | 2 of 12 |
+| `reach_sf_pct` | Reached the Semi-Final | 4 of 12 |
+| `reach_knockout_pct` | Finished top 8 in the league phase | 8 of 12 |
+
+**Verified**: the league-phase schedule generator was checked directly --
+confirmed zero repeated matchups across the 3 matchdays and every team
+playing exactly 3 games. The full simulation was run against real team
+data and checked for internal consistency: probabilities summed to
+exactly 800% for the knockout cutoff (8 teams), 400% for the
+Semi-Final (4), 200% for the Final (2), and 100% for the win market (1)
+-- confirming the simulation counts are mathematically sound, not just
+plausible-looking.
 
 ---
 
@@ -340,8 +376,9 @@ approximation (assumes roughly even spacing between teams' individual
 chances within one pool, rather than a full joint simulation of the
 season) -- accepted as a fair trade-off for a for-fun platform.
 
-ECL is excluded from this correction specifically, for the same reason
-noted above -- no confirmed entrant count exists to check a multi against.
+ECL is now included in this correction (previously excluded for having no
+confirmed entrant count) -- its 12-team field and stage sizes are
+verified the same way FA Cup's are.
 
 ---
 
