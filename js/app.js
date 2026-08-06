@@ -278,7 +278,7 @@
   const K = 8;
 
   const FUTURE_DIVS = Object.keys(FUTURES.divisions);
-  const BASE_TABS = ['HOME', 'FUTURES', 'H2H', 'SPECIALS', 'STATS', 'MY BETS'];
+  const BASE_TABS = ['HOME', 'FUTURES', 'H2H', 'TIPPING', 'SPECIALS', 'STATS', 'MY BETS'];
   function currentTabs(){ return state.user && state.user.isAdmin ? [...BASE_TABS, 'ADMIN'] : BASE_TABS; }
 
   // Embed mode: a stripped-down, read-only view of just the Home tab, for
@@ -297,7 +297,7 @@
     teamA:'', teamB:'', h2hRound:1, h2hMarket:null,
     h2hSubTab: FUTURE_DIVS[0], h2hFixtureMarket: null,
     futuresSubTab: FUTURE_DIVS[0],
-    slip:[], stake:50, betMode:'multi', useBoost:false,
+    slip:[], stake:50, betMode:'multi', useBoost:false, showImpliedChance:false,
     myBets:null,
     adminPunters:null, adminBets:null, novelty:null, statsData:null, suggestions:null, suggestionText:'',
     currentRound: 1,       // the next round yet to be played; anything before this is "past"
@@ -311,10 +311,11 @@
     specialsSelection: { win_round: '', lose_round: '', charity: '', philanthropy: '' },
     specialsSubTab: 'round',
     teamSearchOpen: false, teamSearchQuery: '',
-    registeringMode: false,
+    registeringMode: false, customNameMode: false,
     tosModalOpen: false, tosMode: 'view', tosAgreed: false, readMeModalOpen: false,
     tutorialModalOpen: false, tutorialStep: 0, welcomeModalOpen: false,
     formModalOpen: false, formModalTeam: null,
+    tippingSubTab: 'PICKS', tippingRound: null, tippingDivisions: [], tippingData: null, tippingLeaderboard: null,
     cupFixtures: { 'FA CUP': [], 'ECL': [] },
     cupFixtureMarket: null,
     cupAdminEntry: { 'FA CUP': {teamA:'', teamB:''}, 'ECL': {teamA:'', teamB:''} },
@@ -696,6 +697,26 @@
     if(odds > ODDS_CAP) odds = ODDS_CAP;
     return { odds, suspended:false };
   }
+  // 1.005 (the odds floor) can't be represented exactly in binary floating
+  // point -- 1.005*100 comes out to 100.4999... rather than 100.5, so a
+  // plain .toFixed(2) silently rounds it down to "1.00", a genuinely
+  // misleading price (implies zero return on a winning bet). Every other
+  // odds value in this app lands cleanly at 2-decimal precision, so this
+  // is narrowly targeted at the one value that doesn't, rather than
+  // changing display precision everywhere.
+  function formatOdds(odds){
+    if(Math.abs(odds - ODDS_FLOOR) < 0.0001) return odds.toFixed(3);
+    return odds.toFixed(2);
+  }
+  // Decimal odds -> implied probability, the standard conversion (1/odds).
+  // Purely informational -- this is what the odds themselves imply before
+  // the platform's margin, not a claim about the true chance of the
+  // outcome. Under 1% is shown to one decimal so a very short-priced
+  // near-certainty (e.g. 1.02) doesn't just round to a flat "100%".
+  function impliedChance(odds){
+    const pct = 100 / odds;
+    return (pct < 1 ? pct.toFixed(2) : pct.toFixed(1)) + '%';
+  }
 
   // Selects this round's featured H2H-style picks for the Home tab: cup/
   // playoff/ECL fixtures (if scheduled this round) get priority, then each
@@ -1059,7 +1080,7 @@
         <span style="font-size:22px;">\u{1F48E}</span>
         <div>
           <div style="font-weight:600;display:flex;align-items:center;gap:6px;">${teamLogo(bvw.team,18)}${esc(bvw.team)} beat ${esc(bvw.opp)}</div>
-          <div style="font-size:12px;color:#9a9a9a;">Round ${bvw.round} &middot; ${esc(bvw.division.replace(' (D1)',''))} &middot; would have paid <span style="color:#ffdd00;font-weight:600;">${bvw.odds.toFixed(2)}</span> \u2014 whether anyone backed it or not</div>
+          <div style="font-size:12px;color:#9a9a9a;">Round ${bvw.round} &middot; ${esc(bvw.division.replace(' (D1)',''))} &middot; would have paid <span style="color:#ffdd00;font-weight:600;">${formatOdds(bvw.odds)}</span> \u2014 whether anyone backed it or not</div>
         </div>
       </div>` : `<div class="bb-card" style="text-align:center;padding:1.5rem;color:#9a9a9a;">No results in yet for last round.</div>`;
 
@@ -1178,7 +1199,7 @@
   }
 
   const TOS_CONDITIONS = [
-    'You will only register a team that you control.',
+    'If you\'re registering as an Eliza Cup team, it must be a team you actually control.',
     'You will only bet on your team if it is a positive outcome, and never on a negative outcome in the context of what your team controls.',
     'Any attempt to "hack", "cheat", or "game" the system will come under review of Bilbbet management.',
     'All Bilbbet decisions are final.',
@@ -1361,8 +1382,11 @@
             <p style="color:#9a9a9a;font-size:14px;margin:4px 0 0;">Log in to place a bet</p>
           </div>
           <form id="login-form" class="bb-card" style="display:flex;flex-direction:column;gap:10px;">
-            <div><span style="font-size:12px;color:#9a9a9a;display:block;margin-bottom:4px;">Your Eliza team</span>
-              ${teamSearchInput('f-user', state.adminLoginMode?'':state.username, 'Search for your team\u2026')}
+            <div><span style="font-size:12px;color:#9a9a9a;display:block;margin-bottom:4px;">${state.customNameMode ? 'Your display name' : 'Your Eliza team'}</span>
+              ${state.customNameMode
+                ? `<input class="bb-input" id="f-user-custom" value="${esc(state.username)}" placeholder="Pick a name&hellip;"/>`
+                : teamSearchInput('f-user', state.adminLoginMode?'':state.username, 'Search for your team\u2026')}
+              ${state.registeringMode ? `<span id="toggle-custom-name" style="display:block;font-size:11px;color:#9a9a9a;text-decoration:underline;cursor:pointer;margin-top:4px;">${state.customNameMode ? 'Actually, I have a team in the Eliza Cup' : "Not part of the Eliza Cup? Make up your own name"}</span>` : ''}
               <button type="button" class="bb-btn ghost" id="use-admin-login" style="margin-top:6px;width:100%;font-size:12px;padding:6px;">${state.adminLoginMode ? '\u2713 Logging in as admin' : 'Log in as admin instead'}</button>
             </div>
             <div><span style="font-size:12px;color:#9a9a9a;display:block;margin-bottom:4px;">PIN</span>
@@ -1446,7 +1470,7 @@
   function mainTabs(){
     return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">' +
       currentTabs().map(t => {
-        const label = t==='MY BETS'?'My Bets':(t==='ADMIN'?'Admin':(t==='H2H'?'H2H':(t==='HOME'?'Home':(t==='FUTURES'?'Futures':t))));
+        const label = t==='MY BETS'?'My Bets':(t==='ADMIN'?'Admin':(t==='H2H'?'H2H':(t==='HOME'?'Home':(t==='FUTURES'?'Futures':(t==='TIPPING'?'Tipping':t)))));
         const flag = (t==='ADMIN' && state.user && state.user.isAdmin && adminNeedsAttention())
           ? ' <span title="Needs attention" style="font-size:11px;">\u{1F6A9}</span>' : '';
         return `<div class="bb-tab ${state.activeTab===t?'active':''}" data-tab="${esc(t)}" style="display:flex;align-items:center;gap:5px;">${label}${flag}</div>`;
@@ -1493,7 +1517,11 @@
     const source = scopeKey === 'RODDY' ? RODDY_LEADING_AT : LEADING_AT[scopeKey];
     const outcomes = source[round] || source[String(round)] || [];
     const tagPrefix = 'LEADAT|' + scopeKey + '|' + round;
-    const list = !outcomes.length ? '<p style="color:#9a9a9a;">No outcomes in this market.</p>' : outcomes.map(o => {
+    const sorted = outcomes.slice().sort((a,b) => {
+      if(!!a.suspended !== !!b.suspended) return a.suspended ? 1 : -1;
+      return a.odds - b.odds;
+    });
+    const list = !outcomes.length ? '<p style="color:#9a9a9a;">No outcomes in this market.</p>' : sorted.map(o => {
       if(o.suspended){
         return `<div class="bb-outcome" style="opacity:0.5;cursor:default;">
           <span>${esc(o.team)}</span><span class="bb-odds" style="color:#9a9a9a;">suspended</span></div>`;
@@ -1501,7 +1529,7 @@
       const selId = tagPrefix + '|' + o.team;
       const selected = state.slip.some(s=>s.id===selId);
       return `<div class="bb-outcome ${selected?'selected':''}" data-pick="${esc(selId)}" data-team="${esc(o.team)}" data-odds="${o.odds}" data-label="${esc(o.team)} leading R${round} (${scopeKey==='RODDY'?'Roddy':scopeKey.replace(' (D1)','')})">
-        <span>${esc(o.team)}</span><span class="bb-odds">${o.odds.toFixed(2)}</span></div>`;
+        <span>${esc(o.team)}</span><span class="bb-odds">${formatOdds(o.odds)}</span></div>`;
     }).join('');
     return picker + list;
   }
@@ -1614,7 +1642,14 @@
     const outcomes = FUTURES[marketsKey][marketKey];
     if(!outcomes || !outcomes.length) return '<p style="color:#9a9a9a;">No outcomes in this market.</p>';
     const control = categoryPauseControl(category, marketKey);
-    const list = outcomes.map(o => {
+    // Active odds ascending (favourites first); suspended entries grouped
+    // at the end regardless of their underlying odds value, rather than
+    // interleaved based on a number that isn't actually shown or usable.
+    const sorted = outcomes.slice().sort((a,b) => {
+      if(!!a.suspended !== !!b.suspended) return a.suspended ? 1 : -1;
+      return a.odds - b.odds;
+    });
+    const list = sorted.map(o => {
       const selId = cupTag+'|'+marketKey+'|'+o.team;
       if(o.suspended || categoryPaused){
         return `<div class="bb-outcome" style="opacity:0.5;cursor:default;">
@@ -1622,7 +1657,7 @@
       }
       const selected = state.slip.some(s=>s.id===selId);
       return `<div class="bb-outcome ${selected?'selected':''}" data-pick="${esc(selId)}" data-team="${esc(o.team)}" data-odds="${o.odds}" data-label="${esc(o.team)}">
-        <span>${esc(o.team)}</span><span class="bb-odds">${o.odds.toFixed(2)}</span></div>`;
+        <span>${esc(o.team)}</span><span class="bb-odds">${formatOdds(o.odds)}</span></div>`;
     }).join('');
     return control + list;
   }
@@ -1638,7 +1673,11 @@
     const outcomes = div==='RODDY' ? FUTURES.roddy[marketKey] : FUTURES.divisions[div][marketKey];
     if(!outcomes || !outcomes.length) return '<p style="color:#9a9a9a;">No outcomes in this market.</p>';
     const control = categoryPauseControl(category, marketKey);
-    const list = outcomes.map(o => {
+    const sorted = outcomes.slice().sort((a,b) => {
+      if(!!a.suspended !== !!b.suspended) return a.suspended ? 1 : -1;
+      return a.odds - b.odds;
+    });
+    const list = sorted.map(o => {
       const selId = 'FUT|'+div+'|'+marketKey+'|'+o.team;
       if(o.suspended || categoryPaused){
         return `<div class="bb-outcome" style="opacity:0.5;cursor:default;">
@@ -1648,7 +1687,7 @@
       const selected = state.slip.some(s=>s.id===selId);
       return `<div class="bb-outcome ${selected?'selected':''}" data-pick="${esc(selId)}" data-team="${esc(o.team)}" data-odds="${o.odds}" data-label="${esc(o.team)}">
         <span style="display:flex;align-items:center;gap:8px;">${teamLogo(o.team,20)}${esc(o.team)}</span>
-        <span class="bb-odds">${o.odds.toFixed(2)}</span></div>`;
+        <span class="bb-odds">${formatOdds(o.odds)}</span></div>`;
     }).join('');
     return control + list;
   }
@@ -1667,7 +1706,7 @@
       const selected = state.slip.some(s=>s.id===id);
       return `<div class="bb-outcome ${selected?'selected':''}" data-pick="${id}" data-label="${esc(label)}" data-odds="${odds}">
         <span>${esc(label)} <span style="color:#9a9a9a;font-size:12px;">(${pct.toFixed(1)}%)</span></span>
-        <span class="bb-odds">${odds.toFixed(2)}</span></div>`;
+        <span class="bb-odds">${formatOdds(odds)}</span></div>`;
     }
     return `<div class="bb-card" style="margin-bottom:1rem;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
@@ -1743,7 +1782,7 @@
       return `<span class="bb-btn ghost" style="padding:6px 10px;font-size:12px;opacity:0.5;cursor:default;display:inline-flex;align-items:center;gap:6px;">${teamLogo(teamLabel,16)}${esc(teamLabel)} susp.</span>`;
     }
     const selected = state.slip.some(s=>s.id===pickId);
-    return `<button class="bb-btn ${selected?'':'ghost'}" data-pick="${esc(pickId)}" data-label="${esc(label)}" data-odds="${oddsInfo.odds}" style="padding:6px 10px;font-size:12px;display:inline-flex;align-items:center;gap:6px;">${teamLogo(teamLabel,16)}${esc(teamLabel)} ${oddsInfo.odds.toFixed(2)}</button>`;
+    return `<button class="bb-btn ${selected?'':'ghost'}" data-pick="${esc(pickId)}" data-label="${esc(label)}" data-odds="${oddsInfo.odds}" style="padding:6px 10px;font-size:12px;display:inline-flex;align-items:center;gap:6px;">${teamLogo(teamLabel,16)}${esc(teamLabel)} ${formatOdds(oddsInfo.odds)}</button>`;
   }
   // Same pick/click mechanics as quickOddsButton, just without the repeated
   // team logo+name -- for layouts where the team is already shown once,
@@ -1753,7 +1792,107 @@
       return `<span class="bb-btn ghost" style="padding:8px 14px;font-size:13px;opacity:0.5;cursor:default;width:100%;text-align:center;">susp.</span>`;
     }
     const selected = state.slip.some(s=>s.id===pickId);
-    return `<button class="bb-btn ${selected?'':'ghost'}" data-pick="${esc(pickId)}" data-label="${esc(label)}" data-odds="${oddsInfo.odds}" style="padding:8px 14px;font-size:13px;font-weight:700;width:100%;text-align:center;">${oddsInfo.odds.toFixed(2)}</button>`;
+    return `<button class="bb-btn ${selected?'':'ghost'}" data-pick="${esc(pickId)}" data-label="${esc(label)}" data-odds="${oddsInfo.odds}" style="padding:8px 14px;font-size:13px;font-weight:700;width:100%;text-align:center;">${formatOdds(oddsInfo.odds)}</button>`;
+  }
+
+  const TIPPING_DIVS = ['ELIZA CUP (D1)', ...Object.keys(FUTURES.divisions).filter(d => d !== 'ELIZA CUP (D1)')];
+
+  function renderTippingTab(){
+    if(!state.user){
+      return `<div class="bb-card" style="text-align:center;padding:2rem 1rem;color:#9a9a9a;">Log in to make your tips.</div>`;
+    }
+    const round = state.tippingRound || state.currentRound;
+    const locked = isRoundBlocked(round);
+    const subTabs = `<div style="display:flex;gap:6px;margin-bottom:10px;">
+        <div class="bb-tab ${state.tippingSubTab==='PICKS'?'active':''}" data-tippingtab="PICKS" style="font-size:12px;padding:6px 10px;">This round's picks</div>
+        <div class="bb-tab ${state.tippingSubTab==='LEADERBOARD'?'active':''}" data-tippingtab="LEADERBOARD" style="font-size:12px;padding:6px 10px;">Leaderboard</div>
+      </div>`;
+    const intro = `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">For fun, not clams \u2014 tip a winner for each fixture. Correct tips score two ways: a straight tally, and the odds of the team you tipped (upsets are worth more). Tip every fixture in a division and you can turn your picks into a real multi bet slip.</p>`;
+
+    if(state.tippingSubTab === 'LEADERBOARD'){
+      return subTabs + intro + renderTippingLeaderboard();
+    }
+
+    const picker = `<div class="bb-card" style="margin-bottom:1rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <span style="font-size:12px;color:#9a9a9a;">Round</span>
+        <select class="bb-select" id="tipping-round" style="width:170px;">${roundOptions(round)}</select>
+      </div>`;
+
+    if(!state.tippingData || state.tippingData.round !== round){
+      loadTipsForRound(round); // async -- fires off the fetch, current render shows a brief loading state
+      return subTabs + intro + picker + '<p style="color:#9a9a9a;">Loading your picks&hellip;</p>';
+    }
+
+    if(locked){
+      const msg = round < state.currentRound
+        ? '\u{1F512} This round has already been played.'
+        : '\u{1F512} Tipping is closed for this round right now.';
+      return subTabs + intro + picker + `<div class="bb-card" style="text-align:center;padding:2rem 1rem;color:#9a9a9a;">${msg}</div>`;
+    }
+
+    const divPicker = `<div class="bb-card" style="margin-bottom:1rem;">
+      <div style="font-size:12px;color:#9a9a9a;margin-bottom:8px;">Which division(s) do you want to tip this round?</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;">
+        ${TIPPING_DIVS.filter(d => divisionFixtureCount(d, round) > 0).map(d => `
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;background:#2a2a2a;border-radius:6px;padding:6px 10px;cursor:pointer;">
+            <input type="checkbox" data-tipping-div="${esc(d)}" ${state.tippingDivisions.includes(d)?'checked':''}/> ${esc(d.replace(' (D1)',''))}
+          </label>`).join('')}
+      </div>
+    </div>`;
+
+    const sections = state.tippingDivisions.filter(d => divisionFixtureCount(d, round) > 0).map(div => {
+      const sched = H2H_SCHEDULE[div][round-1];
+      const done = divisionTipsCompleted(div, round);
+      const complete = done === sched.length;
+      const markets = getFixtureMarkets(div, round);
+      const rows = sched.map(([teamA, teamB], i) => {
+        const m = markets[i];
+        const aOdds = toOdds(m.aWinPct), bOdds = toOdds(m.bWinPct);
+        const current = state.tippingData.picks[div+'|'+i];
+        const btn = (team, oddsInfo) => {
+          const picked = current && current.team === team;
+          if(oddsInfo.suspended) return `<span class="bb-btn ghost" style="padding:6px 10px;font-size:12px;opacity:0.5;flex:1;text-align:center;">susp.</span>`;
+          return `<button class="bb-btn ${picked?'':'ghost'}" data-tip="${esc(div)}|${i}|${esc(team)}|${oddsInfo.odds}" style="padding:6px 10px;font-size:12px;flex:1;">${esc(team)} ${formatOdds(oddsInfo.odds)}</button>`;
+        };
+        return `<div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid #333333;">
+          ${btn(teamA, aOdds)}<span style="color:#9a9a9a;font-size:11px;">v</span>${btn(teamB, bOdds)}
+        </div>`;
+      }).join('');
+      return `<div class="bb-card" style="margin-bottom:1rem;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <strong style="font-size:13px;">${esc(div.replace(' (D1)',''))}</strong>
+          <span style="font-size:12px;color:${complete?'#7fbf8f':'#9a9a9a'};">${done}/${sched.length} tipped</span>
+        </div>
+        ${rows}
+        ${complete ? `<button class="bb-btn" data-make-multi="${esc(div)}" style="width:100%;margin-top:10px;">Make this a multi (${sched.length} legs)</button>` : ''}
+      </div>`;
+    }).join('');
+
+    return subTabs + intro + picker + divPicker + (state.tippingDivisions.length ? sections : '<p style="color:#9a9a9a;">Pick a division above to start tipping.</p>');
+  }
+
+  function renderTippingLeaderboard(){
+    if(state.tippingLeaderboard === null){
+      computeTippingLeaderboard(); // async -- fires off the computation, current render shows a loading state
+      return '<p style="color:#9a9a9a;">Crunching the leaderboard&hellip;</p>';
+    }
+    if(!state.tippingLeaderboard.length){
+      return '<p style="color:#9a9a9a;">No tips resolved yet \u2014 check back once a round or two has been played.</p>';
+    }
+    const byOdds = state.tippingLeaderboard.slice().sort((a,b) => b.oddsPoints - a.oddsPoints).slice(0,10);
+    const byCorrect = state.tippingLeaderboard.slice().sort((a,b) => b.correct - a.correct).slice(0,10);
+    const list = (arr, valueFn) => arr.map((t,i) => `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #333333;font-size:13px;">
+        <span>${i+1}. ${esc(t.username)} <span style="color:#9a9a9a;font-size:11px;">(${t.correct}/${t.total})</span></span>
+        <span style="font-weight:600;color:#ffdd00;">${valueFn(t)}</span>
+      </div>`).join('');
+    return `<div class="bb-card" style="margin-bottom:1rem;">
+        <strong style="font-size:13px;">By odds points</strong>
+        <div style="margin-top:6px;">${list(byOdds, t => t.oddsPoints.toFixed(2))}</div>
+      </div>
+      <div class="bb-card">
+        <strong style="font-size:13px;">By correct tips</strong>
+        <div style="margin-top:6px;">${list(byCorrect, t => t.correct)}</div>
+      </div>`;
   }
 
   function renderFixtureList(div){
@@ -1876,7 +2015,7 @@
             ${bets.slice().sort((a,b)=>b.timestamp-a.timestamp).map(b => `
               <tr>
                 <td>${fmtDate(b.timestamp)}</td>
-                <td>${b.selections.map(s=>esc(s.label)+' <span style="color:#8a8a8a;">('+s.odds.toFixed(2)+')</span>').join('<br/>')}</td>
+                <td>${b.selections.map(s=>esc(s.label)+' <span style="color:#8a8a8a;">('+formatOdds(s.odds)+')</span>').join('<br/>')}</td>
                 <td>${fmt(b.stake)}</td>
                 <td>${b.combinedOdds.toFixed(2)}</td>
                 <td>${fmt(b.potentialReturn)}</td>
@@ -1907,7 +2046,7 @@
       }
       const selected = state.slip.some(s=>s.id===id);
       return `<div class="bb-outcome ${selected?'selected':''}" data-pick="${esc(id)}" data-team="${esc(team)}" data-odds="${o.odds}" data-label="${esc(team)} \u2014 ${esc(label)}">
-        <span>${esc(label)}</span><span class="bb-odds">${o.odds.toFixed(2)}</span></div>`;
+        <span>${esc(label)}</span><span class="bb-odds">${formatOdds(o.odds)}</span></div>`;
     }
     let teamDiv = null;
     for(const div in H2H_DIVISIONS){ if(H2H_DIVISIONS[div].includes(team)) teamDiv = div; }
@@ -1999,7 +2138,7 @@
         const id = pickPrefix+'|'+selectedTeam;
         const isSelected = state.slip.some(s=>s.id===id);
         html += `<div class="bb-outcome ${isSelected?'selected':''}" data-pick="${esc(id)}" data-team="${esc(selectedTeam)}" data-odds="${o.odds}" data-label="${esc(selectedTeam)} \u2014 ${label} ${round}" style="margin-top:8px;">
-          <span>${esc(selectedTeam)}</span><span class="bb-odds">${o.odds.toFixed(2)}</span></div>`;
+          <span>${esc(selectedTeam)}</span><span class="bb-odds">${formatOdds(o.odds)}</span></div>`;
       }
     }
 
@@ -2014,7 +2153,7 @@
         const id = pickPrefix+'|'+o.team;
         const isSelected = state.slip.some(s=>s.id===id);
         return `<div class="bb-outcome ${isSelected?'selected':''}" data-pick="${esc(id)}" data-team="${esc(o.team)}" data-odds="${o.odds}" data-label="${esc(o.team)} \u2014 ${label} ${round}">
-          <span>${esc(o.team)}</span><span class="bb-odds">${o.odds.toFixed(2)}</span></div>`;
+          <span>${esc(o.team)}</span><span class="bb-odds">${formatOdds(o.odds)}</span></div>`;
       }).join('') + `</div>`;
     }
 
@@ -2036,7 +2175,7 @@
         const id = pickPrefix + '|' + selectedTeam;
         const selected = state.slip.some(s=>s.id===id);
         odds_row = `<div class="bb-outcome ${selected?'selected':''}" data-pick="${esc(id)}" data-team="${esc(selectedTeam)}" data-odds="${o.odds}" data-label="${esc(selectedTeam)} \u2014 ${esc(marketLabel)}" style="margin-top:8px;">
-          <span>${esc(selectedTeam)}</span><span class="bb-odds">${o.odds.toFixed(2)}</span></div>`;
+          <span>${esc(selectedTeam)}</span><span class="bb-odds">${formatOdds(o.odds)}</span></div>`;
       }
     }
     const expanded = state.specialsExtremeExpanded === kind;
@@ -2049,7 +2188,7 @@
         const id = pickPrefix + '|' + o.team;
         const isSelected = state.slip.some(s=>s.id===id);
         return `<div class="bb-outcome ${isSelected?'selected':''}" data-pick="${esc(id)}" data-team="${esc(o.team)}" data-odds="${o.odds}" data-label="${esc(o.team)} \u2014 ${esc(marketLabel)}">
-          <span>${esc(o.team)}</span><span class="bb-odds">${o.odds.toFixed(2)}</span></div>`;
+          <span>${esc(o.team)}</span><span class="bb-odds">${formatOdds(o.odds)}</span></div>`;
       }).join('') + `</div>`;
     }
     return `<div class="bb-card" style="margin-bottom:10px;">
@@ -2101,13 +2240,13 @@
           const id = 'NOVELTY|'+n.id;
           const selected = state.slip.some(s=>s.id===id);
           return `<div class="bb-outcome ${selected?'selected':''}" data-pick="${esc(id)}" data-label="${esc(n.name)}" data-odds="${n.odds}" style="${i<open.length-1?'border-bottom:1px solid #3d3d3d;':''}">
-            <span>${esc(n.name)}</span><span class="bb-odds">${n.odds.toFixed(2)}</span></div>`;
+            <span>${esc(n.name)}</span><span class="bb-odds">${formatOdds(n.odds)}</span></div>`;
         }).join('') + '</div>';
     }
     if(settled.length){
       html += '<h4 style="color:#9a9a9a;">Settled</h4><div class="bb-card" style="padding:0;overflow:hidden;margin-bottom:1.5rem;">' +
         settled.map((n,i) => `<div style="display:flex;justify-content:space-between;padding:10px 14px;${i<settled.length-1?'border-bottom:1px solid #3d3d3d;':''}">
-          <span style="color:#9a9a9a;">${esc(n.name)} <span style="color:#8a8a8a;">(${n.odds.toFixed(2)})</span></span>${statusPill(n.status)}
+          <span style="color:#9a9a9a;">${esc(n.name)} <span style="color:#8a8a8a;">(${formatOdds(n.odds)})</span></span>${statusPill(n.status)}
         </div>`).join('') + '</div>';
     }
 
@@ -2331,7 +2470,7 @@
           return `<p style="color:#9a9a9a;font-size:12px;margin-top:0;">Single-selection bets on Round ${state.currentRound} or earlier, still pending. Multi-leg bets aren't shown here -- resolve those individually in the table below once every leg's known.</p>` +
             resolvable.map(b => `
               <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #2a2a2a;font-size:13px;">
-                <span>${esc(b.username)} \u2014 ${esc(b.selections[0].label)} <span style="color:#8a8a8a;">(stake ${fmt(b.stake)}, odds ${b.selections[0].odds.toFixed(2)})</span></span>
+                <span>${esc(b.username)} \u2014 ${esc(b.selections[0].label)} <span style="color:#8a8a8a;">(stake ${fmt(b.stake)}, odds ${formatOdds(b.selections[0].odds)})</span></span>
                 <span style="display:flex;gap:4px;">
                   <button class="bb-btn ghost" data-setstatus="${b.id}|WON" style="padding:4px 8px;font-size:11px;">Won</button>
                   <button class="bb-btn ghost" data-setstatus="${b.id}|LOST" style="padding:4px 8px;font-size:11px;">Lost</button>
@@ -2363,7 +2502,7 @@
                 <td>${fmtDate(b.timestamp)}</td>
                 <td>${esc(b.username)}</td>
                 <td>${b.selections.map((s,i)=>{
-                  const label = esc(s.label)+' <span style="color:#8a8a8a;">('+s.odds.toFixed(2)+')</span>';
+                  const label = esc(s.label)+' <span style="color:#8a8a8a;">('+formatOdds(s.odds)+')</span>';
                   const suggestion = !s.result ? computeSuggestedResult(s.id) : null;
                   const suggestionTag = suggestion ? ` <span style="color:#ffdd00;font-size:10px;font-weight:600;">&#9889; suggested: ${suggestion}</span>` : '';
                   if(b.selections.length===1) return label + suggestionTag;
@@ -2417,7 +2556,7 @@
               </div>
             ` : `
               <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-                <span>${esc(n.name)} <span class="bb-odds">${n.odds.toFixed(2)}</span> ${statusPill(n.status)}</span>
+                <span>${esc(n.name)} <span class="bb-odds">${formatOdds(n.odds)}</span> ${statusPill(n.status)}</span>
                 <span style="display:flex;gap:4px;flex-wrap:wrap;">
                   ${n.status==='OPEN' ? `
                     <button class="bb-btn ghost" data-noveltystatus="${n.id}|WON" style="padding:4px 8px;font-size:11px;">Won</button>
@@ -2795,7 +2934,7 @@
           return `<div style="display:flex;justify-content:space-between;padding:6px 0;opacity:0.5;"><span>${esc(m.team)}</span><span style="color:#9a9a9a;">${categoryPaused && !oddsInfo.suspended ? 'paused' : 'suspended'}</span></div>`;
         }
         return `<div class="bb-outcome ${selected?'selected':''}" data-pick="${esc(id)}" data-label="${esc(m.team)} to win Group ${group}" data-odds="${oddsInfo.odds}">
-          <span>${esc(m.team)}</span><span class="bb-odds">${oddsInfo.odds.toFixed(2)}</span></div>`;
+          <span>${esc(m.team)}</span><span class="bb-odds">${formatOdds(oddsInfo.odds)}</span></div>`;
       }).join('');
     }
     html += `</div>`;
@@ -2892,7 +3031,9 @@
     } else {
       return;
     }
-    const eligible = (list||[]).filter(o => !o.suspended);
+    const NEGATIVE_FUT_MARKETS = ['relegation_pct', 'wooden_spoon_pct', 'bottom3_pct', 'bottom_half_pct'];
+    const excludeSelf = state.user && NEGATIVE_FUT_MARKETS.includes(state.futureMarketTab);
+    const eligible = (list||[]).filter(o => !o.suspended && !(excludeSelf && o.team === state.user.username));
     if(!eligible.length){ alert('Nothing to surprise you with here.'); return; }
     const pick = eligible[Math.floor(Math.random()*eligible.length)];
     const id = tagPrefix + pick.team;
@@ -2905,14 +3046,14 @@
     if(conflict){ alert("Can't add that selection \u2014 " + conflict.msg + "."); return; }
     state.slip.push({id, label: pick.team, odds: pick.odds, singleStake: state.stake});
     render();
-    alert('Surprise pick added: '+pick.team+' @ '+pick.odds.toFixed(2));
+    alert('Surprise pick added: '+pick.team+' @ '+formatOdds(pick.odds));
   }
 
   function exportBetsToCSV(){
     const bets = state.adminBets || [];
     const rows = [['Placed','User','Selections','Stake','Combined Odds','Potential Return','Status']];
     bets.forEach(b => {
-      const selText = b.selections.map(s => s.label+' ('+s.odds.toFixed(2)+')').join(' | ');
+      const selText = b.selections.map(s => s.label+' ('+formatOdds(s.odds)+')').join(' | ');
       rows.push([fmtDate(b.timestamp), b.username, selText, b.stake, b.combinedOdds.toFixed(2), b.potentialReturn, b.status||'PENDING']);
     });
     const csv = rows.map(r => r.map(cell => '"'+String(cell).replace(/"/g,'""')+'"').join(',')).join('\n');
@@ -3314,6 +3455,8 @@
       body = renderH2HTab();
     } else if(state.activeTab === 'MY BETS'){
       body = renderMyBetsTab();
+    } else if(state.activeTab === 'TIPPING'){
+      body = renderTippingTab();
     } else if(state.activeTab === 'SPECIALS'){
       body = renderSpecialsTab();
     } else if(state.activeTab === 'STATS'){
@@ -3539,6 +3682,27 @@
   function findConflict(newId){
     const np = parsePick(newId);
 
+    // Self-interest guard: a punter here is also a competing fantasy team,
+    // so betting against your own team's interests -- your opponent to
+    // beat you head-to-head, or your own team to be relegated/finish last
+    // -- would create a direct incentive to underperform in the actual
+    // competition for a bigger payout here. Betting FOR your own team's
+    // success is untouched by this: that aligns incentives rather than
+    // conflicting with them, so it's not blocked.
+    const NEGATIVE_FUT_MARKETS = ['relegation_pct', 'wooden_spoon_pct', 'bottom3_pct', 'bottom_half_pct'];
+    if(state.user && state.user.username){
+      const myTeam = state.user.username;
+      if(np.type === 'h2h' && (np.teamA === myTeam || np.teamB === myTeam)){
+        const myWinSide = np.teamA === myTeam ? 'a' : 'b';
+        if(np.side !== myWinSide){
+          return { reason:'self-interest', msg: "you can't bet against your own team \u2014 that market only allows backing your team to win" };
+        }
+      }
+      if(np.type === 'fut' && np.team === myTeam && NEGATIVE_FUT_MARKETS.includes(np.marketKey)){
+        return { reason:'self-interest', msg: "you can't bet on your own team for a negative outcome like this" };
+      }
+    }
+
     // Only one featured (boosted) pick allowed per slip -- and, checked at
     // placement time in placeBet/placeBetsAsSingles, only one per round
     // even across separate bets. The promotional boost is meant as one
@@ -3656,7 +3820,7 @@
 
   function buildSlipText(){
     const lines = ['My bilbbet slip:'];
-    state.slip.forEach(s => lines.push('- ' + s.label + ' (' + s.odds.toFixed(2) + ')'));
+    state.slip.forEach(s => lines.push('- ' + s.label + ' (' + formatOdds(s.odds) + ')'));
     if(state.betMode === 'multi' && state.slip.length){
       lines.push('Combined odds: ' + combinedOdds().toFixed(2));
       lines.push('Stake: ' + state.stake + ' clams \u2192 potential ' + Math.round(state.stake*combinedOdds()) + ' clams');
@@ -3685,7 +3849,10 @@
       </div>`;
     const header = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
         <strong style="font-size:13px;">${state.slip.length} selection${state.slip.length>1?'s':''}</strong>
-        <span style="display:flex;gap:6px;">
+        <span style="display:flex;gap:6px;align-items:center;">
+          <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:#9a9a9a;cursor:pointer;">
+            <input type="checkbox" id="toggle-implied-chance" ${state.showImpliedChance?'checked':''}/> Implied %
+          </label>
           <button class="bb-btn ghost" id="copy-slip" style="padding:4px 10px;font-size:12px;">Copy slip</button>
           <button class="bb-btn ghost" id="clear-slip" style="padding:4px 10px;font-size:12px;">Clear</button>
         </span>
@@ -3698,7 +3865,7 @@
         ${modeToggle}${header}
         <div style="max-height:160px;overflow-y:auto;margin-bottom:8px;">
           ${state.slip.map(s => `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;padding:5px 0;border-bottom:1px solid #333333;">
-            <span style="color:#cfcfcf;flex:1;">${esc(s.label)} <span class="bb-odds">${s.odds.toFixed(2)}</span></span>
+            <span style="color:#cfcfcf;flex:1;">${esc(s.label)} <span class="bb-odds">${formatOdds(s.odds)}</span>${state.showImpliedChance?` <span style="color:#9a9a9a;">(${impliedChance(s.odds)})</span>`:''}</span>
             <input class="bb-input" data-single-stake="${esc(s.id)}" type="number" min="1" value="${s.singleStake||50}" style="width:80px;padding:4px 6px;font-size:12px;"/>
             <span style="color:#9a9a9a;width:56px;text-align:right;">&rarr;${fmt(Math.round((s.singleStake||0)*s.odds))}</span>
             <span data-remove="${esc(s.id)}" style="cursor:pointer;color:#9a9a9a;">&times;</span>
@@ -3728,7 +3895,7 @@
       <div style="max-height:100px;overflow-y:auto;margin-bottom:8px;">
         ${state.slip.map(s => `<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid #333333;">
           <span style="color:#cfcfcf;">${esc(s.label)}</span>
-          <span style="display:flex;gap:8px;align-items:center;"><span class="bb-odds">${s.odds.toFixed(2)}</span>
+          <span style="display:flex;gap:8px;align-items:center;"><span class="bb-odds">${formatOdds(s.odds)}</span>${state.showImpliedChance?`<span style="color:#9a9a9a;font-size:11px;">${impliedChance(s.odds)}</span>`:''}
           <span data-remove="${esc(s.id)}" style="cursor:pointer;color:#9a9a9a;">&times;</span></span></div>`).join('')}
       </div>
       ${boostToggle}
@@ -3736,7 +3903,7 @@
         <div style="flex:1;"><span style="font-size:11px;color:#9a9a9a;">Stake (clams)</span>
           <input class="bb-input" id="stake-input" type="number" min="1" value="${state.stake}" style="padding:6px 10px;"/></div>
         <div style="flex:1;"><span style="font-size:11px;color:#9a9a9a;">Combined odds</span>
-          <div style="font-weight:600;color:#ffdd00;padding:6px 0;">${displayedCombined.toFixed(2)}${boostApplied?' \u26A1':''}</div></div>
+          <div style="font-weight:600;color:#ffdd00;padding:6px 0;">${displayedCombined.toFixed(2)}${boostApplied?' \u26A1':''}${state.showImpliedChance?` <span style="font-size:11px;color:#9a9a9a;font-weight:400;">(${impliedChance(displayedCombined)})</span>`:''}</div></div>
         <div style="flex:1;"><span style="font-size:11px;color:#9a9a9a;">Potential return</span>
           <div style="font-weight:600;padding:6px 0;">${fmt(Math.round(displayedPotential))}</div></div>
         <button class="bb-btn" id="place-bet" style="align-self:flex-end;">Place bet</button>
@@ -3751,6 +3918,113 @@
     render();
   }
 
+  // ---- Tipping competition: a separate, for-fun prediction game layered
+  // on top of the same fixtures and results the real betting system
+  // already uses. Scoring has two tracks: a straight correct-tip tally,
+  // and the sum of each correct tip's odds (locked in at the moment the
+  // tip was made, same as a real bet locks in its price at placement) --
+  // so correctly calling an upset is worth more than a correct favourite.
+  // Purely informational/for-fun on its own; the one bridge back to the
+  // real betting system is the "make a multi" action once every fixture
+  // in a chosen division is tipped, which pushes those exact picks into
+  // the real slip for the punter to optionally place as an actual bet.
+  function tipStorageKey(username, round){ return 'bilbbet2_tips_' + username.toLowerCase() + '_R' + round; }
+
+  async function loadTipsForRound(round){
+    if(!state.user) return;
+    state.tippingRound = round;
+    const data = await sget(tipStorageKey(state.user.username, round));
+    state.tippingData = data || { round, picks: {} };
+    render();
+  }
+
+  async function saveTip(div, fixtureIdx, team, odds){
+    if(!state.user || !state.tippingData) return;
+    const key = div + '|' + fixtureIdx;
+    state.tippingData.picks[key] = { team, odds };
+    render(); // optimistic -- shows the pick immediately, persists in the background
+    await sset(tipStorageKey(state.user.username, state.tippingRound), state.tippingData);
+  }
+
+  function divisionFixtureCount(div, round){
+    const sched = H2H_SCHEDULE[div] && H2H_SCHEDULE[div][round-1];
+    return sched ? sched.length : 0;
+  }
+  function divisionTipsCompleted(div, round){
+    if(!state.tippingData) return 0;
+    const total = divisionFixtureCount(div, round);
+    let done = 0;
+    for(let i=0;i<total;i++){ if(state.tippingData.picks[div+'|'+i]) done++; }
+    return done;
+  }
+
+  // Builds the real H2H|res-X|... pick ids for every tip in a completed
+  // division and adds them straight to the actual bet slip -- reusing the
+  // exact same pick format and findConflict/combinedOdds machinery the
+  // rest of the platform already relies on, rather than a parallel,
+  // tipping-specific slip implementation.
+  function makeMultiFromTips(div){
+    const round = state.tippingRound;
+    const sched = H2H_SCHEDULE[div] && H2H_SCHEDULE[div][round-1];
+    if(!sched) return;
+    let added = 0, skipped = 0;
+    for(let i=0;i<sched.length;i++){
+      const pick = state.tippingData.picks[div+'|'+i];
+      if(!pick) continue;
+      const [teamA, teamB] = sched[i];
+      const side = pick.team === teamA ? 'a' : 'b';
+      const id = 'H2H|res-'+side+'|R'+round+'|'+teamA+'|'+teamB;
+      if(state.slip.some(s=>s.id===id)){ skipped++; continue; }
+      const conflict = findConflict(id);
+      if(conflict){ skipped++; continue; } // e.g. the self-interest guard, if a punter tipped their own team's opponent
+      state.slip.push({ id, label: pick.team, odds: pick.odds, singleStake: state.stake });
+      added++;
+    }
+    render();
+    alert(added + ' pick' + (added!==1?'s':'') + ' added to your bet slip' + (skipped ? ` (${skipped} skipped -- already in your slip or not currently allowed)` : '') + '. Adjust your stake and place it like any other bet, or clear it if you were just curious.');
+  }
+
+  // Computed fresh each time the leaderboard is viewed rather than kept as
+  // a running total on the user record -- tip resolution is purely
+  // mechanical (compare a tip to the actual result, no judgement calls the
+  // way a void or a disputed bet might need), so there's no real benefit
+  // to a separate "resolve" step an admin could forget to run.
+  async function computeTippingLeaderboard(){
+    const usernames = await getIndex('bilbbet2_users_index');
+    const allUsers = (await Promise.all(usernames.map(getUser))).filter(Boolean);
+    const users = allUsers.filter(u => !u.isAdmin);
+    const roundsPlayed = state.currentRound - 1;
+    const totals = {}; // username -> {correct, total, oddsPoints}
+    for(const u of users){ totals[u.username] = { correct:0, total:0, oddsPoints:0 }; }
+    for(const u of users){
+      for(let r=1; r<=roundsPlayed; r++){
+        const data = await sget(tipStorageKey(u.username, r));
+        if(!data || !data.picks) continue;
+        for(const key in data.picks){
+          const [div, idxStr] = key.split('|');
+          const idx = parseInt(idxStr, 10);
+          const sched = H2H_SCHEDULE[div] && H2H_SCHEDULE[div][r-1];
+          if(!sched || !sched[idx]) continue;
+          const [teamA, teamB] = sched[idx];
+          const scoreA = REAL_RESULTS[teamA] && REAL_RESULTS[teamA][r-1];
+          const scoreB = REAL_RESULTS[teamB] && REAL_RESULTS[teamB][r-1];
+          if(scoreA == null || scoreB == null) continue; // result not in yet
+          const actualWinner = scoreA > scoreB ? teamA : (scoreB > scoreA ? teamB : null); // null = draw, always wrong for a 2-way tip
+          const pick = data.picks[key];
+          totals[u.username].total++;
+          if(actualWinner && pick.team === actualWinner){
+            totals[u.username].correct++;
+            totals[u.username].oddsPoints += pick.odds;
+          }
+        }
+      }
+    }
+    state.tippingLeaderboard = Object.entries(totals)
+      .map(([username, t]) => ({ username, ...t }))
+      .filter(t => t.total > 0);
+    render();
+  }
+
   async function attachHandlers(){
     const $ = sel => document.querySelector(sel);
     const fUser = $('#f-user');
@@ -3758,12 +4032,21 @@
       fUser.oninput = e => { state.username = e.target.value; state.adminLoginMode = false; };
       fUser.onchange = e => { state.username = matchTeamName(e.target.value); state.adminLoginMode = false; render(); };
     }
+    const fUserCustom = $('#f-user-custom');
+    if(fUserCustom){
+      // Deliberately no team-matching here -- this input exists specifically
+      // for someone whose name ISN'T a real Eliza Cup team, so snapping it
+      // to one would defeat the point.
+      fUserCustom.oninput = e => { state.username = e.target.value; };
+    }
+    const toggleCustomName = $('#toggle-custom-name');
+    if(toggleCustomName) toggleCustomName.onclick = () => { state.customNameMode = !state.customNameMode; state.username = ''; state.error=''; render(); };
     const fPin = $('#f-pin'); if(fPin) fPin.oninput = e => { state.pin = e.target.value; };
     const loginForm = $('#login-form'); if(loginForm) loginForm.onsubmit = e => { e.preventDefault(); doLogin(); };
     const registerBtn = $('#register-submit');
     if(registerBtn) registerBtn.onclick = () => { state.registeringMode = true; state.error=''; render(); };
     const backFromRegisterBtn = $('#back-from-register');
-    if(backFromRegisterBtn) backFromRegisterBtn.onclick = () => { state.registeringMode = false; state.tosAgreed = false; state.error=''; render(); };
+    if(backFromRegisterBtn) backFromRegisterBtn.onclick = () => { state.registeringMode = false; state.customNameMode = false; state.tosAgreed = false; state.error=''; render(); };
     const confirmRegisterBtn = $('#confirm-register-submit');
     if(confirmRegisterBtn) confirmRegisterBtn.onclick = doRegister;
     const openTosRegisterLink = $('#open-tos-register');
@@ -3815,7 +4098,7 @@
       headerTeamSearch.oninput = e => { state.teamSearchQuery = e.target.value; };
       headerTeamSearch.onchange = e => { state.teamSearchQuery = e.target.value; render(); };
     }
-    const closeLoginBtn = $('#close-login-modal'); if(closeLoginBtn) closeLoginBtn.onclick = () => { state.loginModalOpen = false; state.adminLoginMode=false; state.registeringMode=false; state.tosAgreed=false; state.error=''; state.info=''; render(); };
+    const closeLoginBtn = $('#close-login-modal'); if(closeLoginBtn) closeLoginBtn.onclick = () => { state.loginModalOpen = false; state.adminLoginMode=false; state.registeringMode=false; state.customNameMode=false; state.tosAgreed=false; state.error=''; state.info=''; render(); };
     const useAdminBtn = $('#use-admin-login'); if(useAdminBtn) useAdminBtn.onclick = () => { state.adminLoginMode = true; render(); };
     document.querySelectorAll('[data-tab]').forEach(el => el.onclick = () => {
       state.activeTab = el.dataset.tab;
@@ -3948,6 +4231,26 @@
       if(item) item.singleStake = Math.max(1, parseInt(e.target.value,10)||1);
     });
     const clearBtn = $('#clear-slip'); if(clearBtn) clearBtn.onclick = () => { state.slip=[]; render(); };
+    const impliedToggle = $('#toggle-implied-chance'); if(impliedToggle) impliedToggle.onchange = e => { state.showImpliedChance = e.target.checked; render(); };
+
+    document.querySelectorAll('[data-tippingtab]').forEach(el => el.onclick = () => {
+      state.tippingSubTab = el.dataset.tippingtab;
+      if(state.tippingSubTab === 'LEADERBOARD') state.tippingLeaderboard = null; // force a fresh computation each visit
+      render();
+    });
+    const tippingRoundEl = $('#tipping-round');
+    if(tippingRoundEl) tippingRoundEl.onchange = e => { state.tippingData = null; loadTipsForRound(parseInt(e.target.value, 10)); };
+    document.querySelectorAll('[data-tipping-div]').forEach(el => el.onchange = e => {
+      const d = el.dataset.tippingDiv;
+      if(e.target.checked) state.tippingDivisions = [...state.tippingDivisions, d];
+      else state.tippingDivisions = state.tippingDivisions.filter(x => x !== d);
+      render();
+    });
+    document.querySelectorAll('[data-tip]').forEach(el => el.onclick = () => {
+      const [div, idxStr, team, oddsStr] = el.dataset.tip.split('|');
+      saveTip(div, parseInt(idxStr, 10), team, parseFloat(oddsStr));
+    });
+    document.querySelectorAll('[data-make-multi]').forEach(el => el.onclick = () => makeMultiFromTips(el.dataset.makeMulti));
     const copySlipBtn = $('#copy-slip'); if(copySlipBtn) copySlipBtn.onclick = copySlipToClipboard;
     document.querySelectorAll('[data-remove]').forEach(el => el.onclick = e => { e.stopPropagation(); state.slip = state.slip.filter(s=>s.id!==el.dataset.remove); render(); });
     const stakeInput = $('#stake-input'); if(stakeInput) stakeInput.oninput = e => { state.stake = Math.max(1, parseInt(e.target.value,10)||1); };
@@ -4296,6 +4599,15 @@
   async function doRegister(){
     const username = state.username.trim(), pin = state.pin.trim();
     state.info = '';
+    const isRealTeam = ALL_TEAMS.some(t => t.toLowerCase() === username.toLowerCase());
+    if(state.customNameMode && isRealTeam){
+      state.error = "That's a registered Eliza Cup team name \u2014 switch back to \"I have a team in the Eliza Cup\" if that's you.";
+      render(); return;
+    }
+    if(!state.customNameMode && username && !isRealTeam){
+      state.error = "Couldn't find that team \u2014 check the spelling, or use \"Not part of the Eliza Cup? Make up your own name\" below if you don't have one.";
+      render(); return;
+    }
     if(!state.tosAgreed){ state.error='You must read and agree to the Terms & Conditions before registering.'; render(); return; }
     if(username.toLowerCase() === 'admin'){ state.error='That name is reserved for the admin login.'; render(); return; }
     if(!username || pin.length<4){ state.error='Pick a username and a PIN of at least 4 digits.'; render(); return; }
