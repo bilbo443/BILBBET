@@ -951,8 +951,23 @@
     const fresh = computeFeaturedFixtures();
     const wrote = await sset(featuredKey, fresh);
     state.featuredFixturesData = fresh;
+
+    // Best-value-winner uses the identical "compute once per round, lock
+    // it in" pattern as featured fixtures -- same risk of a future logic
+    // fix not reaching an already-cached round, so it gets refreshed here
+    // too rather than needing its own separate button and its own
+    // separate bug report down the line.
+    let bvwWrote = true;
+    const prevRound = state.currentRound - 1;
+    if(prevRound >= 1){
+      const bvwKey = 'bilbbet2_best_value_winner_R' + prevRound;
+      const freshBvw = computeBestValueWinner() || { none: true };
+      bvwWrote = await sset(bvwKey, freshBvw);
+      state.homeBestValueWinner = freshBvw.none ? null : freshBvw;
+    }
+
     state.refreshingFeatured = false;
-    state.refreshedFeaturedInfo = wrote
+    state.refreshedFeaturedInfo = (wrote && bvwWrote)
       ? `\u2713 Refreshed just now \u2014 ${fresh.length} featured pick(s) now showing for Round ${state.currentRound}.`
       : `\u26a0 Recomputed locally, but saving it failed \u2014 other visitors may still see the old picks until this succeeds.`;
     render();
@@ -3550,7 +3565,12 @@
       if(np.group && ep.group && np.group === ep.group){
         const npKey = np.team || np.side, epKey = ep.team || ep.side;
         if(npKey !== epKey){
-          return { reason:'contrary', msg: `only one outcome in that market can actually happen (you already have ${ep.team || ep.side} in this slip)` };
+          // H2H-type picks never have a .team field (only .teamA/.teamB/.side),
+          // so resolving the display name needs the side lookup specifically --
+          // .team || .side alone silently showed just "a" or "b" instead of the
+          // actual team name.
+          const epDisplayName = ep.team || (ep.side === 'a' ? ep.teamA : ep.side === 'b' ? ep.teamB : ep.side);
+          return { reason:'contrary', msg: `only one outcome in that market can actually happen (you already have ${epDisplayName} in this slip)` };
         }
       }
 
