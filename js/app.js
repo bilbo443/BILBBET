@@ -3383,8 +3383,13 @@
         if(places === undefined) continue;
         totalTeams = FA_CUP_TOTAL_ENTRANTS;
         poolKey = 'FACUP|' + p.marketKey;
+      } else if(p.type === 'ecl'){
+        places = ECL_PLACES[p.marketKey];
+        if(places === undefined) continue;
+        totalTeams = ECL_TOTAL_ENTRANTS;
+        poolKey = 'ECL|' + p.marketKey;
       } else {
-        continue; // ECL intentionally excluded -- see FA_CUP_PLACES comment above
+        continue;
       }
       if(!groups[poolKey]) groups[poolKey] = { places, totalTeams, teams: new Set() };
       groups[poolKey].teams.add(p.team);
@@ -3452,6 +3457,14 @@
   // just leaving ECL uncorrected until that's actually confirmed.
   const FA_CUP_PLACES = { reach_r32_pct: 32, reach_r16_pct: 16, reach_qf_pct: 8, reach_sf_pct: 4, reach_final_pct: 2 };
   const FA_CUP_TOTAL_ENTRANTS = 64;
+  // ECL now has real, confirmed simulation logic (simulate_ecl_market) --
+  // a fixed 12-team field (9 Eliza Cup + 3 Division 2), 3-matchday league
+  // phase, top 8 advance to a seeded knockout bracket. No longer excluded
+  // from the places-based blocking/odds-adjustment logic below, now that
+  // there's a genuine, verified entrant count and stage sizes to check a
+  // multi against.
+  const ECL_PLACES = { reach_knockout_pct: 8, reach_sf_pct: 4, reach_final_pct: 2 };
+  const ECL_TOTAL_ENTRANTS = 12;
   // promotion_pct's places are shared across BOTH conferences of a division
   // (2A and 2B teams compete for the same 4 promotion spots via the shared
   // playoff bracket), not 4 separate spots within each conference -- so
@@ -3540,17 +3553,28 @@
     // Blocking picks that literally cannot all come true together -- e.g.
     // 4 different teams all "to finish top 3" in the same division is a
     // mathematically impossible outcome, not just a long shot, since only 3
-    // teams can ever occupy those 3 spots. Same logic applies to FA Cup's
-    // bracket stages -- only 4 teams can ever reach the Semi-Final, etc.
-    if(np.type === 'fut' || np.type === 'facup'){
-      const places = np.type === 'fut' ? placesCountFor(np.div, np.marketKey) : FA_CUP_PLACES[np.marketKey];
+    // teams can ever occupy those 3 spots. Same logic applies to FA Cup and
+    // ECL's bracket stages -- only 4 teams can ever reach a Semi-Final, etc.
+    if(np.type === 'fut' || np.type === 'facup' || np.type === 'ecl'){
+      function placesFor(p){
+        if(p.type === 'fut') return placesCountFor(p.div, p.marketKey);
+        if(p.type === 'facup') return FA_CUP_PLACES[p.marketKey];
+        if(p.type === 'ecl') return ECL_PLACES[p.marketKey];
+        return null;
+      }
+      function poolKeyFor(p){
+        if(p.type === 'fut') return p.marketKey === 'promotion_pct' ? promotionPoolKey(p.div) : p.div;
+        if(p.type === 'facup') return 'FACUP';
+        if(p.type === 'ecl') return 'ECL';
+        return null;
+      }
+      const places = placesFor(np);
       if(places !== null && places !== undefined){
-        const poolKey = np.type === 'fut' ? (np.marketKey === 'promotion_pct' ? promotionPoolKey(np.div) : np.div) : 'FACUP';
+        const poolKey = poolKeyFor(np);
         const existingInPool = state.slip.filter(s => {
           const ep = parsePick(s.id);
           if(ep.type !== np.type || ep.marketKey !== np.marketKey) return false;
-          const epPoolKey = ep.type === 'fut' ? (ep.marketKey === 'promotion_pct' ? promotionPoolKey(ep.div) : ep.div) : 'FACUP';
-          return epPoolKey === poolKey && ep.team !== np.team;
+          return poolKeyFor(ep) === poolKey && ep.team !== np.team;
         });
         if(existingInPool.length >= places){
           return { reason:'places-exceeded', msg: `only ${places} team${places!==1?'s':''} can actually finish in that market's outcome \u2014 you already have ${places} different team${places!==1?'s':''} picked for it` };
