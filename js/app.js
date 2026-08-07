@@ -4246,8 +4246,10 @@
   }
 
   async function loadMyBets(){
-    const ids = await getIndex('bilbbet2_bets_index_' + state.user.username.toLowerCase());
+    const myUsername = state.user.username; // captured once -- state.user could change while the fetch below is in flight
+    const ids = await getIndex('bilbbet2_bets_index_' + myUsername.toLowerCase());
     const bets = (await Promise.all(ids.map(id => sget('bilbbet2_bet:'+id)))).filter(Boolean);
+    if(!state.user || state.user.username !== myUsername) return; // a different user is logged in now -- this result no longer applies to anyone
     state.myBets = bets;
     render();
   }
@@ -4267,7 +4269,9 @@
 
   async function loadPreseasonData(){
     if(!state.user) return;
-    const data = await sget(preseasonStorageKey(state.user.username));
+    const myUsername = state.user.username; // captured once -- state.user could change while the fetch below is in flight
+    const data = await sget(preseasonStorageKey(myUsername));
+    if(!state.user || state.user.username !== myUsername) return; // a different user is logged in now -- this result no longer applies to anyone
     state.preseasonData = data || { picks: {} };
     state.preseasonPending = { ...state.preseasonData.picks }; // working copy, same as weekly tipping -- nothing saves until Confirm
     render();
@@ -4306,7 +4310,9 @@
   async function loadTipsForRound(round){
     if(!state.user) return;
     state.tippingRound = round;
-    const data = await sget(tipStorageKey(state.user.username, round));
+    const myUsername = state.user.username; // captured once -- state.user could change while the fetch below is in flight
+    const data = await sget(tipStorageKey(myUsername, round));
+    if(!state.user || state.user.username !== myUsername) return; // a different user is logged in now -- this result no longer applies to anyone
     state.tippingData = data || { round, picks: {} };
     state.tippingPending = { ...state.tippingData.picks }; // a working copy -- edits here don't touch the stored record until Confirm
     render();
@@ -4724,11 +4730,12 @@
     const tipReminderToggle = $('#tip-reminder-toggle');
     if(tipReminderToggle) tipReminderToggle.onchange = async e => {
       const enabled = e.target.checked;
+      const myUsername = state.user.username; // captured once for consistency, even though this handler never overwrites state.user itself
       state.user.tipReminderEnabled = enabled; // optimistic, so the checkbox itself doesn't visually revert while saving
       state.tipReminderStatus = null; // force a fresh check under the new setting
       render();
-      await withUserLock(state.user.username, async () => {
-        const fresh = await getUser(state.user.username);
+      await withUserLock(myUsername, async () => {
+        const fresh = await getUser(myUsername);
         if(!fresh) return;
         fresh.tipReminderEnabled = enabled;
         await saveUser(fresh);
@@ -5133,8 +5140,9 @@
       const boostEligible = !hasFeatured && slipSnapshot.length >= 3 && (!state.user.boostUsedRound || state.user.boostUsedRound !== state.currentRound);
       const boostApplied = boostEligible && state.useBoost;
       const combined = combinedOddsFor(slipSnapshot) * (boostApplied ? BOOST_MULTIPLIER : 1);
-      const u = await withUserLock(state.user.username, async () => {
-        const fresh = await getUser(state.user.username);
+      const myUsername = state.user.username; // captured once -- state.user could change while the awaits below are in flight
+      const u = await withUserLock(myUsername, async () => {
+        const fresh = await getUser(myUsername);
         // Re-checked here, inside the lock, against freshly-read data --
         // not the stale local copy from before this bet started submitting.
         // Two separate tabs for the same account could each pass a check
@@ -5154,7 +5162,7 @@
         alert("You've already used this round's featured pick in another bet \u2014 only one featured (boosted) pick per round.");
         return;
       }
-      state.user = u;
+      if(state.user && state.user.username === myUsername) state.user = u; // only reflect the new balance if this is still the same session that placed the bet
       const bet = { id: uid(), username: u.username, selections: slipSnapshot, stake, combinedOdds: combined, boosted: boostApplied,
                     featuredPickRound: hasFeatured ? state.currentRound : null,
                     boostRound: boostApplied ? state.currentRound : null,
@@ -5192,8 +5200,9 @@
     try {
       const slipSnapshot = state.slip.slice();
       const hasFeatured = slipSnapshot.some(s => isFeaturedPick(s.id));
-      const u = await withUserLock(state.user.username, async () => {
-        const fresh = await getUser(state.user.username);
+      const myUsername = state.user.username; // captured once -- state.user could change while the awaits below are in flight
+      const u = await withUserLock(myUsername, async () => {
+        const fresh = await getUser(myUsername);
         if(hasFeatured && fresh.featuredPickUsedRound === state.currentRound){
           return null;
         }
@@ -5206,7 +5215,7 @@
         alert("You've already used this round's featured pick in another bet \u2014 only one featured (boosted) pick per round.");
         return;
       }
-      state.user = u;
+      if(state.user && state.user.username === myUsername) state.user = u; // only reflect the new balance if this is still the same session that placed the bets
       for(const item of slipSnapshot){
         const stake = Math.max(1, item.singleStake||0);
         const bet = { id: uid(), username: u.username, selections: [item], stake, combinedOdds: item.odds,
