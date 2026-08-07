@@ -311,13 +311,14 @@
     specialsSelection: { win_round: '', lose_round: '', charity: '', philanthropy: '' },
     specialsSubTab: 'round',
     teamSearchOpen: false, teamSearchQuery: '',
-    registeringMode: false, customNameMode: false,
+    registeringMode: false, customNameMode: false, tipReminderOptIn: false,
     tosModalOpen: false, tosMode: 'view', tosAgreed: false, readMeModalOpen: false,
     tutorialModalOpen: false, tutorialStep: 0, welcomeModalOpen: false,
     formModalOpen: false, formModalTeam: null,
     tippingSubTab: 'PICKS', tippingSection: 'ELIZA', tippingRound: null, tippingViewRound: null, tippingData: null, tippingPending: {}, tippingAllPicks: null,
-    tippingRewardChecked: null, tippingRewardBanner: null,
-    tippingLeaderboardDiv: 'ALL', tippingLeaderboardMode: 'OVERALL', tippingLeaderboardRound: null, tippingLeaderboard: null,
+    tippingRewardChecked: null, tippingRewardBanner: null, tipReminderStatus: null,
+    preseasonData: null, preseasonPending: {}, preseasonLeaderboard: null, preseasonResults: null, preseasonAllPicks: null,
+    tippingLeaderboardDiv: 'ALL', tippingLeaderboardMode: 'OVERALL', tippingLeaderboardRound: null, tippingLeaderboard: null, leaderboardKind: 'WEEKLY',
     cupFixtures: { 'FA CUP': [], 'ECL': [] },
     cupFixtureMarket: null,
     cupAdminEntry: { 'FA CUP': {teamA:'', teamB:''}, 'ECL': {teamA:'', teamB:''} },
@@ -1227,6 +1228,8 @@
       <span id="open-tos-footer" style="font-size:12px;color:#9a9a9a;text-decoration:underline;cursor:pointer;">Terms &amp; Conditions</span>
       <span style="color:#5a5a5a;margin:0 8px;">&middot;</span>
       <span id="open-readme-footer" class="${flashClass}" style="font-size:12px;color:#9a9a9a;text-decoration:underline;cursor:pointer;">Read me</span>
+      <span style="color:#5a5a5a;margin:0 8px;">&middot;</span>
+      <span id="open-tutorial-btn" style="font-size:12px;color:#9a9a9a;text-decoration:underline;cursor:pointer;" title="New here? Take the tour">Tutorial</span>
     </div>`;
   }
 
@@ -1260,6 +1263,7 @@
     { tab: 'HOME', title: 'Home', body: 'Your starting point each visit. A handful of featured picks are boosted for the round (extra odds, one per punter per round), alongside the A-League fantasy point projection and the best-value bet that actually won last round.' },
     { tab: 'FUTURES', title: 'Futures', body: 'Season-long bets that only settle at the end of the season -- who wins each division, gets promoted or relegated, tops the Roddy, or lifts the FA Cup or ECL. Use the sub-tabs to switch between divisions and competitions.' },
     { tab: 'H2H', title: 'H2H', body: 'Head-to-head bets for a specific round\'s fixtures -- who wins, the draw, and handicap lines. Switch between divisions, FA Cup, ECL, Playoffs, or set up a custom matchup between any two teams yourself.' },
+    { tab: 'TIPPING', title: 'Tipping', body: 'A separate, for-fun prediction game -- no clams involved. Tip a winner for this week\'s fixtures across whichever competitions you like, hit Confirm to lock them in, and see how you stack up on the leaderboard by correct picks or by the odds those picks were worth. Get every fixture in a section right and you can turn those same tips into a real multi bet, or just enjoy the bragging rights.' },
     { tab: 'SPECIALS', title: 'Specials', body: 'Round-by-round and season-long novelty bets -- who\'ll be leading or trailing after a given round, most charity, most philanthropy, plus a spot to suggest your own bet for others to weigh in on.' },
     { tab: 'STATS', title: 'Stats', body: 'Leaderboards across the platform -- biggest stakes, best multis, most wins, and (once a handful of rounds are played) which teams are consistently beating or missing their own odds.' },
     { tab: 'MY BETS', title: 'My Bets', body: 'Every bet you\'ve placed, with its current status -- pending, won, lost, or void -- and your running record across the season.' },
@@ -1397,6 +1401,10 @@
               <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;">
                 <input type="checkbox" id="tos-agree-checkbox-inline" ${state.tosAgreed?'checked':''} style="margin-top:2px;"/>
                 <span>I agree to the <span id="open-tos-register" style="text-decoration:underline;cursor:pointer;color:#ffdd00;">Terms &amp; Conditions</span>.</span>
+              </label>
+              <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;">
+                <input type="checkbox" id="tip-reminder-optin-checkbox" ${state.tipReminderOptIn?'checked':''} style="margin-top:2px;"/>
+                <span>Flag it for me on every tab if I haven't submitted my tips for the week. <span style="color:#9a9a9a;">(Turn on or off anytime from Stats.)</span></span>
               </label>` : ''}
             ${state.error ? `<div style="color:#c0604f;font-size:13px;">${esc(state.error)}</div>` : ''}
             ${state.info ? `<div style="color:#7fbf8f;font-size:13px;">${esc(state.info)}</div>` : ''}
@@ -1422,7 +1430,6 @@
         <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 4px;border-bottom:5px solid var(--bb-accent);margin-bottom:1rem;">
           ${brand}
           <div style="display:flex;align-items:center;gap:10px;">
-            <button class="bb-btn ghost" id="open-tutorial-btn" style="padding:6px 12px;font-size:13px;" title="New here? Take the tour">? Tutorial</button>
             <button class="bb-btn ghost" id="open-team-search-btn" style="padding:6px 12px;font-size:13px;">Find a team</button>
             <button class="bb-btn" id="open-login-btn" style="padding:7px 14px;">Log in</button>
           </div>
@@ -1432,7 +1439,6 @@
       <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 4px;border-bottom:5px solid var(--bb-accent);margin-bottom:1rem;flex-wrap:wrap;gap:8px;">
         ${brand}
         <div style="display:flex;align-items:center;gap:14px;font-size:14px;">
-          <button class="bb-btn ghost" id="open-tutorial-btn" style="padding:6px 12px;font-size:13px;" title="New here? Take the tour">? Tutorial</button>
           <button class="bb-btn ghost" id="open-team-search-btn" style="padding:6px 12px;font-size:13px;">Find a team</button>
           <span>${fmt(state.user.balance)} clams</span>
           <span style="color:#9a9a9a;">${esc(state.user.username)}${(state.user.isAdmin && adminNeedsAttention()) ? ' <span title="Needs attention" style="font-size:12px;">\u{1F6A9}</span>' : ''}</span>
@@ -1473,9 +1479,11 @@
     return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">' +
       currentTabs().map(t => {
         const label = t==='MY BETS'?'My Bets':(t==='ADMIN'?'Admin':(t==='H2H'?'H2H':(t==='HOME'?'Home':(t==='FUTURES'?'Futures':(t==='TIPPING'?'Tipping':t)))));
-        const flag = (t==='ADMIN' && state.user && state.user.isAdmin && adminNeedsAttention())
+        const adminFlag = (t==='ADMIN' && state.user && state.user.isAdmin && adminNeedsAttention())
           ? ' <span title="Needs attention" style="font-size:11px;">\u{1F6A9}</span>' : '';
-        return `<div class="bb-tab ${state.activeTab===t?'active':''}" data-tab="${esc(t)}" style="display:flex;align-items:center;gap:5px;">${label}${flag}</div>`;
+        const tipFlag = (state.tipReminderStatus === true)
+          ? ' <span title="You haven\'t submitted your tips for this week yet" style="font-size:11px;">\u{1F6A9}</span>' : '';
+        return `<div class="bb-tab ${state.activeTab===t?'active':''}" data-tab="${esc(t)}" style="display:flex;align-items:center;gap:5px;">${label}${adminFlag}${tipFlag}</div>`;
       }).join('') +
       '</div>';
   }
@@ -1811,6 +1819,35 @@
 
   // Sub-tab groupings for the Tipping page -- lets a punter focus on one
   // competition at a time instead of scrolling one long page of everything.
+  // Pre-season predictions: a one-time, season-long prediction set that
+  // locks before Round 1 kicks off (tied to isRoundBlocked(1) -- the same
+  // moment Round 1's own betting locks), scored separately from the
+  // weekly tipping leaderboard entirely. Winner slots are single-team
+  // picks; relegation/promotion slots are multi-team, since several teams
+  // go down or up together. Promotion pools span both conferences of a
+  // division (2A+2B share one pool of 4, 3A+3B share one pool of 6) since
+  // that's how promotion actually works; relegation is per-conference,
+  // since each conference relegates its own bottom teams independently.
+  const PRESEASON_SLOTS = [
+    { key: 'winner|ELIZA CUP (D1)', label: 'Eliza Cup winner', divs: ['ELIZA CUP (D1)'], marketKey: 'win_div_pct', count: 1 },
+    { key: 'winner|DIVISION 2A', label: 'Division 2A winner', divs: ['DIVISION 2A'], marketKey: 'win_div_pct', count: 1 },
+    { key: 'winner|DIVISION 2B', label: 'Division 2B winner', divs: ['DIVISION 2B'], marketKey: 'win_div_pct', count: 1 },
+    { key: 'winner|DIVISION 3A', label: 'Division 3A winner', divs: ['DIVISION 3A'], marketKey: 'win_div_pct', count: 1 },
+    { key: 'winner|DIVISION 3B', label: 'Division 3B winner', divs: ['DIVISION 3B'], marketKey: 'win_div_pct', count: 1 },
+    { key: 'relegated|ELIZA CUP (D1)', label: 'Eliza Cup relegation', divs: ['ELIZA CUP (D1)'], marketKey: 'relegation_pct', count: 4 },
+    { key: 'relegated|DIVISION 2A', label: 'Division 2A relegation', divs: ['DIVISION 2A'], marketKey: 'relegation_pct', count: 3 },
+    { key: 'relegated|DIVISION 2B', label: 'Division 2B relegation', divs: ['DIVISION 2B'], marketKey: 'relegation_pct', count: 3 },
+    { key: 'promoted|DIVISION 2', label: 'Division 2 promotion (2A + 2B)', divs: ['DIVISION 2A','DIVISION 2B'], marketKey: 'promotion_pct', count: 4 },
+    { key: 'promoted|DIVISION 3', label: 'Division 3 promotion (3A + 3B)', divs: ['DIVISION 3A','DIVISION 3B'], marketKey: 'promotion_pct', count: 6 },
+    { key: 'winner|RODDY', label: 'Roddy winner', source: 'roddy', marketKey: 'roddy_win_pct', count: 1 },
+    { key: 'winner|FA CUP', label: 'FA Cup winner', source: 'fa_cup_markets', marketKey: 'win_pct', count: 1 },
+    { key: 'winner|ECL', label: 'ECL winner', source: 'ecl_markets', marketKey: 'win_pct', count: 1 },
+  ];
+  function preseasonSlotOptions(slot){
+    if(slot.source) return FUTURES[slot.source][slot.marketKey] || [];
+    return slot.divs.flatMap(d => (FUTURES.divisions[d][slot.marketKey] || []).map(e => ({...e, div: d})));
+  }
+
   const TIPPING_SECTIONS = [
     { key: 'ELIZA', label: 'Eliza', divs: ['ELIZA CUP (D1)'] },
     { key: 'DIV2', label: 'Div 2 (A+B)', divs: ['DIVISION 2A', 'DIVISION 2B'] },
@@ -1836,9 +1873,14 @@
     const viewingPast = round !== state.currentRound;
     const subTabs = `<div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
         <div class="bb-tab ${state.tippingSubTab==='PICKS'?'active':''}" data-tippingtab="PICKS" style="font-size:12px;padding:6px 10px;">This week's tips</div>
+        <div class="bb-tab ${state.tippingSubTab==='PRESEASON'?'active':''}" data-tippingtab="PRESEASON" style="font-size:12px;padding:6px 10px;">Pre-season</div>
         <div class="bb-tab ${state.tippingSubTab==='LEADERBOARD'?'active':''}" data-tippingtab="LEADERBOARD" style="font-size:12px;padding:6px 10px;">Leaderboard</div>
       </div>`;
     const intro = `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">For fun, not clams \u2014 tip a winner for whichever fixtures you like. Correct tips score two ways: a straight tally, and what a 1-clam bet on that tip would have paid (upsets are worth more). Nothing saves until you hit Confirm, and you can come back and change your tips right up until this round locks.</p>`;
+
+    if(state.tippingSubTab === 'PRESEASON'){
+      return subTabs + renderPreseasonTab();
+    }
 
     if(state.tippingSubTab === 'LEADERBOARD'){
       return subTabs + intro + renderTippingLeaderboard();
@@ -1973,10 +2015,165 @@
       </div>`;
   }
 
+  // Pre-season locks the moment Round 1 itself locks -- reusing that exact
+  // check rather than a separate date/flag means there's only ever one
+  // source of truth for "has the season actually started yet".
+  const PRESEASON_RESULTS_KEY = 'bilbbet2_preseason_results';
+  async function loadPreseasonResults(){
+    state.preseasonResults = (await sget(PRESEASON_RESULTS_KEY)) || {};
+    render();
+  }
+  // Admin-only: records the actual, final outcome for a slot -- separate
+  // from a punter's own prediction. Persists immediately on each toggle
+  // (this is data entry, not a pending selection someone might want to
+  // reconsider before committing) since there's no real risk in an admin
+  // correcting a result if it's later found to be wrong.
+  async function toggleFinalResult(slotKey, team, count){
+    if(!state.preseasonResults) return; // defensive -- the UI shouldn't offer this before results have loaded, but don't crash if it somehow is
+    const current = state.preseasonResults[slotKey] || [];
+    const already = current.includes(team);
+    let next;
+    if(already) next = current.filter(t => t !== team);
+    else if(count === 1) next = [team];
+    else if(current.length < count) next = [...current, team];
+    else return; // slot already has its full number of actual results recorded
+    state.preseasonResults = { ...state.preseasonResults, [slotKey]: next };
+    render();
+    await sset(PRESEASON_RESULTS_KEY, state.preseasonResults);
+  }
+
+  function renderPreseasonTab(){
+    const locked = isRoundBlocked(1);
+    if(!state.preseasonData){
+      loadPreseasonData(); // async -- fires off the fetch, current render shows a brief loading state
+      return '<p style="color:#9a9a9a;">Loading your pre-season picks&hellip;</p>';
+    }
+    const intro = `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">One-time, season-long predictions \u2014 for fun, not clams. ${locked ? 'Locked now that the season has started.' : 'Locks the moment Round 1 kicks off, so get your picks in before then.'}</p>`;
+
+    const adminResultsSection = (state.user.isAdmin && state.preseasonResults !== null) ? renderPreseasonAdminResults() : '';
+    if(state.user.isAdmin && state.preseasonResults === null){
+      loadPreseasonResults(); // async -- fires off the fetch, current render just skips this section until it's ready
+    }
+
+    if(locked){
+      const rows = PRESEASON_SLOTS.map(slot => {
+        const picks = state.preseasonData.picks[slot.key] || [];
+        if(!picks.length) return null;
+        return `<div style="padding:8px 0;border-bottom:1px solid #333333;">
+            <div style="font-size:12px;color:#9a9a9a;margin-bottom:4px;">${esc(slot.label)}</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+              ${picks.map(p => `<span style="display:flex;align-items:center;gap:5px;background:#2a2a2a;border-radius:6px;padding:4px 10px;font-size:13px;">${teamLogo(p.team,16)}${esc(p.team)} <span style="color:#ffdd00;font-weight:600;">${formatOdds(p.odds)}</span></span>`).join('')}
+            </div>
+          </div>`;
+      }).filter(Boolean);
+      const ownPicks = rows.length
+        ? `<div class="bb-card" style="margin-bottom:1rem;"><strong style="font-size:13px;">Your picks</strong>${rows.join('')}</div>`
+        : `<div class="bb-card" style="text-align:center;padding:2rem 1rem;color:#9a9a9a;margin-bottom:1rem;">You didn't confirm any pre-season picks.</div>`;
+      return intro + adminResultsSection + ownPicks + renderAllPreseasonPicks();
+    }
+
+    const dirty = JSON.stringify(state.preseasonPending) !== JSON.stringify(state.preseasonData.picks);
+    const group = (title, slots) => `<div class="bb-card" style="margin-bottom:1rem;">
+        <strong style="font-size:13px;display:block;margin-bottom:8px;">${esc(title)}</strong>
+        ${slots.map(slot => {
+          const options = preseasonSlotOptions(slot).filter(o => !o.suspended);
+          const current = state.preseasonPending[slot.key] || [];
+          return `<div style="margin-bottom:12px;">
+              <div style="font-size:12px;color:#9a9a9a;margin-bottom:6px;">${esc(slot.label)} ${slot.count>1?`<span style="color:#7fbf8f;">(${current.length}/${slot.count})</span>`:''}</div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                ${options.map(o => {
+                  const picked = current.some(p => p.team === o.team);
+                  return `<button class="bb-btn ${picked?'':'ghost'}" data-preseason-pick="${esc(slot.key)}|${esc(o.team)}|${o.odds}|${slot.count}" style="padding:5px 10px;font-size:12px;display:flex;align-items:center;gap:5px;">${teamLogo(o.team,14)}${esc(o.team)} ${formatOdds(o.odds)}</button>`;
+                }).join('')}
+              </div>
+            </div>`;
+        }).join('')}
+      </div>`;
+
+    const winners = PRESEASON_SLOTS.filter(s => s.key.startsWith('winner|'));
+    const relegations = PRESEASON_SLOTS.filter(s => s.key.startsWith('relegated|'));
+    const promotions = PRESEASON_SLOTS.filter(s => s.key.startsWith('promoted|'));
+
+    const confirmBar = `<div class="bb-card" style="position:sticky;bottom:0;display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:1rem;">
+        <span style="font-size:12px;color:#9a9a9a;">${Object.values(state.preseasonPending).flat().length} pick${Object.values(state.preseasonPending).flat().length!==1?'s':''} selected${dirty?' \u2014 not yet saved':''}</span>
+        <button class="bb-btn" id="confirm-preseason-btn" ${dirty?'':'disabled'}>Confirm picks</button>
+      </div>`;
+
+    return intro + adminResultsSection + confirmBar + group('Division winners', winners) + group('Relegation', relegations) + group('Promotion', promotions);
+  }
+
+  // Everyone's confirmed pre-season picks, once the season's started --
+  // same reasoning as the weekly all-tipsters table: no visibility into
+  // others' picks until predictions can no longer be changed, so nobody
+  // can just copy.
+  // Admin-only recording of the actual, final outcome for each slot --
+  // separate UI from a punter's own predictions, but built on the exact
+  // same options list (preseasonSlotOptions) so the two stay in sync
+  // automatically as teams/odds data changes.
+  function renderPreseasonAdminResults(){
+    return `<div class="bb-card" style="margin-bottom:1rem;border:1px solid #ffdd00;">
+        <strong style="font-size:13px;display:block;margin-bottom:8px;color:#ffdd00;">Admin: record final results</strong>
+        <p style="font-size:11px;color:#9a9a9a;margin-bottom:10px;">What actually happened, not a prediction -- this is what every punter's pre-season picks get scored against.</p>
+        ${PRESEASON_SLOTS.map(slot => {
+          const options = preseasonSlotOptions(slot);
+          const current = state.preseasonResults[slot.key] || [];
+          return `<div style="margin-bottom:10px;">
+              <div style="font-size:12px;color:#9a9a9a;margin-bottom:4px;">${esc(slot.label)} ${slot.count>1?`<span style="color:#7fbf8f;">(${current.length}/${slot.count})</span>`:''}</div>
+              <div style="display:flex;flex-wrap:wrap;gap:5px;">
+                ${options.map(o => {
+                  const picked = current.includes(o.team);
+                  return `<button class="bb-btn ${picked?'':'ghost'}" data-final-result="${esc(slot.key)}|${esc(o.team)}|${slot.count}" style="padding:4px 8px;font-size:11px;">${esc(o.team)}</button>`;
+                }).join('')}
+              </div>
+            </div>`;
+        }).join('')}
+      </div>`;
+  }
+
+  async function loadAllPreseasonPicks(){
+    const usernames = await getIndex('bilbbet2_users_index');
+    const allUsers = (await Promise.all(usernames.map(getUser))).filter(Boolean);
+    const users = allUsers.filter(u => !u.isAdmin);
+    const rows = [];
+    for(const u of users){
+      const data = await sget(preseasonStorageKey(u.username));
+      if(!data || !data.picks) continue;
+      const allPicks = Object.values(data.picks).flat();
+      if(allPicks.length) rows.push({ username: u.username, picks: allPicks });
+    }
+    state.preseasonAllPicks = rows;
+    render();
+  }
+  function renderAllPreseasonPicks(){
+    if(state.preseasonAllPicks === undefined || state.preseasonAllPicks === null){
+      loadAllPreseasonPicks();
+      return `<div class="bb-card" style="margin-top:1rem;"><p style="color:#9a9a9a;">Loading everyone's picks&hellip;</p></div>`;
+    }
+    if(!state.preseasonAllPicks.length){
+      return `<div class="bb-card" style="margin-top:1rem;"><p style="color:#9a9a9a;">Nobody confirmed pre-season picks.</p></div>`;
+    }
+    return `<div class="bb-card" style="margin-top:1rem;">
+        <strong style="font-size:13px;">Everyone's picks</strong>
+        <div style="margin-top:8px;">
+          ${state.preseasonAllPicks.map(r => `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #333333;flex-wrap:wrap;">
+              <span style="font-size:12px;width:110px;flex-shrink:0;">${esc(r.username)}</span>
+              <span style="display:flex;gap:6px;flex-wrap:wrap;">${r.picks.map(p => `<span title="${esc(p.team)}">${teamLogo(p.team,22)}</span>`).join('')}</span>
+            </div>`).join('')}
+        </div>
+      </div>`;
+  }
+
   function renderTippingLeaderboard(){
+    const kindBar = `<div style="display:flex;gap:4px;margin-bottom:1rem;">
+        <div class="bb-tab ${state.leaderboardKind==='WEEKLY'?'active':''}" data-leaderboard-kind="WEEKLY" style="font-size:12px;padding:6px 10px;">Weekly tipping</div>
+        <div class="bb-tab ${state.leaderboardKind==='PRESEASON'?'active':''}" data-leaderboard-kind="PRESEASON" style="font-size:12px;padding:6px 10px;">Pre-season</div>
+      </div>`;
+    if(state.leaderboardKind === 'PRESEASON'){
+      return kindBar + renderPreseasonLeaderboard();
+    }
     const lastPlayed = state.currentRound - 1;
     if(lastPlayed < 1){
-      return '<p style="color:#9a9a9a;">No rounds played yet \u2014 check back once Round 1 is done.</p>';
+      return kindBar + '<p style="color:#9a9a9a;">No rounds played yet \u2014 check back once Round 1 is done.</p>';
     }
     const viewRound = state.tippingLeaderboardRound || lastPlayed;
     const controls = `<div class="bb-card" style="margin-bottom:1rem;display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
@@ -1996,10 +2193,10 @@
 
     if(state.tippingLeaderboard === null){
       computeTippingLeaderboard(state.tippingLeaderboardDiv, state.tippingLeaderboardMode, viewRound); // async -- fires off the computation, current render shows a loading state
-      return controls + '<p style="color:#9a9a9a;">Crunching the leaderboard&hellip;</p>';
+      return kindBar + controls + '<p style="color:#9a9a9a;">Crunching the leaderboard&hellip;</p>';
     }
     if(!state.tippingLeaderboard.length){
-      return controls + '<p style="color:#9a9a9a;">No tips resolved yet for this view.</p>';
+      return kindBar + controls + '<p style="color:#9a9a9a;">No tips resolved yet for this view.</p>';
     }
     const byOdds = state.tippingLeaderboard.slice().sort((a,b) => b.oddsPoints - a.oddsPoints).slice(0,10);
     const byCorrect = state.tippingLeaderboard.slice().sort((a,b) => b.correct - a.correct).slice(0,10);
@@ -2007,7 +2204,7 @@
         <span>${i+1}. ${esc(t.username)} <span style="color:#9a9a9a;font-size:11px;">(${t.correct}/${t.total})</span></span>
         <span style="font-weight:600;color:#ffdd00;">${valueFn(t)}</span>
       </div>`).join('');
-    return controls + `<div class="bb-card" style="margin-bottom:1rem;">
+    return kindBar + controls + `<div class="bb-card" style="margin-bottom:1rem;">
         <strong style="font-size:13px;">By odds points</strong>
         <div style="margin-top:6px;">${list(byOdds, t => t.oddsPoints.toFixed(2))}</div>
       </div>
@@ -2383,6 +2580,13 @@
   function renderStatsTab(){
     if(state.statsData === null) return '<p style="color:#9a9a9a;">Loading&hellip;</p>';
     const s = state.statsData;
+    const prefsCard = state.user ? `<div class="bb-card" style="margin-bottom:1.25rem;">
+        <h4 style="margin:0 0 8px;color:#9a9a9a;">Your preferences</h4>
+        <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;cursor:pointer;">
+          <input type="checkbox" id="tip-reminder-toggle" ${state.user.tipReminderEnabled?'checked':''} style="margin-top:2px;"/>
+          <span>Flag it for me on every tab if I haven't submitted my tips for the week.</span>
+        </label>
+      </div>` : '';
     function leaderboard(title, rows, valueFmt){
       if(!rows.length) return `<h4 style="color:#9a9a9a;">${title}</h4><p style="color:#9a9a9a;font-size:13px;">Nothing to show yet.</p>`;
       return `<h4 style="color:#9a9a9a;margin-bottom:6px;">${title}</h4>
@@ -2392,7 +2596,7 @@
           </div>`).join('')}
         </div>`;
     }
-    return '<h3 style="margin-top:0;">Site stats</h3>' +
+    return '<h3 style="margin-top:0;">Site stats</h3>' + prefsCard +
       `<div class="bb-card" style="margin-bottom:1.25rem;display:flex;gap:20px;flex-wrap:wrap;">
         <div><div style="font-size:12px;color:#9a9a9a;">Total clams wagered</div><div style="font-size:18px;font-weight:600;">${fmt(s.totalWagered)}</div></div>
         <div><div style="font-size:12px;color:#9a9a9a;">Bets placed</div><div style="font-size:18px;font-weight:600;">${s.totalBets}</div></div>
@@ -3921,19 +4125,27 @@
         return { reason:'nested', msg: `those two stages for ${np.team} in the same cup aren't independent \u2014 reaching the later one guarantees the earlier one, so combining them just double-dips the same run` };
       }
 
-      // H2H: a favourite's handicap cover strictly implies they won outright. That
-      // makes it NESTED with their own moneyline pick (double-dip, already handled),
-      // but CONTRARY with the other side's moneyline or a draw (literally impossible
-      // together) -- both directions need checking, not just the matching side.
+      // H2H: every result/handicap pick for one fixture (win/draw/lose,
+      // either side's handicap) is derived from the same underlying
+      // simulated score margin -- none of them are genuinely independent
+      // of each other, regardless of which specific two are combined.
+      // Previously only the favourite's handicap was special-cased against
+      // the moneyline (since covering a negative line strictly implies an
+      // outright win) -- but an underdog's handicap cover is just as
+      // correlated with the match result, just not as a strict guarantee,
+      // so it needs blocking too rather than being treated as independent.
+      // Simplest, safest rule: at most one pick per fixture, period.
       if(np.type==='h2h' && ep.type==='h2h' && np.roundTag===ep.roundTag && np.teamA===ep.teamA && np.teamB===ep.teamB){
         const resPick = np.kind==='res' ? np : (ep.kind==='res' ? ep : null);
         const hcapPick = np.kind==='hcap' ? np : (ep.kind==='hcap' ? ep : null);
-        if(resPick && hcapPick && hcapPick.favTag==='fav'){
-          if(resPick.side === hcapPick.side){
+        if(resPick && hcapPick){
+          if(hcapPick.favTag==='fav' && resPick.side === hcapPick.side){
             return { reason:'nested', msg: `covering a favourite's handicap already means they won outright, so pairing that with the moneyline just double-dips the same result` };
-          } else {
-            return { reason:'contrary', msg: `that handicap result requires ${hcapPick.side==='a'?np.teamA||ep.teamA:np.teamB||ep.teamB} to win outright, which rules out your other selection on this match` };
           }
+          return { reason:'contrary', msg: `a result and a handicap pick on the same match aren't independent outcomes \u2014 pick one or the other, not both` };
+        }
+        if(np.kind==='hcap' && ep.kind==='hcap'){
+          return { reason:'contrary', msg: `both sides of the same match's handicap line aren't independent outcomes \u2014 pick one or the other, not both` };
         }
       }
     }
@@ -4051,6 +4263,45 @@
   // in a chosen division is tipped, which pushes those exact picks into
   // the real slip for the punter to optionally place as an actual bet.
   function tipStorageKey(username, round){ return 'bilbbet2_tips_' + username.toLowerCase() + '_R' + round; }
+  function preseasonStorageKey(username){ return 'bilbbet2_preseason_' + username.toLowerCase(); }
+
+  async function loadPreseasonData(){
+    if(!state.user) return;
+    const data = await sget(preseasonStorageKey(state.user.username));
+    state.preseasonData = data || { picks: {} };
+    state.preseasonPending = { ...state.preseasonData.picks }; // working copy, same as weekly tipping -- nothing saves until Confirm
+    render();
+  }
+
+  // Toggles a team in/out of a slot's current selection. Winner slots
+  // (count:1) behave like a radio -- picking a new team replaces the old
+  // one. Multi-team slots (relegation/promotion) behave like a capped
+  // multi-select -- picking toggles membership, up to the slot's count;
+  // once full, picking a new team is a no-op until one is removed.
+  function togglePreseasonPick(slotKey, team, odds, count){
+    const current = state.preseasonPending[slotKey] || [];
+    const already = current.some(p => p.team === team);
+    let next;
+    if(already){
+      next = current.filter(p => p.team !== team);
+    } else if(count === 1){
+      next = [{ team, odds }];
+    } else if(current.length < count){
+      next = [...current, { team, odds }];
+    } else {
+      return; // slot is full -- remove one first
+    }
+    state.preseasonPending = { ...state.preseasonPending, [slotKey]: next };
+    render();
+  }
+
+  async function confirmPreseasonPicks(){
+    if(!state.user) return;
+    state.preseasonData = { picks: { ...state.preseasonPending } };
+    await sset(preseasonStorageKey(state.user.username), state.preseasonData);
+    render();
+  }
+
 
   async function loadTipsForRound(round){
     if(!state.user) return;
@@ -4075,6 +4326,7 @@
     state.tippingData = { round: state.tippingData.round, picks: { ...state.tippingPending } };
     await sset(tipStorageKey(state.user.username, state.tippingRound), state.tippingData);
     render();
+    if(state.tippingRound === state.currentRound) checkTipReminderStatus(); // async, fire-and-forget -- clears the flag right away rather than waiting for the next login
   }
 
   function divisionFixtureCount(div, round){
@@ -4180,6 +4432,24 @@
   // means the reward reliably lands eventually, on whichever visit first
   // catches a round with results in. Safe to re-run every visit: the
   // idempotency key makes already-resolved rounds a single cheap read each.
+  // Opt-in only, and only meaningful while the current round can still be
+  // tipped -- once it's locked there's nothing left to submit, so nagging
+  // about it would just be noise. Checks for ANY confirmed tip anywhere
+  // this round, not per-section, since the flag itself is a general
+  // "you haven't tipped yet" reminder, not scoped to one competition.
+  async function checkTipReminderStatus(){
+    if(!state.user){ state.tipReminderStatus = false; return; }
+    if(!state.user.tipReminderEnabled){ state.tipReminderStatus = false; return; }
+    const round = state.currentRound;
+    if(isRoundBlocked(round)){ state.tipReminderStatus = false; return; }
+    const anyFixturesThisRound = TIPPING_DIVS.some(d => divisionFixtureCount(d, round) > 0);
+    if(!anyFixturesThisRound){ state.tipReminderStatus = false; return; }
+    const data = await sget(tipStorageKey(state.user.username, round));
+    const hasAnyConfirmedTip = !!(data && data.picks && Object.keys(data.picks).length > 0);
+    state.tipReminderStatus = !hasAnyConfirmedTip;
+    render();
+  }
+
   async function checkAndCelebrateReward(){
     if(!state.user) return;
     const lastPlayed = state.currentRound - 1;
@@ -4289,6 +4559,62 @@
       </div>`;
   }
 
+  // Only scores a slot once it's FULLY resolved (the admin has recorded
+  // every one of that slot's expected results) -- a partially-recorded
+  // relegation/promotion slot would otherwise unfairly mark a punter's
+  // still-undetermined picks as wrong just because they haven't been
+  // confirmed yet, rather than genuinely known to be incorrect.
+  async function computePreseasonLeaderboard(){
+    if(state.preseasonResults === null){ state.preseasonResults = (await sget(PRESEASON_RESULTS_KEY)) || {}; }
+    const usernames = await getIndex('bilbbet2_users_index');
+    const allUsers = (await Promise.all(usernames.map(getUser))).filter(Boolean);
+    const users = allUsers.filter(u => !u.isAdmin);
+    const totals = {};
+    for(const u of users){ totals[u.username] = { correct:0, total:0, oddsPoints:0 }; }
+    for(const u of users){
+      const data = await sget(preseasonStorageKey(u.username));
+      if(!data || !data.picks) continue;
+      for(const slot of PRESEASON_SLOTS){
+        const userPicks = data.picks[slot.key] || [];
+        if(!userPicks.length) continue;
+        const actual = state.preseasonResults[slot.key];
+        if(!actual || actual.length < slot.count) continue; // not fully resolved yet
+        for(const pick of userPicks){
+          totals[u.username].total++;
+          if(actual.includes(pick.team)){
+            totals[u.username].correct++;
+            totals[u.username].oddsPoints += pick.odds;
+          }
+        }
+      }
+    }
+    state.preseasonLeaderboard = Object.entries(totals).map(([username,t]) => ({ username, ...t })).filter(t => t.total > 0);
+    render();
+  }
+  function renderPreseasonLeaderboard(){
+    if(state.preseasonLeaderboard === null){
+      computePreseasonLeaderboard(); // async -- fires off the computation, current render shows a loading state
+      return '<p style="color:#9a9a9a;">Crunching the pre-season leaderboard&hellip;</p>';
+    }
+    if(!state.preseasonLeaderboard.length){
+      return '<p style="color:#9a9a9a;">No pre-season slots resolved yet.</p>';
+    }
+    const byOdds = state.preseasonLeaderboard.slice().sort((a,b) => b.oddsPoints - a.oddsPoints).slice(0,10);
+    const byCorrect = state.preseasonLeaderboard.slice().sort((a,b) => b.correct - a.correct).slice(0,10);
+    const list = (arr, valueFn) => arr.map((t,i) => `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #333333;font-size:13px;">
+        <span>${i+1}. ${esc(t.username)} <span style="color:#9a9a9a;font-size:11px;">(${t.correct}/${t.total})</span></span>
+        <span style="font-weight:600;color:#ffdd00;">${valueFn(t)}</span>
+      </div>`).join('');
+    return `<div class="bb-card" style="margin-bottom:1rem;">
+        <strong style="font-size:13px;">By odds points</strong>
+        <div style="margin-top:6px;">${list(byOdds, t => t.oddsPoints.toFixed(2))}</div>
+      </div>
+      <div class="bb-card">
+        <strong style="font-size:13px;">By correct picks</strong>
+        <div style="margin-top:6px;">${list(byCorrect, t => t.correct)}</div>
+      </div>`;
+  }
+
   async function computeTippingLeaderboard(div, mode, throughRound){
     const usernames = await getIndex('bilbbet2_users_index');
     const allUsers = (await Promise.all(usernames.map(getUser))).filter(Boolean);
@@ -4390,6 +4716,21 @@
     if(tosCheckbox) tosCheckbox.onchange = e => { state.tosAgreed = e.target.checked; render(); };
     const tosCheckboxInline = $('#tos-agree-checkbox-inline');
     if(tosCheckboxInline) tosCheckboxInline.onchange = e => { state.tosAgreed = e.target.checked; render(); };
+    const tipReminderCheckbox = $('#tip-reminder-optin-checkbox');
+    if(tipReminderCheckbox) tipReminderCheckbox.onchange = e => { state.tipReminderOptIn = e.target.checked; render(); };
+    const tipReminderToggle = $('#tip-reminder-toggle');
+    if(tipReminderToggle) tipReminderToggle.onchange = async e => {
+      const enabled = e.target.checked;
+      state.user.tipReminderEnabled = enabled; // optimistic, so the checkbox itself doesn't visually revert while saving
+      state.tipReminderStatus = null; // force a fresh check under the new setting
+      render();
+      await withUserLock(state.user.username, async () => {
+        const fresh = await getUser(state.user.username);
+        if(!fresh) return;
+        fresh.tipReminderEnabled = enabled;
+        await saveUser(fresh);
+      });
+    };
     const logoutBtn = $('#logout-btn');
     if(logoutBtn) logoutBtn.onclick = () => { state = {...state, screen:'main', user:null, username:'', pin:'', adminLoginMode:false, registeringMode:false, tosAgreed:false, error:'', info:'', loginModalOpen:false, slip:[], betMode:'multi', activeTab:'HOME', h2hMarket:null, h2hFixtureMarket:null, myBets:null, adminPunters:null, adminBets:null, novelty:null, statsData:null}; render(); };
     const openLoginBtn = $('#open-login-btn'); if(openLoginBtn) openLoginBtn.onclick = () => { state.loginModalOpen = true; state.adminLoginMode=false; state.error=''; state.info=''; render(); };
@@ -4556,6 +4897,19 @@
       setPendingTip(div, parseInt(idxStr, 10), team, parseFloat(oddsStr));
     });
     const confirmTipsBtn = $('#confirm-tips-btn'); if(confirmTipsBtn) confirmTipsBtn.onclick = confirmTips;
+    document.querySelectorAll('[data-preseason-pick]').forEach(el => el.onclick = () => {
+      const parts = el.dataset.preseasonPick.split('|');
+      const [team, oddsStr, countStr] = parts.slice(-3);
+      const slotKey = parts.slice(0, -3).join('|'); // slot.key itself already contains a "|" (e.g. "winner|ELIZA CUP (D1)"), so it can't be split on the same delimiter naively
+      togglePreseasonPick(slotKey, team, parseFloat(oddsStr), parseInt(countStr, 10));
+    });
+    const confirmPreseasonBtn = $('#confirm-preseason-btn'); if(confirmPreseasonBtn) confirmPreseasonBtn.onclick = confirmPreseasonPicks;
+    document.querySelectorAll('[data-final-result]').forEach(el => el.onclick = () => {
+      const parts = el.dataset.finalResult.split('|');
+      const [team, countStr] = parts.slice(-2);
+      const slotKey = parts.slice(0, -2).join('|'); // slot.key itself contains a "|" (e.g. "winner|ELIZA CUP (D1)")
+      toggleFinalResult(slotKey, team, parseInt(countStr, 10));
+    });
     const dismissRewardBtn = $('#dismiss-reward-banner'); if(dismissRewardBtn) dismissRewardBtn.onclick = () => { state.tippingRewardBanner = null; render(); };
     document.querySelectorAll('[data-make-multi]').forEach(el => el.onclick = () => {
       const key = el.dataset.makeMulti;
@@ -4569,6 +4923,11 @@
     document.querySelectorAll('[data-tipping-lb-mode]').forEach(el => el.onclick = () => {
       state.tippingLeaderboardMode = el.dataset.tippingLbMode;
       state.tippingLeaderboard = null;
+      render();
+    });
+    document.querySelectorAll('[data-leaderboard-kind]').forEach(el => el.onclick = () => {
+      state.leaderboardKind = el.dataset.leaderboardKind;
+      state.preseasonLeaderboard = null;
       render();
     });
     const copySlipBtn = $('#copy-slip'); if(copySlipBtn) copySlipBtn.onclick = copySlipToClipboard;
@@ -4909,6 +5268,7 @@
       saveUser(u); // fire-and-forget -- the modal shouldn't wait on this to appear
     }
     render();
+    checkTipReminderStatus(); // async, fire-and-forget -- flag appears on its own re-render once resolved
     // a punter who's genuinely punted before (not brand new) and ended last
     // season under 500 clams gets a little needling on the way in.
     if(u.historicalRecord && u.historicalRecord.totalBets > 0 && (u.dormantCarry||0) < 500){
@@ -4942,8 +5302,8 @@
     // until approval, at which point it's added on top of the usual 1,000
     // registration bonus.
     const u = isFirstEver
-      ? { username, pinHash: simpleHash(pin), balance: 1000, isAdmin: true, status: 'APPROVED', everFunded: true, welcomeSeen: false }
-      : { username, pinHash: simpleHash(pin), balance: 0, isAdmin: false, status: 'PENDING', everFunded: false, welcomeSeen: false,
+      ? { username, pinHash: simpleHash(pin), balance: 1000, isAdmin: true, status: 'APPROVED', everFunded: true, welcomeSeen: false, tipReminderEnabled: state.tipReminderOptIn }
+      : { username, pinHash: simpleHash(pin), balance: 0, isAdmin: false, status: 'PENDING', everFunded: false, welcomeSeen: false, tipReminderEnabled: state.tipReminderOptIn,
           dormantCarry: carryData ? carryData.carry : 0, historicalRecord: carryData ? carryData.historicalRecord : null };
     const saved = await sset('bilbbet2_user:' + username.toLowerCase(), u);
     if(!saved){ state.error='Could not save your account (storage unavailable). Try reloading.'; render(); return; }
