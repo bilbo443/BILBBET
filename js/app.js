@@ -1481,7 +1481,7 @@
         const label = t==='MY BETS'?'My Bets':(t==='ADMIN'?'Admin':(t==='H2H'?'H2H':(t==='HOME'?'Home':(t==='FUTURES'?'Futures':(t==='TIPPING'?'Tipping':t)))));
         const adminFlag = (t==='ADMIN' && state.user && state.user.isAdmin && adminNeedsAttention())
           ? ' <span title="Needs attention" style="font-size:11px;">\u{1F6A9}</span>' : '';
-        const tipFlag = (state.tipReminderStatus === true)
+        const tipFlag = (t==='TIPPING' && state.tipReminderStatus === true)
           ? ' <span title="You haven\'t submitted your tips for this week yet" style="font-size:11px;">\u{1F6A9}</span>' : '';
         return `<div class="bb-tab ${state.activeTab===t?'active':''}" data-tab="${esc(t)}" style="display:flex;align-items:center;gap:5px;">${label}${adminFlag}${tipFlag}</div>`;
       }).join('') +
@@ -1872,7 +1872,7 @@
     const locked = isRoundBlocked(round);
     const viewingPast = round !== state.currentRound;
     const subTabs = `<div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
-        <div class="bb-tab ${state.tippingSubTab==='PICKS'?'active':''}" data-tippingtab="PICKS" style="font-size:12px;padding:6px 10px;">This week's tips</div>
+        <div class="bb-tab ${state.tippingSubTab==='PICKS'?'active':''}" data-tippingtab="PICKS" style="font-size:12px;padding:6px 10px;display:flex;align-items:center;gap:5px;">This week's tips${state.tipReminderStatus===true ? ' <span title="You haven\'t submitted your tips for this week yet" style="font-size:11px;">\u{1F6A9}</span>' : ''}</div>
         <div class="bb-tab ${state.tippingSubTab==='PRESEASON'?'active':''}" data-tippingtab="PRESEASON" style="font-size:12px;padding:6px 10px;">Pre-season</div>
         <div class="bb-tab ${state.tippingSubTab==='LEADERBOARD'?'active':''}" data-tippingtab="LEADERBOARD" style="font-size:12px;padding:6px 10px;">Leaderboard</div>
       </div>`;
@@ -2286,6 +2286,13 @@
 
   function renderMyBetsTab(){
     if(!state.user) return '<p style="color:#9a9a9a;">Log in to see your bets.</p>';
+    const prefsCard = `<div class="bb-card" style="margin-bottom:1rem;">
+        <h4 style="margin:0 0 8px;color:#9a9a9a;">Your preferences</h4>
+        <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;cursor:pointer;">
+          <input type="checkbox" id="tip-reminder-toggle" ${state.user.tipReminderEnabled?'checked':''} style="margin-top:2px;"/>
+          <span>Flag it for me on the Tipping tab if I haven't submitted my tips for the week.</span>
+        </label>
+      </div>`;
     const h = state.user.historicalRecord;
     const careerBox = (h && h.totalBets > 0) ? `
       <div class="bb-card" style="margin-bottom:1rem;">
@@ -2307,9 +2314,9 @@
             <div style="font-size:11px;color:#8a8a8a;">Stake ${fmt(b.stake)} @ ${b.combinedOdds.toFixed(2)} &rarr; won ${fmt(b.potentialReturn)}${b.season?' &mdash; '+esc(b.season):''}</div>
           </div>`).join('')}
       </div>` : '';
-    if(state.myBets === null) return careerBox + legacyBox + '<p style="color:#9a9a9a;">Loading&hellip;</p>';
+    if(state.myBets === null) return prefsCard + careerBox + legacyBox + '<p style="color:#9a9a9a;">Loading&hellip;</p>';
     const bets = state.myBets;
-    if(!bets.length) return careerBox + legacyBox + '<p style="color:#9a9a9a;">No bets placed yet &mdash; head to any market tab and tap an outcome to get started.</p>';
+    if(!bets.length) return prefsCard + careerBox + legacyBox + '<p style="color:#9a9a9a;">No bets placed yet &mdash; head to any market tab and tap an outcome to get started.</p>';
     const pending = bets.filter(b=>(b.status||'PENDING')==='PENDING').length;
     const won = bets.filter(b=>b.status==='WON').length;
     const lost = bets.filter(b=>b.status==='LOST').length;
@@ -2319,7 +2326,7 @@
       if(b.status==='LOST') return s - b.stake;
       return s;   // PENDING and VOID both net to 0 -- VOID refunds the stake, nothing gained or lost
     }, 0);
-    return careerBox + legacyBox + `
+    return prefsCard + careerBox + legacyBox + `
       <div class="bb-card" style="margin-bottom:1rem;display:flex;gap:20px;flex-wrap:wrap;">
         <div><div style="font-size:12px;color:#9a9a9a;">Pending</div><div style="font-size:18px;font-weight:600;">${pending}</div></div>
         <div><div style="font-size:12px;color:#9a9a9a;">Won</div><div style="font-size:18px;font-weight:600;color:#4a9166;">${won}</div></div>
@@ -2580,13 +2587,6 @@
   function renderStatsTab(){
     if(state.statsData === null) return '<p style="color:#9a9a9a;">Loading&hellip;</p>';
     const s = state.statsData;
-    const prefsCard = state.user ? `<div class="bb-card" style="margin-bottom:1.25rem;">
-        <h4 style="margin:0 0 8px;color:#9a9a9a;">Your preferences</h4>
-        <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;cursor:pointer;">
-          <input type="checkbox" id="tip-reminder-toggle" ${state.user.tipReminderEnabled?'checked':''} style="margin-top:2px;"/>
-          <span>Flag it for me on every tab if I haven't submitted my tips for the week.</span>
-        </label>
-      </div>` : '';
     function leaderboard(title, rows, valueFmt){
       if(!rows.length) return `<h4 style="color:#9a9a9a;">${title}</h4><p style="color:#9a9a9a;font-size:13px;">Nothing to show yet.</p>`;
       return `<h4 style="color:#9a9a9a;margin-bottom:6px;">${title}</h4>
@@ -2596,7 +2596,7 @@
           </div>`).join('')}
         </div>`;
     }
-    return '<h3 style="margin-top:0;">Site stats</h3>' + prefsCard +
+    return '<h3 style="margin-top:0;">Site stats</h3>' +
       `<div class="bb-card" style="margin-bottom:1.25rem;display:flex;gap:20px;flex-wrap:wrap;">
         <div><div style="font-size:12px;color:#9a9a9a;">Total clams wagered</div><div style="font-size:18px;font-weight:600;">${fmt(s.totalWagered)}</div></div>
         <div><div style="font-size:12px;color:#9a9a9a;">Bets placed</div><div style="font-size:18px;font-weight:600;">${s.totalBets}</div></div>
@@ -4440,11 +4440,13 @@
   async function checkTipReminderStatus(){
     if(!state.user){ state.tipReminderStatus = false; return; }
     if(!state.user.tipReminderEnabled){ state.tipReminderStatus = false; return; }
+    const myUsername = state.user.username; // captured once -- the session could change while the sget below is in flight
     const round = state.currentRound;
     if(isRoundBlocked(round)){ state.tipReminderStatus = false; return; }
     const anyFixturesThisRound = TIPPING_DIVS.some(d => divisionFixtureCount(d, round) > 0);
     if(!anyFixturesThisRound){ state.tipReminderStatus = false; return; }
-    const data = await sget(tipStorageKey(state.user.username, round));
+    const data = await sget(tipStorageKey(myUsername, round));
+    if(!state.user || state.user.username !== myUsername) return; // a different user is logged in by now -- this result no longer applies to anyone
     const hasAnyConfirmedTip = !!(data && data.picks && Object.keys(data.picks).length > 0);
     state.tipReminderStatus = !hasAnyConfirmedTip;
     render();
@@ -4452,22 +4454,23 @@
 
   async function checkAndCelebrateReward(){
     if(!state.user) return;
+    const myUsername = state.user.username; // captured once -- re-reading state.user.username after each await below would silently track whoever's logged in BY THEN, not who this sweep was actually started for
     const lastPlayed = state.currentRound - 1;
     if(lastPlayed < 1) return;
-    const checkKey = state.user.username.toLowerCase() + '|' + lastPlayed;
+    const checkKey = myUsername.toLowerCase() + '|' + lastPlayed;
     if(state.tippingRewardChecked === checkKey) return; // already swept up through this many completed rounds this session
     state.tippingRewardChecked = checkKey;
     let latestAward = null;
     for(let r = lastPlayed; r >= 1; r--){
       for(const sectionKey of TIP_REWARD_SECTIONS){
         const section = TIPPING_SECTIONS.find(s => s.key === sectionKey);
-        const awarded = await awardPerfectSectionIfEligible(state.user.username, r, section);
+        const awarded = await awardPerfectSectionIfEligible(myUsername, r, section);
         if(awarded) latestAward = { round: r, section };
       }
     }
-    if(latestAward){
-      const fresh = await getUser(state.user.username);
-      if(fresh) state.user = fresh; // reflect the new balance immediately, not just on next login
+    if(latestAward && state.user && state.user.username === myUsername){ // only touch the live session if it's still the same user who earned this
+      const fresh = await getUser(myUsername);
+      if(fresh && state.user && state.user.username === myUsername) state.user = fresh; // re-checked after the second await too, for the same reason
       state.tippingRewardBanner = `\u{1F389} Perfect round for ${latestAward.section.label} (Round ${latestAward.round})! +${TIP_REWARD_AMOUNT} clams.`;
       render();
     }
@@ -4732,7 +4735,7 @@
       });
     };
     const logoutBtn = $('#logout-btn');
-    if(logoutBtn) logoutBtn.onclick = () => { state = {...state, screen:'main', user:null, username:'', pin:'', adminLoginMode:false, registeringMode:false, tosAgreed:false, error:'', info:'', loginModalOpen:false, slip:[], betMode:'multi', activeTab:'HOME', h2hMarket:null, h2hFixtureMarket:null, myBets:null, adminPunters:null, adminBets:null, novelty:null, statsData:null}; render(); };
+    if(logoutBtn) logoutBtn.onclick = () => { state = {...state, screen:'main', user:null, username:'', pin:'', adminLoginMode:false, registeringMode:false, tosAgreed:false, error:'', info:'', loginModalOpen:false, slip:[], betMode:'multi', activeTab:'HOME', h2hMarket:null, h2hFixtureMarket:null, myBets:null, adminPunters:null, adminBets:null, novelty:null, statsData:null, tippingData:null, tippingPending:{}, tippingRound:null, tippingAllPicks:null, tippingLeaderboard:null, tipReminderStatus:null, tippingRewardChecked:null, tippingRewardBanner:null, preseasonData:null, preseasonPending:{}, preseasonAllPicks:null, preseasonLeaderboard:null}; render(); };
     const openLoginBtn = $('#open-login-btn'); if(openLoginBtn) openLoginBtn.onclick = () => { state.loginModalOpen = true; state.adminLoginMode=false; state.error=''; state.info=''; render(); };
     const openTeamSearchBtn = $('#open-team-search-btn'); if(openTeamSearchBtn) openTeamSearchBtn.onclick = () => { state.teamSearchOpen = true; render(); };
     const closeTeamSearchBtn = $('#close-team-search'); if(closeTeamSearchBtn) closeTeamSearchBtn.onclick = () => { state.teamSearchOpen = false; state.teamSearchQuery=''; render(); };
@@ -5241,7 +5244,7 @@
         await addToIndex('bilbbet2_users_index', 'admin');
       }
       state.user = adminUser; state.error=''; state.username=''; state.pin=''; state.adminLoginMode=false; state.screen='main'; state.loginModalOpen=false;
-      state.activeTab='HOME'; state.adminPunters=null; state.adminBets=null; state.novelty=null; state.statsData=null; state.myBets=null;
+      state.activeTab='HOME'; state.adminPunters=null; state.adminBets=null; state.novelty=null; state.statsData=null; state.myBets=null; state.tippingData=null; state.tippingPending={}; state.tippingRound=null; state.tippingAllPicks=null; state.tippingLeaderboard=null; state.tipReminderStatus=null; state.tippingRewardChecked=null; state.tippingRewardBanner=null; state.preseasonData=null; state.preseasonPending={}; state.preseasonAllPicks=null; state.preseasonLeaderboard=null;
       render();
       loadAdminData();  // background load so the attention flag is accurate from the start, not just after visiting Admin
       return;
@@ -5259,7 +5262,7 @@
     if(status === 'REJECTED'){ state.error='Your registration was rejected. Contact the admin if you think that\u2019s a mistake.'; state.username=''; state.pin=''; render(); return; }
     if(status === 'KICKED'){ state.error='Your account has been removed by Bilbbet management. Contact the admin if you think that\u2019s a mistake.'; state.username=''; state.pin=''; render(); return; }
     state.user = u; state.error=''; state.username=''; state.pin=''; state.screen='main'; state.loginModalOpen=false;
-    state.activeTab='HOME'; state.adminPunters=null; state.adminBets=null; state.novelty=null; state.statsData=null; state.myBets=null;
+    state.activeTab='HOME'; state.adminPunters=null; state.adminBets=null; state.novelty=null; state.statsData=null; state.myBets=null; state.tippingData=null; state.tippingPending={}; state.tippingRound=null; state.tippingAllPicks=null; state.tippingLeaderboard=null; state.tipReminderStatus=null; state.tippingRewardChecked=null; state.tippingRewardBanner=null; state.preseasonData=null; state.preseasonPending={}; state.preseasonAllPicks=null; state.preseasonLeaderboard=null;
     // A punter's genuine first successful login, distinct from the pending-
     // approval wait -- shown once, ever, per account.
     if(!u.welcomeSeen){
@@ -5311,7 +5314,7 @@
     state.registeringMode = false; state.tosAgreed = false;
     if(isFirstEver){
       state.user = u; state.error=''; state.username=''; state.pin=''; state.screen='main'; state.loginModalOpen=false;
-      state.activeTab='HOME'; state.adminPunters=null; state.adminBets=null; state.novelty=null; state.statsData=null; state.myBets=null;
+      state.activeTab='HOME'; state.adminPunters=null; state.adminBets=null; state.novelty=null; state.statsData=null; state.myBets=null; state.tippingData=null; state.tippingPending={}; state.tippingRound=null; state.tippingAllPicks=null; state.tippingLeaderboard=null; state.tipReminderStatus=null; state.tippingRewardChecked=null; state.tippingRewardBanner=null; state.preseasonData=null; state.preseasonPending={}; state.preseasonAllPicks=null; state.preseasonLeaderboard=null;
     } else {
       state.username=''; state.pin=''; state.error='';
       state.info = `Registration submitted for ${username} \u2014 an admin needs to approve your account before you can log in and get your starting clams.`;
