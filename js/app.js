@@ -1774,7 +1774,7 @@
   function getFixtureMarkets(div, round){
     const key = div + '|' + round;
     if(!fixtureMarketCache[key]){
-      fixtureMarketCache[key] = H2H_SCHEDULE[div][round-1].map(([a,b]) => computeH2HMarket(a, b, round));
+      fixtureMarketCache[key] = getTippableFixtures(div, round).map(([a,b]) => computeH2HMarket(a, b, round));
     }
     return fixtureMarketCache[key];
   }
@@ -1909,7 +1909,7 @@
 
     const sections = divsWithFixtures.map(div => {
       const fixtures = getTippableFixtures(div, round);
-      const markets = fixtures.map(([a,b]) => computeH2HMarket(a, b, round));
+      const markets = getFixtureMarkets(div, round);
       const rows = fixtures.map(([teamA, teamB], i) => {
         const m = markets[i];
         const aOdds = toOdds(m.aWinPct), bOdds = toOdds(m.bWinPct);
