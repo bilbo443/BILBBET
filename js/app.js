@@ -3899,7 +3899,7 @@
     } else {
       body = `<p style="color:#9a9a9a;">Unknown tab.</p>`;
     }
-    return `<div>${renderStorageWarning()}${header()}${renderTeamSearchPanel()}${mainTabs()}${body}${renderFooter()}</div>${['ADMIN','STATS'].includes(state.activeTab) ? '' : slipBar()}${state.loginModalOpen ? renderLoginModal() : ''}${state.tosModalOpen ? renderTosModal() : ''}${state.readMeModalOpen ? renderReadMeModal() : ''}${state.tutorialModalOpen ? renderTutorialModal() : ''}${state.welcomeModalOpen ? renderWelcomeModal() : ''}${state.formModalOpen ? renderFormModal() : ''}${teamsDatalist()}`;
+    return `<div id="bb-page-content">${renderStorageWarning()}${header()}${renderTeamSearchPanel()}${mainTabs()}${body}${renderFooter()}</div>${['ADMIN','STATS'].includes(state.activeTab) ? '' : slipBar()}${state.loginModalOpen ? renderLoginModal() : ''}${state.tosModalOpen ? renderTosModal() : ''}${state.readMeModalOpen ? renderReadMeModal() : ''}${state.tutorialModalOpen ? renderTutorialModal() : ''}${state.welcomeModalOpen ? renderWelcomeModal() : ''}${state.formModalOpen ? renderFormModal() : ''}${teamsDatalist()}`;
   }
 
   function combinedOdds(){ return combinedOddsFor(state.slip); }
@@ -4857,6 +4857,20 @@
 
   async function attachHandlers(){
     const $ = sel => document.querySelector(sel);
+    // The slip is position:fixed at the bottom, so its height is entirely
+    // outside normal document flow -- without this, a tall slip (many
+    // selections, singles mode, the boost-toggle row all showing at once)
+    // silently overlaps the end of the page underneath it, both visually
+    // and for click purposes, since a fixed element still intercepts
+    // clicks to whatever's beneath it regardless of how it looks. The
+    // selections list itself already caps its own height with internal
+    // scrolling, so this only needs to measure the slip's total rendered
+    // height once per render, not guard against unbounded growth.
+    const pageContent = document.getElementById('bb-page-content');
+    const slipEl = document.querySelector('.bb-slip');
+    if(pageContent){
+      pageContent.style.paddingBottom = slipEl ? (slipEl.offsetHeight + 16) + 'px' : '';
+    }
     // Generic wiring for every teamSearchInput instance on the current
     // page -- filtering happens via direct style.display toggling on the
     // option elements, not a re-render, so typing never loses focus or
