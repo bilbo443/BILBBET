@@ -1255,6 +1255,17 @@
     </div>`;
   }
 
+  // Shown for as long as the season genuinely hasn't started -- the exact
+  // same signal that already gates pre-season predictions and Round 1
+  // itself, so this disappears automatically the moment the season
+  // actually launches rather than needing a separate manual toggle.
+  function renderTestingPhaseDisclaimer(){
+    if(isRoundBlocked(1)) return '';
+    return `<div style="background:#2a2410;color:#e0d090;padding:10px 14px;text-align:center;font-size:13px;border-bottom:2px solid #4a3a10;">
+      \u26A0\uFE0F Testing phase &mdash; odds shown right now aren't final and may change before the season launches. Only bets placed once team rosters are confirmed will count, unless stated otherwise.
+    </div>`;
+  }
+
   // A thick divider ribbon for separating two adjacent sections (e.g. a
   // control row from the content below it) -- distinct from bb-div-stripe,
   // which specifically marks a competition/division by its own colour.
@@ -3899,7 +3910,7 @@
     } else {
       body = `<p style="color:#9a9a9a;">Unknown tab.</p>`;
     }
-    return `<div id="bb-page-content">${renderStorageWarning()}${header()}${renderTeamSearchPanel()}${mainTabs()}${body}${renderFooter()}</div>${['ADMIN','STATS'].includes(state.activeTab) ? '' : slipBar()}${state.loginModalOpen ? renderLoginModal() : ''}${state.tosModalOpen ? renderTosModal() : ''}${state.readMeModalOpen ? renderReadMeModal() : ''}${state.tutorialModalOpen ? renderTutorialModal() : ''}${state.welcomeModalOpen ? renderWelcomeModal() : ''}${state.formModalOpen ? renderFormModal() : ''}${teamsDatalist()}`;
+    return `<div id="bb-page-content">${renderStorageWarning()}${renderTestingPhaseDisclaimer()}${header()}${renderTeamSearchPanel()}${mainTabs()}${body}${renderFooter()}</div>${['ADMIN','STATS'].includes(state.activeTab) ? '' : slipBar()}${state.loginModalOpen ? renderLoginModal() : ''}${state.tosModalOpen ? renderTosModal() : ''}${state.readMeModalOpen ? renderReadMeModal() : ''}${state.tutorialModalOpen ? renderTutorialModal() : ''}${state.welcomeModalOpen ? renderWelcomeModal() : ''}${state.formModalOpen ? renderFormModal() : ''}${teamsDatalist()}`;
   }
 
   function combinedOdds(){ return combinedOddsFor(state.slip); }
@@ -4888,7 +4899,15 @@
       input.addEventListener('focus', () => { filterOptions(); dropdown.style.display = 'block'; });
       input.addEventListener('input', () => { filterOptions(); dropdown.style.display = 'block'; });
       options.forEach(opt => {
-        opt.onclick = () => {
+        // mousedown, not click -- on mobile Safari specifically, tapping a
+        // non-input element while a different input still has focus can
+        // fire a blur/keyboard-dismiss on that input BEFORE the click ever
+        // registers on the actual target, silently eating the first tap
+        // entirely (the second tap then works normally, since focus has
+        // already moved off). mousedown fires earlier in that sequence,
+        // before the blur-driven swallow happens, so it isn't affected.
+        opt.onmousedown = e => {
+          e.preventDefault(); // also stops the input's blur from stealing this interaction
           input.value = opt.dataset.teamOption;
           dropdown.style.display = 'none';
           input.dispatchEvent(new Event('change', { bubbles: true })); // reuses each call site's own existing onchange handler unmodified
