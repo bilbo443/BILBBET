@@ -1926,9 +1926,6 @@
   const TIP_REWARD_AMOUNT = 50;
 
   function renderTippingTab(){
-    if(!state.user){
-      return `<div class="bb-card" style="text-align:center;padding:2rem 1rem;color:#9a9a9a;">Log in to make your tips.</div>`;
-    }
     const round = state.tippingViewRound || state.currentRound;
     const locked = isRoundBlocked(round);
     const viewingPast = round !== state.currentRound;
@@ -1962,8 +1959,18 @@
       </div>` : '';
 
     if(!state.tippingData || state.tippingData.round !== round){
-      loadTipsForRound(round); // async -- fires off the fetch, current render shows a brief loading state
-      return subTabs + intro + roundBrowser + '<p style="color:#9a9a9a;">Loading tips&hellip;</p>';
+      if(!state.user){
+        // Nothing personal to fetch for a guest -- set this up synchronously
+        // rather than calling loadTipsForRound, which requires state.user
+        // and would otherwise leave this check permanently true (an
+        // infinite "Loading tips..." state) since it would return before
+        // ever populating tippingData.
+        state.tippingData = { round, picks: {} };
+        state.tippingPending = {};
+      } else {
+        loadTipsForRound(round); // async -- fires off the fetch, current render shows a brief loading state
+        return subTabs + intro + roundBrowser + '<p style="color:#9a9a9a;">Loading tips&hellip;</p>';
+      }
     }
 
     checkAndCelebrateReward(); // async, fire-and-forget -- sweeps all past rounds' qualifying sections; the current round's own open/locked state doesn't matter here
@@ -2109,13 +2116,21 @@
   function renderPreseasonTab(){
     const locked = isRoundBlocked(1);
     if(!state.preseasonData){
-      loadPreseasonData(); // async -- fires off the fetch, current render shows a brief loading state
-      return '<p style="color:#9a9a9a;">Loading your pre-season picks&hellip;</p>';
+      if(!state.user){
+        // Nothing personal to fetch for a guest -- same reasoning as the
+        // weekly tipping tab: calling loadPreseasonData would require
+        // state.user and leave this permanently stuck loading otherwise.
+        state.preseasonData = { picks: {} };
+        state.preseasonPending = {};
+      } else {
+        loadPreseasonData(); // async -- fires off the fetch, current render shows a brief loading state
+        return '<p style="color:#9a9a9a;">Loading your pre-season picks&hellip;</p>';
+      }
     }
     const intro = `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">One-time, season-long predictions \u2014 for fun, not clams. ${locked ? 'Locked now that the season has started.' : 'Locks the moment Round 1 kicks off, so get your picks in before then.'}</p>`;
 
-    const adminResultsSection = (state.user.isAdmin && state.preseasonResults !== null) ? renderPreseasonAdminResults() : '';
-    if(state.user.isAdmin && state.preseasonResults === null){
+    const adminResultsSection = (state.user && state.user.isAdmin && state.preseasonResults !== null) ? renderPreseasonAdminResults() : '';
+    if(state.user && state.user.isAdmin && state.preseasonResults === null){
       loadPreseasonResults(); // async -- fires off the fetch, current render just skips this section until it's ready
     }
 
@@ -3445,6 +3460,12 @@
   }
 
   function surpriseMe(){
+    if(!state.user){
+      alert('You must log in first to place a bet.');
+      state.loginModalOpen = true;
+      render();
+      return;
+    }
     let list, tagPrefix;
     if(state.activeTab === 'FUTURES' && state.futuresSubTab === 'RODDY'){
       list = FUTURES.roddy[state.futureMarketTab];
@@ -5196,11 +5217,23 @@
       render();
     };
     document.querySelectorAll('[data-tip-radio]').forEach(el => el.onchange = () => {
+      if(!state.user){
+        alert('You must log in first to submit a tip.');
+        state.loginModalOpen = true;
+        render(); // snaps the radio back to its real (unchecked) state -- the browser already visually toggled it before onchange fired
+        return;
+      }
       const [div, idxStr, side, team, oddsStr] = el.dataset.tipRadio.split('|');
       setPendingTip(div, parseInt(idxStr, 10), team, parseFloat(oddsStr));
     });
     const confirmTipsBtn = $('#confirm-tips-btn'); if(confirmTipsBtn) confirmTipsBtn.onclick = confirmTips;
     document.querySelectorAll('[data-preseason-pick]').forEach(el => el.onclick = () => {
+      if(!state.user){
+        alert('You must log in first to submit a tip.');
+        state.loginModalOpen = true;
+        render();
+        return;
+      }
       const parts = el.dataset.preseasonPick.split('|');
       const [team, oddsStr, countStr] = parts.slice(-3);
       const slotKey = parts.slice(0, -3).join('|'); // slot.key itself already contains a "|" (e.g. "winner|ELIZA CUP (D1)"), so it can't be split on the same delimiter naively
