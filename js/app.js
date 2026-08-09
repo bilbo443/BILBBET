@@ -311,13 +311,13 @@
     specialsSelection: { win_round: '', lose_round: '', charity: '', philanthropy: '' },
     specialsSubTab: 'round',
     teamSearchOpen: false, teamSearchQuery: '',
-    registeringMode: false, customNameMode: false, tipReminderOptIn: false,
+    registeringMode: false, customNameMode: false, tipReminderOptIn: true,
     tosModalOpen: false, tosMode: 'view', tosAgreed: false, readMeModalOpen: false,
     tutorialModalOpen: false, tutorialStep: 0, welcomeModalOpen: false,
     formModalOpen: false, formModalTeam: null,
     tippingSubTab: 'PICKS', tippingSection: 'ELIZA', tippingRound: null, tippingViewRound: null, tippingData: null, tippingPending: {}, tippingAllPicks: null,
     tippingRewardChecked: null, tippingRewardBanner: null, tipReminderStatus: null,
-    preseasonData: null, preseasonPending: {}, preseasonLeaderboard: null, preseasonResults: null, preseasonAllPicks: null,
+    preseasonData: null, preseasonPending: {}, preseasonLeaderboard: null, preseasonResults: null, preseasonAllPicks: null, openHelpTip: null, homeTippingNudge: null,
     tippingLeaderboardDiv: 'ALL', tippingLeaderboardMode: 'OVERALL', tippingLeaderboardRound: null, tippingLeaderboard: null, leaderboardKind: 'WEEKLY',
     cupFixtures: { 'FA CUP': [], 'ECL': [] },
     cupFixtureMarket: null,
@@ -1111,6 +1111,7 @@
         <div style="font-size:12px;letter-spacing:0.08em;color:#ffdd00;text-transform:uppercase;font-weight:700;">This week's boosted odds</div>
         <div style="font-size:12px;color:#9a9a9a;margin-top:4px;">Every pick below is +${Math.round((FEATURED_BOOST_MULTIPLIER-1)*100)}% on the normal price \u2014 just for being featured.</div>
       </div>
+      ${renderTippingNudgeCard()}
       ${renderPointProjection(state.currentRound)}
       <h3 style="margin-top:0;">Featured fixtures</h3>
       ${fixtureCards}
@@ -1187,11 +1188,36 @@
     </div>`;
   }
 
-  function teamsDatalist(){
-    return `<datalist id="bb-teams-list">${ALL_TEAMS.map(t => `<option value="${esc(t)}">`).join('')}</datalist>`;
+  // Tap-to-reveal explanation for a term that might trip up a newer
+  // punter -- deliberately not a native title-attribute tooltip, since
+  // those don't show reliably on tap for a primarily mobile audience.
+  function helpTip(id, text){
+    const open = state.openHelpTip === id;
+    return `<span style="position:relative;display:inline-block;">
+        <span data-helptip="${esc(id)}" style="cursor:pointer;color:#9a9a9a;font-size:10px;border:1px solid #5a5a5a;border-radius:50%;width:14px;height:14px;display:inline-flex;align-items:center;justify-content:center;margin-left:4px;vertical-align:middle;">?</span>
+        ${open ? `<span data-helptip-panel style="position:absolute;top:18px;left:0;z-index:70;background:#2a2a2a;border:1px solid #3d3d3d;border-radius:6px;padding:8px 10px;font-size:11px;font-weight:400;color:#cfcfcf;width:200px;box-shadow:0 4px 10px rgba(0,0,0,0.4);">${esc(text)}</span>` : ''}
+      </span>`;
   }
+
+  function teamsDatalist(){
+    return ''; // kept as a no-op call site rather than removing every caller -- the native datalist dropdown is replaced by teamSearchInput's own custom one below
+  }
+  // A custom, scrollable suggestion list rather than the native HTML
+  // datalist -- datalist's browser-rendered dropdown is unstyleable and,
+  // with 60+ teams, often clunky and slow to scroll on mobile. This
+  // filters via direct DOM manipulation as you type (not a re-render),
+  // so typing never loses cursor position or gets interrupted. Clicking a
+  // suggestion dispatches a real 'change' event on the input, so every
+  // existing onchange handler across the app's 11 call sites keeps
+  // working completely unmodified.
   function teamSearchInput(id, currentValue, placeholder){
-    return `<input class="bb-input" type="text" list="bb-teams-list" id="${id}" value="${esc(currentValue||'')}" placeholder="${esc(placeholder||'Search for a team\u2026')}" autocomplete="off"/>`;
+    const listId = id + '-dropdown';
+    return `<div style="position:relative;">
+      <input class="bb-input" type="text" id="${id}" value="${esc(currentValue||'')}" placeholder="${esc(placeholder||'Search for a team\u2026')}" autocomplete="off" data-team-dropdown="${listId}" style="width:100%;box-sizing:border-box;"/>
+      <div id="${listId}" class="bb-team-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;max-height:200px;overflow-y:auto;background:#2a2a2a;border:1px solid #3d3d3d;border-radius:6px;z-index:60;margin-top:2px;box-shadow:0 4px 10px rgba(0,0,0,0.4);">
+        ${ALL_TEAMS.map(t => `<div class="bb-team-option" data-team-option="${esc(t)}" data-option-for="${id}" style="padding:8px 12px;cursor:pointer;font-size:13px;">${esc(t)}</div>`).join('')}
+      </div>
+    </div>`;
   }
   // Normalises free-typed text against the real team list (case-insensitive),
   // since a datalist lets someone type past what they picked from suggestions.
@@ -1404,7 +1430,7 @@
               </label>
               <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;">
                 <input type="checkbox" id="tip-reminder-optin-checkbox" ${state.tipReminderOptIn?'checked':''} style="margin-top:2px;"/>
-                <span>Flag it for me on every tab if I haven't submitted my tips for the week. <span style="color:#9a9a9a;">(Turn on or off anytime from Stats.)</span></span>
+                <span>Flag it for me on the Tipping tab if I haven't submitted my tips for the week. <span style="color:#9a9a9a;">(On by default \u2014 turn off anytime from My Bets.)</span></span>
               </label>` : ''}
             ${state.error ? `<div style="color:#c0604f;font-size:13px;">${esc(state.error)}</div>` : ''}
             ${state.info ? `<div style="color:#7fbf8f;font-size:13px;">${esc(state.info)}</div>` : ''}
@@ -1743,7 +1769,7 @@
       ${row('H2H|res-a|'+roundTag+'|'+m.teamA+'|'+m.teamB, 'R'+m.round+': '+m.teamA+' to win', m.aWinPct, winOdds.a)}
       ${row('H2H|res-draw|'+roundTag+'|'+m.teamA+'|'+m.teamB, 'R'+m.round+': Draw', m.drawPct, winOdds.draw)}
       ${row('H2H|res-b|'+roundTag+'|'+m.teamA+'|'+m.teamB, 'R'+m.round+': '+m.teamB+' to win', m.bWinPct, winOdds.b)}
-      <h4 style="margin:14px 0 8px;font-size:13px;color:#9a9a9a;">Handicap</h4>
+      <h4 style="margin:14px 0 8px;font-size:13px;color:#9a9a9a;">Handicap${helpTip('handicap', 'A virtual head start or deficit applied to level the odds \u2014 pick a team to "cover the line," meaning win by more than (or lose by less than) the handicap.')}</h4>
       ${row('H2H|hcap-a-'+(m.line>=0?'fav':'dog')+'|'+roundTag+'|'+m.teamA+'|'+m.teamB, 'R'+m.round+': '+m.teamA+' '+(m.line>=0?'-':'+')+Math.abs(m.line).toFixed(1), m.aCoversPct, hcapOdds.a)}
       ${row('H2H|hcap-b-'+(m.line>=0?'dog':'fav')+'|'+roundTag+'|'+m.teamA+'|'+m.teamB, 'R'+m.round+': '+m.teamB+' '+(m.line>=0?'+':'-')+Math.abs(m.line).toFixed(1), m.bCoversPct, hcapOdds.b)}
     </div>`;
@@ -2205,7 +2231,7 @@
         <span style="font-weight:600;color:#ffdd00;">${valueFn(t)}</span>
       </div>`).join('');
     return kindBar + controls + `<div class="bb-card" style="margin-bottom:1rem;">
-        <strong style="font-size:13px;">By odds points</strong>
+        <strong style="font-size:13px;">By odds points${helpTip('oddspoints', 'Each correct tip scores what a 1-clam bet on that pick would have paid, based on its odds at the time \u2014 so an upset tip is worth more than a favourite.')}</strong>
         <div style="margin-top:6px;">${list(byOdds, t => t.oddsPoints.toFixed(2))}</div>
       </div>
       <div class="bb-card">
@@ -4185,7 +4211,7 @@
         <strong style="font-size:13px;">${state.slip.length} selection${state.slip.length>1?'s':''}</strong>
         <span style="display:flex;gap:6px;align-items:center;">
           <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:#9a9a9a;cursor:pointer;">
-            <input type="checkbox" id="toggle-implied-chance" ${state.showImpliedChance?'checked':''}/> Implied %
+            <input type="checkbox" id="toggle-implied-chance" ${state.showImpliedChance?'checked':''}/> Implied %${helpTip('implied', 'The odds converted into a rough win chance \u2014 e.g. odds of 2.00 mean roughly a 50% implied chance.')}
           </label>
           <button class="bb-btn ghost" id="copy-slip" style="padding:4px 10px;font-size:12px;">Copy slip</button>
           <button class="bb-btn ghost" id="clear-slip" style="padding:4px 10px;font-size:12px;">Clear</button>
@@ -4443,6 +4469,50 @@
   // about it would just be noise. Checks for ANY confirmed tip anywhere
   // this round, not per-section, since the flag itself is a general
   // "you haven't tipped yet" reminder, not scoped to one competition.
+  // Unlike checkTipReminderStatus, this is never gated by the opt-in
+  // reminder preference -- it's about surfacing that tipping and
+  // pre-season predictions EXIST at all to someone who might not have
+  // found the tab yet, not a nag for people who already know.
+  async function checkHomeTippingNudge(){
+    if(!state.user){ state.homeTippingNudge = { showWeekly: false, showPreseason: false }; return; }
+    const myUsername = state.user.username; // captured once -- the session could change while the awaits below are in flight
+    const round = state.currentRound;
+    let showWeekly = false, showPreseason = false;
+    if(!isRoundBlocked(round)){
+      const anyFixturesThisRound = TIPPING_DIVS.some(d => divisionFixtureCount(d, round) > 0);
+      if(anyFixturesThisRound){
+        const data = await sget(tipStorageKey(myUsername, round));
+        if(!state.user || state.user.username !== myUsername) return; // a different user is logged in by now
+        showWeekly = !(data && data.picks && Object.keys(data.picks).length > 0);
+      }
+    }
+    if(!isRoundBlocked(1)){
+      const data2 = await sget(preseasonStorageKey(myUsername));
+      if(!state.user || state.user.username !== myUsername) return;
+      showPreseason = !(data2 && data2.picks && Object.keys(data2.picks).length > 0);
+    }
+    state.homeTippingNudge = { showWeekly, showPreseason };
+    render();
+  }
+  function renderTippingNudgeCard(){
+    if(!state.user) return '';
+    if(state.homeTippingNudge === null){
+      checkHomeTippingNudge(); // async, fire-and-forget -- card appears on its own re-render once resolved
+      return '';
+    }
+    const n = state.homeTippingNudge;
+    if(!n.showWeekly && !n.showPreseason) return '';
+    const msg = n.showWeekly && n.showPreseason
+      ? "Get your weekly tips and pre-season predictions in \u2014 free to play, just for bragging rights."
+      : n.showWeekly
+        ? "Haven't tipped this week's fixtures yet? Takes a minute, free to play."
+        : "Pre-season predictions are still open \u2014 get your picks in before Round 1 kicks off.";
+    return `<div class="bb-card" data-tab="TIPPING" style="margin-bottom:16px;cursor:pointer;display:flex;align-items:center;gap:10px;">
+        <span style="font-size:20px;">\u{1F3AF}</span>
+        <div><div style="font-weight:600;font-size:13px;">${esc(msg)}</div><div style="font-size:11px;color:#9a9a9a;margin-top:2px;">Tap to open Tipping \u2192</div></div>
+      </div>`;
+  }
+
   async function checkTipReminderStatus(){
     if(!state.user){ state.tipReminderStatus = false; return; }
     if(!state.user.tipReminderEnabled){ state.tipReminderStatus = false; return; }
@@ -4615,7 +4685,7 @@
         <span style="font-weight:600;color:#ffdd00;">${valueFn(t)}</span>
       </div>`).join('');
     return `<div class="bb-card" style="margin-bottom:1rem;">
-        <strong style="font-size:13px;">By odds points</strong>
+        <strong style="font-size:13px;">By odds points${helpTip('oddspoints', 'Each correct tip scores what a 1-clam bet on that pick would have paid, based on its odds at the time \u2014 so an upset tip is worth more than a favourite.')}</strong>
         <div style="margin-top:6px;">${list(byOdds, t => t.oddsPoints.toFixed(2))}</div>
       </div>
       <div class="bb-card">
@@ -4664,6 +4734,58 @@
 
   async function attachHandlers(){
     const $ = sel => document.querySelector(sel);
+    // Generic wiring for every teamSearchInput instance on the current
+    // page -- filtering happens via direct style.display toggling on the
+    // option elements, not a re-render, so typing never loses focus or
+    // cursor position mid-keystroke.
+    document.querySelectorAll('[data-team-dropdown]').forEach(input => {
+      const dropdown = document.getElementById(input.dataset.teamDropdown);
+      if(!dropdown) return;
+      const options = dropdown.querySelectorAll('[data-team-option]');
+      const filterOptions = () => {
+        const q = input.value.trim().toLowerCase();
+        options.forEach(opt => {
+          opt.style.display = (!q || opt.dataset.teamOption.toLowerCase().includes(q)) ? 'block' : 'none';
+        });
+      };
+      input.addEventListener('focus', () => { filterOptions(); dropdown.style.display = 'block'; });
+      input.addEventListener('input', () => { filterOptions(); dropdown.style.display = 'block'; });
+      options.forEach(opt => {
+        opt.onclick = () => {
+          input.value = opt.dataset.teamOption;
+          dropdown.style.display = 'none';
+          input.dispatchEvent(new Event('change', { bubbles: true })); // reuses each call site's own existing onchange handler unmodified
+        };
+      });
+    });
+    // Bound once ever, not on every render -- document/window persist
+    // across renders (only the inner DOM gets replaced), so a fresh
+    // listener each time would silently accumulate duplicates.
+    if(!window.__teamDropdownOutsideClickBound){
+      window.__teamDropdownOutsideClickBound = true;
+      document.addEventListener('click', (e) => {
+        document.querySelectorAll('.bb-team-dropdown').forEach(dd => {
+          const ownerInput = document.getElementById(dd.id.replace(/-dropdown$/, ''));
+          if(e.target !== ownerInput && !dd.contains(e.target)) dd.style.display = 'none';
+        });
+      });
+    }
+    document.querySelectorAll('[data-helptip]').forEach(el => el.onclick = e => {
+      e.stopPropagation();
+      state.openHelpTip = state.openHelpTip === el.dataset.helptip ? null : el.dataset.helptip;
+      render();
+    });
+    if(!window.__helpTipOutsideClickBound){
+      window.__helpTipOutsideClickBound = true;
+      document.addEventListener('click', (e) => {
+        const onToggle = e.target.dataset && e.target.dataset.helptip;
+        const onPanel = e.target.closest && e.target.closest('[data-helptip-panel]');
+        if(state.openHelpTip && !onToggle && !onPanel){
+          state.openHelpTip = null;
+          render();
+        }
+      });
+    }
     const fUser = $('#f-user');
     if(fUser){
       fUser.oninput = e => { state.username = e.target.value; state.adminLoginMode = false; };
@@ -4683,7 +4805,7 @@
     const registerBtn = $('#register-submit');
     if(registerBtn) registerBtn.onclick = () => { state.registeringMode = true; state.error=''; render(); };
     const backFromRegisterBtn = $('#back-from-register');
-    if(backFromRegisterBtn) backFromRegisterBtn.onclick = () => { state.registeringMode = false; state.customNameMode = false; state.tosAgreed = false; state.error=''; render(); };
+    if(backFromRegisterBtn) backFromRegisterBtn.onclick = () => { state.registeringMode = false; state.customNameMode = false; state.tosAgreed = false; state.tipReminderOptIn = true; state.error=''; render(); };
     const confirmRegisterBtn = $('#confirm-register-submit');
     if(confirmRegisterBtn) confirmRegisterBtn.onclick = doRegister;
     const openTosRegisterLink = $('#open-tos-register');
@@ -4742,7 +4864,7 @@
       });
     };
     const logoutBtn = $('#logout-btn');
-    if(logoutBtn) logoutBtn.onclick = () => { state = {...state, screen:'main', user:null, username:'', pin:'', adminLoginMode:false, registeringMode:false, tosAgreed:false, error:'', info:'', loginModalOpen:false, slip:[], betMode:'multi', activeTab:'HOME', h2hMarket:null, h2hFixtureMarket:null, myBets:null, adminPunters:null, adminBets:null, novelty:null, statsData:null, tippingData:null, tippingPending:{}, tippingRound:null, tippingAllPicks:null, tippingLeaderboard:null, tipReminderStatus:null, tippingRewardChecked:null, tippingRewardBanner:null, preseasonData:null, preseasonPending:{}, preseasonAllPicks:null, preseasonLeaderboard:null}; render(); };
+    if(logoutBtn) logoutBtn.onclick = () => { state = {...state, screen:'main', user:null, username:'', pin:'', adminLoginMode:false, registeringMode:false, tosAgreed:false, error:'', info:'', loginModalOpen:false, slip:[], betMode:'multi', activeTab:'HOME', h2hMarket:null, h2hFixtureMarket:null, myBets:null, adminPunters:null, adminBets:null, novelty:null, statsData:null, tippingData:null, tippingPending:{}, tippingRound:null, tippingAllPicks:null, tippingLeaderboard:null, tipReminderStatus:null, tippingRewardChecked:null, tippingRewardBanner:null, preseasonData:null, preseasonPending:{}, preseasonAllPicks:null, preseasonLeaderboard:null, homeTippingNudge:null}; render(); };
     const openLoginBtn = $('#open-login-btn'); if(openLoginBtn) openLoginBtn.onclick = () => { state.loginModalOpen = true; state.adminLoginMode=false; state.error=''; state.info=''; render(); };
     const openTeamSearchBtn = $('#open-team-search-btn'); if(openTeamSearchBtn) openTeamSearchBtn.onclick = () => { state.teamSearchOpen = true; render(); };
     const closeTeamSearchBtn = $('#close-team-search'); if(closeTeamSearchBtn) closeTeamSearchBtn.onclick = () => { state.teamSearchOpen = false; state.teamSearchQuery=''; render(); };
@@ -5253,7 +5375,7 @@
         await addToIndex('bilbbet2_users_index', 'admin');
       }
       state.user = adminUser; state.error=''; state.username=''; state.pin=''; state.adminLoginMode=false; state.screen='main'; state.loginModalOpen=false;
-      state.activeTab='HOME'; state.adminPunters=null; state.adminBets=null; state.novelty=null; state.statsData=null; state.myBets=null; state.tippingData=null; state.tippingPending={}; state.tippingRound=null; state.tippingAllPicks=null; state.tippingLeaderboard=null; state.tipReminderStatus=null; state.tippingRewardChecked=null; state.tippingRewardBanner=null; state.preseasonData=null; state.preseasonPending={}; state.preseasonAllPicks=null; state.preseasonLeaderboard=null;
+      state.activeTab='HOME'; state.adminPunters=null; state.adminBets=null; state.novelty=null; state.statsData=null; state.myBets=null; state.tippingData=null; state.tippingPending={}; state.tippingRound=null; state.tippingAllPicks=null; state.tippingLeaderboard=null; state.tipReminderStatus=null; state.tippingRewardChecked=null; state.tippingRewardBanner=null; state.preseasonData=null; state.preseasonPending={}; state.preseasonAllPicks=null; state.preseasonLeaderboard=null; state.homeTippingNudge=null;
       render();
       loadAdminData();  // background load so the attention flag is accurate from the start, not just after visiting Admin
       return;
@@ -5271,7 +5393,7 @@
     if(status === 'REJECTED'){ state.error='Your registration was rejected. Contact the admin if you think that\u2019s a mistake.'; state.username=''; state.pin=''; render(); return; }
     if(status === 'KICKED'){ state.error='Your account has been removed by Bilbbet management. Contact the admin if you think that\u2019s a mistake.'; state.username=''; state.pin=''; render(); return; }
     state.user = u; state.error=''; state.username=''; state.pin=''; state.screen='main'; state.loginModalOpen=false;
-    state.activeTab='HOME'; state.adminPunters=null; state.adminBets=null; state.novelty=null; state.statsData=null; state.myBets=null; state.tippingData=null; state.tippingPending={}; state.tippingRound=null; state.tippingAllPicks=null; state.tippingLeaderboard=null; state.tipReminderStatus=null; state.tippingRewardChecked=null; state.tippingRewardBanner=null; state.preseasonData=null; state.preseasonPending={}; state.preseasonAllPicks=null; state.preseasonLeaderboard=null;
+    state.activeTab='HOME'; state.adminPunters=null; state.adminBets=null; state.novelty=null; state.statsData=null; state.myBets=null; state.tippingData=null; state.tippingPending={}; state.tippingRound=null; state.tippingAllPicks=null; state.tippingLeaderboard=null; state.tipReminderStatus=null; state.tippingRewardChecked=null; state.tippingRewardBanner=null; state.preseasonData=null; state.preseasonPending={}; state.preseasonAllPicks=null; state.preseasonLeaderboard=null; state.homeTippingNudge=null;
     // A punter's genuine first successful login, distinct from the pending-
     // approval wait -- shown once, ever, per account.
     if(!u.welcomeSeen){
@@ -5323,7 +5445,7 @@
     state.registeringMode = false; state.tosAgreed = false;
     if(isFirstEver){
       state.user = u; state.error=''; state.username=''; state.pin=''; state.screen='main'; state.loginModalOpen=false;
-      state.activeTab='HOME'; state.adminPunters=null; state.adminBets=null; state.novelty=null; state.statsData=null; state.myBets=null; state.tippingData=null; state.tippingPending={}; state.tippingRound=null; state.tippingAllPicks=null; state.tippingLeaderboard=null; state.tipReminderStatus=null; state.tippingRewardChecked=null; state.tippingRewardBanner=null; state.preseasonData=null; state.preseasonPending={}; state.preseasonAllPicks=null; state.preseasonLeaderboard=null;
+      state.activeTab='HOME'; state.adminPunters=null; state.adminBets=null; state.novelty=null; state.statsData=null; state.myBets=null; state.tippingData=null; state.tippingPending={}; state.tippingRound=null; state.tippingAllPicks=null; state.tippingLeaderboard=null; state.tipReminderStatus=null; state.tippingRewardChecked=null; state.tippingRewardBanner=null; state.preseasonData=null; state.preseasonPending={}; state.preseasonAllPicks=null; state.preseasonLeaderboard=null; state.homeTippingNudge=null;
     } else {
       state.username=''; state.pin=''; state.error='';
       state.info = `Registration submitted for ${username} \u2014 an admin needs to approve your account before you can log in and get your starting clams.`;
