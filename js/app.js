@@ -317,7 +317,7 @@
     formModalOpen: false, formModalTeam: null,
     tippingSubTab: 'PICKS', tippingSection: 'ELIZA', tippingRound: null, tippingViewRound: null, tippingData: null, tippingPending: {}, tippingAllPicks: null,
     tippingRewardChecked: null, tippingRewardBanner: null, tipReminderStatus: null,
-    preseasonData: null, preseasonPending: {}, preseasonLeaderboard: null, preseasonResults: null, preseasonAllPicks: null, openHelpTip: null, homeTippingNudge: null,
+    preseasonData: null, preseasonPending: {}, preseasonLeaderboard: null, preseasonResults: null, preseasonAllPicks: null, openHelpTip: null, homeTippingNudge: null, txHistory: null, txHistoryExpanded: false,
     tippingLeaderboardDiv: 'ALL', tippingLeaderboardMode: 'OVERALL', tippingLeaderboardRound: null, tippingLeaderboard: null, leaderboardKind: 'WEEKLY',
     cupFixtures: { 'FA CUP': [], 'ECL': [] },
     cupFixtureMarket: null,
@@ -510,6 +510,19 @@
   }
   async function getIndex(name){ return (await sget(name)) || []; }
   async function addToIndex(name, id){ const list = await getIndex(name); if(!list.includes(id)){ list.push(id); await sset(name, list); } }
+  // Every balance change, across every source (bets, admin adjustments,
+  // registration bonus, tip rewards) -- so a punter has one place to see
+  // the full, honest history of why their balance is what it is, not just
+  // the bet-shaped subset "My Bets" shows. Mirrors the exact index+record
+  // pattern already used for bets, for the same reason: an append-only
+  // list of individually-keyed records avoids ever re-writing a growing
+  // shared blob, so two balance changes landing close together can't
+  // race and silently overwrite each other's log entry.
+  async function logTransaction(username, type, amount, balanceAfter, reason){
+    const tx = { id: uid(), username, type, amount, balanceAfter, reason, timestamp: Date.now() };
+    await sset('bilbbet2_tx:' + tx.id, tx);
+    await addToIndex('bilbbet2_tx_index_' + username.toLowerCase(), tx.id);
+  }
   async function getUser(u){ return await sget('bilbbet2_user:' + u.toLowerCase()); }
   // Serializes any read-modify-write sequence on the SAME user's record,
   // regardless of which function initiates it. Found via testing: a punter
@@ -2311,6 +2324,27 @@
     return `<span class="bb-pill" style="background:${bg};color:${fg};">${status.toLowerCase()}</span>`;
   }
 
+  const TX_TYPE_LABELS = {
+    BET_PLACED: '\u{1F3B2}', BET_STATUS_CHANGE: '\u2696\uFE0F', TIP_REWARD: '\u{1F3AF}',
+    REGISTRATION_BONUS: '\u{1F381}', ADMIN_ADJUSTMENT: '\u{1F6E0}\uFE0F',
+  };
+  function renderTxHistoryList(){
+    if(state.txHistory === null){
+      loadTxHistory(); // async -- fires off the fetch, current render shows a brief loading state
+      return `<p style="color:#9a9a9a;font-size:13px;margin-top:8px;">Loading&hellip;</p>`;
+    }
+    if(!state.txHistory.length){
+      return `<p style="color:#9a9a9a;font-size:13px;margin-top:8px;">Nothing here yet.</p>`;
+    }
+    const recent = state.txHistory.slice(0, 30);
+    return `<div style="margin-top:8px;">
+        ${recent.map(tx => `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #333333;font-size:12px;">
+            <span style="display:flex;align-items:center;gap:6px;color:#cfcfcf;">${TX_TYPE_LABELS[tx.type]||'\u2022'} ${esc(tx.reason)}</span>
+            <span style="font-weight:600;color:${tx.amount>=0?'#7fbf8f':'#e08a8a'};white-space:nowrap;margin-left:8px;">${tx.amount>=0?'+':''}${fmt(tx.amount)}</span>
+          </div>`).join('')}
+      </div>`;
+  }
+
   function renderMyBetsTab(){
     if(!state.user) return '<p style="color:#9a9a9a;">Log in to see your bets.</p>';
     const prefsCard = `<div class="bb-card" style="margin-bottom:1rem;">
@@ -2319,6 +2353,13 @@
           <input type="checkbox" id="tip-reminder-toggle" ${state.user.tipReminderEnabled?'checked':''} style="margin-top:2px;"/>
           <span>Flag it for me on the Tipping tab if I haven't submitted my tips for the week.</span>
         </label>
+      </div>`;
+    const txCard = `<div class="bb-card" style="margin-bottom:1rem;">
+        <div data-toggle-tx-history style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+          <h4 style="margin:0;color:#9a9a9a;">Balance history</h4>
+          <span style="font-size:12px;color:#9a9a9a;">${state.txHistoryExpanded?'Hide \u25B4':'Show \u25BE'}</span>
+        </div>
+        ${state.txHistoryExpanded ? renderTxHistoryList() : ''}
       </div>`;
     const h = state.user.historicalRecord;
     const careerBox = (h && h.totalBets > 0) ? `
@@ -2341,9 +2382,9 @@
             <div style="font-size:11px;color:#8a8a8a;">Stake ${fmt(b.stake)} @ ${b.combinedOdds.toFixed(2)} &rarr; won ${fmt(b.potentialReturn)}${b.season?' &mdash; '+esc(b.season):''}</div>
           </div>`).join('')}
       </div>` : '';
-    if(state.myBets === null) return prefsCard + careerBox + legacyBox + '<p style="color:#9a9a9a;">Loading&hellip;</p>';
+    if(state.myBets === null) return prefsCard + txCard + careerBox + legacyBox + '<p style="color:#9a9a9a;">Loading&hellip;</p>';
     const bets = state.myBets;
-    if(!bets.length) return prefsCard + careerBox + legacyBox + '<p style="color:#9a9a9a;">No bets placed yet &mdash; head to any market tab and tap an outcome to get started.</p>';
+    if(!bets.length) return prefsCard + txCard + careerBox + legacyBox + '<p style="color:#9a9a9a;">No bets placed yet &mdash; head to any market tab and tap an outcome to get started.</p>';
     const pending = bets.filter(b=>(b.status||'PENDING')==='PENDING').length;
     const won = bets.filter(b=>b.status==='WON').length;
     const lost = bets.filter(b=>b.status==='LOST').length;
@@ -2353,7 +2394,7 @@
       if(b.status==='LOST') return s - b.stake;
       return s;   // PENDING and VOID both net to 0 -- VOID refunds the stake, nothing gained or lost
     }, 0);
-    return prefsCard + careerBox + legacyBox + `
+    return prefsCard + txCard + careerBox + legacyBox + `
       <div class="bb-card" style="margin-bottom:1rem;display:flex;gap:20px;flex-wrap:wrap;">
         <div><div style="font-size:12px;color:#9a9a9a;">Pending</div><div style="font-size:18px;font-weight:600;">${pending}</div></div>
         <div><div style="font-size:12px;color:#9a9a9a;">Won</div><div style="font-size:18px;font-weight:600;color:#4a9166;">${won}</div></div>
@@ -3317,6 +3358,7 @@
       if(!u) return;
       u.balance += delta;
       await saveUser(u);
+      await logTransaction(username, 'ADMIN_ADJUSTMENT', delta, u.balance, `Balance ${delta>0?'increased':'decreased'} by an admin`);
       if(state.user.username.toLowerCase() === username.toLowerCase()) state.user = u;
     });
     await loadAdminData();
@@ -3353,8 +3395,13 @@
       if(!fresh) return null;
       fresh.status = newStatus;
       if(newStatus === 'APPROVED' && !fresh.everFunded){
-        fresh.balance += 1000 + (fresh.dormantCarry || 0);
+        const carry = fresh.dormantCarry || 0;
+        const bonus = 1000 + carry;
+        fresh.balance += bonus;
         fresh.everFunded = true;
+        await saveUser(fresh);
+        await logTransaction(username, 'REGISTRATION_BONUS', bonus, fresh.balance, carry > 0 ? `Registration bonus (1,000 + ${carry} carried over from last season)` : 'Registration bonus');
+        return fresh;
       }
       await saveUser(fresh);
       return fresh;
@@ -3446,8 +3493,8 @@
       if(prevStatus === newStatus) return;
       const u = await getUser(bet.username);
       if(u){
-        u.balance -= settlementCredit(prevStatus, bet);
-        u.balance += settlementCredit(newStatus, bet);
+        const delta = settlementCredit(newStatus, bet) - settlementCredit(prevStatus, bet);
+        u.balance += delta;
         // A void means "as if this bet never happened" -- so if it had
         // used this round's featured pick or free multi-boost, that
         // allowance needs to come back too, not stay silently spent on a
@@ -3464,6 +3511,9 @@
           }
         }
         await saveUser(u);
+        if(delta !== 0){
+          await logTransaction(bet.username, 'BET_STATUS_CHANGE', delta, u.balance, `Bet ${newStatus.toLowerCase()} (was ${prevStatus.toLowerCase()})`);
+        }
         if(state.user.username.toLowerCase() === bet.username.toLowerCase()) state.user = u;
       }
       bet.status = newStatus;
@@ -3520,9 +3570,11 @@
       if(statusChanged || bonusNeedsClawback || bonusNewlyEarned){
         const u = await getUser(bet.username);
         if(u){
+          let delta = 0;
+          const reasonParts = [];
           if(statusChanged){
-            u.balance -= settlementCredit(prevOverall, bet);
-            u.balance += settlementCredit(newOverall, bet);
+            delta += settlementCredit(newOverall, bet) - settlementCredit(prevOverall, bet);
+            reasonParts.push(`Bet leg resolved (now ${newOverall.toLowerCase()})`);
             if(newOverall === 'VOID'){
               if(bet.featuredPickRound && u.featuredPickUsedRound === bet.featuredPickRound){
                 u.featuredPickUsedRound = null;
@@ -3533,15 +3585,21 @@
             }
           }
           if(bonusNeedsClawback){
-            u.balance -= bet.stake;
+            delta -= bet.stake;
             u.nearMissBonusUsed = false;
             bet.nearMissBonusAwarded = false;
+            reasonParts.push('near-miss bonus clawed back');
           } else if(bonusNewlyEarned && !u.nearMissBonusUsed){
-            u.balance += bet.stake;
+            delta += bet.stake;
             u.nearMissBonusUsed = true;
             bet.nearMissBonusAwarded = true;
+            reasonParts.push('near-miss bonus awarded');
           }
+          u.balance += delta;
           await saveUser(u);
+          if(delta !== 0){
+            await logTransaction(bet.username, 'BET_STATUS_CHANGE', delta, u.balance, reasonParts.join(', '));
+          }
           if(state.user && state.user.username.toLowerCase() === bet.username.toLowerCase()) state.user = u;
         }
         bet.status = newOverall;
@@ -4281,6 +4339,21 @@
     render();
   }
 
+  async function loadTxHistory(){
+    const myUsername = state.user.username; // captured once -- state.user could change while the fetch below is in flight
+    const ids = await getIndex('bilbbet2_tx_index_' + myUsername.toLowerCase());
+    const txs = (await Promise.all(ids.map(id => sget('bilbbet2_tx:'+id)))).filter(Boolean);
+    if(!state.user || state.user.username !== myUsername) return; // a different user is logged in now -- this result no longer applies to anyone
+    // ids (and therefore txs) are in insertion order -- used as a tiebreaker
+    // when two entries share an identical millisecond timestamp, so a later
+    // insertion still reliably sorts as more recent even then.
+    state.txHistory = txs
+      .map((tx, i) => ({ tx, i }))
+      .sort((a,b) => (b.tx.timestamp - a.tx.timestamp) || (b.i - a.i))
+      .map(x => x.tx);
+    render();
+  }
+
   // ---- Tipping competition: a separate, for-fun prediction game layered
   // on top of the same fixtures and results the real betting system
   // already uses. Scoring has two tracks: a straight correct-tip tally,
@@ -4450,6 +4523,7 @@
       if(!fresh) return;
       fresh.balance += TIP_REWARD_AMOUNT;
       await saveUser(fresh);
+      await logTransaction(username, 'TIP_REWARD', TIP_REWARD_AMOUNT, fresh.balance, `Perfect round \u2014 ${section.label} (Round ${round})`);
       await sset(key, true);
       awarded = true;
     });
@@ -4912,8 +4986,10 @@
         await saveUser(fresh);
       });
     };
+    const toggleTxHistory = $('[data-toggle-tx-history]');
+    if(toggleTxHistory) toggleTxHistory.onclick = () => { state.txHistoryExpanded = !state.txHistoryExpanded; render(); };
     const logoutBtn = $('#logout-btn');
-    if(logoutBtn) logoutBtn.onclick = () => { state = {...state, screen:'main', user:null, username:'', pin:'', adminLoginMode:false, registeringMode:false, tosAgreed:false, error:'', info:'', loginModalOpen:false, slip:[], betMode:'multi', activeTab:'HOME', h2hMarket:null, h2hFixtureMarket:null, myBets:null, adminPunters:null, adminBets:null, novelty:null, statsData:null, tippingData:null, tippingPending:{}, tippingRound:null, tippingAllPicks:null, tippingLeaderboard:null, tipReminderStatus:null, tippingRewardChecked:null, tippingRewardBanner:null, preseasonData:null, preseasonPending:{}, preseasonAllPicks:null, preseasonLeaderboard:null, homeTippingNudge:null}; render(); };
+    if(logoutBtn) logoutBtn.onclick = () => { state = {...state, screen:'main', user:null, username:'', pin:'', adminLoginMode:false, registeringMode:false, tosAgreed:false, error:'', info:'', loginModalOpen:false, slip:[], betMode:'multi', activeTab:'HOME', h2hMarket:null, h2hFixtureMarket:null, myBets:null, adminPunters:null, adminBets:null, novelty:null, statsData:null, tippingData:null, tippingPending:{}, tippingRound:null, tippingAllPicks:null, tippingLeaderboard:null, tipReminderStatus:null, tippingRewardChecked:null, tippingRewardBanner:null, preseasonData:null, preseasonPending:{}, preseasonAllPicks:null, preseasonLeaderboard:null, homeTippingNudge:null, txHistory:null}; render(); };
     const openLoginBtn = $('#open-login-btn'); if(openLoginBtn) openLoginBtn.onclick = () => { state.loginModalOpen = true; state.adminLoginMode=false; state.error=''; state.info=''; render(); };
     const openTeamSearchBtn = $('#open-team-search-btn'); if(openTeamSearchBtn) openTeamSearchBtn.onclick = () => { state.teamSearchOpen = true; render(); };
     const closeTeamSearchBtn = $('#close-team-search'); if(closeTeamSearchBtn) closeTeamSearchBtn.onclick = () => { state.teamSearchOpen = false; state.teamSearchQuery=''; render(); };
@@ -5327,6 +5403,8 @@
         if(boostApplied) fresh.boostUsedRound = state.currentRound;
         if(hasFeatured) fresh.featuredPickUsedRound = state.currentRound;
         await saveUser(fresh);
+        await logTransaction(myUsername, 'BET_PLACED', -stake, fresh.balance,
+          slipSnapshot.length === 1 ? `Bet placed: ${slipSnapshot[0].label}` : `Bet placed: ${slipSnapshot.length}-leg multi`);
         return fresh;
       });
       if(u === null){
@@ -5380,6 +5458,7 @@
         fresh.balance -= totalStake;
         if(hasFeatured) fresh.featuredPickUsedRound = state.currentRound;
         await saveUser(fresh);
+        await logTransaction(myUsername, 'BET_PLACED', -totalStake, fresh.balance, `Placed ${slipSnapshot.length} single bet${slipSnapshot.length!==1?'s':''}`);
         return fresh;
       });
       if(u === null){
@@ -5424,7 +5503,7 @@
         await addToIndex('bilbbet2_users_index', 'admin');
       }
       state.user = adminUser; state.error=''; state.username=''; state.pin=''; state.adminLoginMode=false; state.screen='main'; state.loginModalOpen=false;
-      state.activeTab='HOME'; state.adminPunters=null; state.adminBets=null; state.novelty=null; state.statsData=null; state.myBets=null; state.tippingData=null; state.tippingPending={}; state.tippingRound=null; state.tippingAllPicks=null; state.tippingLeaderboard=null; state.tipReminderStatus=null; state.tippingRewardChecked=null; state.tippingRewardBanner=null; state.preseasonData=null; state.preseasonPending={}; state.preseasonAllPicks=null; state.preseasonLeaderboard=null; state.homeTippingNudge=null;
+      state.activeTab='HOME'; state.adminPunters=null; state.adminBets=null; state.novelty=null; state.statsData=null; state.myBets=null; state.tippingData=null; state.tippingPending={}; state.tippingRound=null; state.tippingAllPicks=null; state.tippingLeaderboard=null; state.tipReminderStatus=null; state.tippingRewardChecked=null; state.tippingRewardBanner=null; state.preseasonData=null; state.preseasonPending={}; state.preseasonAllPicks=null; state.preseasonLeaderboard=null; state.homeTippingNudge=null; state.txHistory=null;
       render();
       loadAdminData();  // background load so the attention flag is accurate from the start, not just after visiting Admin
       return;
@@ -5442,7 +5521,7 @@
     if(status === 'REJECTED'){ state.error='Your registration was rejected. Contact the admin if you think that\u2019s a mistake.'; state.username=''; state.pin=''; render(); return; }
     if(status === 'KICKED'){ state.error='Your account has been removed by Bilbbet management. Contact the admin if you think that\u2019s a mistake.'; state.username=''; state.pin=''; render(); return; }
     state.user = u; state.error=''; state.username=''; state.pin=''; state.screen='main'; state.loginModalOpen=false;
-    state.activeTab='HOME'; state.adminPunters=null; state.adminBets=null; state.novelty=null; state.statsData=null; state.myBets=null; state.tippingData=null; state.tippingPending={}; state.tippingRound=null; state.tippingAllPicks=null; state.tippingLeaderboard=null; state.tipReminderStatus=null; state.tippingRewardChecked=null; state.tippingRewardBanner=null; state.preseasonData=null; state.preseasonPending={}; state.preseasonAllPicks=null; state.preseasonLeaderboard=null; state.homeTippingNudge=null;
+    state.activeTab='HOME'; state.adminPunters=null; state.adminBets=null; state.novelty=null; state.statsData=null; state.myBets=null; state.tippingData=null; state.tippingPending={}; state.tippingRound=null; state.tippingAllPicks=null; state.tippingLeaderboard=null; state.tipReminderStatus=null; state.tippingRewardChecked=null; state.tippingRewardBanner=null; state.preseasonData=null; state.preseasonPending={}; state.preseasonAllPicks=null; state.preseasonLeaderboard=null; state.homeTippingNudge=null; state.txHistory=null;
     // A punter's genuine first successful login, distinct from the pending-
     // approval wait -- shown once, ever, per account.
     if(!u.welcomeSeen){
@@ -5494,7 +5573,7 @@
     state.registeringMode = false; state.tosAgreed = false;
     if(isFirstEver){
       state.user = u; state.error=''; state.username=''; state.pin=''; state.screen='main'; state.loginModalOpen=false;
-      state.activeTab='HOME'; state.adminPunters=null; state.adminBets=null; state.novelty=null; state.statsData=null; state.myBets=null; state.tippingData=null; state.tippingPending={}; state.tippingRound=null; state.tippingAllPicks=null; state.tippingLeaderboard=null; state.tipReminderStatus=null; state.tippingRewardChecked=null; state.tippingRewardBanner=null; state.preseasonData=null; state.preseasonPending={}; state.preseasonAllPicks=null; state.preseasonLeaderboard=null; state.homeTippingNudge=null;
+      state.activeTab='HOME'; state.adminPunters=null; state.adminBets=null; state.novelty=null; state.statsData=null; state.myBets=null; state.tippingData=null; state.tippingPending={}; state.tippingRound=null; state.tippingAllPicks=null; state.tippingLeaderboard=null; state.tipReminderStatus=null; state.tippingRewardChecked=null; state.tippingRewardBanner=null; state.preseasonData=null; state.preseasonPending={}; state.preseasonAllPicks=null; state.preseasonLeaderboard=null; state.homeTippingNudge=null; state.txHistory=null;
     } else {
       state.username=''; state.pin=''; state.error='';
       state.info = `Registration submitted for ${username} \u2014 an admin needs to approve your account before you can log in and get your starting clams.`;
