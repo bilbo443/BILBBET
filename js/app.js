@@ -1107,6 +1107,7 @@
     }
 
     return `
+      ${renderHomeDigest()}
       <div class="bb-card" style="background:linear-gradient(135deg,#2a2410,#1a1a1a);border-color:#4a3a10;margin-bottom:16px;text-align:center;padding:1.25rem;">
         <div style="font-size:12px;letter-spacing:0.08em;color:#ffdd00;text-transform:uppercase;font-weight:700;">This week's boosted odds</div>
         <div style="font-size:12px;color:#9a9a9a;margin-top:4px;">Every pick below is +${Math.round((FEATURED_BOOST_MULTIPLIER-1)*100)}% on the normal price \u2014 just for being featured.</div>
@@ -4494,6 +4495,54 @@
     state.homeTippingNudge = { showWeekly, showPreseason };
     render();
   }
+  // Personal, time-sensitive summary for the top of Home -- the countdown
+  // piece only shows when the listed kickoff date is genuinely still in
+  // the future (real dates from round_dates.json, not fabricated), since
+  // a negative/past countdown would look broken rather than informative.
+  function renderHomeDigest(){
+    if(!state.user) return '';
+    if(state.myBets === null){
+      loadMyBets(); // reuses the exact same cache My Bets itself populates
+      return '';
+    }
+    const pending = state.myBets.filter(b => b.status === 'PENDING');
+    const resolved = state.myBets.filter(b => b.status === 'WON' || b.status === 'LOST').sort((a,b) => b.timestamp - a.timestamp);
+    const mostRecent = resolved[0];
+
+    let roundPiece = '';
+    if(!isRoundBlocked(state.currentRound)){
+      const kickoffStr = ROUND_DATES[String(state.currentRound)];
+      if(kickoffStr){
+        const daysLeft = Math.ceil((new Date(kickoffStr + 'T00:00:00Z').getTime() - Date.now()) / (1000*60*60*24));
+        if(daysLeft > 0){
+          roundPiece = `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;">
+              <span style="font-size:16px;">\u{1F4C5}</span>
+              <span style="font-size:13px;">Round ${state.currentRound} kicks off in ${daysLeft} day${daysLeft!==1?'s':''}</span>
+            </div>`;
+        }
+      }
+    }
+
+    const pendingTotal = pending.reduce((s,b) => s + b.potentialReturn, 0);
+    const pendingPiece = pending.length
+      ? `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;">
+          <span style="font-size:16px;">\u23F3</span>
+          <span style="font-size:13px;">${pending.length} pending bet${pending.length!==1?'s':''} \u2014 <span style="color:#ffdd00;font-weight:600;">${fmt(pendingTotal)}</span> potential return</span>
+        </div>` : '';
+
+    const recentPiece = mostRecent
+      ? `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;">
+          <span style="font-size:16px;">${mostRecent.status==='WON'?'\u2705':'\u274C'}</span>
+          <span style="font-size:13px;">Your last bet ${mostRecent.status==='WON'?'won':'lost'}${mostRecent.status==='WON'?` \u2014 <span style="color:#ffdd00;font-weight:600;">${fmt(mostRecent.potentialReturn)}</span>`:''}</span>
+        </div>` : '';
+
+    const pieces = [roundPiece, pendingPiece, recentPiece].filter(Boolean);
+    if(!pieces.length) return '';
+    // Borders between pieces only, not after the last one
+    const withBorders = pieces.map((p,i) => i<pieces.length-1 ? p.replace('padding:8px 0;', 'padding:8px 0;border-bottom:1px solid #333333;') : p);
+    return `<div class="bb-card" style="margin-bottom:16px;">${withBorders.join('')}</div>`;
+  }
+
   function renderTippingNudgeCard(){
     if(!state.user) return '';
     if(state.homeTippingNudge === null){
