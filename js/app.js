@@ -4729,7 +4729,7 @@
   // ECL, FA Cup) and a combined one (Div 2 A+B, Div 3 A+B) identically --
   // and, for the "entire field" option, every section at once.
   function makeMultiFromTips(divs, stake){
-    if(!state.tippingData) return; // defensive -- shouldn't be reachable via the UI (the button only renders once data's loaded), but don't crash if it somehow is
+    if(!state.user || !state.tippingData) return; // defensive -- shouldn't be reachable via the UI (the button only renders once tips are confirmed, which itself requires login), but don't crash or silently proceed if it somehow is
     const round = state.tippingRound;
     stake = stake || 10;
     let added = 0, skipped = 0;
