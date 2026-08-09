@@ -1817,16 +1817,26 @@
     const kind = FUTURE_DIVS.includes(t) ? 'division' : 'competition';
     return logoBadge(kind, t, 16) + ' ';
   }
+  // Deliberately two separate rows -- not just flex-wrap letting items
+  // spill onto a second line however screen width happens to allow, but a
+  // fixed, consistent split: division competitions always together on
+  // their own row, side competitions (Roddy, FA Cup, ECL, Playoffs,
+  // Custom matchup) always together on theirs, regardless of viewport.
+  function twoRowTabBar(row1Items, row2Items, renderItem){
+    const row = (items, isLast) => items.length
+      ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:${isLast?'14px':'8px'};">${items.map(renderItem).join('')}</div>`
+      : '';
+    return row(row1Items, !row2Items.length) + row(row2Items, true);
+  }
+
   function h2hSubTabBar(){
-    return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">' +
-      H2H_SUBTABS.map(t => `<div class="bb-tab ${state.h2hSubTab===t?'active':''}" data-h2hsubtab="${esc(t)}" style="font-size:12px;padding:6px 10px;display:flex;align-items:center;gap:4px;">${subTabLogo(t)}${t==='CUSTOM MATCHUP'?'Custom matchup':(t==='PLAYOFFS'?'Playoffs':t.replace(' (D1)',''))}</div>`).join('') +
-      '</div>';
+    const renderItem = t => `<div class="bb-tab ${state.h2hSubTab===t?'active':''}" data-h2hsubtab="${esc(t)}" style="font-size:12px;padding:6px 10px;display:flex;align-items:center;gap:4px;">${subTabLogo(t)}${t==='CUSTOM MATCHUP'?'Custom matchup':(t==='PLAYOFFS'?'Playoffs':t.replace(' (D1)',''))}</div>`;
+    return twoRowTabBar(FUTURE_DIVS, ['FA CUP', 'ECL', 'PLAYOFFS', 'CUSTOM MATCHUP'], renderItem);
   }
   const FUTURES_SUBTABS = [...FUTURE_DIVS, 'RODDY', 'FA CUP', 'ECL'];
   function futuresSubTabBar(){
-    return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">' +
-      FUTURES_SUBTABS.map(t => `<div class="bb-tab ${state.futuresSubTab===t?'active '+divColorClass(t):''}" data-futuressubtab="${esc(t)}" style="font-size:12px;padding:6px 10px;display:flex;align-items:center;gap:4px;">${subTabLogo(t)}${t==='RODDY'?'The Roddy':t.replace(' (D1)','')}</div>`).join('') +
-      '</div>';
+    const renderItem = t => `<div class="bb-tab ${state.futuresSubTab===t?'active '+divColorClass(t):''}" data-futuressubtab="${esc(t)}" style="font-size:12px;padding:6px 10px;display:flex;align-items:center;gap:4px;">${subTabLogo(t)}${t==='RODDY'?'The Roddy':t.replace(' (D1)','')}</div>`;
+    return twoRowTabBar(FUTURE_DIVS, ['RODDY', 'FA CUP', 'ECL'], renderItem);
   }
 
   const fixtureMarketCache = {};
@@ -1960,9 +1970,12 @@
 
     // Section sub-tabs -- shown in both the open and locked states, so
     // navigation stays consistent either way.
-    const sectionBar = `<div style="display:flex;gap:6px;margin-bottom:1rem;flex-wrap:wrap;">
-        ${TIPPING_SECTIONS.map(s => `<div class="bb-tab ${state.tippingSection===s.key?'active':''}" data-tipping-section="${s.key}" style="font-size:12px;padding:6px 10px;">${esc(s.label)}</div>`).join('')}
-      </div>`;
+    const renderSectionItem = s => `<div class="bb-tab ${state.tippingSection===s.key?'active':''}" data-tipping-section="${s.key}" style="font-size:12px;padding:6px 10px;">${esc(s.label)}</div>`;
+    const sectionBar = twoRowTabBar(
+      TIPPING_SECTIONS.filter(s => ['ELIZA','DIV2','DIV3'].includes(s.key)),
+      TIPPING_SECTIONS.filter(s => ['ECL','FACUP'].includes(s.key)),
+      renderSectionItem
+    );
     const activeSection = TIPPING_SECTIONS.find(s => s.key === state.tippingSection) || TIPPING_SECTIONS[0];
 
     if(locked){
