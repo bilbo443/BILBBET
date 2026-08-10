@@ -1325,7 +1325,7 @@
     { tab: 'HOME', title: 'Home', body: 'Your starting point each visit. A handful of featured picks are boosted for the round (extra odds, one per punter per round), alongside the A-League fantasy point projection and the best-value bet that actually won last round.' },
     { tab: 'FUTURES', title: 'Futures', body: 'Season-long bets that only settle at the end of the season -- who wins each division, gets promoted or relegated, tops the Roddy, or lifts the FA Cup or ECL. Use the sub-tabs to switch between divisions and competitions.' },
     { tab: 'H2H', title: 'H2H', body: 'Head-to-head bets for a specific round\'s fixtures -- who wins, the draw, and handicap lines. Switch between divisions, FA Cup, ECL, Playoffs, or set up a custom matchup between any two teams yourself.' },
-    { tab: 'TIPPING', title: 'Tipping', body: 'A separate, for-fun prediction game -- no clams involved. Tip a winner for this week\'s fixtures across whichever competitions you like, hit Confirm to lock them in, and see how you stack up on the leaderboard by correct picks or by the odds those picks were worth. Get every fixture in a section right and you can turn those same tips into a real multi bet, or just enjoy the bragging rights.' },
+    { tab: 'TIPPING', title: 'Tipping', body: 'A separate prediction game alongside the main betting \u2014 free to play, but topping it pays real clams (see the Prizes tab for the full breakdown). Tip a winner for this week\'s fixtures across whichever competitions you like, hit Confirm to lock them in, and see how you stack up on the leaderboard by correct picks, by the odds those picks were worth, or by accuracy. Get every fixture in a section right and you can turn those same tips into a real multi bet, or just enjoy the bragging rights.' },
     { tab: 'SPECIALS', title: 'Specials', body: 'Round-by-round and season-long novelty bets -- who\'ll be leading or trailing after a given round, most charity, most philanthropy, plus a spot to suggest your own bet for others to weigh in on.' },
     { tab: 'STATS', title: 'Stats', body: 'Leaderboards across the platform -- biggest stakes, best multis, most wins, and (once a handful of rounds are played) which teams are consistently beating or missing their own odds.' },
     { tab: 'MY BETS', title: 'My Bets', body: 'Every bet you\'ve placed, with its current status -- pending, won, lost, or void -- and your running record across the season.' },
@@ -2217,7 +2217,7 @@
         return '<p style="color:#9a9a9a;">Loading your pre-season picks&hellip;</p>';
       }
     }
-    const intro = `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">One-time, season-long predictions \u2014 for fun, not clams. ${locked ? 'Locked now that the season has started.' : 'Locks the moment Round 1 kicks off, so get your picks in before then.'}</p>`;
+    const intro = `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">One-time, season-long predictions \u2014 free to enter, but genuinely pays real clams (see the Prizes tab for the full breakdown). ${locked ? 'Locked now that the season has started.' : 'Locks the moment Round 1 kicks off, so get your picks in before then.'}</p>`;
 
     const adminResultsSection = (state.user && state.user.isAdmin && state.preseasonResults !== null) ? renderPreseasonAdminResults() : '';
     if(state.user && state.user.isAdmin && state.preseasonResults === null){
@@ -2361,7 +2361,13 @@
         `Example: the combined season is flagged closed and you lead all three categories \u2014 ${SEASONAL_OVERALL_REWARD_AMOUNT*3} clams.`) +
       prizeCard('Mr Median', 'Same as a normal week',
         `Div 2 and Div 3's Round 1 has no real fixtures, so instead of picking a winner, you pick whether each of the 24 combined-tier teams' own score beats that week's tier median \u2014 "Mr Median." Scored exactly like any other week: get at least 12 of your picks right and it counts as a perfect round (${TIP_REWARD_AMOUNT} clams); it also counts toward that week's leaderboard prizes the same as any other round.`,
-        `Example: you pick 12 teams, all 12 beat the median \u2014 ${TIP_REWARD_AMOUNT} clams, same as a perfect round anywhere else.`);
+        `Example: you pick 12 teams, all 12 beat the median \u2014 ${TIP_REWARD_AMOUNT} clams, same as a perfect round anywhere else.`) +
+      prizeCard('Pre-season pick', `${PRESEASON_PICK_REWARD_AMOUNT} clams each`,
+        `${PRESEASON_PICK_REWARD_AMOUNT} clams for every single pre-season prediction that comes in correct \u2014 not a leaderboard placement, so a correct division-winner pick, a correct relegation pick, and a correct promotion pick all pay independently and separately. Multi-team slots (relegation, promotion) only pay once that slot is fully, officially resolved.`,
+        `Example: you correctly predict the Eliza Cup winner AND one of the four relegated teams \u2014 ${PRESEASON_PICK_REWARD_AMOUNT*2} clams (${PRESEASON_PICK_REWARD_AMOUNT} each), even though the other three relegation spots are still unknown.`) +
+      prizeCard('Pre-season leaderboard', `${PRESEASON_LEADERBOARD_REWARD_AMOUNT} clams each side`,
+        `Best total odds points across your whole pre-season prediction set gets ${PRESEASON_LEADERBOARD_REWARD_AMOUNT}; separately, most correct picks overall gets another ${PRESEASON_LEADERBOARD_REWARD_AMOUNT}. Only pays out once every single pre-season slot \u2014 right down to the FA Cup and ECL winners \u2014 is finally known.`,
+        `Example: you finish with both the best odds total and the most correct picks once everything's resolved \u2014 ${PRESEASON_LEADERBOARD_REWARD_AMOUNT*2} clams.`);
     const winnersSection = `<h4 style="color:#9a9a9a;margin:1.5rem 0 8px;">Recent winners</h4>` + renderRecentWinners();
     return description + winnersSection;
   }
@@ -2420,6 +2426,7 @@
     }
     const byOdds = state.tippingLeaderboard.slice().sort((a,b) => b.oddsPoints - a.oddsPoints).slice(0,10);
     const byCorrect = state.tippingLeaderboard.slice().sort((a,b) => b.correct - a.correct).slice(0,10);
+    const byPct = state.tippingLeaderboard.slice().sort((a,b) => (b.correct/b.total) - (a.correct/a.total)).slice(0,10);
     const list = (arr, valueFn) => arr.map((t,i) => `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #333333;font-size:13px;">
         <span>${i+1}. ${esc(t.username)} <span style="color:#9a9a9a;font-size:11px;">(${t.correct}/${t.total})</span></span>
         <span style="font-weight:600;color:#ffdd00;">${valueFn(t)}</span>
@@ -2428,9 +2435,13 @@
         <strong style="font-size:13px;">By odds points${helpTip('oddspoints', 'Each correct tip scores what a 1-clam bet on that pick would have paid, based on its odds at the time \u2014 so an upset tip is worth more than a favourite.')}</strong>
         <div style="margin-top:6px;">${list(byOdds, t => t.oddsPoints.toFixed(2))}</div>
       </div>
-      <div class="bb-card">
+      <div class="bb-card" style="margin-bottom:1rem;">
         <strong style="font-size:13px;">By correct tips</strong>
         <div style="margin-top:6px;">${list(byCorrect, t => t.correct)}</div>
+      </div>
+      <div class="bb-card">
+        <strong style="font-size:13px;">By percentage correct${helpTip('pctcorrect', 'Correct tips as a share of everything tipped in this view. Browsable only \u2014 the actual season-long accuracy prize (see Prizes) has its own separate minimum-tipped bar to qualify, so topping this list alone doesn\u2019t guarantee that reward.')}</strong>
+        <div style="margin-top:6px;">${list(byPct, t => (t.correct/t.total*100).toFixed(1)+'%')}</div>
       </div>`;
   }
 
@@ -2507,6 +2518,7 @@
   const TX_TYPE_LABELS = {
     BET_PLACED: '\u{1F3B2}', BET_STATUS_CHANGE: '\u2696\uFE0F', TIP_REWARD: '\u{1F3AF}',
     REGISTRATION_BONUS: '\u{1F381}', ADMIN_ADJUSTMENT: '\u{1F6E0}\uFE0F',
+    TIER_REWARD: '\u{1F3C6}', PRESEASON_PICK_REWARD: '\u{1F52E}',
   };
   function renderTxHistoryList(){
     if(state.txHistory === null){
@@ -3364,10 +3376,12 @@
     state.playoffFixtures = { 'DIVISION 2': [], 'DIVISION 3': [] };
     state.eclGroups = { A: [], B: [], C: [] };
     state.pausedCategories = {};
+    state.seasonClosed = { ELIZA: false, DIV2: false, DIV3: false, ALL: false };
     await sset('bilbbet2_cup_fixtures', state.cupFixtures);
     await sset('bilbbet2_playoff_fixtures', state.playoffFixtures);
     await sset('bilbbet2_ecl_groups', state.eclGroups);
     await sset('bilbbet2_paused_categories', state.pausedCategories);
+    await sset('bilbbet2_season_closed', state.seasonClosed);
 
     const noveltyIds = await getIndex('bilbbet2_novelty_index');
     await sset('bilbbet2_novelty_index', []);
@@ -3378,7 +3392,7 @@
 
     const archivedCount = results.reduce((s,r)=>s+r.archived, 0);
     alert(`Season archived: ${archivedCount} settled bet(s) folded into career records across ${results.length} punter(s). `
-      + `Round reset to 1, betting reopened. Cup/playoff fixtures, ECL draw, paused markets, and ${noveltyIds.length} novelty bet(s) cleared. `
+      + `Round reset to 1, betting reopened. Cup/playoff fixtures, ECL draw, paused markets, season-closed flags, and ${noveltyIds.length} novelty bet(s) cleared. `
       + `Balances left untouched.`);
     await loadAdminData();
   }
@@ -4547,7 +4561,8 @@
   // per-user loaders use.
   async function loadRecentWinners(){
     const ids = await getIndex('bilbbet2_winners_index');
-    const entries = (await Promise.all(ids.map(id => sget('bilbbet2_winner:'+id)))).filter(Boolean);
+    const recentIds = ids.slice(-RECENT_HISTORY_FETCH_LIMIT); // see loadTxHistory -- same reasoning, same fix
+    const entries = (await Promise.all(recentIds.map(id => sget('bilbbet2_winner:'+id)))).filter(Boolean);
     state.recentWinners = entries
       .map((w, i) => ({ w, i })) // insertion-order tiebreaker, same reasoning as loadTxHistory
       .sort((a,b) => (b.w.timestamp - a.w.timestamp) || (b.i - a.i))
@@ -4555,10 +4570,12 @@
     render();
   }
 
+  const RECENT_HISTORY_FETCH_LIMIT = 40; // small buffer above the 30 actually displayed, in case a few ids fail to resolve
   async function loadTxHistory(){
     const myUsername = state.user.username; // captured once -- state.user could change while the fetch below is in flight
     const ids = await getIndex('bilbbet2_tx_index_' + myUsername.toLowerCase());
-    const txs = (await Promise.all(ids.map(id => sget('bilbbet2_tx:'+id)))).filter(Boolean);
+    const recentIds = ids.slice(-RECENT_HISTORY_FETCH_LIMIT); // index is strictly insertion-ordered (addToIndex always pushes), so the tail is the most recent -- no need to fetch the entire history just to show the last 30
+    const txs = (await Promise.all(recentIds.map(id => sget('bilbbet2_tx:'+id)))).filter(Boolean);
     if(!state.user || state.user.username !== myUsername) return; // a different user is logged in now -- this result no longer applies to anyone
     // ids (and therefore txs) are in insertion order -- used as a tiebreaker
     // when two entries share an identical millisecond timestamp, so a later
@@ -5067,14 +5084,18 @@
   }
 
   async function checkAndCelebrateReward(){
-    if(!state.user) return;
+    if(!state.user || state.user.isAdmin) return; // admin balance isn't a competitive punter balance -- never eligible for any tipping reward
     const myUsername = state.user.username; // captured once -- re-reading state.user.username after each await below would silently track whoever's logged in BY THEN, not who this sweep was actually started for
     const lastPlayed = state.currentRound - 1;
-    if(lastPlayed < 1) return;
     const checkKey = myUsername.toLowerCase() + '|' + lastPlayed;
     if(state.tippingRewardChecked === checkKey) return; // already swept up through this many completed rounds this session
     state.tippingRewardChecked = checkKey;
     let totalWon = 0;
+    const pickResults = await awardPreseasonPickRewardsIfEligible(myUsername);
+    totalWon += pickResults.reduce((s, x) => s + x.amount, 0);
+    const preseasonLbResults = await awardPreseasonLeaderboardRewardsIfEligible(myUsername);
+    totalWon += preseasonLbResults.reduce((s, x) => s + x.amount, 0);
+    if(lastPlayed >= 1){
     for(let r = lastPlayed; r >= 1; r--){
       for(const section of TIPPING_SECTIONS){
         const awarded = await awardPerfectSectionIfEligible(myUsername, r, section);
@@ -5088,6 +5109,7 @@
         const overallResults = await awardWeeklyOverallRewardsIfEligible(myUsername, r);
         totalWon += overallResults.reduce((s, x) => s + x.amount, 0);
       }
+    }
     }
     for(const sectionKey of SEASONAL_SECTION_REWARD_SECTIONS){
       const results = await awardSeasonalSectionRewardsIfEligible(myUsername, sectionKey);
@@ -5122,6 +5144,7 @@
         const pick = state.tippingData.picks[div+'|'+i];
         if(!pick) continue;
         const [teamA, teamB] = fixtures[i];
+        if(teamB === 'MR MEDIAN'){ skipped++; continue; } // tipping-only mechanic, not a real fixture -- never becomes a real bet
         const side = pick.team === teamA ? 'a' : 'b';
         const id = 'H2H|res-'+side+'|R'+round+'|'+teamA+'|'+teamB;
         if(state.slip.some(s=>s.id===id)){ skipped++; continue; }
@@ -5194,7 +5217,9 @@
   // relegation/promotion slot would otherwise unfairly mark a punter's
   // still-undetermined picks as wrong just because they haven't been
   // confirmed yet, rather than genuinely known to be incorrect.
-  async function computePreseasonLeaderboard(){
+  // Pure computation, no side effects -- shared by the UI leaderboard and
+  // the reward functions below, same reasoning as computeTippingTotals.
+  async function computePreseasonTotals(){
     if(state.preseasonResults === null){ state.preseasonResults = (await sget(PRESEASON_RESULTS_KEY)) || {}; }
     const usernames = await getIndex('bilbbet2_users_index');
     const allUsers = (await Promise.all(usernames.map(getUser))).filter(Boolean);
@@ -5218,6 +5243,81 @@
         }
       }
     }
+    return totals;
+  }
+
+  const PRESEASON_PICK_REWARD_AMOUNT = 50;
+  const PRESEASON_LEADERBOARD_REWARD_AMOUNT = 1000;
+
+  // 50 clams for EACH individually correct pre-season pick -- not a
+  // leaderboard placement, so several correct predictions across several
+  // slots all pay independently (e.g. a correct division winner pick AND
+  // a correct relegation pick both pay, separately). Only pays once a
+  // slot is fully resolved, same gate the pre-season scoring itself
+  // already uses, and idempotent per (username, slot, team) so one
+  // specific correct pick can never be paid twice.
+  async function awardPreseasonPickRewardsIfEligible(username){
+    if(state.preseasonResults === null){ state.preseasonResults = (await sget(PRESEASON_RESULTS_KEY)) || {}; }
+    const data = await sget(preseasonStorageKey(username));
+    if(!data || !data.picks) return [];
+    const results = [];
+    for(const slot of PRESEASON_SLOTS){
+      const userPicks = data.picks[slot.key] || [];
+      if(!userPicks.length) continue;
+      const actual = state.preseasonResults[slot.key];
+      if(!actual || actual.length < slot.count) continue; // not fully resolved yet
+      for(const pick of userPicks){
+        if(!actual.includes(pick.team)) continue; // wrong pick -- no reward
+        const key = 'bilbbet2_preseason_pick_reward_' + username.toLowerCase() + '_' + slot.key + '_' + pick.team;
+        if(await sget(key)) continue; // already paid for this specific correct pick
+        let awarded = false;
+        await withUserLock(username, async () => {
+          if(await sget(key)) return; // re-checked inside the lock
+          const fresh = await getUser(username);
+          if(!fresh) return;
+          fresh.balance += PRESEASON_PICK_REWARD_AMOUNT;
+          await saveUser(fresh);
+          await logTransaction(username, 'PRESEASON_PICK_REWARD', PRESEASON_PICK_REWARD_AMOUNT, fresh.balance, `Correct pre-season pick \u2014 ${slot.label}: ${pick.team}`);
+          await logGlobalWinner(username, 'Pre-season pick', PRESEASON_PICK_REWARD_AMOUNT, `${slot.label}: ${pick.team}`);
+          await sset(key, true);
+          awarded = true;
+        });
+        if(awarded) results.push({ amount: PRESEASON_PICK_REWARD_AMOUNT, slot: slot.key, team: pick.team });
+      }
+    }
+    return results;
+  }
+
+  // The overall pre-season prizes only mean anything once every single
+  // slot is known -- a partial pre-season leaderboard could still swing
+  // wildly once, say, the FA Cup or ECL winner is finally decided months
+  // later. Same reasoning as gating weekly/seasonal tipping rewards on
+  // full resolution.
+  function arePreseasonResultsFullyResolved(){
+    if(!state.preseasonResults) return false;
+    return PRESEASON_SLOTS.every(slot => {
+      const actual = state.preseasonResults[slot.key];
+      return actual && actual.length >= slot.count;
+    });
+  }
+  async function awardPreseasonLeaderboardRewardsIfEligible(username){
+    if(state.preseasonResults === null){ state.preseasonResults = (await sget(PRESEASON_RESULTS_KEY)) || {}; }
+    if(!arePreseasonResultsFullyResolved()) return [];
+    const totals = await computePreseasonTotals();
+    const entries = Object.entries(totals).map(([u,t]) => ({ username: u, ...t })).filter(t => t.total > 0);
+    const oddsWinners = findMetricWinners(entries, 'oddsPoints', 0);
+    const correctWinners = findMetricWinners(entries, 'correct', 0);
+    const tierKey = 'PRESEASON_LB';
+    const results = [];
+    const oddsResult = await awardTierMetricIfEligible(username, tierKey, 'oddsPoints', oddsWinners, PRESEASON_LEADERBOARD_REWARD_AMOUNT, 'Pre-season leaderboard (odds)');
+    if(oddsResult) results.push(oddsResult);
+    const correctResult = await awardTierMetricIfEligible(username, tierKey, 'correct', correctWinners, PRESEASON_LEADERBOARD_REWARD_AMOUNT, 'Pre-season leaderboard (points)');
+    if(correctResult) results.push(correctResult);
+    return results;
+  }
+
+  async function computePreseasonLeaderboard(){
+    const totals = await computePreseasonTotals();
     state.preseasonLeaderboard = Object.entries(totals).map(([username,t]) => ({ username, ...t })).filter(t => t.total > 0);
     render();
   }
