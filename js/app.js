@@ -745,6 +745,28 @@
     if(Math.abs(odds - ODDS_FLOOR) < 0.0001) return odds.toFixed(3);
     return odds.toFixed(2);
   }
+  // A small, deliberately silly easter egg on futures odds for four named
+  // teams: the displayed price is a plausible-looking but genuinely
+  // different number from the real one -- hovering reveals the truth.
+  // Only ever changes the displayed TEXT and a hover title; data-odds
+  // (what a bet actually settles at) is set separately, upstream of this,
+  // and always uses the real, unmodified value -- this must never be the
+  // thing that determines a payout.
+  const ODDS_DISPLAY_PRANKS = {
+    'JARVIS ZEBRAS': 1.55,       // shown bigger than reality
+    'SPOONERS FC': 1.55,         // shown bigger than reality
+    'DW ABOUT IT FC': 0.65,      // shown smaller than reality
+    'JUSTICEFORMOON FC': 0.65,   // shown smaller than reality
+  };
+  function displayOddsFor(team, realOdds){
+    const factor = ODDS_DISPLAY_PRANKS[team];
+    if(!factor) return { text: formatOdds(realOdds), title: '' };
+    let fake = realOdds * factor;
+    if(fake < ODDS_FLOOR) fake = ODDS_FLOOR;
+    if(fake > ODDS_CAP) fake = ODDS_CAP;
+    fake = Math.round(fake * 100) / 100;
+    return { text: formatOdds(fake), title: `Psst \u2014 true odds: ${formatOdds(realOdds)}` };
+  }
   // Decimal odds -> implied probability, the standard conversion (1/odds).
   // Purely informational -- this is what the odds themselves imply before
   // the platform's margin, not a claim about the true chance of the
@@ -1852,9 +1874,10 @@
           <span class="bb-odds" style="color:#9a9a9a;">${categoryPaused && !o.suspended ? 'paused' : 'suspended'}</span></div>`;
       }
       const selected = state.slip.some(s=>s.id===selId);
+      const disp = displayOddsFor(o.team, o.odds);
       return `<div class="bb-outcome ${selected?'selected':''}" data-pick="${esc(selId)}" data-team="${esc(o.team)}" data-odds="${o.odds}" data-label="${esc(o.team)}">
         <span style="display:flex;align-items:center;gap:8px;">${teamLogo(o.team,20)}${esc(o.team)}</span>
-        <span class="bb-odds">${formatOdds(o.odds)}</span></div>`;
+        <span class="bb-odds"${disp.title?` title="${esc(disp.title)}"`:''}>${disp.text}</span></div>`;
     }).join('');
     return control + list;
   }
