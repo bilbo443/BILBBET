@@ -2192,12 +2192,14 @@
   async function toggleFinalResult(slotKey, team, count){
     if(!state.preseasonResults) return; // defensive -- the UI shouldn't offer this before results have loaded, but don't crash if it somehow is
     const current = state.preseasonResults[slotKey] || [];
+    const wasFullyResolved = current.length >= count; // if true, punters may already have been paid real clams based on the result as it stands right now
     const already = current.includes(team);
     let next;
     if(already) next = current.filter(t => t !== team);
     else if(count === 1) next = [team];
     else if(current.length < count) next = [...current, team];
     else return; // slot already has its full number of actual results recorded
+    if(wasFullyResolved && !confirm('This slot was already fully resolved, so punters may have already been paid real clams based on the current result. Changing it now will NOT automatically claw back anything already paid -- you may need to manually adjust affected balances yourself. Continue?')) return;
     state.preseasonResults = { ...state.preseasonResults, [slotKey]: next };
     render();
     await sset(PRESEASON_RESULTS_KEY, state.preseasonResults);
