@@ -351,6 +351,10 @@
   // up after it in the same function, found via a browser console error).
   function idSafe(s){ return String(s).replace(/[^a-zA-Z0-9_-]/g, '-'); }
   function esc(s){ return String(s).replace(/[&<>"'\x27]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  // correct-tips counts can now include .5 values from drawn fixtures --
+  // show whole numbers cleanly (3, not 3.0) and only add a decimal place
+  // when there's genuine half-credit to show (3.5).
+  function fmtCorrect(n){ return Number.isInteger(n) ? String(n) : n.toFixed(1); }
   function fmt(n){ return Number(n||0).toLocaleString(undefined,{maximumFractionDigits:2}); }
 
   // ---------- Logo provision: teams, divisions, competitions ----------
@@ -2112,7 +2116,7 @@
         <div class="bb-tab ${state.tippingSubTab==='LEADERBOARD'?'active':''}" data-tippingtab="LEADERBOARD" style="font-size:12px;padding:6px 10px;">Leaderboard</div>
         <div class="bb-tab ${state.tippingSubTab==='PRIZES'?'active':''}" data-tippingtab="PRIZES" style="font-size:12px;padding:6px 10px;">Prizes</div>
       </div>`;
-    const intro = `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">Free to play, but topping it pays real clams \u2014 see the Prizes tab for the full breakdown. Correct tips score two ways: a straight tally, and what a 1-clam bet on that tip would have paid (upsets are worth more). Nothing saves until you hit Confirm, and you can come back and change your tips right up until this round locks.</p>`;
+    const intro = `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">Free to play, but topping it pays real clams \u2014 see the Prizes tab for the full breakdown. Correct tips score two ways: a straight tally, and what a 1-clam bet on that tip would have paid (upsets are worth more). A drawn fixture pays half credit either way \u2014 half the tally, half the odds \u2014 and never counts against a perfect round. Nothing saves until you hit Confirm, and you can come back and change your tips right up until this round locks.</p>`;
 
     if(state.tippingSubTab === 'PRESEASON'){
       return subTabs + renderPreseasonTab();
@@ -2534,7 +2538,7 @@
     const byCorrect = state.tippingLeaderboard.slice().sort((a,b) => b.correct - a.correct).slice(0,10);
     const byPct = state.tippingLeaderboard.slice().sort((a,b) => (b.correct/b.total) - (a.correct/a.total)).slice(0,10);
     const list = (arr, valueFn) => arr.map((t,i) => `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #333333;font-size:13px;">
-        <span>${i+1}. ${esc(t.username)} <span style="color:#9a9a9a;font-size:11px;">(${t.correct}/${t.total})</span></span>
+        <span>${i+1}. ${esc(t.username)} <span style="color:#9a9a9a;font-size:11px;">(${fmtCorrect(t.correct)}/${t.total})</span></span>
         <span style="font-weight:600;color:#ffdd00;">${valueFn(t)}</span>
       </div>`).join('');
     return kindBar + rewardNote + controls + `<div class="bb-card" style="margin-bottom:1rem;">
@@ -2543,7 +2547,7 @@
       </div>
       <div class="bb-card" style="margin-bottom:1rem;">
         <strong style="font-size:13px;">By correct tips</strong>
-        <div style="margin-top:6px;">${list(byCorrect, t => t.correct)}</div>
+        <div style="margin-top:6px;">${list(byCorrect, t => fmtCorrect(t.correct))}</div>
       </div>
       <div class="bb-card">
         <strong style="font-size:13px;">By percentage correct${helpTip('pctcorrect', 'Correct tips as a share of everything tipped in this view. Browsable only \u2014 the actual season-long accuracy prize (see Prizes) has its own separate minimum-tipped bar to qualify, so topping this list alone doesn\u2019t guarantee that reward.')}</strong>
@@ -3364,7 +3368,10 @@
           ${state.feedback.map(f => `<div style="padding:8px 0;border-bottom:1px solid #333333;">
               <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;">
                 <strong style="font-size:13px;">${esc(f.username)}</strong>
-                <span style="font-size:11px;color:#9a9a9a;white-space:nowrap;">${new Date(f.timestamp).toLocaleString()}</span>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="font-size:11px;color:#9a9a9a;white-space:nowrap;">${new Date(f.timestamp).toLocaleString()}</span>
+                  <button class="bb-btn ghost" data-delete-feedback="${esc(f.id)}" style="padding:2px 8px;font-size:11px;">Remove</button>
+                </div>
               </div>
               <div style="font-size:13px;color:#cfcfcf;margin-top:2px;">${esc(f.category)}</div>
               ${f.comment ? `<div style="font-size:12px;color:#9a9a9a;margin-top:4px;font-style:italic;">"${esc(f.comment)}"</div>` : ''}
@@ -4707,6 +4714,13 @@
       .map(x => x.f);
     render();
   }
+  async function deleteFeedback(id){
+    if(!confirm('Remove this feedback? This can\'t be undone.')) return;
+    const idx = await getIndex('bilbbet2_feedback_index');
+    await sset('bilbbet2_feedback_index', idx.filter(x => x !== id));
+    state.feedback = (state.feedback||[]).filter(f => f.id !== id);
+    render();
+  }
 
   const RECENT_HISTORY_FETCH_LIMIT = 40; // small buffer above the 30 actually displayed, in case a few ids fail to resolve
   async function loadTxHistory(){
@@ -4903,16 +4917,20 @@
     let total = 0, resolvedAndCorrect = 0;
     for(const div of section.divs){
       const fixtures = getTippableFixtures(div, round);
-      total += fixtures.length;
       for(let i=0;i<fixtures.length;i++){
-        const pick = data.picks[div+'|'+i];
-        if(!pick) continue; // not confirmed -- can't be a perfect round
         const [teamA, teamB] = fixtures[i];
         const scoreA = REAL_RESULTS[teamA] && REAL_RESULTS[teamA][round-1];
         const scoreB = REAL_RESULTS[teamB] && REAL_RESULTS[teamB][round-1];
+        // A draw is excluded entirely from the perfect-round tally --
+        // doesn't lower the bar for a genuine "everything right" claim,
+        // but doesn't block one either, regardless of what was picked.
+        if(scoreA != null && scoreB != null && scoreA === scoreB) continue;
+        total++;
+        const pick = data.picks[div+'|'+i];
+        if(!pick) continue; // not confirmed -- can't be a perfect round
         if(scoreA == null || scoreB == null) continue; // result not in yet
-        const winner = scoreA > scoreB ? teamA : (scoreB > scoreA ? teamB : null);
-        if(winner && pick.team === winner) resolvedAndCorrect++;
+        const winner = scoreA > scoreB ? teamA : teamB;
+        if(pick.team === winner) resolvedAndCorrect++;
       }
     }
     // Mr Median week: deliberately "pick 12 of the 24 available", not
@@ -5496,7 +5514,7 @@
     const byOdds = state.preseasonLeaderboard.slice().sort((a,b) => b.oddsPoints - a.oddsPoints).slice(0,10);
     const byCorrect = state.preseasonLeaderboard.slice().sort((a,b) => b.correct - a.correct).slice(0,10);
     const list = (arr, valueFn) => arr.map((t,i) => `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #333333;font-size:13px;">
-        <span>${i+1}. ${esc(t.username)} <span style="color:#9a9a9a;font-size:11px;">(${t.correct}/${t.total})</span></span>
+        <span>${i+1}. ${esc(t.username)} <span style="color:#9a9a9a;font-size:11px;">(${fmtCorrect(t.correct)}/${t.total})</span></span>
         <span style="font-weight:600;color:#ffdd00;">${valueFn(t)}</span>
       </div>`).join('');
     return `<div class="bb-card" style="margin-bottom:1rem;">
@@ -5505,7 +5523,7 @@
       </div>
       <div class="bb-card">
         <strong style="font-size:13px;">By correct picks</strong>
-        <div style="margin-top:6px;">${list(byCorrect, t => t.correct)}</div>
+        <div style="margin-top:6px;">${list(byCorrect, t => fmtCorrect(t.correct))}</div>
       </div>`;
   }
 
@@ -5539,12 +5557,20 @@
           const scoreA = REAL_RESULTS[teamA] && REAL_RESULTS[teamA][r-1];
           const scoreB = REAL_RESULTS[teamB] && REAL_RESULTS[teamB][r-1];
           if(scoreA == null || scoreB == null) continue; // result not in yet
-          const actualWinner = scoreA > scoreB ? teamA : (scoreB > scoreA ? teamB : null); // null = draw, always wrong for a 2-way tip
           const pick = data.picks[key];
           totals[u.username].total++;
-          if(actualWinner && pick.team === actualWinner){
-            totals[u.username].correct++;
-            totals[u.username].oddsPoints += pick.odds;
+          if(scoreA === scoreB){
+            // Draw -- neither side was wrong, so half credit either way:
+            // half the pick's own odds as points, and half a correct tip
+            // toward the tally, regardless of which side was picked.
+            totals[u.username].correct += 0.5;
+            totals[u.username].oddsPoints += pick.odds / 2;
+          } else {
+            const actualWinner = scoreA > scoreB ? teamA : teamB;
+            if(pick.team === actualWinner){
+              totals[u.username].correct++;
+              totals[u.username].oddsPoints += pick.odds;
+            }
           }
         }
       }
@@ -5692,6 +5718,7 @@
       state.feedbackSubmitted = true;
       render();
     };
+    document.querySelectorAll('[data-delete-feedback]').forEach(el => el.onclick = () => deleteFeedback(el.dataset.deleteFeedback));
     const closeTutorialX = $('#close-tutorial-modal-x');
     if(closeTutorialX) closeTutorialX.onclick = () => { state.tutorialModalOpen = false; state.info=''; render(); };
     const tutorialDone = $('#tutorial-done');
