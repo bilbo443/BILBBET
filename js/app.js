@@ -320,6 +320,7 @@
     preseasonData: null, preseasonPending: {}, preseasonLeaderboard: null, preseasonResults: null, preseasonAllPicks: null, openHelpTip: null, homeTippingNudge: null, txHistory: null, txHistoryExpanded: false,
     tippingLeaderboardDiv: 'ALL', tippingLeaderboardMode: 'OVERALL', tippingLeaderboardRound: null, tippingLeaderboard: null, leaderboardKind: 'WEEKLY',
     cupFixtures: { 'FA CUP': [], 'ECL': [] },
+    seasonClosed: { ELIZA: false, DIV2: false, DIV3: false, ALL: false },
     cupFixtureMarket: null,
     cupAdminEntry: { 'FA CUP': {teamA:'', teamB:''}, 'ECL': {teamA:'', teamB:''} },
     cupCalendarOverrides: { 'FA CUP': {}, 'ECL': {} },  // round -> stage name string, or false to force "not a cup round"
@@ -1843,7 +1844,16 @@
   function getFixtureMarkets(div, round){
     const key = div + '|' + round;
     if(!fixtureMarketCache[key]){
-      fixtureMarketCache[key] = getTippableFixtures(div, round).map(([a,b]) => computeH2HMarket(a, b, round));
+      fixtureMarketCache[key] = getTippableFixtures(div, round).map(([a,b]) => {
+        // 'MR MEDIAN' isn't a real team -- has no coefficient/strength data
+        // for the real simulation to run against, so this is a plain,
+        // symmetric 50/50 market instead (still passes through the same
+        // toOdds conversion and margin as every other market, so the
+        // displayed price looks and behaves consistently with everything
+        // else, just reflecting a genuinely even proposition).
+        if(b === 'MR MEDIAN') return { teamA: a, teamB: b, aWinPct: 50, bWinPct: 50 };
+        return computeH2HMarket(a, b, round);
+      });
     }
     return fixtureMarketCache[key];
   }
@@ -1870,9 +1880,43 @@
   // cup fixtures (admin-set per round, stored with their own round number
   // rather than schedule-indexed) into the same [teamA, teamB] shape, so
   // every other tipping function can treat both sources identically.
+  // Mr Median: a for-fun, week-1-only alternative for Div 2/3, whose real
+  // round 1 has no division fixtures at all (see hasNoFixtures). Instead
+  // of picking a head-to-head winner, a punter picks whether each team's
+  // own score beats the combined tier's (both conferences together)
+  // median score that week. Implemented as an ordinary [team, 'MR MEDIAN']
+  // fixture pair -- once the median is computed and written into
+  // REAL_RESULTS as a synthetic team, every existing scoring function
+  // (checkPerfectSection, computeTippingTotals, resolution, etc.) treats
+  // it exactly like a real opponent, with zero changes needed anywhere
+  // else in the scoring pipeline.
+  const MR_MEDIAN_TIERS = { DIV2: ['DIVISION 2A','DIVISION 2B'], DIV3: ['DIVISION 3A','DIVISION 3B'] };
+  function isMrMedianWeek(div, round){
+    return round === 1 && (div === 'DIVISION 2A' || div === 'DIVISION 2B' || div === 'DIVISION 3A' || div === 'DIVISION 3B');
+  }
+  // Only computes (and only overwrites REAL_RESULTS) once every team in
+  // the combined tier actually has a score in for that round -- an
+  // incomplete median would be actively misleading, not just premature.
+  function ensureMrMedianScore(div, round){
+    const tierKey = (div === 'DIVISION 2A' || div === 'DIVISION 2B') ? 'DIV2' : 'DIV3';
+    const divs = MR_MEDIAN_TIERS[tierKey];
+    const teams = divs.flatMap(d => H2H_DIVISIONS[d] || []);
+    const scores = teams.map(t => REAL_RESULTS[t] && REAL_RESULTS[t][round-1]).filter(s => s != null);
+    if(scores.length < teams.length) return; // not everyone's score is in yet
+    scores.sort((a,b) => a-b);
+    const mid = Math.floor(scores.length / 2);
+    const median = scores.length % 2 === 0 ? (scores[mid-1] + scores[mid]) / 2 : scores[mid];
+    if(!REAL_RESULTS['MR MEDIAN']) REAL_RESULTS['MR MEDIAN'] = new Array(26).fill(null);
+    REAL_RESULTS['MR MEDIAN'][round-1] = median;
+  }
+
   function getTippableFixtures(key, round){
     if(key === 'FA CUP' || key === 'ECL'){
       return (state.cupFixtures[key] || []).filter(f => f.round === round).map(f => [f.teamA, f.teamB]);
+    }
+    if(isMrMedianWeek(key, round)){
+      ensureMrMedianScore(key, round); // computes and injects the tier's median score into REAL_RESULTS, if not already done and all scores are in
+      return (H2H_DIVISIONS[key] || []).map(team => [team, 'MR MEDIAN']);
     }
     if(hasNoFixtures(key, round)) return [];
     return (H2H_SCHEDULE[key] && H2H_SCHEDULE[key][round-1]) || [];
@@ -2812,6 +2856,23 @@
           <strong style="color:#c0604f;">This can't be undone.</strong>
         </p>
         <button class="bb-btn ghost" id="end-season-btn" style="border-color:#a3402f;color:#c0604f;">End season &amp; archive</button>
+      </div>
+      <h3>Tipping season prizes</h3>
+      <div class="bb-card" style="margin-bottom:1.5rem;">
+        <p style="font-size:12px;color:#9a9a9a;margin-top:0;">
+          Flag a section closed once its position is genuinely settled -- mathematically confirmed (title, promotion, relegation) or the season's literally finished -- to release its seasonal tipping prizes. Purely manual; nothing here is inferred automatically.
+        </p>
+        ${['ELIZA','DIV2','DIV3'].map(key => {
+          const label = TIPPING_SECTIONS.find(s => s.key === key).label;
+          return `<label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:8px;cursor:pointer;">
+              <input type="checkbox" data-toggle-season-closed="${key}" ${state.seasonClosed[key]?'checked':''}/>
+              <span>${esc(label)} season closed</span>
+            </label>`;
+        }).join('')}
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding-top:6px;border-top:1px solid #333333;margin-top:4px;cursor:pointer;">
+          <input type="checkbox" data-toggle-season-closed="ALL" ${state.seasonClosed.ALL?'checked':''}/>
+          <span>Combined competition (all tipping) season closed</span>
+        </label>
       </div>
       <h3>Round betting</h3>
       <div class="bb-card" style="margin-bottom:1.5rem;">
@@ -4561,7 +4622,12 @@
   // round number alone (since cup rounds don't follow the league's fixed
   // weekly cadence).
   function perfectRoundEligible(sectionKey, round){
-    if(['ELIZA','DIV2','DIV3'].includes(sectionKey)) return true;
+    if(sectionKey === 'ELIZA') return true;
+    if(sectionKey === 'DIV2' || sectionKey === 'DIV3'){
+      const section = TIPPING_SECTIONS.find(s => s.key === sectionKey);
+      const inPlayoffs = section.divs.some(div => isPlayoffRound(div, round));
+      return !inPlayoffs;
+    }
     if(sectionKey === 'FACUP') return cupStageInList('FA CUP', round, FA_CUP_PERFECT_ROUND_STAGES);
     if(sectionKey === 'ECL') return cupStageInList('ECL', round, ECL_PERFECT_ROUND_STAGES);
     return false;
@@ -4572,6 +4638,7 @@
     return eligibleStages.includes(fixtures[0].stage);
   }
 
+  const MR_MEDIAN_PERFECT_WEEK_THRESHOLD = 12;
   async function checkPerfectSection(username, round, section){
     const data = await sget(tipStorageKey(username, round));
     if(!data || !data.picks) return false;
@@ -4589,6 +4656,12 @@
         const winner = scoreA > scoreB ? teamA : (scoreB > scoreA ? teamB : null);
         if(winner && pick.team === winner) resolvedAndCorrect++;
       }
+    }
+    // Mr Median week: deliberately "pick 12 of the 24 available", not
+    // "confirm everything" -- so perfect here means at least 12 correct,
+    // not literally every one of the 24 teams tipped and right.
+    if(section.divs.some(d => isMrMedianWeek(d, round))){
+      return resolvedAndCorrect >= MR_MEDIAN_PERFECT_WEEK_THRESHOLD;
     }
     // Requires every fixture to be BOTH confirmed and correctly resolved --
     // any unconfirmed or unresolved fixture keeps resolvedAndCorrect below
@@ -4716,6 +4789,79 @@
     if(oddsResult) results.push(oddsResult);
     const correctResult = await awardTierMetricIfEligible(username, tierKey, 'correct', correctWinners, WEEKLY_OVERALL_REWARD_AMOUNT, `${label} (points)`);
     if(correctResult) results.push(correctResult);
+    return results;
+  }
+
+  const SEASON_MAX_ROUND = 26;
+
+  // Different qualifying basis than findMetricWinners: volume tipped (at
+  // least X% of the season's available fixtures), not accuracy -- since
+  // accuracy IS the value being ranked here, gating on it too would be
+  // circular. Prevents one lucky early tip from "winning" the ratio
+  // category over someone who tipped consistently all season.
+  function findRatioWinners(entries, minTippedPct, totalPossible){
+    if(totalPossible <= 0) return [];
+    const qualifying = entries.filter(e => (e.total / totalPossible) >= minTippedPct);
+    if(!qualifying.length) return [];
+    const withRatio = qualifying.map(e => ({ username: e.username, ratio: e.total > 0 ? e.correct / e.total : 0 }));
+    const max = Math.max(...withRatio.map(r => r.ratio));
+    if(max <= 0) return [];
+    return withRatio.filter(r => r.ratio === max).map(r => r.username);
+  }
+  function countSeasonFixtures(divs){
+    let count = 0;
+    for(const div of divs){
+      for(let r=1; r<=SEASON_MAX_ROUND; r++){
+        count += getTippableFixtures(div, r).length;
+      }
+    }
+    return count;
+  }
+
+  // Seasonal, per-section prize -- league sections only, gated by the
+  // admin's manual "season closed" flag for that section rather than any
+  // automatic detection. No minimum-correct bar on odds/points (unlike
+  // the weekly tier) since that wasn't specified for the seasonal prizes
+  // -- only the ratio category has its own, separate 25%-tipped bar.
+  async function awardSeasonalSectionRewardsIfEligible(username, sectionKey){
+    if(!SEASONAL_SECTION_REWARD_SECTIONS.includes(sectionKey)) return [];
+    if(!state.seasonClosed[sectionKey]) return [];
+    const section = TIPPING_SECTIONS.find(s => s.key === sectionKey);
+    const totals = await computeTippingTotals(section.divs, 1, SEASON_MAX_ROUND);
+    const entries = Object.entries(totals).map(([u, t]) => ({ username: u, ...t })).filter(t => t.total > 0);
+    const totalPossible = countSeasonFixtures(section.divs);
+    const oddsWinners = findMetricWinners(entries, 'oddsPoints', 0);
+    const correctWinners = findMetricWinners(entries, 'correct', 0);
+    const ratioWinners = findRatioWinners(entries, SEASONAL_MIN_TIPPED_PCT, totalPossible);
+    const tierKey = 'SEASON_' + sectionKey;
+    const label = `Seasonal ${section.label} leaderboard`;
+    const results = [];
+    for(const [metric, winners, metricLabel] of [['oddsPoints', oddsWinners, 'odds'], ['correct', correctWinners, 'points'], ['ratio', ratioWinners, 'accuracy ratio']]){
+      const result = await awardTierMetricIfEligible(username, tierKey, metric, winners, SEASONAL_SECTION_REWARD_AMOUNT, `${label} (${metricLabel})`);
+      if(result) results.push(result);
+    }
+    return results;
+  }
+
+  // Seasonal, ALL-competitions-combined prize -- same shape, gated by the
+  // separate "ALL" season-closed flag (the combined prize can reasonably
+  // stay open even after individual league sections have been flagged
+  // closed, e.g. while cup competitions are still running).
+  async function awardSeasonalOverallRewardsIfEligible(username){
+    if(!state.seasonClosed.ALL) return [];
+    const totals = await computeTippingTotals('ALL', 1, SEASON_MAX_ROUND);
+    const entries = Object.entries(totals).map(([u, t]) => ({ username: u, ...t })).filter(t => t.total > 0);
+    const totalPossible = countSeasonFixtures(TIPPING_DIVS);
+    const oddsWinners = findMetricWinners(entries, 'oddsPoints', 0);
+    const correctWinners = findMetricWinners(entries, 'correct', 0);
+    const ratioWinners = findRatioWinners(entries, SEASONAL_MIN_TIPPED_PCT, totalPossible);
+    const tierKey = 'SEASON_ALL';
+    const label = 'Seasonal overall leaderboard';
+    const results = [];
+    for(const [metric, winners, metricLabel] of [['oddsPoints', oddsWinners, 'odds'], ['correct', correctWinners, 'points'], ['ratio', ratioWinners, 'accuracy ratio']]){
+      const result = await awardTierMetricIfEligible(username, tierKey, metric, winners, SEASONAL_OVERALL_REWARD_AMOUNT, `${label} (${metricLabel})`);
+      if(result) results.push(result);
+    }
     return results;
   }
 
@@ -4863,6 +5009,12 @@
         totalWon += overallResults.reduce((s, x) => s + x.amount, 0);
       }
     }
+    for(const sectionKey of SEASONAL_SECTION_REWARD_SECTIONS){
+      const results = await awardSeasonalSectionRewardsIfEligible(myUsername, sectionKey);
+      totalWon += results.reduce((s, x) => s + x.amount, 0);
+    }
+    const seasonalOverallResults = await awardSeasonalOverallRewardsIfEligible(myUsername);
+    totalWon += seasonalOverallResults.reduce((s, x) => s + x.amount, 0);
     if(totalWon > 0 && state.user && state.user.username === myUsername){ // only touch the live session if it's still the same user who earned this
       const fresh = await getUser(myUsername);
       if(fresh && state.user && state.user.username === myUsername) state.user = fresh; // re-checked after the second await too, for the same reason
@@ -5477,6 +5629,12 @@
     if(refreshFeaturedBtn) refreshFeaturedBtn.onclick = refreshFeaturedFixtures;
     const endSeasonBtn = $('#end-season-btn');
     if(endSeasonBtn) endSeasonBtn.onclick = () => endSeasonRollover();
+    document.querySelectorAll('[data-toggle-season-closed]').forEach(el => el.onchange = async e => {
+      const key = el.dataset.toggleSeasonClosed;
+      state.seasonClosed = { ...state.seasonClosed, [key]: e.target.checked };
+      render();
+      await sset('bilbbet2_season_closed', state.seasonClosed);
+    });
     const closeBettingBtn = $('#close-betting-btn'); if(closeBettingBtn) closeBettingBtn.onclick = () => closeBettingNow(state.closeScope);
     const closeScopeH2h = $('#close-scope-h2h'); if(closeScopeH2h) closeScopeH2h.onchange = () => { state.closeScope = 'h2h'; render(); };
     const closeScopeAll = $('#close-scope-all'); if(closeScopeAll) closeScopeAll.onchange = () => { state.closeScope = 'all'; render(); };
@@ -5835,6 +5993,8 @@
   if(savedCurrentRound){ state.currentRound = savedCurrentRound; state.h2hRound = savedCurrentRound; state.leadingAtRound = savedCurrentRound; state.specialsRound = savedCurrentRound; }
   const savedCupFixtures = await sget('bilbbet2_cup_fixtures');
   if(savedCupFixtures){ state.cupFixtures = savedCupFixtures; }
+  const savedSeasonClosed = await sget('bilbbet2_season_closed');
+  if(savedSeasonClosed){ state.seasonClosed = savedSeasonClosed; }
   const savedPlayoffFixtures = await sget('bilbbet2_playoff_fixtures');
   if(savedPlayoffFixtures){ state.playoffFixtures = savedPlayoffFixtures; }
   const savedEclGroups = await sget('bilbbet2_ecl_groups');
