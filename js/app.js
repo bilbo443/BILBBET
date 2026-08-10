@@ -1917,17 +1917,45 @@
     { key: 'FACUP', label: 'FA Cup', divs: ['FA CUP'] },
   ];
   const TIPPING_DIVS = TIPPING_SECTIONS.flatMap(s => s.divs);
-  // Perfect-round reward: 50 clams, real balance, for confirming every
-  // fixture in a section and getting every one of them right. Per direct
-  // instruction, only the round-robin league sections qualify (Div 2 and
-  // Div 3 as their combined A+B unit, matching the tipping UI's own
-  // grouping) -- ECL and FA Cup deliberately excluded.
-  const TIP_REWARD_SECTIONS = ['ELIZA', 'DIV2', 'DIV3'];
+  // Perfect-round reward: 50 clams, real balance, EACH -- not a leaderboard
+  // placement, so multiple people can independently earn this in the same
+  // week. League sections (Eliza, Div2 A+B combined, Div3 A+B combined)
+  // qualify every week. FA Cup and ECL qualify only for their early-stage
+  // rounds specifically (FA Cup: Round of 64/32/16; ECL: match days 1-3),
+  // not once the knockout stages (quarter-final onward) begin.
   const TIP_REWARD_AMOUNT = 50;
-  // A single, combined reward -- topping either weekly leaderboard earns
-  // this once, not twice for topping both. Scoped to the ALL-competitions
-  // weekly view specifically ("the" leaderboard, not any one division's).
-  const WEEKLY_LEADERBOARD_REWARD_AMOUNT = 1000;
+  const FA_CUP_PERFECT_ROUND_STAGES = ['Round Of 64', 'Round Of 32', 'Round Of 16'];
+  const ECL_PERFECT_ROUND_STAGES = ['Matchday 1', 'Matchday 2', 'Matchday 3'];
+
+  // Weekly, per-section leaderboard prize -- league sections only, 10
+  // clams for topping EACH of the odds and points tables separately
+  // (stacked if you top both), needing at least 50% correct to qualify as
+  // a genuine winner rather than just the least-wrong tipper in a slow
+  // week. Dead heat: everyone tied for top splits the amount, rounded UP
+  // (a 3-way tie for 10 clams pays 4 each, not 3.33).
+  const WEEKLY_SECTION_REWARD_SECTIONS = ['ELIZA', 'DIV2', 'DIV3'];
+  const WEEKLY_SECTION_REWARD_AMOUNT = 10;
+  const WEEKLY_MIN_CORRECT_PCT = 0.5;
+
+  // Weekly, ALL-competitions-combined leaderboard prize -- 50 clams per
+  // table (stacked if both), same 50% qualifying bar and dead-heat rule.
+  const WEEKLY_OVERALL_REWARD_AMOUNT = 50;
+
+  // Seasonal, per-section prize -- 250 clams each for odds, points, and
+  // best correct-tip RATIO (minimum 25% of the season's fixtures actually
+  // tipped, so one lucky early tip can't "win" the ratio category over
+  // someone who tipped consistently all season). League sections only.
+  const SEASONAL_SECTION_REWARD_SECTIONS = ['ELIZA', 'DIV2', 'DIV3'];
+  const SEASONAL_SECTION_REWARD_AMOUNT = 250;
+  const SEASONAL_MIN_TIPPED_PCT = 0.25;
+
+  // Seasonal, ALL-competitions-combined prize -- 1,000 clams each for
+  // odds, points, and ratio, same conditions.
+  const SEASONAL_OVERALL_REWARD_AMOUNT = 1000;
+
+  function deadHeatSplit(totalAmount, winnerCount){
+    return Math.ceil(totalAmount / winnerCount);
+  }
 
   function renderTippingTab(){
     const round = state.tippingViewRound || state.currentRound;
@@ -1938,7 +1966,7 @@
         <div class="bb-tab ${state.tippingSubTab==='PRESEASON'?'active':''}" data-tippingtab="PRESEASON" style="font-size:12px;padding:6px 10px;">Pre-season</div>
         <div class="bb-tab ${state.tippingSubTab==='LEADERBOARD'?'active':''}" data-tippingtab="LEADERBOARD" style="font-size:12px;padding:6px 10px;">Leaderboard</div>
       </div>`;
-    const intro = `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">Free to play, but topping it pays real clams: ${TIP_REWARD_AMOUNT} for a perfect section (every fixture in it right that week) and ${WEEKLY_LEADERBOARD_REWARD_AMOUNT} for topping either weekly leaderboard \u2014 by odds points or by correct picks. Correct tips score two ways: a straight tally, and what a 1-clam bet on that tip would have paid (upsets are worth more). Nothing saves until you hit Confirm, and you can come back and change your tips right up until this round locks.</p>`;
+    const intro = `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">Free to play, but topping it pays real clams \u2014 see the Prizes tab for the full breakdown. Correct tips score two ways: a straight tally, and what a 1-clam bet on that tip would have paid (upsets are worth more). Nothing saves until you hit Confirm, and you can come back and change your tips right up until this round locks.</p>`;
 
     if(state.tippingSubTab === 'PRESEASON'){
       return subTabs + renderPreseasonTab();
@@ -2254,7 +2282,7 @@
     if(state.leaderboardKind === 'PRESEASON'){
       return kindBar + renderPreseasonLeaderboard();
     }
-    const rewardNote = `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">Topping either side of the All-competitions weekly leaderboard for a round pays ${WEEKLY_LEADERBOARD_REWARD_AMOUNT} clams \u2014 one combined reward even if you top both.</p>`;
+    const rewardNote = `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">Topping a leaderboard here pays real clams \u2014 see the Prizes tab for exactly how much and what qualifies.</p>`;
     const lastPlayed = state.currentRound - 1;
     if(lastPlayed < 1){
       return kindBar + rewardNote + '<p style="color:#9a9a9a;">No rounds played yet \u2014 check back once Round 1 is done.</p>';
@@ -4527,6 +4555,23 @@
   // correct. An unresolved fixture means this can't be judged yet at all
   // (not that it's disqualifying) -- checked again later once more results
   // are in.
+  // League sections qualify every week; FA Cup/ECL only during their
+  // early-stage rounds specifically -- checked against whichever stage the
+  // admin actually assigned to that round's fixtures, not assumed from the
+  // round number alone (since cup rounds don't follow the league's fixed
+  // weekly cadence).
+  function perfectRoundEligible(sectionKey, round){
+    if(['ELIZA','DIV2','DIV3'].includes(sectionKey)) return true;
+    if(sectionKey === 'FACUP') return cupStageInList('FA CUP', round, FA_CUP_PERFECT_ROUND_STAGES);
+    if(sectionKey === 'ECL') return cupStageInList('ECL', round, ECL_PERFECT_ROUND_STAGES);
+    return false;
+  }
+  function cupStageInList(comp, round, eligibleStages){
+    const fixtures = (state.cupFixtures[comp] || []).filter(f => f.round === round);
+    if(!fixtures.length) return false;
+    return eligibleStages.includes(fixtures[0].stage);
+  }
+
   async function checkPerfectSection(username, round, section){
     const data = await sget(tipStorageKey(username, round));
     if(!data || !data.picks) return false;
@@ -4561,7 +4606,7 @@
   // award. Returns true only on the specific call that actually granted it,
   // so the caller knows whether to show a fresh celebration or stay quiet.
   async function awardPerfectSectionIfEligible(username, round, section){
-    if(!TIP_REWARD_SECTIONS.includes(section.key)) return false;
+    if(!perfectRoundEligible(section.key, round)) return false;
     const key = tipRewardKey(username, round, section.key);
     if(await sget(key)) return false; // cheap pre-check -- skips the heavier calculation for already-resolved rounds; the real safety guarantee is the re-check inside the lock below, not this
     const perfect = await checkPerfectSection(username, round, section); // read-only, safe outside the lock
@@ -4599,49 +4644,79 @@
     return true;
   }
 
-  // Who topped the ALL-competitions weekly leaderboard for one specific,
-  // already-fully-resolved round -- separately for odds points and for
-  // correct-tip count, since a punter can top either independently of the
-  // other. Ties: everyone sharing the top score counts as a winner, not
-  // just whoever happens to sort first. A top score of exactly 0 doesn't
-  // count as a real win -- if nobody who tipped that week got anything
-  // right, there's no genuine leaderboard-topping performance to reward.
-  async function computeWeeklyLeaderboardWinners(round){
-    const totals = await computeTippingTotals('ALL', round, round);
-    const entries = Object.entries(totals).map(([username, t]) => ({ username, ...t })).filter(t => t.total > 0);
-    if(!entries.length) return { oddsWinners: [], pointsWinners: [] };
-    const maxOdds = Math.max(...entries.map(e => e.oddsPoints));
-    const maxCorrect = Math.max(...entries.map(e => e.correct));
-    const oddsWinners = maxOdds > 0 ? entries.filter(e => e.oddsPoints === maxOdds).map(e => e.username) : [];
-    const pointsWinners = maxCorrect > 0 ? entries.filter(e => e.correct === maxCorrect).map(e => e.username) : [];
-    return { oddsWinners, pointsWinners };
+  // Finds winners for one metric ('oddsPoints' or 'correct') among a set
+  // of leaderboard entries, subject to a minimum correct-tip percentage so
+  // a single lucky high-odds tip can't "win" despite a poor overall
+  // record. Ties: everyone sharing the top qualifying score wins, not
+  // just whoever sorts first. A top score of exactly 0 never counts as a
+  // real win.
+  function findMetricWinners(entries, metric, minCorrectPct){
+    const qualifying = entries.filter(e => e.total > 0 && (e.correct / e.total) >= minCorrectPct);
+    if(!qualifying.length) return [];
+    const max = Math.max(...qualifying.map(e => e[metric]));
+    if(max <= 0) return [];
+    return qualifying.filter(e => e[metric] === max).map(e => e.username);
   }
 
-  // Same idempotent, race-safe shape as awardPerfectSectionIfEligible --
-  // cheap pre-check, then the real guarantee re-checked inside the lock.
-  // One payout per (username, round) regardless of whether they topped
-  // one leaderboard or both, since the reward itself is a single, combined
-  // 1,000 clams either way, not two stackable 1,000-clam prizes.
-  async function awardWeeklyLeaderboardRewardIfEligible(username, round){
-    const key = 'bilbbet2_weekly_lb_reward_' + username.toLowerCase() + '_R' + round;
+  // Shared by every weekly/seasonal reward tier -- idempotent per
+  // (tierKey, metric) so odds and points are independently, stackably
+  // awarded, and a dead heat splits the stated amount rounded UP rather
+  // than down (a 3-way tie for 10 clams pays 4 each, not 3.33 -- the
+  // total paid out in a tie can exceed the headline amount by design).
+  async function awardTierMetricIfEligible(username, tierKey, metric, winners, amount, reasonLabel){
+    if(!winners.includes(username)) return null;
+    const key = 'bilbbet2_tier_reward_' + username.toLowerCase() + '_' + tierKey + '_' + metric;
     if(await sget(key)) return null;
-    const { oddsWinners, pointsWinners } = await computeWeeklyLeaderboardWinners(round);
-    const wonOdds = oddsWinners.includes(username);
-    const wonPoints = pointsWinners.includes(username);
-    if(!wonOdds && !wonPoints) return null;
-    let result = null;
+    const share = deadHeatSplit(amount, winners.length);
+    let awarded = null;
     await withUserLock(username, async () => {
       if(await sget(key)) return; // re-checked inside the lock -- closes the race between concurrent callers
       const fresh = await getUser(username);
       if(!fresh) return;
-      fresh.balance += WEEKLY_LEADERBOARD_REWARD_AMOUNT;
+      fresh.balance += share;
       await saveUser(fresh);
-      const which = wonOdds && wonPoints ? 'the odds and points leaderboards' : (wonOdds ? 'the odds leaderboard' : 'the points leaderboard');
-      await logTransaction(username, 'WEEKLY_LEADERBOARD_REWARD', WEEKLY_LEADERBOARD_REWARD_AMOUNT, fresh.balance, `Topped ${which} for Round ${round}`);
+      const tieNote = winners.length > 1 ? ` (tied ${winners.length}-way, split rounded up)` : '';
+      await logTransaction(username, 'TIER_REWARD', share, fresh.balance, `${reasonLabel}${tieNote}`);
       await sset(key, true);
-      result = { round, wonOdds, wonPoints };
+      awarded = { amount: share, metric };
     });
-    return result;
+    return awarded;
+  }
+
+  // Weekly, per-section prize (league sections only) -- checks both odds
+  // and points independently for one already-fully-resolved round.
+  async function awardWeeklySectionRewardsIfEligible(username, round, sectionKey){
+    if(!WEEKLY_SECTION_REWARD_SECTIONS.includes(sectionKey)) return [];
+    const section = TIPPING_SECTIONS.find(s => s.key === sectionKey);
+    const totals = await computeTippingTotals(section.divs, round, round);
+    const entries = Object.entries(totals).map(([u, t]) => ({ username: u, ...t })).filter(t => t.total > 0);
+    const oddsWinners = findMetricWinners(entries, 'oddsPoints', WEEKLY_MIN_CORRECT_PCT);
+    const correctWinners = findMetricWinners(entries, 'correct', WEEKLY_MIN_CORRECT_PCT);
+    const tierKey = 'WKSEC_' + sectionKey + '_R' + round;
+    const label = `Weekly ${sectionKey} leaderboard \u2014 Round ${round}`;
+    const results = [];
+    const oddsResult = await awardTierMetricIfEligible(username, tierKey, 'oddsPoints', oddsWinners, WEEKLY_SECTION_REWARD_AMOUNT, `${label} (odds)`);
+    if(oddsResult) results.push(oddsResult);
+    const correctResult = await awardTierMetricIfEligible(username, tierKey, 'correct', correctWinners, WEEKLY_SECTION_REWARD_AMOUNT, `${label} (points)`);
+    if(correctResult) results.push(correctResult);
+    return results;
+  }
+
+  // Weekly, ALL-competitions-combined prize -- same shape, different scope
+  // and amount.
+  async function awardWeeklyOverallRewardsIfEligible(username, round){
+    const totals = await computeTippingTotals('ALL', round, round);
+    const entries = Object.entries(totals).map(([u, t]) => ({ username: u, ...t })).filter(t => t.total > 0);
+    const oddsWinners = findMetricWinners(entries, 'oddsPoints', WEEKLY_MIN_CORRECT_PCT);
+    const correctWinners = findMetricWinners(entries, 'correct', WEEKLY_MIN_CORRECT_PCT);
+    const tierKey = 'WKALL_R' + round;
+    const label = `Weekly overall leaderboard \u2014 Round ${round}`;
+    const results = [];
+    const oddsResult = await awardTierMetricIfEligible(username, tierKey, 'oddsPoints', oddsWinners, WEEKLY_OVERALL_REWARD_AMOUNT, `${label} (odds)`);
+    if(oddsResult) results.push(oddsResult);
+    const correctResult = await awardTierMetricIfEligible(username, tierKey, 'correct', correctWinners, WEEKLY_OVERALL_REWARD_AMOUNT, `${label} (points)`);
+    if(correctResult) results.push(correctResult);
+    return results;
   }
 
   // Sweeps every past, completed round's qualifying sections for the
@@ -4773,24 +4848,25 @@
     const checkKey = myUsername.toLowerCase() + '|' + lastPlayed;
     if(state.tippingRewardChecked === checkKey) return; // already swept up through this many completed rounds this session
     state.tippingRewardChecked = checkKey;
-    let latestAward = null;
+    let totalWon = 0;
     for(let r = lastPlayed; r >= 1; r--){
-      for(const sectionKey of TIP_REWARD_SECTIONS){
-        const section = TIPPING_SECTIONS.find(s => s.key === sectionKey);
+      for(const section of TIPPING_SECTIONS){
         const awarded = await awardPerfectSectionIfEligible(myUsername, r, section);
-        if(awarded) latestAward = { type: 'SECTION', round: r, section };
+        if(awarded) totalWon += TIP_REWARD_AMOUNT;
       }
       if(isRoundFullyResolvedForTipping(r)){
-        const lbResult = await awardWeeklyLeaderboardRewardIfEligible(myUsername, r);
-        if(lbResult) latestAward = { type: 'LEADERBOARD', round: r, ...lbResult };
+        for(const sectionKey of WEEKLY_SECTION_REWARD_SECTIONS){
+          const results = await awardWeeklySectionRewardsIfEligible(myUsername, r, sectionKey);
+          totalWon += results.reduce((s, x) => s + x.amount, 0);
+        }
+        const overallResults = await awardWeeklyOverallRewardsIfEligible(myUsername, r);
+        totalWon += overallResults.reduce((s, x) => s + x.amount, 0);
       }
     }
-    if(latestAward && state.user && state.user.username === myUsername){ // only touch the live session if it's still the same user who earned this
+    if(totalWon > 0 && state.user && state.user.username === myUsername){ // only touch the live session if it's still the same user who earned this
       const fresh = await getUser(myUsername);
       if(fresh && state.user && state.user.username === myUsername) state.user = fresh; // re-checked after the second await too, for the same reason
-      state.tippingRewardBanner = latestAward.type === 'SECTION'
-        ? `\u{1F389} Perfect round for ${latestAward.section.label} (Round ${latestAward.round})! +${TIP_REWARD_AMOUNT} clams.`
-        : `\u{1F3C6} You topped ${latestAward.wonOdds && latestAward.wonPoints ? 'both weekly leaderboards' : (latestAward.wonOdds ? 'the odds leaderboard' : 'the points leaderboard')} for Round ${latestAward.round}! +${WEEKLY_LEADERBOARD_REWARD_AMOUNT} clams.`;
+      state.tippingRewardBanner = `\u{1F389} You earned ${totalWon} clams from tipping rewards! Check the Prizes tab for the full breakdown.`;
       render();
     }
   }
@@ -4953,7 +5029,8 @@
         if(!data || !data.picks) continue;
         for(const key in data.picks){
           const [pickDiv, idxStr] = key.split('|');
-          if(div !== 'ALL' && pickDiv !== div) continue;
+          const divList = div === 'ALL' ? null : (Array.isArray(div) ? div : [div]);
+          if(divList && !divList.includes(pickDiv)) continue;
           const idx = parseInt(idxStr, 10);
           // getTippableFixtures, not a direct H2H_SCHEDULE lookup -- the
           // latter only covers league divisions, silently never matching
