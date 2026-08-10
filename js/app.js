@@ -317,7 +317,7 @@
     formModalOpen: false, formModalTeam: null,
     tippingSubTab: 'PICKS', tippingSection: 'ELIZA', tippingRound: null, tippingViewRound: null, tippingData: null, tippingPending: {}, tippingAllPicks: null,
     tippingRewardChecked: null, tippingRewardBanner: null, tipReminderStatus: null,
-    preseasonData: null, preseasonPending: {}, preseasonLeaderboard: null, preseasonResults: null, preseasonAllPicks: null, openHelpTip: null, homeTippingNudge: null, txHistory: null, txHistoryExpanded: false,
+    preseasonData: null, preseasonPending: {}, preseasonLeaderboard: null, preseasonResults: null, preseasonAllPicks: null, openHelpTip: null, homeTippingNudge: null, txHistory: null, txHistoryExpanded: false, recentWinners: null,
     tippingLeaderboardDiv: 'ALL', tippingLeaderboardMode: 'OVERALL', tippingLeaderboardRound: null, tippingLeaderboard: null, leaderboardKind: 'WEEKLY',
     cupFixtures: { 'FA CUP': [], 'ECL': [] },
     seasonClosed: { ELIZA: false, DIV2: false, DIV3: false, ALL: false },
@@ -523,6 +523,16 @@
     const tx = { id: uid(), username, type, amount, balanceAfter, reason, timestamp: Date.now() };
     await sset('bilbbet2_tx:' + tx.id, tx);
     await addToIndex('bilbbet2_tx_index_' + username.toLowerCase(), tx.id);
+  }
+  // A global, cross-user feed of tipping reward wins specifically -- not a
+  // duplicate of the per-user transaction log (which already records
+  // every balance change for that one user), but the only way to answer
+  // "who's won what recently" across everyone without fetching every
+  // single user's own transaction history one by one.
+  async function logGlobalWinner(username, category, amount, reason, round){
+    const entry = { id: uid(), username, category, amount, reason, round: round || null, timestamp: Date.now() };
+    await sset('bilbbet2_winner:' + entry.id, entry);
+    await addToIndex('bilbbet2_winners_index', entry.id);
   }
   async function getUser(u){ return await sget('bilbbet2_user:' + u.toLowerCase()); }
   // Serializes any read-modify-write sequence on the SAME user's record,
@@ -2009,11 +2019,15 @@
         <div class="bb-tab ${state.tippingSubTab==='PICKS'?'active':''}" data-tippingtab="PICKS" style="font-size:12px;padding:6px 10px;display:flex;align-items:center;gap:5px;">This week's tips${state.tipReminderStatus===true ? ' <span title="You haven\'t submitted your tips for this week yet" style="font-size:11px;">\u{1F6A9}</span>' : ''}</div>
         <div class="bb-tab ${state.tippingSubTab==='PRESEASON'?'active':''}" data-tippingtab="PRESEASON" style="font-size:12px;padding:6px 10px;">Pre-season</div>
         <div class="bb-tab ${state.tippingSubTab==='LEADERBOARD'?'active':''}" data-tippingtab="LEADERBOARD" style="font-size:12px;padding:6px 10px;">Leaderboard</div>
+        <div class="bb-tab ${state.tippingSubTab==='PRIZES'?'active':''}" data-tippingtab="PRIZES" style="font-size:12px;padding:6px 10px;">Prizes</div>
       </div>`;
     const intro = `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">Free to play, but topping it pays real clams \u2014 see the Prizes tab for the full breakdown. Correct tips score two ways: a straight tally, and what a 1-clam bet on that tip would have paid (upsets are worth more). Nothing saves until you hit Confirm, and you can come back and change your tips right up until this round locks.</p>`;
 
     if(state.tippingSubTab === 'PRESEASON'){
       return subTabs + renderPreseasonTab();
+    }
+    if(state.tippingSubTab === 'PRIZES'){
+      return subTabs + renderPrizesTab();
     }
 
     if(state.tippingSubTab === 'LEADERBOARD'){
@@ -2315,6 +2329,56 @@
               <span style="display:flex;gap:6px;flex-wrap:wrap;">${r.picks.map(p => `<span title="${esc(p.team)}">${teamLogo(p.team,22)}</span>`).join('')}</span>
             </div>`).join('')}
         </div>
+      </div>`;
+  }
+
+  function prizeCard(title, amount, body, example){
+    return `<div class="bb-card" style="margin-bottom:1rem;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
+          <strong style="font-size:14px;">${esc(title)}</strong>
+          <span style="color:#ffdd00;font-weight:700;font-size:14px;">${esc(amount)}</span>
+        </div>
+        <p style="font-size:12px;color:#cfcfcf;margin:0 0 8px;line-height:1.5;">${body}</p>
+        <p style="font-size:11px;color:#9a9a9a;margin:0;font-style:italic;">${esc(example)}</p>
+      </div>`;
+  }
+  function renderPrizesTab(){
+    const description = `<p style="color:#9a9a9a;font-size:12px;margin-bottom:14px;">Every reward below pays real clams, straight into your balance the moment it's earned \u2014 check My Bets \u2192 Balance history for the full record. A dead heat splits the amount between everyone tied, rounded UP, so a 3-way tie for 10 clams pays 4 each, not 3.33.</p>` +
+      prizeCard('Perfect round', `${TIP_REWARD_AMOUNT} clams each`,
+        `Confirm every fixture in a section and get all of them right that week. Not a leaderboard placement \u2014 anyone who does it earns it independently, even several people in the same week. Applies to Eliza Cup, Div 2 (2A+2B combined), and Div 3 (3A+3B combined) every week except their playoff rounds. For FA Cup, only Round of 64/32/16 qualify; for ECL, only Matchdays 1-3 \u2014 the knockout stages onward don't count.`,
+        `Example: you tip all 7 Eliza Cup fixtures one week and every one comes in \u2014 ${TIP_REWARD_AMOUNT} clams, regardless of anyone else's results.`) +
+      prizeCard('Weekly leaderboard \u2014 per section', `${WEEKLY_SECTION_REWARD_AMOUNT} clams each side`,
+        `Top the odds table OR the correct-picks table for one section (Eliza, Div 2, or Div 3) that week. Both are separately, stackably rewarded \u2014 topping both pays both. Needs at least ${WEEKLY_MIN_CORRECT_PCT*100}% of your tips correct that week to qualify, so one lucky high-odds tip on an otherwise poor week can't win it.`,
+        `Example: three punters tie for the top odds score in Eliza this week \u2014 each gets ${deadHeatSplit(WEEKLY_SECTION_REWARD_AMOUNT,3)} clams (${WEEKLY_SECTION_REWARD_AMOUNT}\u00f73, rounded up). If one of them also tops the correct-picks table alone, they get a further ${WEEKLY_SECTION_REWARD_AMOUNT} clams on top of that.`) +
+      prizeCard('Weekly leaderboard \u2014 overall', `${WEEKLY_OVERALL_REWARD_AMOUNT} clams each side`,
+        `Same idea, across everything you tipped that week combined \u2014 every division plus FA Cup and ECL together. Same ${WEEKLY_MIN_CORRECT_PCT*100}% qualifying bar, same stacking.`,
+        `Example: you top both the odds and correct-picks tables across the whole week \u2014 ${WEEKLY_OVERALL_REWARD_AMOUNT*2} clams (${WEEKLY_OVERALL_REWARD_AMOUNT}+${WEEKLY_OVERALL_REWARD_AMOUNT}).`) +
+      prizeCard('Seasonal leaderboard \u2014 per section', `${SEASONAL_SECTION_REWARD_AMOUNT} clams each category`,
+        `Three separate season-long prizes per section (Eliza, Div 2, Div 3): best total odds points, most correct picks, and best accuracy ratio. The ratio category needs at least ${SEASONAL_MIN_TIPPED_PCT*100}% of the season's fixtures actually tipped to qualify, so one early lucky tip can't outrank someone who tipped all season. Only pays out once the admin has manually flagged that section's season as closed.`,
+        `Example: Eliza's season is flagged closed \u2014 the season odds leader gets ${SEASONAL_SECTION_REWARD_AMOUNT}, separately the most-correct leader gets ${SEASONAL_SECTION_REWARD_AMOUNT}, separately again the best-accuracy leader (who tipped enough of the season to qualify) gets ${SEASONAL_SECTION_REWARD_AMOUNT}. One punter topping all three earns ${SEASONAL_SECTION_REWARD_AMOUNT*3}.`) +
+      prizeCard('Seasonal leaderboard \u2014 overall', `${SEASONAL_OVERALL_REWARD_AMOUNT} clams each category`,
+        `Same three categories, across the whole combined competition (every division plus FA Cup and ECL). Gated by its own separate admin flag, so it can stay open even after individual sections have closed.`,
+        `Example: the combined season is flagged closed and you lead all three categories \u2014 ${SEASONAL_OVERALL_REWARD_AMOUNT*3} clams.`) +
+      prizeCard('Mr Median', 'Same as a normal week',
+        `Div 2 and Div 3's Round 1 has no real fixtures, so instead of picking a winner, you pick whether each of the 24 combined-tier teams' own score beats that week's tier median \u2014 "Mr Median." Scored exactly like any other week: get at least 12 of your picks right and it counts as a perfect round (${TIP_REWARD_AMOUNT} clams); it also counts toward that week's leaderboard prizes the same as any other round.`,
+        `Example: you pick 12 teams, all 12 beat the median \u2014 ${TIP_REWARD_AMOUNT} clams, same as a perfect round anywhere else.`);
+    const winnersSection = `<h4 style="color:#9a9a9a;margin:1.5rem 0 8px;">Recent winners</h4>` + renderRecentWinners();
+    return description + winnersSection;
+  }
+  function renderRecentWinners(){
+    if(state.recentWinners === null){
+      loadRecentWinners(); // async -- fires off the fetch, current render shows a brief loading state
+      return `<p style="color:#9a9a9a;font-size:13px;">Loading&hellip;</p>`;
+    }
+    if(!state.recentWinners.length){
+      return `<p style="color:#9a9a9a;font-size:13px;">No prizes claimed yet \u2014 check back once a round wraps up.</p>`;
+    }
+    const recent = state.recentWinners.slice(0, 30);
+    return `<div class="bb-card">
+        ${recent.map(w => `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #333333;font-size:12px;">
+            <span><strong>${esc(w.username)}</strong> <span style="color:#9a9a9a;">\u2014 ${esc(w.category)}${w.round?` (Round ${w.round})`:''}: ${esc(w.reason)}</span></span>
+            <span style="color:#ffdd00;font-weight:600;white-space:nowrap;margin-left:8px;">+${w.amount}</span>
+          </div>`).join('')}
       </div>`;
   }
 
@@ -4478,6 +4542,19 @@
     render();
   }
 
+  // Global, not per-user -- shown to everyone regardless of who's logged
+  // in, so this doesn't need the username-capture-and-guard pattern the
+  // per-user loaders use.
+  async function loadRecentWinners(){
+    const ids = await getIndex('bilbbet2_winners_index');
+    const entries = (await Promise.all(ids.map(id => sget('bilbbet2_winner:'+id)))).filter(Boolean);
+    state.recentWinners = entries
+      .map((w, i) => ({ w, i })) // insertion-order tiebreaker, same reasoning as loadTxHistory
+      .sort((a,b) => (b.w.timestamp - a.w.timestamp) || (b.i - a.i))
+      .map(x => x.w);
+    render();
+  }
+
   async function loadTxHistory(){
     const myUsername = state.user.username; // captured once -- state.user could change while the fetch below is in flight
     const ids = await getIndex('bilbbet2_tx_index_' + myUsername.toLowerCase());
@@ -4692,6 +4769,7 @@
       fresh.balance += TIP_REWARD_AMOUNT;
       await saveUser(fresh);
       await logTransaction(username, 'TIP_REWARD', TIP_REWARD_AMOUNT, fresh.balance, `Perfect round \u2014 ${section.label} (Round ${round})`);
+      await logGlobalWinner(username, 'Perfect round', TIP_REWARD_AMOUNT, section.label, round);
       await sset(key, true);
       awarded = true;
     });
@@ -4750,6 +4828,8 @@
       await saveUser(fresh);
       const tieNote = winners.length > 1 ? ` (tied ${winners.length}-way, split rounded up)` : '';
       await logTransaction(username, 'TIER_REWARD', share, fresh.balance, `${reasonLabel}${tieNote}`);
+      const category = tierKey.startsWith('SEASON') ? 'Seasonal leaderboard' : 'Weekly leaderboard';
+      await logGlobalWinner(username, category, share, `${reasonLabel}${tieNote}`);
       await sset(key, true);
       awarded = { amount: share, metric };
     });
