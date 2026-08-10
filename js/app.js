@@ -2118,6 +2118,19 @@
         const aOdds = toOdds(m.aWinPct), bOdds = toOdds(m.bWinPct);
         const key = div+'|'+i;
         const current = state.tippingPending[key];
+        if(teamB === 'MR MEDIAN'){
+          // Mr Median: a single "will this team beat the median" checkbox,
+          // not a two-sided pick -- there's deliberately no way to predict
+          // a team LOSES to the median, only whether you believe it wins.
+          const checked = !!current;
+          return `<div style="padding:4px 0;">
+              <label style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;background:${checked?'#3a3320':'#2a2a2a'};cursor:pointer;font-size:12px;">
+                <input type="checkbox" data-mrmedian-check="${esc(div)}|${i}|${esc(teamA)}|${aOdds.odds}" ${checked?'checked':''}/>
+                ${teamLogo(teamA,16)}${esc(teamA)} <span style="color:#9a9a9a;">beats the median</span>
+                <span style="margin-left:auto;color:#ffdd00;font-weight:600;">${formatOdds(aOdds.odds)}</span>
+              </label>
+            </div>`;
+        }
         const radio = (team, oddsInfo, side) => {
           if(oddsInfo.suspended) return `<span style="flex:1;text-align:center;font-size:12px;color:#9a9a9a;opacity:0.6;">susp.</span>`;
           const checked = current && current.team === team;
@@ -2362,8 +2375,8 @@
         `Same three categories, across the whole combined competition (every division plus FA Cup and ECL). Gated by its own separate admin flag, so it can stay open even after individual sections have closed.`,
         `Example: the combined season is flagged closed and you lead all three categories \u2014 ${SEASONAL_OVERALL_REWARD_AMOUNT*3} clams.`) +
       prizeCard('Mr Median', 'Same as a normal week',
-        `Div 2 and Div 3's Round 1 has no real fixtures, so instead of picking a winner, you pick whether each of the 24 combined-tier teams' own score beats that week's tier median \u2014 "Mr Median." Scored exactly like any other week: get at least 12 of your picks right and it counts as a perfect round (${TIP_REWARD_AMOUNT} clams); it also counts toward that week's leaderboard prizes the same as any other round.`,
-        `Example: you pick 12 teams, all 12 beat the median \u2014 ${TIP_REWARD_AMOUNT} clams, same as a perfect round anywhere else.`) +
+        `Div 2 and Div 3's Round 1 has no real fixtures, so instead of picking a winner, you tick up to ${MR_MEDIAN_PICK_CAP} of the 24 combined-tier teams you believe will beat that week's tier median \u2014 "Mr Median." There's no picking a team to lose; you simply leave it unticked. Scored exactly like any other week: get at least 12 of your ticked teams right and it counts as a perfect round (${TIP_REWARD_AMOUNT} clams); it also counts toward that week's leaderboard prizes the same as any other round.`,
+        `Example: you tick 12 teams, all 12 beat the median \u2014 ${TIP_REWARD_AMOUNT} clams, same as a perfect round anywhere else.`) +
       prizeCard('Pre-season pick', `${PRESEASON_PICK_REWARD_AMOUNT} clams each`,
         `${PRESEASON_PICK_REWARD_AMOUNT} clams for every single pre-season prediction that comes in correct \u2014 not a leaderboard placement, so a correct division-winner pick, a correct relegation pick, and a correct promotion pick all pay independently and separately. Multi-team slots (relegation, promotion) only pay once that slot is fully, officially resolved.`,
         `Example: you correctly predict the Eliza Cup winner AND one of the four relegated teams \u2014 ${PRESEASON_PICK_REWARD_AMOUNT*2} clams (${PRESEASON_PICK_REWARD_AMOUNT} each), even though the other three relegation spots are still unknown.`) +
@@ -4662,6 +4675,32 @@
     render();
   }
 
+  const MR_MEDIAN_PICK_CAP = 12;
+  // Check/uncheck, not a two-sided pick -- and capped at 12 across the
+  // COMBINED tier (both conferences together, matching how "beat the
+  // median" was scoped from the start), not 12 per conference.
+  function toggleMrMedianPick(div, fixtureIdx, team, odds){
+    if(!state.user || !state.tippingData) return;
+    const key = div + '|' + fixtureIdx;
+    if(state.tippingPending[key]){
+      const next = { ...state.tippingPending };
+      delete next[key];
+      state.tippingPending = next;
+      render();
+      return;
+    }
+    const tierKey = (div === 'DIVISION 2A' || div === 'DIVISION 2B') ? 'DIV2' : 'DIV3';
+    const tierDivs = MR_MEDIAN_TIERS[tierKey];
+    const currentCount = Object.keys(state.tippingPending).filter(k => tierDivs.includes(k.split('|')[0])).length;
+    if(currentCount >= MR_MEDIAN_PICK_CAP){
+      alert(`You can only pick up to ${MR_MEDIAN_PICK_CAP} teams to beat the median.`);
+      render(); // snaps the checkbox back to unchecked -- the browser already visually toggled it before this handler ran
+      return;
+    }
+    state.tippingPending = { ...state.tippingPending, [key]: { team, odds } };
+    render();
+  }
+
   async function confirmTips(){
     if(!state.user || !state.tippingData) return;
     state.tippingData = { round: state.tippingData.round, picks: { ...state.tippingPending } };
@@ -5723,6 +5762,16 @@
       }
       const [div, idxStr, side, team, oddsStr] = el.dataset.tipRadio.split('|');
       setPendingTip(div, parseInt(idxStr, 10), team, parseFloat(oddsStr));
+    });
+    document.querySelectorAll('[data-mrmedian-check]').forEach(el => el.onchange = () => {
+      if(!state.user){
+        alert('You must log in first to submit a tip.');
+        state.loginModalOpen = true;
+        render(); // snaps the checkbox back to its real (unchecked) state -- the browser already visually toggled it before onchange fired
+        return;
+      }
+      const [div, idxStr, team, oddsStr] = el.dataset.mrmedianCheck.split('|');
+      toggleMrMedianPick(div, parseInt(idxStr, 10), team, parseFloat(oddsStr));
     });
     const confirmTipsBtn = $('#confirm-tips-btn'); if(confirmTipsBtn) confirmTipsBtn.onclick = confirmTips;
     document.querySelectorAll('[data-preseason-pick]').forEach(el => el.onclick = () => {
