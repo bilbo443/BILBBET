@@ -299,7 +299,7 @@
     futuresSubTab: FUTURE_DIVS[0],
     slip:[], stake:50, betMode:'multi', useBoost:false, showImpliedChance:false,
     myBets:null,
-    adminPunters:null, adminBets:null, novelty:null, statsData:null, suggestions:null, suggestionText:'',
+    adminPunters:null, adminBets:null, novelty:null, statsData:null, suggestions:null, suggestionText:'', feedback:null,
     currentRound: 1,       // the next round yet to be played; anything before this is "past"
     leadingAtRound: 1,
     specialsRound: 1,
@@ -314,6 +314,7 @@
     registeringMode: false, customNameMode: false, tipReminderOptIn: true,
     tosModalOpen: false, tosMode: 'view', tosAgreed: false, readMeModalOpen: false,
     tutorialModalOpen: false, tutorialStep: 0, welcomeModalOpen: false,
+    contactUsModalOpen: false, feedbackCategory: '', feedbackOtherText: '', feedbackSubmitted: false,
     formModalOpen: false, formModalTeam: null,
     tippingSubTab: 'PICKS', tippingSection: 'ELIZA', tippingRound: null, tippingViewRound: null, tippingData: null, tippingPending: {}, tippingAllPicks: null,
     tippingRewardChecked: null, tippingRewardBanner: null, tipReminderStatus: null,
@@ -533,6 +534,11 @@
     const entry = { id: uid(), username, category, amount, reason, round: round || null, timestamp: Date.now() };
     await sset('bilbbet2_winner:' + entry.id, entry);
     await addToIndex('bilbbet2_winners_index', entry.id);
+  }
+  async function submitFeedback(username, category, comment){
+    const entry = { id: uid(), username: username || 'Guest', category, comment: comment || null, timestamp: Date.now() };
+    await sset('bilbbet2_feedback:' + entry.id, entry);
+    await addToIndex('bilbbet2_feedback_index', entry.id);
   }
   async function getUser(u){ return await sget('bilbbet2_user:' + u.toLowerCase()); }
   // Serializes any read-modify-write sequence on the SAME user's record,
@@ -1292,6 +1298,8 @@
       <span id="open-readme-footer" class="${flashClass}" style="font-size:12px;color:#9a9a9a;text-decoration:underline;cursor:pointer;">Read me</span>
       <span style="color:#5a5a5a;margin:0 8px;">&middot;</span>
       <span id="open-tutorial-btn" style="font-size:12px;color:#9a9a9a;text-decoration:underline;cursor:pointer;" title="New here? Take the tour">Tutorial</span>
+      <span style="color:#5a5a5a;margin:0 8px;">&middot;</span>
+      <span id="open-contact-us-btn" style="font-size:12px;color:#9a9a9a;text-decoration:underline;cursor:pointer;">Contact us</span>
     </div>`;
   }
 
@@ -1321,6 +1329,59 @@
   // One entry per top-level tab, in the same left-to-right order they
   // appear in the nav -- kept as plain data so adding/editing a tab's
   // description doesn't touch the modal's rendering logic at all.
+  const FEEDBACK_OPTIONS = [
+    'I keep losing bets',
+    "I don't like that my Eliza team is gonna get relegated",
+    'The odds are never in my favour',
+    'Mr Median personally has it out for me',
+    'My multi bet was one leg away from paying out, again',
+    'The favourite lost and ruined everything',
+    'I demand a recount on the leaderboard',
+    "My team's form modal is too depressing to look at",
+    'The implied probability toggle exposed how bad my bet really was',
+    'I want VAR for the tipping leaderboard',
+    "Someone tipped a draw and I refuse to accept that's allowed",
+    'The admin clearly has favourites',
+    'My clams disappeared faster than my dignity',
+    'I was one correct pick away from the perfect round bonus',
+    'Why does the underdog always win when I bet against them',
+    'I demand an apology from the odds algorithm',
+    "My team hasn't won since the coefficient system was invented",
+    'The self-interest guard stopped me from betting against my own team, how rude',
+    'I refuse to believe Mr Median beat my pick fair and square',
+    'The FA Cup draw is clearly rigged',
+    'My featured pick jinxed the result',
+    'I want a written explanation for every loss',
+    'My name is too far down the leaderboard for my liking',
+    "The near-miss bonus wasn't generous enough",
+    'Someone in my tipping section is suspiciously good at this',
+    'I demand the season be replayed from round one',
+    'The suspended market ruined my dream parlay',
+    'My balance is lower than my expectations, which were also low',
+    'I want compensation for emotional distress caused by relegation odds',
+    'The tutorial did not warn me tipping could be this addictive',
+    'My multi bet got blocked for "correlation" and I still have not forgiven the system',
+    'Why do the play-off rounds even exist',
+    'I refuse to accept that a coin flip beat my analysis',
+    'The odds floor is a personal attack on my favourite team',
+    "My team's form graph looks like a flatlining heart monitor",
+    'I want the ability to bet against Mr Median directly',
+    "Somebody's perfect round streak is deeply suspicious",
+    'The implied probability made me feel things I did not consent to feel',
+    'My team conceded in stoppage time and ruined a beautiful bet slip',
+    'I demand to know who keeps tipping against the exact fixtures I need',
+    'The clams-to-real-feelings exchange rate is not favourable',
+    'My balance history is a horror story I did not ask to read',
+    'The wooden spoon market exists and I find that deeply personal',
+    'I want a formal inquiry into how many times I have been "so close"',
+    "My team's away form makes me question my life choices",
+    "The leading-at markets are too honest about how badly my team started",
+    'I keep confirming tips and then immediately regretting every single one',
+    'The registration bonus was not enough to cover my losses, nothing would be',
+    'My rival tipster keeps beating me by exactly one point, every single week',
+    'I have complaints about the complaints dropdown, it is too honest',
+  ];
+
   const TUTORIAL_STEPS = [
     { tab: 'HOME', title: 'Home', body: 'Your starting point each visit. A handful of featured picks are boosted for the round (extra odds, one per punter per round), alongside the A-League fantasy point projection and the best-value bet that actually won last round.' },
     { tab: 'FUTURES', title: 'Futures', body: 'Season-long bets that only settle at the end of the season -- who wins each division, gets promoted or relegated, tops the Roddy, or lifts the FA Cup or ECL. Use the sub-tabs to switch between divisions and competitions.' },
@@ -1422,6 +1483,36 @@
               ? `<button class="bb-btn" id="tutorial-next" style="flex:1;">Next</button>`
               : `<button class="bb-btn" id="tutorial-done" style="flex:1;">Done</button>`}
           </div>
+        </div>
+      </div>`;
+  }
+  function renderContactUsModal(){
+    if(state.feedbackSubmitted){
+      return `
+        <div id="contact-us-modal-backdrop" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:110;display:flex;align-items:center;justify-content:center;padding:1rem;">
+          <div class="bb-card" style="max-width:420px;width:100%;text-align:center;padding:2.5rem 1.5rem;">
+            <div style="font-size:72px;line-height:1;margin-bottom:16px;">\u{1F6AE}</div>
+            <p style="font-size:18px;font-weight:600;margin:0 0 20px;">Your feedback is important to us.</p>
+            <button class="bb-btn" id="close-contact-us-modal">Close</button>
+          </div>
+        </div>`;
+    }
+    const isOther = state.feedbackCategory === 'OTHER';
+    return `
+      <div id="contact-us-modal-backdrop" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:110;display:flex;align-items:center;justify-content:center;padding:1rem;">
+        <div class="bb-card" style="max-width:420px;width:100%;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <h3 style="margin:0;">Contact us</h3>
+            <span style="font-size:12px;color:#9a9a9a;cursor:pointer;" id="close-contact-us-modal-x">&times;</span>
+          </div>
+          <p style="font-size:13px;line-height:1.6;color:#cfcfcf;margin:0 0 14px;">We understand not everything will go to expectations. To help us improve the site, we welcome your feedback \u2014 pick whatever's closest to how you're feeling below.</p>
+          <select class="bb-select" id="feedback-category-select" style="width:100%;margin-bottom:10px;">
+            <option value="" disabled ${state.feedbackCategory===''?'selected':''}>Choose a complaint&hellip;</option>
+            ${FEEDBACK_OPTIONS.map(opt => `<option value="${esc(opt)}" ${state.feedbackCategory===opt?'selected':''}>${esc(opt)}</option>`).join('')}
+            <option value="OTHER" ${isOther?'selected':''}>Other (tell us yourself)</option>
+          </select>
+          ${isOther ? `<textarea id="feedback-other-text" placeholder="Go on, let it out." style="width:100%;min-height:90px;background:#2a2a2a;border:1px solid #3d3d3d;border-radius:6px;color:#eee;padding:8px;font-size:13px;box-sizing:border-box;margin-bottom:10px;">${esc(state.feedbackOtherText)}</textarea>` : ''}
+          <button class="bb-btn" id="submit-feedback-btn" style="width:100%;">File complaint</button>
         </div>
       </div>`;
   }
@@ -2919,6 +3010,7 @@
       {key:'bets', label:'Bets', flag:flagBets},
       {key:'specials', label:'Specials', flag:flagSpecials},
       {key:'punters', label:'Punters', flag:flagPunters},
+      {key:'feedback', label:'Feedback'},
     ];
     const tabBar = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;">' +
       TABS.map(t => `<div class="bb-tab ${state.adminSubTab===t.key?'active':''}" data-adminsubtab="${t.key}" style="font-size:13px;padding:7px 12px;position:relative;">${t.label}${t.flag?' <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#ffdd00;margin-left:4px;"></span>':''}</div>`).join('') +
@@ -3259,7 +3351,28 @@
       </div>
 `;
 
-    const bodyByTab = { season: SEASON_HTML, fixtures: FIXTURES_HTML, bets: BETS_HTML, specials: SPECIALS_HTML, punters: PUNTERS_HTML };
+    const FEEDBACK_HTML = (() => {
+      if(state.feedback === null){
+        loadFeedback(); // async -- fires off the fetch, current render shows a brief loading state
+        return `<h3 style="margin-top:0;">Feedback</h3><p style="color:#9a9a9a;">Loading&hellip;</p>`;
+      }
+      if(!state.feedback.length){
+        return `<h3 style="margin-top:0;">Feedback</h3><p style="color:#9a9a9a;">No complaints filed yet. Give it time.</p>`;
+      }
+      return `<h3 style="margin-top:0;">Feedback</h3>
+        <div class="bb-card">
+          ${state.feedback.map(f => `<div style="padding:8px 0;border-bottom:1px solid #333333;">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;">
+                <strong style="font-size:13px;">${esc(f.username)}</strong>
+                <span style="font-size:11px;color:#9a9a9a;white-space:nowrap;">${new Date(f.timestamp).toLocaleString()}</span>
+              </div>
+              <div style="font-size:13px;color:#cfcfcf;margin-top:2px;">${esc(f.category)}</div>
+              ${f.comment ? `<div style="font-size:12px;color:#9a9a9a;margin-top:4px;font-style:italic;">"${esc(f.comment)}"</div>` : ''}
+            </div>`).join('')}
+        </div>`;
+    })();
+
+    const bodyByTab = { season: SEASON_HTML, fixtures: FIXTURES_HTML, bets: BETS_HTML, specials: SPECIALS_HTML, punters: PUNTERS_HTML, feedback: FEEDBACK_HTML };
     return tabBar + (bodyByTab[state.adminSubTab] || SEASON_HTML);
   }
 
@@ -4131,7 +4244,7 @@
     } else {
       body = `<p style="color:#9a9a9a;">Unknown tab.</p>`;
     }
-    return `<div id="bb-page-content">${renderStorageWarning()}${renderTestingPhaseDisclaimer()}${header()}${renderTeamSearchPanel()}${mainTabs()}${body}${renderFooter()}</div>${['ADMIN','STATS'].includes(state.activeTab) ? '' : slipBar()}${state.loginModalOpen ? renderLoginModal() : ''}${state.tosModalOpen ? renderTosModal() : ''}${state.readMeModalOpen ? renderReadMeModal() : ''}${state.tutorialModalOpen ? renderTutorialModal() : ''}${state.welcomeModalOpen ? renderWelcomeModal() : ''}${state.formModalOpen ? renderFormModal() : ''}${teamsDatalist()}`;
+    return `<div id="bb-page-content">${renderStorageWarning()}${renderTestingPhaseDisclaimer()}${header()}${renderTeamSearchPanel()}${mainTabs()}${body}${renderFooter()}</div>${['ADMIN','STATS'].includes(state.activeTab) ? '' : slipBar()}${state.loginModalOpen ? renderLoginModal() : ''}${state.tosModalOpen ? renderTosModal() : ''}${state.readMeModalOpen ? renderReadMeModal() : ''}${state.tutorialModalOpen ? renderTutorialModal() : ''}${state.welcomeModalOpen ? renderWelcomeModal() : ''}${state.formModalOpen ? renderFormModal() : ''}${state.contactUsModalOpen ? renderContactUsModal() : ''}${teamsDatalist()}`;
   }
 
   function combinedOdds(){ return combinedOddsFor(state.slip); }
@@ -4582,6 +4695,16 @@
       .map((w, i) => ({ w, i })) // insertion-order tiebreaker, same reasoning as loadTxHistory
       .sort((a,b) => (b.w.timestamp - a.w.timestamp) || (b.i - a.i))
       .map(x => x.w);
+    render();
+  }
+  async function loadFeedback(){
+    const ids = await getIndex('bilbbet2_feedback_index');
+    const recentIds = ids.slice(-RECENT_HISTORY_FETCH_LIMIT); // same reasoning as loadTxHistory/loadRecentWinners -- avoid fetching the entire history just to show the most recent batch
+    const entries = (await Promise.all(recentIds.map(id => sget('bilbbet2_feedback:'+id)))).filter(Boolean);
+    state.feedback = entries
+      .map((f, i) => ({ f, i }))
+      .sort((a,b) => (b.f.timestamp - a.f.timestamp) || (b.i - a.i))
+      .map(x => x.f);
     render();
   }
 
@@ -5548,6 +5671,27 @@
 
     const openTutorialBtn = $('#open-tutorial-btn');
     if(openTutorialBtn) openTutorialBtn.onclick = () => { state.tutorialStep = 0; state.info=''; state.tutorialModalOpen = true; render(); };
+    const openContactUsBtn = $('#open-contact-us-btn');
+    if(openContactUsBtn) openContactUsBtn.onclick = () => { state.feedbackCategory = ''; state.feedbackOtherText = ''; state.feedbackSubmitted = false; state.contactUsModalOpen = true; render(); };
+    const closeContactUsX = $('#close-contact-us-modal-x');
+    if(closeContactUsX) closeContactUsX.onclick = () => { state.contactUsModalOpen = false; render(); };
+    const closeContactUsModal = $('#close-contact-us-modal');
+    if(closeContactUsModal) closeContactUsModal.onclick = () => { state.contactUsModalOpen = false; render(); };
+    const feedbackSelect = $('#feedback-category-select');
+    if(feedbackSelect) feedbackSelect.onchange = e => { state.feedbackCategory = e.target.value; render(); };
+    const feedbackOtherText = $('#feedback-other-text');
+    if(feedbackOtherText) feedbackOtherText.oninput = e => { state.feedbackOtherText = e.target.value; };
+    const submitFeedbackBtn = $('#submit-feedback-btn');
+    if(submitFeedbackBtn) submitFeedbackBtn.onclick = async () => {
+      const isOther = state.feedbackCategory === 'OTHER';
+      if(!state.feedbackCategory){ alert('Choose a complaint first.'); return; }
+      if(isOther && !state.feedbackOtherText.trim()){ alert('Go on, tell us something.'); return; }
+      const category = isOther ? 'Other' : state.feedbackCategory;
+      const comment = isOther ? state.feedbackOtherText.trim() : null;
+      await submitFeedback(state.user ? state.user.username : null, category, comment);
+      state.feedbackSubmitted = true;
+      render();
+    };
     const closeTutorialX = $('#close-tutorial-modal-x');
     if(closeTutorialX) closeTutorialX.onclick = () => { state.tutorialModalOpen = false; state.info=''; render(); };
     const tutorialDone = $('#tutorial-done');
