@@ -198,3 +198,35 @@ just not yet present in the rebuilt source.
   seeding/advancement rules weren't confirmed. A real follow-up, not an
   oversight.
 
+## Update: real H2H betting markets were silently still on the OLD coefficients
+
+Found in a follow-up sweep, not caught at the time of the original
+deployment. `team_market_coeffs.json` was updated and futures odds
+regenerated from it — but the real, live H2H match betting markets don't
+read `team_market_coeffs.json` at all. `computeH2HMarket()` in app.js
+reads four separate files instead: `h2h_shift.json`, `h2h_cup_shift.json`,
+`h2h_variance_widen.json`, `h2h_history.json`. None of these were
+touched, so H2H betting for every team was silently still pricing off the
+OLD, pre-update coefficients even after futures had moved on — the same
+team could show a corrected price in one part of the app and the old,
+uncorrected one in another.
+
+`sync_roster.py`'s own docstring already stated these four files were
+always meant to be regenerated together with `team_market_coeffs.json`
+from the same rebuild — this was a real gap in execution, not a design
+question. Confirmed the exact derivation for each (not guessed) by
+comparing every existing value against the old coefficient file:
+
+  - `h2h_shift.json[team]` = `scale * (eliza - 0.5 * relegation_risk)` —
+    identical to the eliza futures market's own shift formula
+  - `h2h_cup_shift.json[team]` = `scale * fa_cup`
+  - `h2h_variance_widen.json[team]` = `variance_widen`, direct copy
+  - `h2h_history.json` = `roddy_history.json`, confirmed byte-identical
+
+Formalized as `derive_h2h_signals.py` (not left as one-off manual fix) so
+this stays part of the repeatable pipeline — run it any time
+`team_market_coeffs.json` or `roddy_history.json` changes. Deployed to
+the live app's data directory (backups kept as `*.json.bak`), and
+confirmed against the actual live app code: H2H fixture lists render
+correctly across every division, and Kallo FC's H2H shift dropped from
+4.092 to 2.716, correctly reflecting their corrected coefficient.
