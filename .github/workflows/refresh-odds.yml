@@ -23,7 +23,7 @@ name: Weekly Odds Refresh (auto, with manual override)
 # result, and doesn't need a human gatekeeper to stay safe.
 on:
   schedule:
-    - cron: '0 20 * * 0'  # ~6am Monday AEST / ~7am AEDT -- adjust to your own timezone
+    - cron: '0 5 * * 1'  # ~3pm Monday AEST / ~4pm Monday AEDT -- adjust to your own timezone
   workflow_dispatch:
     inputs:
       sheet_url:
