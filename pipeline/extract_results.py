@@ -27,6 +27,22 @@ def extract_results(csv_path, header_row=1):
     if missing_rounds:
         raise ValueError(f"Expected round columns not found: {missing_rounds}.")
 
+    # The real roster table is followed by many other, unrelated sections
+    # stacked below it on the same sheet tab (H2H tables, ECL group tables,
+    # a Roddy table, fixtures, even an unrelated A-League team reference
+    # list) -- confirmed directly against the live sheet. Those sections'
+    # own column-1 values land in the same pandas column as TEAM NAME
+    # purely by coincidence of the spreadsheet's layout, and aren't all
+    # reliably caught by the division-blank check below on their own (the
+    # A-League rows, for instance, have "#REF!" in the division position,
+    # not a true blank). Truncate at the real table's boundary -- a fully
+    # blank row, confirmed present in the live sheet -- rather than trying
+    # to special-case every downstream section's quirks individually.
+    if 'TEAM NAME' in df.columns:
+        blank_mask = df.isna().all(axis=1)
+        if blank_mask.any():
+            df = df.iloc[:blank_mask.idxmax()]
+
     # Only the first 'TEAM NAME' column is the real one -- the sheet reuses
     # that header name in at least two other sections further along the row.
     # Locate it by finding the occurrence adjacent to 'ELIZA ID' and 'DIVISION'.
