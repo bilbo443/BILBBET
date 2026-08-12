@@ -79,7 +79,11 @@ def build_samplers(rng, market, new_divs, history, team_coeffs, scale):
     samplers = {}
     for div, teams in new_divs.items():
         for t in teams:
-            c = team_coeffs[t]
+            # Same neutral fallback as the division futures scripts -- see
+            # regenerate_futures.py and simulation_adapter.py for the
+            # 2026-08-12 crash this was found and fixed alongside.
+            c = team_coeffs.get(t, {'eliza': 0.0, 'roddy': 0.0, 'fa_cup': 0.0, 'ecl': 0.0,
+                                     'relegation_risk': 0.0, 'variance_widen': 0.0})
             base = c[market]
             shift = scale * base
             samplers[t] = make_sampler(rng, history.get(t, div_pool[div]), shift)
