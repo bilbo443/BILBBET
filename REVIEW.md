@@ -230,3 +230,66 @@ the live app's data directory (backups kept as `*.json.bak`), and
 confirmed against the actual live app code: H2H fixture lists render
 correctly across every division, and Kallo FC's H2H shift dropped from
 4.092 to 2.716, correctly reflecting their corrected coefficient.
+
+## Update: futures simulation moved to multi-seed averaging (25,000 x 3)
+
+`regenerate_futures.py`'s original single-seed, 6,000-simulation run left
+Division 2A with a 22-point seed-to-seed spread — flagged at the time as
+"treat direction as likely right, number as uncertain." Rather than leave
+that uncertainty baked silently into live odds, this brings
+`regenerate_futures.py` up to the same methodology already vetted
+elsewhere in this pipeline (25,000 simulations x 3 distinct seeds,
+averaged) rather than inventing a new approach.
+
+Every team/market's final percentage is now the mean across all 3 seeds.
+The seed-to-seed spread itself (max − min across seeds, in percentage
+points) is computed for every single entry, not just spot-checked —
+anything ≥10pts gets written to `seed_spread_report.json` and printed
+explicitly, so a genuinely low-confidence result stays visible instead of
+looking as settled as a stable one.
+
+Result: at this sample size, **zero entries anywhere flagged even at a
+3-point threshold** (tested below the 10pt default specifically to
+confirm this wasn't just clearing the bar narrowly) — Division 2A's
+previous instability was a sampling-noise artifact of too few
+simulations, not a genuine multi-modal result in the underlying model.
+Runtime: ~99 seconds for the full run, confirmed comfortably within
+GitHub Actions' budget before deploying.
+
+Deployed to the live app's `futures.json` (backup kept as
+`futures.json.bak2`) and confirmed against the actual app code — full
+regression suite passes, including every futures market, tipping, H2H,
+and admin.
+
+## Update: FA Cup and ECL futures fully regenerated (previously flagged gap, now closed)
+
+Rules confirmed directly rather than guessed at:
+
+- **FA Cup byes**: the two byes needed to fill a 64-slot bracket from 62
+  teams go to the top 2 Roddy finishers from the previous season (25/26)
+  — read directly from the trophy CSV's RODDY.5 column, not assumed:
+  Silverman's XI (1st) and Big Mac FC (2nd). Those two skip straight to
+  Round of 32; the other 60 play Round of 64 (30 matches) to fill the
+  remaining 30 of 32 slots.
+- **ECL knockout qualification**: 3 groups of 4 (round-robin, 3
+  matchdays), top 2 per group (6 total) reach the knockout stage. Of
+  those 6, the best 2 by group-stage record go straight to the
+  Semi-Final; the other 4 play a single random-draw round for the
+  remaining 2 semi-final spots. This explains why `ecl_labels` has no
+  `reach_qf_pct` key — there's no separately-tracked stage between
+  "reached knockout" and "reached semi-final" in this format.
+- **No seeding anywhere** — every knockout draw (both competitions) is a
+  genuine random pairing among whoever's left in that round.
+
+Implemented in `regenerate_cup_futures.py`, same multi-seed methodology
+as the rest of the pipeline (25,000 sims x 3 seeds). Validated
+mathematically before trusting it, not just spot-checked: both bye teams
+show as guaranteed (suspended) in `reach_r32_pct`, and every stage's
+probabilities sum to exactly the number of qualifying slots for that
+stage (e.g. ECL `reach_sf_pct` sums to ~400%, matching the 4 real
+semi-final spots) — confirmed at both a 200-simulation smoke-test scale
+and the full 25,000-simulation run. Zero seed-spread flags at the full
+scale. Merged into `futures.json` and deployed (backup kept as
+`futures.json.bak3`); confirmed the app's existing UI renders the
+guaranteed-bye entries correctly as "suspended," matching how every other
+near-certain market already displays. Full regression suite passes.
