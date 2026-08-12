@@ -1,23 +1,52 @@
-name: Weekly Odds Refresh (draft, manual trigger only)
+name: Weekly Odds Refresh (auto, with manual override)
 
-# Deliberately workflow_dispatch only -- NOT scheduled. This is intentional,
-# not an oversight: the sheet's author test-runs scores before the season
-# starts (confirmed during development -- the calendar-consistency check
-# in Layer 2 catches this correctly), and a scheduled/unattended trigger
-# would risk treating test data as a real result. Someone has to press the
-# button on purpose.
+# Runs automatically every Monday, and can still be triggered manually any
+# time. Scheduled runs have no human to type a sheet URL into, so the
+# published CSV link is read from a saved repository VARIABLE instead of
+# a workflow_dispatch input. A manual run can still override it by typing
+# a different one, useful for testing without touching the saved default.
+#
+# NOTE ON ROSTER SYNC: sync_roster.py exists and is fully built (roster
+# diffing, coefficient/history carry-over, schedule regeneration -- see
+# its own module docstring) but is NOT YET wired into this pipeline. The
+# --alltime-url flag below is accepted by run_refresh.py but is currently
+# a no-op. Until that integration lands, roster changes (renames, new
+# teams, departures) still need to be applied by hand, the same way the
+# Heilan Coos / Frekeinthesheets situation was handled this session.
+# Don't take the "roster sync" framing in older comments/PRs at face
+# value until this note is removed.
+#
+# Safety note on the schedule itself: this was deliberately manual-only
+# earlier in the project, out of concern that a scheduled run might
+# process the sheet's pre-season test data as if it were real. That risk
+# is already handled by Layer 2's calendar-consistency check, which
+# rejects any round whose reported kickoff date hasn't actually passed
+# yet -- so a scheduled run genuinely can't mistake test data for a real
+# result, and doesn't need a human gatekeeper to stay safe.
 on:
+  schedule:
+    - cron: '0 5 * * 1'  # ~3pm Monday AEST / ~4pm Monday AEDT -- adjust to your own timezone
   workflow_dispatch:
     inputs:
       sheet_url:
-        description: 'Published CSV URL for the results sheet'
-        required: true
+        description: 'Published CSV URL for the results sheet (leave blank to use the saved SHEET_URL variable)'
+        required: false
         type: string
       header_row:
         description: 'Header row index in the CSV (0-based)'
         required: false
         default: '1'
         type: string
+
+# Required for peter-evans/create-pull-request to actually open a PR, not
+# just push the branch. Without this, GITHUB_TOKEN falls back to whatever
+# the repo/org default is -- which on many repos is read-only, and the
+# failure is silent: the branch push step still succeeds, but no PR ever
+# appears. Confirmed as the likely cause of a "run completes clean, no PR"
+# report from a real run on 2026-08-12.
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
   refresh:
@@ -36,18 +65,49 @@ jobs:
 
       - name: Run the pipeline (fetch -> validate -> extract -> simulate -> draft)
         id: pipeline
+        env:
+          RESOLVED_SHEET_URL: ${{ inputs.sheet_url || vars.SHEET_URL }}
+          RESOLVED_HEADER_ROW: ${{ inputs.header_row || '1' }}
+          RESOLVED_ALLTIME_URL: ${{ vars.ALLTIME_URL }}
         run: |
+          if [ -z "$RESOLVED_SHEET_URL" ]; then
+            echo "No sheet URL available -- set the SHEET_URL repository variable (Settings > Secrets and variables > Actions > Variables), or supply one when running this manually."
+            exit 1
+          fi
+          ALLTIME_ARG=""
+          if [ -n "$RESOLVED_ALLTIME_URL" ]; then
+            ALLTIME_ARG="--alltime-url $RESOLVED_ALLTIME_URL"
+          fi
           python pipeline/run_refresh.py \
-            --sheet-url "${{ inputs.sheet_url }}" \
-            --header-row "${{ inputs.header_row }}" \
+            --sheet-url "$RESOLVED_SHEET_URL" \
+            --header-row "$RESOLVED_HEADER_ROW" \
+            $ALLTIME_ARG \
+            --data-dir data \
             --roster-path data/h2h_divisions.json \
             --round-dates-path data/round_dates.json \
+            --coeffs-path data/team_market_coeffs.json \
+            --history-path data/roddy_history.json \
             --live-futures-path data/futures.json \
             --draft-dir draft \
             --pr-body-path draft/pr-body.md
         # Non-zero exit here (fetch failure, validation failure) stops the
         # workflow before the PR step below ever runs -- see run_refresh.py's
         # own exit-code logic, which is what this depends on.
+
+      - name: Convert draft odds into publishable format
+        if: success()
+        run: |
+          python pipeline/convert_draft_to_publishable.py \
+            --draft-path "${{ steps.pipeline.outputs.odds_path }}" \
+            --live-futures-path data/futures.json \
+            --out-path draft/futures-publishable.json
+        # This is the missing "raw percentages -> real {odds, suspended}
+        # values" step -- without it, a reviewer only sees bare percentages
+        # and has to convert them by hand before anything is safe to copy
+        # into data/futures.json. Fails loudly (and blocks the PR step
+        # below) rather than opening a PR with an incomplete conversion --
+        # see convert_draft_to_publishable.py for why raw percentages
+        # aren't safe to publish directly.
 
       - name: Open a PR with the draft odds
         if: success()
@@ -60,6 +120,10 @@ jobs:
             draft/odds-draft-*.json
             draft/extracted-*.json
             draft/run-report-*.json
+            draft/futures-publishable.json
           commit-message: "Draft odds refresh from weekly sheet pull"
           # This PR is the "draft" -- merging it is the explicit publish
           # step (Layer 6). Nothing here writes to data/ directly.
+          # draft/futures-publishable.json is the file that's actually
+          # safe to copy into data/futures.json once reviewed -- NOT the
+          # raw odds-draft-*.json, which is percentages only.
