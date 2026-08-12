@@ -293,3 +293,50 @@ scale. Merged into `futures.json` and deployed (backup kept as
 `futures.json.bak3`); confirmed the app's existing UI renders the
 guaranteed-bye entries correctly as "suspended," matching how every other
 near-certain market already displays. Full regression suite passes.
+
+
+
+
+
+
+## Update: roster correction -- two placeholder team names were live in production
+
+Found while debugging a real GitHub Actions validation failure (`known_roster`
+flagged 'HEILAN COOS' and 'TOBY'S TROOPS' as unrecognized). Investigated
+rather than assumed: pulled the live sheet directly and cross-checked
+against the trophy CSV's YEAR ENTERED / PREVIOUS NAMES fields. Confirmed
+with the admin that Heilan Coos and Toby's Troops (both entered 2023/24,
+genuinely established teams -- Heilan Coos has a run of prior renames) are
+the real, currently-active Division 2B teams for this season. Frekeinthesheets
+and Deer Park United (both only entered 2025/26, promoted from Division 3B)
+are placeholder names for a future roster transition still pending official
+confirmation -- 'h2h_divisions.json' had jumped ahead of that confirmation.
+
+This is the same pair I'd flagged much earlier as 'missing from the
+authoritative source' and merged in defensively -- that merge was
+well-intentioned at the time but, with this context, was preserving the
+wrong two teams. Corrected properly this time, not just patched:
+
+- 'h2h_divisions.json': swapped the two placeholder names for the two real
+  ones in DIVISION 2B.
+- 'h2h_schedule.json': Division 2B's fixture list regenerated with the
+  corrected roster (already flagged elsewhere as placeholder/not-yet-the-
+  real-draw, so this was a safe, in-scope correction).
+- 'team_market_coeffs.json': re-ran the coefficient rebuild -- Heilan Coos
+  and Toby's Troops now have real coefficients computed from their actual
+  trophy-CSV season history, rather than a neutral fallback.
+- 'futures.json': full division and cup futures regenerated (multi-seed,
+  same rigor as before -- validated mathematically, zero seed-spread
+  flags).
+- 'roddy_history.json' / 'h2h_history.json': removed the two placeholder
+  teams' score-pool entries; the two real teams have no score-pool history
+  available anywhere either, so they correctly fall back to the division-
+  pool default already built for exactly this case.
+- 'h2h_shift.json' / 'h2h_cup_shift.json' / 'h2h_variance_widen.json':
+  re-derived from the corrected coefficients.
+
+Every change deployed and confirmed against the actual live app code, not
+just the data files in isolation -- Division 2B futures and H2H fixtures
+both correctly show the real teams, the placeholder names are gone
+everywhere, and the rest of the app (Eliza futures, FA Cup, ECL, tipping,
+admin) remains unaffected.
