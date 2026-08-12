@@ -65,6 +65,38 @@ def normalize_name(name):
     return s
 
 
+def truncate_to_main_table(df):
+    """
+    The real sheet is one tab with the actual 62-team roster table followed
+    by many other, unrelated sections stacked below it on the same tab
+    (H2H tables, ECL group tables, a Roddy ranking table, win streaks,
+    fixtures, even an unrelated A-League team reference list used for some
+    other dropdown elsewhere in the spreadsheet) -- confirmed directly by
+    fetching the live sheet and finding real A-League club names ("Adelaide
+    United", "Auckland FC", etc.) landing in the exact same column position
+    as TEAM NAME purely by coincidence of the spreadsheet's layout, dozens
+    of rows below where the actual roster table ends.
+
+    pandas reads the whole file as one table with no awareness of this, so
+    every downstream section's column-1 value -- whatever it happens to be
+    -- silently gets swept into df['TEAM NAME'] too, inflating row counts
+    and producing "unknown team" failures for things that were never teams
+    at all.
+
+    The real table boundary is a genuine, fully-blank row separating it
+    from everything below -- confirmed present in the live sheet. Truncate
+    there rather than trying to special-case every downstream section's
+    quirks individually.
+    """
+    if 'TEAM NAME' not in df.columns:
+        return df
+    blank_mask = df.isna().all(axis=1)
+    if not blank_mask.any():
+        return df  # no blank row found -- nothing to truncate, leave as-is
+    first_blank_idx = blank_mask.idxmax()
+    return df.iloc[:first_blank_idx]
+
+
 def load_roster(roster_path):
     divisions = json.load(open(roster_path))
     teams = set()
@@ -193,6 +225,7 @@ def check_calendar_consistency(df, round_dates, report, today=None):
 
 def run_all_checks(csv_path, roster_path, round_dates_path, header_row=1, today=None):
     df = pd.read_csv(csv_path, header=header_row, low_memory=False)
+    df = truncate_to_main_table(df)
     roster, expected_team_count = load_roster(roster_path)
     round_dates = json.load(open(round_dates_path))
 
