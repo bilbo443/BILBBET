@@ -1,34 +1,17 @@
-name: Weekly Odds Refresh (auto, with manual override)
+name: Weekly Odds Refresh (draft, manual trigger only)
 
-# Runs automatically every Monday, and can still be triggered manually any
-# time. Scheduled runs have no human to type a sheet URL into, so both
-# published CSV links (results, and the All Time Data team registry) are
-# read from saved repository VARIABLES instead of workflow_dispatch inputs.
-# A manual run can still override the results URL by typing a different
-# one, useful for testing without touching the saved default.
-#
-# Roster changes (new/renamed/departed teams, detected from the All Time
-# Data sheet) are synced automatically as part of this same run, using
-# sync_roster.py -- but still land in the same draft PR as the odds
-# themselves, never publishing directly. A roster change gets its own
-# clearly-marked section at the top of the PR body, since it's a bigger
-# deal than a normal week's odds movement and deserves a closer look.
-#
-# Safety note on the schedule itself: this was deliberately manual-only
-# earlier in the project, out of concern that a scheduled run might
-# process the sheet's pre-season test data as if it were real. That risk
-# is already handled by Layer 2's calendar-consistency check, which
-# rejects any round whose reported kickoff date hasn't actually passed
-# yet -- so a scheduled run genuinely can't mistake test data for a real
-# result, and doesn't need a human gatekeeper to stay safe.
+# Deliberately workflow_dispatch only -- NOT scheduled. This is intentional,
+# not an oversight: the sheet's author test-runs scores before the season
+# starts (confirmed during development -- the calendar-consistency check
+# in Layer 2 catches this correctly), and a scheduled/unattended trigger
+# would risk treating test data as a real result. Someone has to press the
+# button on purpose.
 on:
-  schedule:
-    - cron: '0 5 * * 1'  # ~3pm Monday AEST / ~4pm Monday AEDT -- adjust to your own timezone
   workflow_dispatch:
     inputs:
       sheet_url:
-        description: 'Published CSV URL for the results sheet (leave blank to use the saved SHEET_URL variable)'
-        required: false
+        description: 'Published CSV URL for the results sheet'
+        required: true
         type: string
       header_row:
         description: 'Header row index in the CSV (0-based)'
@@ -51,36 +34,20 @@ jobs:
       - name: Install dependencies
         run: pip install pandas numpy requests
 
-      - name: Run the pipeline (roster sync -> fetch -> validate -> extract -> simulate -> draft)
+      - name: Run the pipeline (fetch -> validate -> extract -> simulate -> draft)
         id: pipeline
-        env:
-          RESOLVED_SHEET_URL: ${{ inputs.sheet_url || vars.SHEET_URL }}
-          RESOLVED_HEADER_ROW: ${{ inputs.header_row || '1' }}
-          RESOLVED_ALLTIME_URL: ${{ vars.ALLTIME_URL }}
         run: |
-          if [ -z "$RESOLVED_SHEET_URL" ]; then
-            echo "No sheet URL available -- set the SHEET_URL repository variable (Settings > Secrets and variables > Actions > Variables), or supply one when running this manually."
-            exit 1
-          fi
-          ALLTIME_ARG=""
-          if [ -n "$RESOLVED_ALLTIME_URL" ]; then
-            ALLTIME_ARG="--alltime-url $RESOLVED_ALLTIME_URL"
-          fi
           python pipeline/run_refresh.py \
-            --sheet-url "$RESOLVED_SHEET_URL" \
-            --header-row "$RESOLVED_HEADER_ROW" \
-            $ALLTIME_ARG \
-            --data-dir data \
+            --sheet-url "${{ inputs.sheet_url }}" \
+            --header-row "${{ inputs.header_row }}" \
             --roster-path data/h2h_divisions.json \
             --round-dates-path data/round_dates.json \
-            --coeffs-path data/team_market_coeffs.json \
-            --history-path data/roddy_history.json \
             --live-futures-path data/futures.json \
             --draft-dir draft \
             --pr-body-path draft/pr-body.md
-        # Non-zero exit here (fetch failure, validation failure, roster-sync
-        # failure) stops the workflow before the PR step below ever runs --
-        # see run_refresh.py's own exit-code logic, which is what this depends on.
+        # Non-zero exit here (fetch failure, validation failure) stops the
+        # workflow before the PR step below ever runs -- see run_refresh.py's
+        # own exit-code logic, which is what this depends on.
 
       - name: Open a PR with the draft odds
         if: success()
@@ -93,18 +60,6 @@ jobs:
             draft/odds-draft-*.json
             draft/extracted-*.json
             draft/run-report-*.json
-            draft/h2h_divisions.json
-            draft/h2h_schedule.json
-            draft/h2h_shift.json
-            draft/h2h_cup_shift.json
-            draft/h2h_variance_widen.json
-            draft/h2h_history.json
-            draft/roddy_history.json
-            draft/team_market_coeffs.json
-            draft/carry_balances.json
-            draft/futures.json
-            draft/admin_teams.json
-            draft/real_results.json
           commit-message: "Draft odds refresh from weekly sheet pull"
           # This PR is the "draft" -- merging it is the explicit publish
           # step (Layer 6). Nothing here writes to data/ directly.
