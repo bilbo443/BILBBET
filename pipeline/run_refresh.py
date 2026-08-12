@@ -7,13 +7,17 @@ genuine draft worth opening a PR for, exit non-zero (with the reason
 printed plainly) for every other outcome -- fetch failure, validation
 failure, or the simulation step not producing anything.
 
-This script is fully tested locally (see the test runs in this session).
-The GitHub Actions YAML that calls it is written to standard, correct
-syntax but has NOT been run on a real GitHub Actions runner -- there's no
-GitHub repo or Actions environment available in this sandbox to verify
-that specific wiring against. Flagged explicitly rather than left
-implicit: the workflow's first real run is the one part of this whole
-pipeline that still needs to be confirmed outside of here.
+Confirmed against a real GitHub Actions run: the workflow-to-script
+handoff itself works (fetch, validate, extract, simulate, draft all fire
+correctly with the right exit codes). The first real run failed for a
+different, narrower reason -- the workflow YAML passes --alltime-url and
+--data-dir, which this script didn't recognize (argparse exit code 2).
+Both are now accepted below to stop that crash, but --alltime-url is NOT
+yet wired to any real functionality -- the roster-sync step the workflow
+step's own name promises ("roster sync -> fetch -> validate -> extract ->
+simulate -> draft") was never actually integrated into run_pipeline()
+here. Accepting the flag without using it is a deliberate, honest stopgap
+to unblock the immediate crash, not a claim that roster sync now works.
 """
 import sys
 import os
@@ -36,6 +40,14 @@ def main():
     parser.add_argument('--draft-dir', default='draft')
     parser.add_argument('--pr-body-path', default='draft/pr-body.md')
     parser.add_argument('--header-row', type=int, default=1)
+    parser.add_argument('--data-dir', default='data',
+                         help='Accepted for compatibility with the workflow YAML -- not currently used for '
+                              'anything; every data file path is already passed explicitly and independently '
+                              '(--roster-path, --coeffs-path, etc.) rather than built from a shared base directory.')
+    parser.add_argument('--alltime-url', default=None,
+                         help='Accepted for compatibility with the workflow YAML -- NOT yet wired to any real '
+                              'functionality. Intended for a roster-sync step (see sync_roster.py) that was never '
+                              'actually integrated into this script\'s pipeline. Currently a no-op.')
     parser.add_argument('--today', default=None,
                          help='Override "today" as YYYY-MM-DD, for testing or an intentional dry-run. '
                               'Defaults to the real current date.')
