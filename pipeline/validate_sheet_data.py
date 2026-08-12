@@ -151,20 +151,48 @@ def check_row_count(df, expected_team_count, report, tolerance=0.15):
                     f"(acceptable range {low:.0f}-{high:.0f}). Sheet may be incomplete or duplicated.")
 
 
+# ROSTER TRANSITION IN PROGRESS -- remove this block once official confirmation
+# lands and the roster settles on one name per slot for good.
+#
+# The source sheet has been observed flipping between two name-pairs for the
+# same two Division 2B slots within minutes of each other (confirmed by two
+# live fetches of the sheet a few minutes apart on 2026-08-12), not as a
+# one-time deliberate change but as an ongoing inconsistency at the source.
+# Per the admin (2026-08-12): Heilan Coos and Toby's Troops are the real,
+# currently-active teams; Frekeinthesheets and Deer Park United are
+# placeholder names for a future transition still pending official
+# confirmation. Both pairs are accepted here so the gate stops hard-failing
+# on every flip -- this does NOT mean both pairs are treated as equally
+# correct; h2h_divisions.json still reflects only the real, current teams,
+# and this allowlist exists solely so validation doesn't block on a known,
+# explained discrepancy while it's unresolved at the source.
+ROSTER_TRANSITION_ALLOWLIST = {'FREKEINTHESHEETS', 'DEER PARK UNITED'}
+
+
 def check_known_roster(df, current_roster, report):
     if 'TEAM NAME' not in df.columns:
         report.add('known_roster', False, "Can't check roster -- TEAM NAME column missing.")
         return
     normalized_roster = {normalize_name(t) for t in current_roster}
+    normalized_allowlist = {normalize_name(t) for t in ROSTER_TRANSITION_ALLOWLIST}
     sheet_names = df['TEAM NAME'].dropna().unique()
-    unmatched = [n for n in sheet_names if normalize_name(n) not in normalized_roster]
+    unmatched = [n for n in sheet_names
+                 if normalize_name(n) not in normalized_roster
+                 and normalize_name(n) not in normalized_allowlist]
     if unmatched:
         report.add('known_roster', False,
                     f"{len(unmatched)} team name(s) in the sheet don't match the current roster: "
                     f"{unmatched[:10]}. Could be a genuine roster change, a rename, or a misread row -- "
                     f"needs a human decision, not an automatic guess.")
     else:
-        report.add('known_roster', True, "Every team name matches the current roster.")
+        allowlisted_present = [n for n in sheet_names if normalize_name(n) in normalized_allowlist]
+        if allowlisted_present:
+            report.add('known_roster', True,
+                        f"Every team name matches the current roster or the known roster-transition "
+                        f"allowlist ({allowlisted_present}). Remove ROSTER_TRANSITION_ALLOWLIST once "
+                        f"the transition is officially confirmed.")
+        else:
+            report.add('known_roster', True, "Every team name matches the current roster.")
 
 
 def check_score_ranges(df, report):
