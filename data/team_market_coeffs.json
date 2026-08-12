@@ -409,6 +409,22 @@
       "relegation_risk": 0.087,
       "variance_widen": 0.38
     },
+    "DEER PARK UNITED": {
+      "eliza": 0.058,
+      "roddy": -0.047,
+      "fa_cup": -0.047,
+      "ecl": -0.047,
+      "relegation_risk": -0.032,
+      "variance_widen": 0.38
+    },
+    "FREKEINTHESHEETS": {
+      "eliza": 0.215,
+      "roddy": 0.127,
+      "fa_cup": 0.127,
+      "ecl": 0.127,
+      "relegation_risk": -0.117,
+      "variance_widen": 0.38
+    },
     "PAYNE IN THE NECK": {
       "eliza": -0.299,
       "roddy": -0.444,
@@ -480,22 +496,6 @@
       "ecl": -0.231,
       "relegation_risk": 0.058,
       "variance_widen": 0.38
-    },
-    "NEW PLAYER 1": {
-      "eliza": 0.0,
-      "roddy": 0.0,
-      "fa_cup": 0.0,
-      "ecl": 0.0,
-      "relegation_risk": 0.0,
-      "variance_widen": 0.5
-    },
-    "NEW PLAYER 2": {
-      "eliza": 0.0,
-      "roddy": 0.0,
-      "fa_cup": 0.0,
-      "ecl": 0.0,
-      "relegation_risk": 0.0,
-      "variance_widen": 0.5
     }
   }
 }
