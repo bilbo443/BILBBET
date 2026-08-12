@@ -1,0 +1,92 @@
+name: Pre-season Roster Sweep
+
+# Runs every Tuesday. Deliberately not scoped to a specific date range in
+# the cron itself -- the script decides whether there's anything to do by
+# checking round_dates.json: it's a genuine no-op once Round 1 has already
+# kicked off, so this can just run year-round without needing a human to
+# remember to enable/disable it each season. The "Tuesday night before
+# the season starts" case this was built for is automatically included --
+# it's just one Tuesday among the several this will run on during any
+# given pre-season window.
+#
+# This is diagnostic-only: it never writes to data/, never opens a PR, and
+# never auto-corrects anything it finds. A clean run produces nothing
+# visible at all. An issues-found run opens a GitHub Issue with the report
+# -- a human decides what (if anything) needs fixing from there, the same
+# "never guess, always ask" rule as every other check in this pipeline.
+on:
+  schedule:
+    - cron: '0 5 * * 2'  # ~3pm Tuesday AEST / ~4pm Tuesday AEDT -- adjust to your own timezone
+  workflow_dispatch:
+    inputs:
+      sheet_url:
+        description: 'Published CSV URL for the results sheet (leave blank to use the saved SHEET_URL variable)'
+        required: false
+        type: string
+      today:
+        description: 'Override "today" as YYYY-MM-DD, for testing the skip logic without waiting for a real Tuesday.'
+        required: false
+        type: string
+
+permissions:
+  issues: write
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install pandas requests
+
+      - name: Run the sweep
+        id: sweep
+        env:
+          RESOLVED_SHEET_URL: ${{ inputs.sheet_url || vars.SHEET_URL }}
+        run: |
+          if [ -z "$RESOLVED_SHEET_URL" ]; then
+            echo "No sheet URL available -- set the SHEET_URL repository variable, or supply one when running this manually."
+            exit 1
+          fi
+          TODAY_ARG=""
+          if [ -n "${{ inputs.today }}" ]; then
+            TODAY_ARG="--today ${{ inputs.today }}"
+          fi
+          set +e
+          python pipeline/preseason_roster_sweep.py \
+            --sheet-url "$RESOLVED_SHEET_URL" \
+            --roster-path data/h2h_divisions.json \
+            --schedule-path data/h2h_schedule.json \
+            --coeffs-path data/team_market_coeffs.json \
+            --history-path data/roddy_history.json \
+            --futures-path data/futures.json \
+            --shift-path data/h2h_shift.json \
+            --cup-shift-path data/h2h_cup_shift.json \
+            --widen-path data/h2h_variance_widen.json \
+            --h2h-history-path data/h2h_history.json \
+            --round-dates-path data/round_dates.json \
+            --report-path sweep-report.md \
+            $TODAY_ARG
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+          set -e
+        # exit code 0: clean or skipped (season already started) -- either
+        # way, nothing to surface. exit code 1: genuine issues found.
+        # Captured explicitly rather than letting a non-zero exit fail the
+        # job outright, since "issues found" is an expected, valid outcome
+        # this workflow needs to act on, not a script crash.
+
+      - name: Open an issue if anything was flagged
+        if: steps.sweep.outputs.exit_code == '1'
+        run: |
+          gh issue create \
+            --title "Pre-season roster sweep -- issues found ($(date +%Y-%m-%d))" \
+            --body-file sweep-report.md
+        env:
+          GH_TOKEN: ${{ github.token }}
