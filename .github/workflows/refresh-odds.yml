@@ -73,6 +73,8 @@ jobs:
             --data-dir data \
             --roster-path data/h2h_divisions.json \
             --round-dates-path data/round_dates.json \
+            --coeffs-path data/team_market_coeffs.json \
+            --history-path data/roddy_history.json \
             --live-futures-path data/futures.json \
             --draft-dir draft \
             --pr-body-path draft/pr-body.md
