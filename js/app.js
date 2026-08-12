@@ -318,6 +318,7 @@
     formModalOpen: false, formModalTeam: null,
     tippingSubTab: 'PICKS', tippingSection: 'ELIZA', tippingRound: null, tippingViewRound: null, tippingData: null, tippingPending: {}, tippingAllPicks: null,
     tippingRewardChecked: null, tippingRewardBanner: null, tipReminderStatus: null,
+    perfectRoundStatus: {}, // cache keyed by `${username}|${round}|${sectionKey}` -- true only, never explicitly false/missed (see loadPerfectRoundStatus)
     preseasonData: null, preseasonPending: {}, preseasonLeaderboard: null, preseasonResults: null, preseasonAllPicks: null, openHelpTip: null, homeTippingNudge: null, txHistory: null, txHistoryExpanded: false, recentWinners: null,
     tippingLeaderboardDiv: 'ALL', tippingLeaderboardMode: 'OVERALL', tippingLeaderboardRound: null, tippingLeaderboard: null, leaderboardKind: 'WEEKLY',
     cupFixtures: { 'FA CUP': [], 'ECL': [] },
@@ -2226,7 +2227,11 @@
               <span>${teamLogo(p.team,18)}${esc(p.team)}</span><span style="color:#ffdd00;font-weight:600;">${formatOdds(p.odds)}</span>
             </div>`).join('')}</div>
         </div>`).join('');
-      return subTabs + intro + roundBrowser + sectionBar + mrMedianNote + rewardBanner + `<div class="bb-card" style="text-align:center;padding:1rem;color:#9a9a9a;margin-bottom:1rem;">\u{1F512} ${viewingPast?`Round ${round} is over`:`Tipping is closed for Round ${round}`} \u2014 here's what you confirmed:</div>` + readOnly + renderAllTipstersTable(round, activeSection);
+      loadPerfectRoundStatus(round, activeSection); // async -- fires off the check, re-renders itself if it turns out to be a hit
+      const perfectBadge = (state.user && !state.user.isAdmin && state.perfectRoundStatus[state.user.username.toLowerCase() + '|' + round + '|' + activeSection.key])
+        ? `<div class="bb-card" style="margin-bottom:1rem;background:#2a3a20;text-align:center;padding:10px;font-size:13px;color:#8fc98f;">\u2705 Perfect round in ${esc(activeSection.label)} for Round ${round}!</div>`
+        : '';
+      return subTabs + intro + roundBrowser + sectionBar + mrMedianNote + rewardBanner + perfectBadge + `<div class="bb-card" style="text-align:center;padding:1rem;color:#9a9a9a;margin-bottom:1rem;">\u{1F512} ${viewingPast?`Round ${round} is over`:`Tipping is closed for Round ${round}`} \u2014 here's what you confirmed:</div>` + readOnly + renderAllTipstersTable(round, activeSection);
     }
 
     const divsWithFixtures = activeSection.divs.filter(d => divisionFixtureCount(d, round) > 0);
@@ -5067,6 +5072,25 @@
     // any unconfirmed or unresolved fixture keeps resolvedAndCorrect below
     // total, whether that's because it's missing, still pending, or wrong.
     return total > 0 && resolvedAndCorrect === total;
+  }
+
+  // Fires the same perfect-round check used for the actual reward, but
+  // purely for display -- caches a hit so the badge can show once and
+  // stay put without re-checking every render, but never caches or shows
+  // a miss. "Not shown yet" and "missed" are visually identical by
+  // design, so there's no separate loading state to wire up either.
+  async function loadPerfectRoundStatus(round, section){
+    if(!state.user || state.user.isAdmin) return;
+    if(!perfectRoundEligible(section.key, round)) return;
+    const myUsername = state.user.username;
+    const cacheKey = myUsername.toLowerCase() + '|' + round + '|' + section.key;
+    if(state.perfectRoundStatus[cacheKey]) return; // already confirmed, nothing to redo
+    const hit = await checkPerfectSection(myUsername, round, section);
+    if(!state.user || state.user.username !== myUsername) return; // logged out/switched mid-check
+    if(hit){
+      state.perfectRoundStatus = { ...state.perfectRoundStatus, [cacheKey]: true };
+      render();
+    }
   }
 
   function tipRewardKey(username, round, sectionKey){
