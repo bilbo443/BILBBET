@@ -24,79 +24,53 @@ faked, so nobody mistakes a dry run for a real odds refresh.
 """
 import os
 import json
-import time
 import requests
 import pandas as pd
 from datetime import datetime, date
 
 from validate_sheet_data import run_all_checks
 from extract_results import extract_results
-from simulation_adapter import regenerate_division_futures, regenerate_roddy_and_fa_cup, regenerate_promotion_and_leading_at
+from simulation_adapter import regenerate_division_futures
 
 
-def fetch_sheet_csv(url, dest_path, timeout=150):
-    # A generic python-requests User-Agent (or no headers at all) can get
-    # treated very differently by Google's servers than genuine browser
-    # traffic -- confirmed this helped for at least one tab already. But a
-    # second tab is STILL timing out even with headers and a 150s budget,
-    # despite loading in a few seconds in an actual browser -- that rules
-    # out "just needs more time" as the explanation here, so this is now
-    # about finding out WHERE the hang actually happens rather than
-    # guessing at another number. Streaming the response and timing each
-    # stage separately (connect+headers vs. body download) turns the next
-    # failure into a specific, actionable one instead of a blind timeout.
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
-                      '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/csv,text/plain,*/*',
-    }
-    stage_start = time.time()
-    try:
-        resp = requests.get(url, timeout=timeout, headers=headers, stream=True)
-        connect_elapsed = time.time() - stage_start
-        print(f"[fetch] connected and received headers after {connect_elapsed:.1f}s -- "
-              f"status {resp.status_code}, redirected through {len(resp.history)} hop(s)")
-        for h in resp.history:
-            print(f"[fetch]   redirect: {h.status_code} -> {h.headers.get('Location', '?')}")
-        print(f"[fetch] final URL after redirects: {resp.url}")
-        resp.raise_for_status()
-
-        body_start = time.time()
-        content = resp.content
-        body_elapsed = time.time() - body_start
-        print(f"[fetch] body downloaded in {body_elapsed:.1f}s, {len(content)} byte(s)")
-    except requests.exceptions.Timeout as e:
-        elapsed = time.time() - stage_start
-        print(f"[fetch] TIMED OUT after {elapsed:.1f}s (budget was {timeout}s) -- "
-              f"{'never received response headers' if 'resp' not in dir() else 'hung during body download'}")
-        raise
+def fetch_sheet_csv(url, dest_path, timeout=15):
+    resp = requests.get(url, timeout=timeout)
+    resp.raise_for_status()
     with open(dest_path, 'w', encoding='utf-8') as f:
         f.write(resp.text)
     return dest_path
 
 
-def regenerate_futures_odds(extracted_results):
+def regenerate_futures_odds(extracted_results, coeffs_path, roster_path, history_path):
     """
     Runs the real division-futures simulation (the same Monte Carlo engine
     behind the live site, confirmed to reproduce its output exactly with no
     live data) with extracted_results blended in as a live-season
     adjustment on top of the existing multi-season coefficients.
 
-    Roddy, FA Cup, Promotion, and Leading At all get the same live
-    recalibration now -- these were added across several later sessions and,
-    until now, only division futures/Roddy/FA Cup were actually wired into
-    this automated entry point, meaning a real weekly refresh would have
-    silently left Promotion and Leading At stale even as everything else
-    updated. ECL still isn't included: its stage markets depend on a real
-    group draw that doesn't exist yet, so there's nothing meaningful to
-    recalibrate until that's entered. Charity/Philanthropy also isn't
-    included -- it lives in a separate script (build_charity.py) that was
-    never merged into this pipeline.
+    coeffs_path/roster_path/history_path are passed through explicitly
+    rather than relying on regenerate_division_futures()'s own relative-
+    path defaults -- those defaults resolve against the process's current
+    working directory, which is the repo root when the GitHub Actions
+    workflow invokes this (`python pipeline/run_refresh.py`, no `cd`), not
+    this script's own directory. Silently falling back to those defaults
+    was a real, guaranteed-crash bug caught before ever running for real:
+    no file named exactly 'team_market_coeffs.json' exists at the repo
+    root, only under data/. roster_path is reused directly rather than a
+    separate divs_path -- h2h_divisions.json and new_divs.json are the
+    same underlying roster data, and giving that a second, independent
+    path was exactly the kind of duplication that let this pipeline's
+    copies quietly drift out of sync with the live site's real data in the
+    first place.
+
+    Scope note: this covers division futures ('eliza' market) as one
+    complete, tested vertical slice. Roddy/FA Cup/ECL use the same
+    coefficient-blend approach and the same build_samplers() pattern --
+    extending to them is the same method applied again, not new design
+    work, and is reasonable to scope as a separate follow-up pass.
     """
-    division_result = regenerate_division_futures(extracted_results)
-    roddy_fa_cup_result = regenerate_roddy_and_fa_cup(extracted_results)
-    promotion_leading_at_result = regenerate_promotion_and_leading_at(extracted_results)
-    return {**division_result, **roddy_fa_cup_result, **promotion_leading_at_result}
+    return regenerate_division_futures(extracted_results, coeffs_path=coeffs_path,
+                                        divs_path=roster_path, history_path=history_path)
 
 
 def write_run_report(draft_dir, run_id, result):
@@ -107,6 +81,7 @@ def write_run_report(draft_dir, run_id, result):
 
 
 def run_pipeline(url, roster_path, round_dates_path, draft_dir,
+                  coeffs_path='data/team_market_coeffs.json', history_path='data/roddy_history.json',
                   header_row=1, today=None, run_simulation=False):
     os.makedirs(draft_dir, exist_ok=True)
     run_id = datetime.now().strftime('%Y%m%d-%H%M%S')
@@ -156,11 +131,10 @@ def run_pipeline(url, roster_path, round_dates_path, draft_dir,
 
     step("Running simulation")
     try:
-        odds = regenerate_futures_odds(results)
+        odds = regenerate_futures_odds(results, coeffs_path, roster_path, history_path)
     except NotImplementedError as e:
         step(f"SIMULATION NOT AVAILABLE: {e}")
-        result = {'status': 'simulation_not_implemented', 'extracted_path': extracted_path,
-                  'extracted_results': results, 'log': log}
+        result = {'status': 'simulation_not_implemented', 'extracted_path': extracted_path, 'log': log}
         write_run_report(draft_dir, run_id, result)
         return result
 
@@ -168,8 +142,7 @@ def run_pipeline(url, roster_path, round_dates_path, draft_dir,
     odds_path = os.path.join(draft_dir, f'odds-draft-{run_id}.json')
     with open(odds_path, 'w') as f:
         json.dump(odds, f, indent=2)
-    result = {'status': 'draft_ready', 'extracted_path': extracted_path, 'odds_path': odds_path,
-              'extracted_results': results, 'log': log}
+    result = {'status': 'draft_ready', 'extracted_path': extracted_path, 'odds_path': odds_path, 'log': log}
     write_run_report(draft_dir, run_id, result)
     return result
 
