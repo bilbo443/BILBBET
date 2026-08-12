@@ -112,6 +112,18 @@ def main():
     print(f"\nDraft ready: {result['odds_path']}")
     print(f"PR body written to: {args.pr_body_path}")
     print(f"{len(flagged)} item(s) flagged for review.")
+
+    # Expose the exact paths to the next workflow step (the draft-to-publishable
+    # conversion) rather than making it glob for the newest odds-draft-*.json --
+    # a glob is fragile if a stale file from a previous run is ever left lying
+    # around in draft/, which timestamped filenames don't fully rule out on a
+    # persistent runner or a re-run.
+    github_output = os.environ.get('GITHUB_OUTPUT')
+    if github_output:
+        with open(github_output, 'a') as f:
+            f.write(f"odds_path={result['odds_path']}\n")
+            f.write(f"pr_body_path={args.pr_body_path}\n")
+
     sys.exit(0)
 
 
