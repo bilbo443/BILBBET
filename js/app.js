@@ -2396,14 +2396,21 @@
     const group = (title, slots) => `<div class="bb-card" style="margin-bottom:1rem;">
         <strong style="font-size:13px;display:block;margin-bottom:8px;">${esc(title)}</strong>
         ${slots.map(slot => {
-          const options = preseasonSlotOptions(slot).filter(o => !o.suspended);
+          const options = preseasonSlotOptions(slot);
           const current = state.preseasonPending[slot.key] || [];
           return `<div style="margin-bottom:12px;">
               <div style="font-size:12px;color:#9a9a9a;margin-bottom:6px;">${esc(slot.label)} ${slot.count>1?`<span style="color:#7fbf8f;">(${current.length}/${slot.count})</span>`:''}</div>
               <div style="display:flex;flex-wrap:wrap;gap:6px;">
                 ${options.map(o => {
                   const picked = current.some(p => p.team === o.team);
-                  return `<button class="bb-btn ${picked?'':'ghost'}" data-preseason-pick="${esc(slot.key)}|${esc(o.team)}|${o.odds}|${slot.count}" style="padding:5px 10px;font-size:12px;display:flex;align-items:center;gap:5px;">${teamLogo(o.team,14)}${esc(o.team)} ${formatOdds(o.odds)}</button>`;
+                  // A suspended market (near-certain outcome, no real price) still
+                  // needs to be pickable here -- this is a prediction game, not a
+                  // real-money book, so "no edge" shouldn't mean "can't predict it".
+                  // Substituted odds is a clean 1.00 (stake back, no profit) rather
+                  // than the real null -- passing null through to formatOdds() or
+                  // parseFloat() would throw/produce NaN downstream.
+                  const displayOdds = o.suspended ? 1.00 : o.odds;
+                  return `<button class="bb-btn ${picked?'':'ghost'}" data-preseason-pick="${esc(slot.key)}|${esc(o.team)}|${displayOdds}|${slot.count}" style="padding:5px 10px;font-size:12px;display:flex;align-items:center;gap:5px;${o.suspended?'opacity:0.85;':''}">${teamLogo(o.team,14)}${esc(o.team)} ${formatOdds(displayOdds)}${o.suspended?' <span style="color:#9a9a9a;font-size:10px;" title="Heavy favorite -- no real betting price, so this pick pays a flat 1.00 (stake back) rather than real odds.">(favorite)</span>':''}</button>`;
                 }).join('')}
               </div>
             </div>`;
