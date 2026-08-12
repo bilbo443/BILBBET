@@ -209,12 +209,28 @@
       "relegation_risk": -0.058,
       "variance_widen": 0.14
     },
+    "HEILAN COOS": {
+      "eliza": -0.195,
+      "roddy": -0.152,
+      "fa_cup": -0.152,
+      "ecl": -0.152,
+      "relegation_risk": 0.139,
+      "variance_widen": 0.14
+    },
     "INTER MILANOVIC": {
       "eliza": -0.385,
       "roddy": -0.079,
       "fa_cup": -0.079,
       "ecl": -0.079,
       "relegation_risk": 0.242,
+      "variance_widen": 0.14
+    },
+    "TOBY'S TROOPS": {
+      "eliza": 0.01,
+      "roddy": 0.037,
+      "fa_cup": 0.037,
+      "ecl": 0.037,
+      "relegation_risk": 0.023,
       "variance_widen": 0.14
     },
     "VICTORY": {
@@ -391,22 +407,6 @@
       "fa_cup": -0.29,
       "ecl": -0.29,
       "relegation_risk": 0.087,
-      "variance_widen": 0.38
-    },
-    "DEER PARK UNITED": {
-      "eliza": -0.062,
-      "roddy": -0.047,
-      "fa_cup": -0.047,
-      "ecl": -0.047,
-      "relegation_risk": 0.04,
-      "variance_widen": 0.38
-    },
-    "FREKEINTHESHEETS": {
-      "eliza": 0.072,
-      "roddy": 0.127,
-      "fa_cup": 0.127,
-      "ecl": 0.127,
-      "relegation_risk": -0.046,
       "variance_widen": 0.38
     },
     "PAYNE IN THE NECK": {
