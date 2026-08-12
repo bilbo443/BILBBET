@@ -43,10 +43,20 @@ RELEGATION_WEIGHT = 0.5
 N_SIM = 6000
 
 
-def compute_adjusted_shifts(team_coeffs, scale, history, extracted_results, market='eliza'):
+def compute_adjusted_shifts(team_coeffs, scale, history, extracted_results, roster_teams=None, market='eliza'):
     """Returns {team: shift} -- the same quantity build_samplers() would
     compute from the static coefficient file, but nudged toward live
-    in-season reality where real data exists."""
+    in-season reality where real data exists.
+
+    roster_teams, if given, is the full set of teams the sheet actually
+    lists for this run. Any roster team with no entry in team_coeffs gets a
+    neutral shift (0) rather than being silently dropped or causing a
+    KeyError downstream -- confirmed via reproduction on 2026-08-12 that an
+    unguarded lookup here crashes the whole weekly run the moment the sheet
+    lists a team the coefficient file doesn't recognize (e.g. mid-transition
+    placeholder names). This does not assume which real team a missing name
+    is "meant to be" -- it just avoids treating an unknown team as
+    stronger or weaker than average without evidence either way."""
     extracted_by_team = {r['team']: r for r in extracted_results}
     shifts = {}
     adjustments_made = []
@@ -81,6 +91,16 @@ def compute_adjusted_shifts(team_coeffs, scale, history, extracted_results, mark
                 continue
         shifts[team] = original_shift  # no live data for this team yet -- unchanged
 
+    if roster_teams:
+        missing = [t for t in roster_teams if t not in shifts]
+        for team in missing:
+            shifts[team] = 0.0  # no coefficient on file -- neutral, not a guess
+        if missing:
+            adjustments_made.append({
+                'note': 'teams missing from team_coeffs, given neutral shift instead of crashing',
+                'teams': missing,
+            })
+
     return shifts, adjustments_made
 
 
@@ -107,7 +127,9 @@ def round_robin_schedule(teams, total_rounds=TOTAL_ROUNDS):
 
 def simulate_division_futures(new_divs, team_coeffs, scale, history, extracted_results, n_sim=N_SIM, seed=7):
     np.random.seed(seed)
-    shifts, adjustments = compute_adjusted_shifts(team_coeffs, scale, history, extracted_results, market='eliza')
+    roster_teams = [t for teams in new_divs.values() for t in teams]
+    shifts, adjustments = compute_adjusted_shifts(team_coeffs, scale, history, extracted_results,
+                                                    roster_teams=roster_teams, market='eliza')
 
     samplers = {}
     div_pool = {}
@@ -118,7 +140,8 @@ def simulate_division_futures(new_divs, team_coeffs, scale, history, extracted_r
         div_pool[div] = pool if pool else [60]
     for div, teams in new_divs.items():
         for t in teams:
-            shift = shifts[t]
+            shift = shifts.get(t, 0.0)  # belt-and-braces -- roster_teams above should
+                                          # already guarantee every team has an entry
             samplers[t] = make_sampler(history.get(t, div_pool[div]), shift)
 
     division_schedules = {div: round_robin_schedule(teams) for div, teams in new_divs.items()}
