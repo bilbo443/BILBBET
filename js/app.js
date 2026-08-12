@@ -322,6 +322,7 @@
     tippingLeaderboardDiv: 'ALL', tippingLeaderboardMode: 'OVERALL', tippingLeaderboardRound: null, tippingLeaderboard: null, leaderboardKind: 'WEEKLY',
     cupFixtures: { 'FA CUP': [], 'ECL': [] },
     seasonClosed: { ELIZA: false, DIV2: false, DIV3: false, ALL: false },
+    currentSeasonLabel: null, // set on boot from persistence (see loadAllData), or auto-derived on first-ever run
     cupFixtureMarket: null,
     cupAdminEntry: { 'FA CUP': {teamA:'', teamB:''}, 'ECL': {teamA:'', teamB:''} },
     cupCalendarOverrides: { 'FA CUP': {}, 'ECL': {} },  // round -> stage name string, or false to force "not a cup round"
@@ -2081,6 +2082,12 @@
     return slot.divs.flatMap(d => (FUTURES.divisions[d][slot.marketKey] || []).map(e => ({...e, div: d})));
   }
 
+  // Single toggle for the "fixtures aren't final yet" disclaimer -- the
+  // weekly schedule is currently a programmatically-generated placeholder,
+  // not the real, official season draw. Flip to false (or delete the
+  // disclaimer block below) once the real draw is confirmed.
+  const FIXTURES_ARE_PLACEHOLDER = true;
+
   const TIPPING_SECTIONS = [
     { key: 'ELIZA', label: 'Eliza', divs: ['ELIZA CUP (D1)'] },
     { key: 'DIV2', label: 'Div 2 (A+B)', divs: ['DIVISION 2A', 'DIVISION 2B'] },
@@ -2139,7 +2146,8 @@
         <div class="bb-tab ${state.tippingSubTab==='LEADERBOARD'?'active':''}" data-tippingtab="LEADERBOARD" style="font-size:12px;padding:6px 10px;">Leaderboard</div>
         <div class="bb-tab ${state.tippingSubTab==='PRIZES'?'active':''}" data-tippingtab="PRIZES" style="font-size:12px;padding:6px 10px;">Prizes</div>
       </div>`;
-    const intro = `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">Free to play, but topping it pays real clams \u2014 see the Prizes tab for the full breakdown. Correct tips score two ways: a straight tally, and what a 1-clam bet on that tip would have paid (upsets are worth more). A drawn fixture pays half credit either way \u2014 half the tally, half the odds \u2014 and never counts against a perfect round. Nothing saves until you hit Confirm, and you can come back and change your tips right up until this round locks.</p>`;
+    const intro = `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">Free to play, but topping it pays real clams \u2014 see the Prizes tab for the full breakdown. Correct tips score two ways: a straight tally, and what a 1-clam bet on that tip would have paid (upsets are worth more). A drawn fixture pays half credit either way \u2014 half the tally, half the odds \u2014 and never counts against a perfect round. Nothing saves until you hit Confirm, and you can come back and change your tips right up until this round locks.</p>` +
+      (FIXTURES_ARE_PLACEHOLDER ? `<div class="bb-card" style="background:#3a3320;margin-bottom:10px;padding:10px 12px;font-size:12px;color:#e0d090;">\u26A0\uFE0F The weekly schedule shown here is a placeholder, not yet the real season draw \u2014 specific matchups may still change once the real draw is confirmed. Everything you tip still counts as normal; this notice will come down once the schedule is final.</div>` : '');
 
     if(state.tippingSubTab === 'PRESEASON'){
       return subTabs + renderPreseasonTab();
@@ -2192,6 +2200,11 @@
       renderSectionItem
     );
     const activeSection = TIPPING_SECTIONS.find(s => s.key === state.tippingSection) || TIPPING_SECTIONS[0];
+    const mrMedianNote = activeSection.divs.some(d => isMrMedianWeek(d, round))
+      ? `<div class="bb-card" style="margin-bottom:1rem;padding:12px;font-size:12px;line-height:1.6;color:#cfcfcf;">
+          <strong style="color:#eee;">What's "Mr Median"?</strong> This tier's Round 1 has no real head-to-head fixtures yet, so instead you're predicting against the tier's own median \u2014 the middle score across all 24 teams in the combined tier (both conferences together) once the round's played. Tick the box next to any team you believe will score <em>above</em> that median \u2014 up to 12 ticks total. There's no way to predict a team loses; just leave it unticked if you don't fancy them. Get at least 12 right and it's treated exactly like a perfect round anywhere else.
+        </div>`
+      : '';
 
     if(locked){
       const rewardBanner = state.tippingRewardBanner ? `<div class="bb-card" style="margin-bottom:1rem;background:#3a3320;display:flex;justify-content:space-between;align-items:center;">
@@ -2200,7 +2213,7 @@
         </div>` : '';
       const confirmedKeys = Object.keys(state.tippingData.picks).filter(k => activeSection.divs.includes(k.split('|')[0]));
       if(!confirmedKeys.length){
-        return subTabs + intro + roundBrowser + sectionBar + rewardBanner + `<div class="bb-card" style="text-align:center;padding:2rem 1rem;color:#9a9a9a;">\u{1F512} ${viewingPast?`Round ${round} is over`:`Tipping is closed for Round ${round}`} \u2014 no confirmed tips in ${esc(activeSection.label)} that round.</div>` + renderAllTipstersTable(round, activeSection);
+        return subTabs + intro + roundBrowser + sectionBar + mrMedianNote + rewardBanner + `<div class="bb-card" style="text-align:center;padding:2rem 1rem;color:#9a9a9a;">\u{1F512} ${viewingPast?`Round ${round} is over`:`Tipping is closed for Round ${round}`} \u2014 no confirmed tips in ${esc(activeSection.label)} that round.</div>` + renderAllTipstersTable(round, activeSection);
       }
       const byDiv = {};
       for(const key of confirmedKeys){
@@ -2213,7 +2226,7 @@
               <span>${teamLogo(p.team,18)}${esc(p.team)}</span><span style="color:#ffdd00;font-weight:600;">${formatOdds(p.odds)}</span>
             </div>`).join('')}</div>
         </div>`).join('');
-      return subTabs + intro + roundBrowser + sectionBar + rewardBanner + `<div class="bb-card" style="text-align:center;padding:1rem;color:#9a9a9a;margin-bottom:1rem;">\u{1F512} ${viewingPast?`Round ${round} is over`:`Tipping is closed for Round ${round}`} \u2014 here's what you confirmed:</div>` + readOnly + renderAllTipstersTable(round, activeSection);
+      return subTabs + intro + roundBrowser + sectionBar + mrMedianNote + rewardBanner + `<div class="bb-card" style="text-align:center;padding:1rem;color:#9a9a9a;margin-bottom:1rem;">\u{1F512} ${viewingPast?`Round ${round} is over`:`Tipping is closed for Round ${round}`} \u2014 here's what you confirmed:</div>` + readOnly + renderAllTipstersTable(round, activeSection);
     }
 
     const divsWithFixtures = activeSection.divs.filter(d => divisionFixtureCount(d, round) > 0);
@@ -2225,7 +2238,7 @@
           <span style="font-size:12px;color:#9a9a9a;">${pendingCount} tip${pendingCount!==1?'s':''} selected across all sections${dirty?' \u2014 not yet saved':''}</span>
           <button class="bb-btn" id="confirm-tips-btn" ${dirty?'':'disabled'}>Confirm tips</button>
         </div>`;
-      return subTabs + intro + roundBrowser + sectionBar + confirmBar + `<div class="bb-card" style="text-align:center;padding:2rem 1rem;color:#9a9a9a;">No ${esc(activeSection.label)} fixtures scheduled this round.</div>` + renderEntireFieldOption(round);
+      return subTabs + intro + roundBrowser + sectionBar + mrMedianNote + confirmBar + `<div class="bb-card" style="text-align:center;padding:2rem 1rem;color:#9a9a9a;">No ${esc(activeSection.label)} fixtures scheduled this round.</div>` + renderEntireFieldOption(round);
     }
 
     const sections = divsWithFixtures.map(div => {
@@ -2288,7 +2301,7 @@
         <button class="bb-btn" id="confirm-tips-btn" ${dirty?'':'disabled'}>Confirm tips</button>
       </div>`;
 
-    return subTabs + intro + roundBrowser + sectionBar + confirmBar + sections + sectionMultiCard + renderEntireFieldOption(round);
+    return subTabs + intro + roundBrowser + sectionBar + mrMedianNote + confirmBar + sections + sectionMultiCard + renderEntireFieldOption(round);
   }
 
   // The "bet the entire field" option -- every confirmed tip across every
@@ -2493,7 +2506,7 @@
         `Same three categories, across the whole combined competition (every division plus FA Cup and ECL). Gated by its own separate admin flag, so it can stay open even after individual sections have closed.`,
         `Example: the combined season is flagged closed and you lead all three categories \u2014 ${SEASONAL_OVERALL_REWARD_AMOUNT*3} clams.`) +
       prizeCard('Mr Median', 'Same as a normal week',
-        `Div 2 and Div 3's Round 1 has no real fixtures, so instead of picking a winner, you tick up to ${MR_MEDIAN_PICK_CAP} of the 24 combined-tier teams you believe will beat that week's tier median \u2014 "Mr Median." There's no picking a team to lose; you simply leave it unticked. Scored exactly like any other week: get at least 12 of your ticked teams right and it counts as a perfect round (${TIP_REWARD_AMOUNT} clams); it also counts toward that week's leaderboard prizes the same as any other round.`,
+        `Div 2 and Div 3's Round 1 has no real fixtures yet, so instead of picking a winner, you're predicting against the tier's own median \u2014 the middle score across all 24 combined-tier teams once the round's played. Tick up to ${MR_MEDIAN_PICK_CAP} teams you believe will score above that median. There's no picking a team to lose; you simply leave it unticked. Scored exactly like any other week: get at least 12 of your ticked teams right and it counts as a perfect round (${TIP_REWARD_AMOUNT} clams); it also counts toward that week's leaderboard prizes the same as any other round.`,
         `Example: you tick 12 teams, all 12 beat the median \u2014 ${TIP_REWARD_AMOUNT} clams, same as a perfect round anywhere else.`) +
       prizeCard('Pre-season pick', `${PRESEASON_PICK_REWARD_AMOUNT} clams each`,
         `${PRESEASON_PICK_REWARD_AMOUNT} clams for every single pre-season prediction that comes in correct \u2014 not a leaderboard placement, so a correct division-winner pick, a correct relegation pick, and a correct promotion pick all pay independently and separately. Multi-team slots (relegation, promotion) only pay once that slot is fully, officially resolved.`,
@@ -3060,9 +3073,21 @@
       <h3>End of season</h3>
       <div class="bb-card" style="margin-bottom:1.5rem;border-color:#a3402f;">
         <p style="font-size:12px;color:#9a9a9a;margin-top:0;">
+          Current season: <strong style="color:#eee;">${esc(state.currentSeasonLabel || 'not yet set')}</strong>
+          &mdash; auto-derived from today's date (Jul&ndash;Dec counts as the season starting that year, Jan&ndash;Jun as
+          the one that started the previous year, matching this league's actual Oct&ndash;May calendar).
+          Ending the season right now would set it to <strong style="color:#eee;">${esc(deriveSeasonLabel())}</strong>.
+        </p>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+          <input type="text" id="season-label-override" placeholder="e.g. 26/27" value="${esc(state.currentSeasonLabel || '')}" style="width:100px;padding:6px 8px;font-size:13px;"/>
+          <button class="bb-btn ghost" id="save-season-label-btn" style="padding:6px 12px;font-size:12px;">Correct current season</button>
+          <span style="font-size:11px;color:#9a9a9a;">Only for fixing a wrong auto-derived value -- doesn't archive or reset anything, just relabels going forward.</span>
+        </div>
+        <p style="font-size:12px;color:#9a9a9a;">
           Folds everyone's settled bets this season into their running career record (kept, not deleted -- just
           compacted from individual bet lines into a summary), keeps each punter's all-time best 3 wins in full detail
-          for bragging rights, and resets Round back to 1 with betting reopened. Pending bets are left untouched.
+          for bragging rights, resets Round back to 1 with betting reopened, and clears out everyone's pre-season
+          picks/results so the new season starts clean. Pending bets are left untouched.
           <strong style="color:#c0604f;">This can't be undone.</strong>
         </p>
         <button class="bb-btn ghost" id="end-season-btn" style="border-color:#a3402f;color:#c0604f;">End season &amp; archive</button>
@@ -3485,7 +3510,35 @@
     return { username, archived: settled.length, pendingLeft: stillPending.length };
   }
 
-  async function endSeasonRollover(seasonLabel){
+  // Auto-derives a "YY/YY" season label from a real calendar date, rather
+  // than a manually-maintained constant someone has to remember to bump.
+  // This league's actual season runs October-May (confirmed directly from
+  // round_dates.json: round 1 on 2026-10-16, round 26 on 2027-05-07), so
+  // July is used as the cutover -- roughly the middle of the June-September
+  // off-season gap, comfortably clear of both the real season's start and
+  // end, so a rollover done any time in that realistic window still lands
+  // on the correct label.
+  function deriveSeasonLabel(date){
+    const d = date || new Date();
+    const year = d.getFullYear();
+    const month = d.getMonth() + 1; // 1-12
+    const startYear = month >= 7 ? year : year - 1;
+    const yy = n => String(n % 100).padStart(2, '0');
+    return `${yy(startYear)}/${yy(startYear + 1)}`;
+  }
+  // Storage keys use this slash-free form of the season label -- the
+  // primary Supabase backend confirmed safe with a literal "/" (plain
+  // string column, no path interpretation), but the window.storage
+  // fallback's own key constraints weren't worth leaving to chance for
+  // zero cost. Display-facing text keeps the familiar "26/27" form.
+  function seasonKeyPart(){
+    return (state.currentSeasonLabel || 'unversioned').replace('/', '-');
+  }
+
+  async function endSeasonRollover(){
+    const outgoingSeasonLabel = state.currentSeasonLabel;
+    const newSeasonLabel = deriveSeasonLabel();
+
     const usernames = await getIndex('bilbbet2_users_index');
     const users = (await Promise.all(usernames.map(getUser))).filter(Boolean);
     const nonAdmin = users.filter(u => !u.isAdmin);
@@ -3499,15 +3552,15 @@
     const pendingWarning = totalPending > 0
       ? `\n\nHeads up: ${totalPending} bet(s) across all punters are still PENDING -- those will be left untouched and stay live (not archived), so resolve them first if you'd rather they be included in this season's record.`
       : '';
-    if(!confirm(`End the season and archive everyone's settled bets into their career record? `
-      + `This compacts each punter's bet history down to a summary (plus their best 3 all-time bets kept in full), `
+    if(!confirm(`End the ${outgoingSeasonLabel || 'current'} season and start ${newSeasonLabel}? `
+      + `This archives everyone's settled bets into their career record (compacted to a summary, plus their best 3 all-time bets kept in full), `
       + `resets Round to 1 with betting open, and clears out this season's cup/playoff fixtures, ECL group draw, `
-      + `paused markets, and novelty bets so the new season starts clean. `
+      + `paused markets, novelty bets, and everyone's pre-season picks/results so the new season starts clean. `
       + `Punter balances are NOT touched -- everyone keeps exactly what they ended the season with. This can't be undone.${pendingWarning}`)) return;
 
     const results = [];
     for(const u of nonAdmin){
-      const r = await archiveBetsForUser(u.username, seasonLabel);
+      const r = await archiveBetsForUser(u.username, outgoingSeasonLabel);
       if(r) results.push(r);
     }
     // the global bets index only needs to keep whatever's still pending --
@@ -3535,11 +3588,28 @@
     state.eclGroups = { A: [], B: [], C: [] };
     state.pausedCategories = {};
     state.seasonClosed = { ELIZA: false, DIV2: false, DIV3: false, ALL: false };
+    state.currentSeasonLabel = newSeasonLabel;
     await sset('bilbbet2_cup_fixtures', state.cupFixtures);
     await sset('bilbbet2_playoff_fixtures', state.playoffFixtures);
     await sset('bilbbet2_ecl_groups', state.eclGroups);
     await sset('bilbbet2_paused_categories', state.pausedCategories);
     await sset('bilbbet2_season_closed', state.seasonClosed);
+    await sset('bilbbet2_current_season_label', state.currentSeasonLabel);
+
+    // Pre-season picks/results are per-user, unversioned data with nothing
+    // anywhere that displays a history of past seasons' picks -- wiped
+    // clean rather than archived, since archiving would just be unused
+    // plumbing. Reward idempotency keys are versioned by season label
+    // (see tipRewardKey and friends) so this wipe is about the picks UI
+    // starting fresh, not reward eligibility, which is already safe.
+    for(const u of nonAdmin){
+      await sdelete(preseasonStorageKey(u.username));
+    }
+    await sdelete(PRESEASON_RESULTS_KEY);
+    state.preseasonResults = null;
+    state.preseasonData = null;
+    state.preseasonAllPicks = null;
+    state.preseasonLeaderboard = null;
 
     const noveltyIds = await getIndex('bilbbet2_novelty_index');
     await sset('bilbbet2_novelty_index', []);
@@ -3549,8 +3619,9 @@
     await reopenBetting();
 
     const archivedCount = results.reduce((s,r)=>s+r.archived, 0);
-    alert(`Season archived: ${archivedCount} settled bet(s) folded into career records across ${results.length} punter(s). `
-      + `Round reset to 1, betting reopened. Cup/playoff fixtures, ECL draw, paused markets, season-closed flags, and ${noveltyIds.length} novelty bet(s) cleared. `
+    alert(`${outgoingSeasonLabel || 'Season'} archived: ${archivedCount} settled bet(s) folded into career records across ${results.length} punter(s). `
+      + `New season set to ${newSeasonLabel}. Round reset to 1, betting reopened. Cup/playoff fixtures, ECL draw, paused markets, season-closed flags, `
+      + `pre-season picks/results, and ${noveltyIds.length} novelty bet(s) cleared. `
       + `Balances left untouched.`);
     await loadAdminData();
   }
@@ -4969,7 +5040,7 @@
   }
 
   function tipRewardKey(username, round, sectionKey){
-    return 'bilbbet2_tip_reward_' + username.toLowerCase() + '_R' + round + '_' + sectionKey;
+    return 'bilbbet2_tip_reward_' + username.toLowerCase() + '_' + seasonKeyPart() + '_R' + round + '_' + sectionKey;
   }
 
   // Idempotent and race-safe: the "already claimed" check and the balance
@@ -5050,7 +5121,8 @@
       await saveUser(fresh);
       const tieNote = winners.length > 1 ? ` (tied ${winners.length}-way, split rounded up)` : '';
       await logTransaction(username, 'TIER_REWARD', share, fresh.balance, `${reasonLabel}${tieNote}`);
-      const category = tierKey.startsWith('SEASON') ? 'Seasonal leaderboard' : 'Weekly leaderboard';
+      const category = tierKey.startsWith('SEASON') ? 'Seasonal leaderboard'
+        : tierKey.startsWith('PRESEASON') ? 'Pre-season leaderboard' : 'Weekly leaderboard';
       await logGlobalWinner(username, category, share, `${reasonLabel}${tieNote}`);
       await sset(key, true);
       awarded = { amount: share, metric };
@@ -5067,7 +5139,7 @@
     const entries = Object.entries(totals).map(([u, t]) => ({ username: u, ...t })).filter(t => t.total > 0);
     const oddsWinners = findMetricWinners(entries, 'oddsPoints', WEEKLY_MIN_CORRECT_PCT);
     const correctWinners = findMetricWinners(entries, 'correct', WEEKLY_MIN_CORRECT_PCT);
-    const tierKey = 'WKSEC_' + sectionKey + '_R' + round;
+    const tierKey = 'WKSEC_' + seasonKeyPart() + '_' + sectionKey + '_R' + round;
     const label = `Weekly ${sectionKey} leaderboard \u2014 Round ${round}`;
     const results = [];
     const oddsResult = await awardTierMetricIfEligible(username, tierKey, 'oddsPoints', oddsWinners, WEEKLY_SECTION_REWARD_AMOUNT, `${label} (odds)`);
@@ -5084,7 +5156,7 @@
     const entries = Object.entries(totals).map(([u, t]) => ({ username: u, ...t })).filter(t => t.total > 0);
     const oddsWinners = findMetricWinners(entries, 'oddsPoints', WEEKLY_MIN_CORRECT_PCT);
     const correctWinners = findMetricWinners(entries, 'correct', WEEKLY_MIN_CORRECT_PCT);
-    const tierKey = 'WKALL_R' + round;
+    const tierKey = 'WKALL_' + seasonKeyPart() + '_R' + round;
     const label = `Weekly overall leaderboard \u2014 Round ${round}`;
     const results = [];
     const oddsResult = await awardTierMetricIfEligible(username, tierKey, 'oddsPoints', oddsWinners, WEEKLY_OVERALL_REWARD_AMOUNT, `${label} (odds)`);
@@ -5135,7 +5207,7 @@
     const oddsWinners = findMetricWinners(entries, 'oddsPoints', 0);
     const correctWinners = findMetricWinners(entries, 'correct', 0);
     const ratioWinners = findRatioWinners(entries, SEASONAL_MIN_TIPPED_PCT, totalPossible);
-    const tierKey = 'SEASON_' + sectionKey;
+    const tierKey = 'SEASON_' + seasonKeyPart() + '_' + sectionKey;
     const label = `Seasonal ${section.label} leaderboard`;
     const results = [];
     for(const [metric, winners, metricLabel] of [['oddsPoints', oddsWinners, 'odds'], ['correct', correctWinners, 'points'], ['ratio', ratioWinners, 'accuracy ratio']]){
@@ -5157,7 +5229,7 @@
     const oddsWinners = findMetricWinners(entries, 'oddsPoints', 0);
     const correctWinners = findMetricWinners(entries, 'correct', 0);
     const ratioWinners = findRatioWinners(entries, SEASONAL_MIN_TIPPED_PCT, totalPossible);
-    const tierKey = 'SEASON_ALL';
+    const tierKey = 'SEASON_' + seasonKeyPart() + '_ALL';
     const label = 'Seasonal overall leaderboard';
     const results = [];
     for(const [metric, winners, metricLabel] of [['oddsPoints', oddsWinners, 'odds'], ['correct', correctWinners, 'points'], ['ratio', ratioWinners, 'accuracy ratio']]){
@@ -5473,7 +5545,7 @@
       if(!actual || actual.length < slot.count) continue; // not fully resolved yet
       for(const pick of userPicks){
         if(!actual.includes(pick.team)) continue; // wrong pick -- no reward
-        const key = 'bilbbet2_preseason_pick_reward_' + username.toLowerCase() + '_' + slot.key + '_' + pick.team;
+        const key = 'bilbbet2_preseason_pick_reward_' + username.toLowerCase() + '_' + seasonKeyPart() + '_' + slot.key + '_' + pick.team;
         if(await sget(key)) continue; // already paid for this specific correct pick
         let awarded = false;
         await withUserLock(username, async () => {
@@ -5512,7 +5584,7 @@
     const entries = Object.entries(totals).map(([u,t]) => ({ username: u, ...t })).filter(t => t.total > 0);
     const oddsWinners = findMetricWinners(entries, 'oddsPoints', 0);
     const correctWinners = findMetricWinners(entries, 'correct', 0);
-    const tierKey = 'PRESEASON_LB';
+    const tierKey = 'PRESEASON_' + seasonKeyPart() + '_LB';
     const results = [];
     const oddsResult = await awardTierMetricIfEligible(username, tierKey, 'oddsPoints', oddsWinners, PRESEASON_LEADERBOARD_REWARD_AMOUNT, 'Pre-season leaderboard (odds)');
     if(oddsResult) results.push(oddsResult);
@@ -6054,6 +6126,16 @@
     if(refreshFeaturedBtn) refreshFeaturedBtn.onclick = refreshFeaturedFixtures;
     const endSeasonBtn = $('#end-season-btn');
     if(endSeasonBtn) endSeasonBtn.onclick = () => endSeasonRollover();
+    const saveSeasonLabelBtn = $('#save-season-label-btn');
+    if(saveSeasonLabelBtn) saveSeasonLabelBtn.onclick = async () => {
+      const input = $('#season-label-override');
+      const val = (input?.value || '').trim();
+      if(!/^\d{2}\/\d{2}$/.test(val)){ alert('Season label must be in YY/YY form, e.g. 26/27.'); return; }
+      if(!confirm(`Set the current season to ${val}? This only relabels going forward -- it doesn't archive, reset, or touch anything else.`)) return;
+      state.currentSeasonLabel = val;
+      await sset('bilbbet2_current_season_label', val);
+      render();
+    };
     document.querySelectorAll('[data-toggle-season-closed]').forEach(el => el.onchange = async e => {
       const key = el.dataset.toggleSeasonClosed;
       state.seasonClosed = { ...state.seasonClosed, [key]: e.target.checked };
@@ -6420,6 +6502,16 @@
   if(savedCupFixtures){ state.cupFixtures = savedCupFixtures; }
   const savedSeasonClosed = await sget('bilbbet2_season_closed');
   if(savedSeasonClosed){ state.seasonClosed = savedSeasonClosed; }
+  const savedSeasonLabel = await sget('bilbbet2_current_season_label');
+  if(savedSeasonLabel){
+    state.currentSeasonLabel = savedSeasonLabel;
+  } else {
+    // First-ever run of this feature on an existing deployment -- give it
+    // a real starting value immediately rather than leaving reward keys
+    // unversioned until the next rollover happens to set one.
+    state.currentSeasonLabel = deriveSeasonLabel();
+    await sset('bilbbet2_current_season_label', state.currentSeasonLabel);
+  }
   const savedPlayoffFixtures = await sget('bilbbet2_playoff_fixtures');
   if(savedPlayoffFixtures){ state.playoffFixtures = savedPlayoffFixtures; }
   const savedEclGroups = await sget('bilbbet2_ecl_groups');
