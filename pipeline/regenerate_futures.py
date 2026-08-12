@@ -88,7 +88,15 @@ def run_one_seed(seed, new_divs, history, team_coeffs, scale, all_teams, divisio
         samplers = {}
         for div, teams in new_divs.items():
             for t in teams:
-                c = team_coeffs[t]
+                # Any roster team missing from team_coeffs gets treated as
+                # perfectly average rather than crashing the whole run --
+                # matches the same fallback now used in the automated
+                # weekly pipeline (simulation_adapter.py), added after
+                # reproducing a KeyError crash here on 2026-08-12 when the
+                # source sheet listed a team not yet in the coefficient
+                # file (mid roster-transition placeholder names).
+                c = team_coeffs.get(t, {'eliza': 0.0, 'roddy': 0.0, 'fa_cup': 0.0, 'ecl': 0.0,
+                                         'relegation_risk': 0.0, 'variance_widen': 0.0})
                 base = c[market]
                 if market == 'eliza': base = base - RELEGATION_WEIGHT * c['relegation_risk']
                 shift = scale * base
