@@ -2570,14 +2570,44 @@
     if(!state.tippingLeaderboard.length){
       return kindBar + rewardNote + controls + '<p style="color:#9a9a9a;">No tips resolved yet for this view.</p>';
     }
-    const byOdds = state.tippingLeaderboard.slice().sort((a,b) => b.oddsPoints - a.oddsPoints).slice(0,10);
-    const byCorrect = state.tippingLeaderboard.slice().sort((a,b) => b.correct - a.correct).slice(0,10);
-    const byPct = state.tippingLeaderboard.slice().sort((a,b) => (b.correct/b.total) - (a.correct/a.total)).slice(0,10);
-    const list = (arr, valueFn) => arr.map((t,i) => `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #333333;font-size:13px;">
+    const byOdds = state.tippingLeaderboard.slice().sort((a,b) => b.oddsPoints - a.oddsPoints);
+    const byCorrect = state.tippingLeaderboard.slice().sort((a,b) => b.correct - a.correct);
+    const byPct = state.tippingLeaderboard.slice().sort((a,b) => (b.correct/b.total) - (a.correct/a.total));
+
+    // "Your standing" -- the lists below only ever show the top 10, so
+    // anyone outside that window has no way to see where they actually
+    // sit or how far off the top they are. Computed from the same full
+    // leaderboard array already loaded for those lists, not a new fetch.
+    let yourStanding = '';
+    if(state.user && !state.user.isAdmin){
+      const findYou = (sorted, valueFn) => {
+        const idx = sorted.findIndex(t => t.username === state.user.username);
+        if(idx === -1) return null;
+        return { rank: idx + 1, of: sorted.length, yourValue: valueFn(sorted[idx]), leaderValue: valueFn(sorted[0]), isLeader: idx === 0 };
+      };
+      const rows = [
+        ['Odds points', findYou(byOdds, t => t.oddsPoints), v => v.toFixed(2)],
+        ['Correct tips', findYou(byCorrect, t => t.correct), v => fmtCorrect(v)],
+        ['Percentage correct', findYou(byPct, t => t.correct/t.total*100), v => v.toFixed(1)+'%'],
+      ];
+      const rowsWithData = rows.filter(r => r[1] !== null);
+      if(rowsWithData.length){
+        yourStanding = `<div class="bb-card" style="margin-bottom:1rem;border-color:#4a4a2a;">
+            <strong style="font-size:13px;color:#eee;">Your standing in this view</strong>
+            <div style="margin-top:6px;">
+              ${rowsWithData.map(r => `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;color:#cfcfcf;">
+                  <span>${esc(r[0])}: #${r[1].rank} of ${r[1].of}</span>
+                  <span>${r[1].isLeader ? '<span style="color:#8fc98f;">Leading</span>' : (r[2](r[1].yourValue) + ' -- ' + r[2](r[1].leaderValue - r[1].yourValue) + ' behind 1st')}</span>
+                </div>`).join('')}
+            </div>
+          </div>`;
+      }
+    }
+    const list = (arr, valueFn) => arr.slice(0,10).map((t,i) => `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #333333;font-size:13px;${state.user && t.username===state.user.username ? 'background:#2a2a1a;padding-left:6px;padding-right:6px;margin:0 -6px;border-radius:4px;' : ''}">
         <span>${i+1}. ${esc(t.username)} <span style="color:#9a9a9a;font-size:11px;">(${fmtCorrect(t.correct)}/${t.total})</span></span>
         <span style="font-weight:600;color:#ffdd00;">${valueFn(t)}</span>
       </div>`).join('');
-    return kindBar + rewardNote + controls + `<div class="bb-card" style="margin-bottom:1rem;">
+    return kindBar + rewardNote + controls + yourStanding + `<div class="bb-card" style="margin-bottom:1rem;">
         <strong style="font-size:13px;">By odds points${helpTip('oddspoints', 'Each correct tip scores what a 1-clam bet on that pick would have paid, based on its odds at the time \u2014 so an upset tip is worth more than a favourite.')}</strong>
         <div style="margin-top:6px;">${list(byOdds, t => t.oddsPoints.toFixed(2))}</div>
       </div>
