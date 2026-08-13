@@ -186,15 +186,18 @@ Blocking issues. Don't move to Phase 2 until these are resolved.
       render. **Owner: you** (click through) **+ Claude** (fix anything
       found).
 
-- [ ] **Confirm the "username = team name" convention actually holds once
-      real registrations start.** The Bilbbet history tab depends entirely
-      on this — if a punter registers under a slightly different name than
-      their exact team name (extra space, different case handled fine,
-      but a genuine typo or abbreviation would not be), their profile tab
-      would incorrectly show "no account registered" even though they're
-      a real, active punter. Worth confirming there's real-world
-      discipline around this during registration, or deciding whether the
-      site should enforce/validate it. **Owner: you.**
+- [x] **"Username = team name" convention — confirmed structurally
+      enforced, not just a real-world assumption.** Raised as a real
+      concern earlier tonight (a mismatch would silently disable
+      `findConflict()`'s self-interest guard, not just mis-display a
+      profile page) — but checking `doRegister()` directly shows
+      registration already rejects any attempt to claim a real Eliza Cup
+      team under a non-matching username (exact match required,
+      case-insensitive), and "custom name" registrants can't pick a team
+      name either. So the guard's assumption genuinely can't be violated
+      through normal registration. Worth a final real-world sanity check
+      once actual registrations happen, but this is a confirmed-safe
+      design, not an open risk.
 
 - [ ] **Dry-run the account deletion feature on a genuinely disposable
       test account before using it on your real "test" account.** The
