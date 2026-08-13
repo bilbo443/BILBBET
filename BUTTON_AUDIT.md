@@ -107,30 +107,64 @@ itself matches:
       4 different teams to all finish top-3 in a 3-team-a-side market)
       correctly uses the same pooling concept as the Python pipeline's
       promotion-pool fix from earlier tonight.
+- [x] **Weekly tipping picks: `setPendingTip`, `toggleMrMedianPick`,
+      `confirmTips`, and their click handlers.** All confirmed correct —
+      proper immutable state updates, correct login guards with the radio/
+      checkbox visually snapped back on an early return (the browser
+      already toggles it before `onchange` fires), and the Mr Median pick
+      cap correctly scoped to the combined tier (both conferences
+      together) rather than per-conference, matching the documented
+      design intent.
+- [x] **End-of-season archiving (`endSeasonRollover`) — a real correction
+      to my own initial read, not a bug.** First glance at just the
+      click-handler wiring (`onclick = () => endSeasonRollover()`) looked
+      like zero confirmation on the single most destructive action in the
+      admin panel — worse than "kick", which has a plain `confirm()`.
+      That was wrong: the confirmation is built into the function itself,
+      not the handler, and it's genuinely the most thorough one in the
+      codebase — dynamically computed pending-bet warning, an explicit
+      list of exactly what does and doesn't get touched, and a clear
+      "can't be undone." Cross-checked `archiveBetsForUser()` too, and it
+      does exactly what the confirmation dialog claims (accumulates into
+      a running career record correctly across seasons, leaves pending
+      bets alone). Worth including this correction rather than quietly
+      dropping it, since "I was wrong, here's why" is as useful a record
+      as an actual bug for a document meant to be trusted later.
+- [x] **Admin: bet resolution — `setBetStatus`, `resolveSelectionResult`,
+      `applyBetStatus`.** All confirmed solid. Same careful pattern
+      throughout: fresh re-read inside the user lock before acting (so a
+      second concurrent resolution never works from stale data), and
+      delta-based balance changes (crediting only the *difference* between
+      old and new settlement amounts) rather than absolute amounts, which
+      is what makes re-resolving a leg safe rather than a double-pay risk.
+      One genuinely subtle correct detail: voiding a bet only restores a
+      featured-pick/boost allowance if *that specific bet* was the one
+      that used it (checked by round), guarding against a stale older bet
+      accidentally clearing a currently-in-use allowance.
+- [x] **Admin: novelty bets — `deleteNoveltyItem`, `resolveNoveltyItem`,
+      `approveSuggestion`/`rejectSuggestion`.** Confirmed solid. Deletion
+      correctly warns with a real, dynamic count of pending bets that
+      reference the item, auto-voids single-selection bets safely, and
+      sensibly leaves multi-leg bets referencing it for manual review
+      rather than risking an unsafe automatic partial-void. Resolving a
+      novelty item back to `OPEN` correctly reverts any auto-settled bet
+      back to PENDING, rather than leaving it stuck at a stale status.
 
 ---
 
 ## Level 2 semantic review — still not done
 
-- [ ] **Weekly tipping picks** — radio selection per fixture, "make a
-      multi from tips", confirm tips flow, Mr Median check-in.
-- [ ] **Pre-season picks** — the picking UI itself (separate from the
-      leaderboard, which *was* reviewed tonight).
-- [ ] **Admin: bet resolution** — set bet status, resolve individual
-      multi-leg results, the "ready to review" highlighting logic.
 - [ ] **Admin: punter management** — balance adjustment, kick/unkick,
       reset registration, approve/reject/approve-all registration
       (deletion specifically *was* reviewed; its siblings weren't).
-- [ ] **Admin: novelty bets** — add/edit/cancel-edit/save/delete, status
-      changes.
 - [ ] **Admin: cup fixtures & playoffs** — add/remove/clear cup fixtures,
       playoff fixtures, cup override controls, ECL group assignment/
       clearing.
-- [ ] **Admin: odds refresh & suggestions** — request/clear odds refresh,
-      submit/approve/reject suggestions.
-- [ ] **Admin: end-of-season archiving** — the rollover flow itself
-      (distinct from `saveCurrentRound`, which it calls as one step of a
-      larger process — the rest of that process hasn't been reviewed).
+- [ ] **Admin: odds refresh** — request/clear odds refresh (suggestion
+      approve/reject *was* reviewed alongside novelty bets above).
+- [ ] **Pre-season picks** — the picking UI itself (`togglePreseasonPick`,
+      `toggleFinalResult`) — the leaderboard consuming this data *was*
+      reviewed, the picking mechanism itself wasn't yet.
 - [ ] **Helptip panels & outside-click-to-close behavior** — the
       `.closest()`-based dismissal pattern, and whether it's applied
       consistently everywhere a helptip appears.
@@ -145,11 +179,12 @@ itself matches:
 
 ## Suggested order for continuing this
 
-1. `jsdom` install confirmed genuinely blocked in this sandbox (403
-   Forbidden from the registry, not transient) — don't retry here; worth
-   trying only if a future session has different network access.
-2. Weekly/pre-season tipping picks — most real user interaction happens
-   here, similar traffic level to the betting slip already reviewed.
-3. Admin: end-of-season archiving — worth doing before it's ever actually
-   used for real, given it's a one-way, high-consequence operation.
-4. Everything else, in whatever order is convenient.
+1. `jsdom` confirmed genuinely blocked in this sandbox (403 Forbidden from
+   the registry, not transient) — don't retry here.
+2. Pre-season picks UI (`togglePreseasonPick`/`toggleFinalResult`) — the
+   one remaining real-money-adjacent flow not yet reviewed.
+3. Admin: punter management (balance adjustment, kick/unkick, reset,
+   approve/reject) and cup fixtures/playoffs — lower individual risk than
+   what's been covered so far, but still unreviewed.
+4. Helptip dismissal and mobile-specific quirks — polish-level, lowest
+   priority of what's left.
