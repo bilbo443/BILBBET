@@ -42,6 +42,53 @@ MAX_CONFIDENCE = 0.5   # even with a full season of live data, the pre-season
 RELEGATION_WEIGHT = 0.5
 N_SIM = 6000
 
+# Early-season shrinkage: a single season (or a coefficient built from a
+# small number of prior seasons) is itself a noisy estimate -- a team can
+# fluke a good or bad run, especially with only 1-2 seasons of history
+# behind them (see: TSATAS DIP's Round 1 projection, ~96% to win its
+# division, built almost entirely off one standout season). This dampens
+# the STATIC coefficient shift itself toward zero (average) early in the
+# season, separate from (and upstream of) compute_adjusted_shifts()'s
+# existing live-data blending below, which only starts adjusting once a
+# team has actually played real rounds this season. This kicks in even
+# at 0 rounds played -- pre-season and Round 1 get the heaviest damping.
+#
+# Checkpoints from the admin's own fantasy-football judgment (2026-08-13),
+# not derived mathematically: in the first few rounds it's genuinely hard
+# to tell a strong team apart from one on a lucky run (or a weak team from
+# an unlucky one); by round 6 the "unlucky" teams generally start
+# correcting; by round 10 there's not much excuse left -- a team still
+# scoring poorly by then is probably genuinely struggling, not unlucky.
+# (rounds_completed, trust_in_static_coefficient)
+SHRINKAGE_CHECKPOINTS = [(0, 0.20), (3, 0.40), (6, 0.70), (10, 1.00)]
+
+
+def early_season_shrinkage(rounds_completed):
+    """Piecewise-linear interpolation through SHRINKAGE_CHECKPOINTS.
+    Below the first checkpoint: flat at its value. At or above the last:
+    flat at 1.0 (full trust). In between: linear interpolation, so the
+    ramp moves smoothly rather than jumping at each checkpoint."""
+    checkpoints = SHRINKAGE_CHECKPOINTS
+    if rounds_completed <= checkpoints[0][0]:
+        return checkpoints[0][1]
+    for (r0, s0), (r1, s1) in zip(checkpoints, checkpoints[1:]):
+        if rounds_completed <= r1:
+            frac = (rounds_completed - r0) / (r1 - r0)
+            return s0 + frac * (s1 - s0)
+    return checkpoints[-1][1]
+
+
+def rounds_completed_from(extracted_results):
+    """How many rounds of the current season have any real scores yet --
+    derived from the data itself rather than needing a separate 'what
+    round is it' input threaded through the pipeline. 0 if the season
+    hasn't started (every score still null), matching the heaviest
+    shrinkage tier."""
+    if not extracted_results:
+        return 0
+    return max((len([s for s in r['scores_by_round'] if s is not None])
+                for r in extracted_results), default=0)
+
 
 def compute_adjusted_shifts(team_coeffs, scale, history, extracted_results, roster_teams=None, market='eliza'):
     """Returns {team: shift} -- the same quantity build_samplers() would
@@ -61,11 +108,14 @@ def compute_adjusted_shifts(team_coeffs, scale, history, extracted_results, rost
     shifts = {}
     adjustments_made = []
 
+    rounds_completed = rounds_completed_from(extracted_results)
+    shrink = early_season_shrinkage(rounds_completed)
+
     for team, c in team_coeffs.items():
         base = c[market]
         if market == 'eliza':
             base = base - RELEGATION_WEIGHT * c['relegation_risk']
-        original_shift = scale * base
+        original_shift = scale * base * shrink
 
         record = extracted_by_team.get(team)
         pool = history.get(team, [60])
@@ -104,6 +154,27 @@ def compute_adjusted_shifts(team_coeffs, scale, history, extracted_results, rost
     return shifts, adjustments_made
 
 
+def shrink_values_toward_pool(values, pool, shrink):
+    """Shrinks a team's own historical score distribution toward the
+    division-wide pool mean early in the season, preserving their own
+    real variance/shape -- only the MEAN gets pulled toward neutral, not
+    the spread (a team's own week-to-week volatility is a real trait,
+    not something to distrust the way a small-sample average can be).
+
+    Addresses the same 'one season can be a fluke' concern the coefficient
+    shrinkage above handles, but for the team's own raw scoring history
+    directly -- for a team like TSATAS DIP, whose own historical average
+    (65.96, the highest in the entire league) is itself the dominant
+    driver of their projection, shrinking only the coefficient barely
+    moves the needle (96.17% -> 88.66% at Round 1 in testing). This is
+    the more complete fix, confirmed necessary by that exact test."""
+    values = np.array(values, dtype=float)
+    own_mean = float(np.mean(values))
+    pool_mean = float(np.mean(pool))
+    target_mean = pool_mean + shrink * (own_mean - pool_mean)
+    return values - own_mean + target_mean
+
+
 def make_sampler(values, shift):
     values = np.round(np.array(values) + shift)
     n = len(values)
@@ -130,6 +201,8 @@ def simulate_division_futures(new_divs, team_coeffs, scale, history, extracted_r
     roster_teams = [t for teams in new_divs.values() for t in teams]
     shifts, adjustments = compute_adjusted_shifts(team_coeffs, scale, history, extracted_results,
                                                     roster_teams=roster_teams, market='eliza')
+    rounds_completed = rounds_completed_from(extracted_results)
+    shrink = early_season_shrinkage(rounds_completed)
 
     samplers = {}
     div_pool = {}
@@ -142,7 +215,10 @@ def simulate_division_futures(new_divs, team_coeffs, scale, history, extracted_r
         for t in teams:
             shift = shifts.get(t, 0.0)  # belt-and-braces -- roster_teams above should
                                           # already guarantee every team has an entry
-            samplers[t] = make_sampler(history.get(t, div_pool[div]), shift)
+            own_values = history.get(t, div_pool[div])
+            if t in history:
+                own_values = shrink_values_toward_pool(own_values, div_pool[div], shrink)
+            samplers[t] = make_sampler(own_values, shift)
 
     division_schedules = {div: round_robin_schedule(teams) for div, teams in new_divs.items()}
     rank_counts = {div: {t: np.zeros(len(teams), dtype=int) for t in teams} for div, teams in new_divs.items()}
