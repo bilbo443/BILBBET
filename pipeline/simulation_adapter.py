@@ -223,7 +223,30 @@ def simulate_division_futures(new_divs, team_coeffs, scale, history, extracted_r
     division_schedules = {div: round_robin_schedule(teams) for div, teams in new_divs.items()}
     rank_counts = {div: {t: np.zeros(len(teams), dtype=int) for t in teams} for div, teams in new_divs.items()}
 
+    # Promotion is a cross-conference pooled market, not a within-division
+    # threshold -- 2A and 2B's top finishers compete against EACH OTHER for
+    # a shared, limited number of promotion slots (same for 3A/3B), so it
+    # has to be computed from the SAME simulated season as everything else,
+    # not a separate calculation layered on top. Confirmed directly from
+    # the app's own promotionPoolKey() and its use in multi-bet
+    # conflict-blocking, which only makes sense against a merged-standings
+    # simulation. This was a known, unresolved gap in this automated
+    # pipeline specifically since much earlier in this project -- the
+    # manual regenerate_futures.py script already had it; this function
+    # never did. Fixed here by running every division within the same
+    # simulated season per iteration (rather than looping each division to
+    # completion in isolation), so the combined ranking below reflects one
+    # coherent simulated season, not results from unrelated iterations.
+    promo_pools = {}
+    if 'DIVISION 2A' in new_divs and 'DIVISION 2B' in new_divs:
+        promo_pools['DIVISION 2'] = new_divs['DIVISION 2A'] + new_divs['DIVISION 2B']
+    if 'DIVISION 3A' in new_divs and 'DIVISION 3B' in new_divs:
+        promo_pools['DIVISION 3'] = new_divs['DIVISION 3A'] + new_divs['DIVISION 3B']
+    PROMO_N = {'DIVISION 2': 4, 'DIVISION 3': 6}
+    promo_counts = {pool: {t: 0 for t in teams} for pool, teams in promo_pools.items()}
+
     for _ in range(n_sim):
+        sim_pts, sim_sfor = {}, {}
         for div, teams in new_divs.items():
             pts = {t: 0 for t in teams}
             sfor = {t: 0.0 for t in teams}
@@ -238,22 +261,37 @@ def simulate_division_futures(new_divs, team_coeffs, scale, history, extracted_r
             ranking = sorted(teams, key=lambda t: (-pts[t], -sfor[t]))
             for pos, t in enumerate(ranking):
                 rank_counts[div][t][pos] += 1
+            sim_pts.update(pts); sim_sfor.update(sfor)
+
+        for pool, teams in promo_pools.items():
+            combined_ranking = sorted(teams, key=lambda t: (-sim_pts[t], -sim_sfor[t]))
+            for t in combined_ranking[:PROMO_N[pool]]:
+                promo_counts[pool][t] += 1
 
     rows = []
     for div, teams_dict in rank_counts.items():
         size = len(teams_dict)
         half = size // 2
-        relegation_n = 4 if div.startswith('ELIZA') else 3
+        is_eliza = div.startswith('ELIZA')
+        is_div3 = div.startswith('DIVISION 3')
+        pool_key = 'DIVISION 3' if is_div3 else 'DIVISION 2'
         for team, counts in teams_dict.items():
-            rows.append({
+            row = {
                 'division': div, 'team': team,
                 'win_div_pct': round(100 * counts[0] / n_sim, 2),
                 'top3_pct': round(100 * counts[:3].sum() / n_sim, 2),
                 'top_half_pct': round(100 * counts[:half].sum() / n_sim, 2),
                 'bottom_half_pct': round(100 * counts[size-half:].sum() / n_sim, 2),
-                'relegation_pct': round(100 * counts[size-relegation_n:].sum() / n_sim, 2),
                 'wooden_spoon_pct': round(100 * counts[-1] / n_sim, 2),
-            })
+            }
+            if not is_eliza:
+                row['promotion_pct'] = round(100 * promo_counts.get(pool_key, {}).get(team, 0) / n_sim, 2)
+            if is_eliza or not is_div3:
+                relegation_n = 4 if is_eliza else 3
+                row['relegation_pct'] = round(100 * counts[size - relegation_n:].sum() / n_sim, 2)
+            if is_div3:
+                row['bottom3_pct'] = round(100 * counts[-3:].sum() / n_sim, 2)
+            rows.append(row)
     return rows, adjustments
 
 
