@@ -24,8 +24,11 @@ have gone past breakeven (a near-certain outcome, like a team on a
 -- NOT diff_report.py's pct_to_odds(), which is display-only, was never
 meant to produce publishable values, and has its own separate bug
 (ODDS_FLOOR=1.005 rounds down to 1.0 due to floating-point
-representation, not up to the intended ~1.01). Fixed here by using a
-floor value with no such boundary ambiguity.
+representation, not up to 1.005 as intended). Fixed here the same way
+app.js's own toOdds()/formatOdds() pair already fixes it: re-clamp to
+ODDS_FLOOR after rounding, rather than picking a different floor value
+that would leave this pipeline pricing the same scenario differently
+than the live app itself would.
 
 This script does NOT write to data/ -- consistent with this project's
 standing rule that nothing publishes automatically. It writes a ready-
@@ -36,8 +39,7 @@ import json
 import argparse
 
 MARGIN = 1.05
-ODDS_FLOOR = 1.01   # not 1.005 -- see module docstring; this value has
-                     # no floating-point rounding ambiguity at 2dp.
+ODDS_FLOOR = 1.005
 ODDS_CAP = 1001
 SUSPEND_BELOW_ODDS = 1.0025  # suspend if raw odds would fall below this
                               # (i.e. the outcome is close enough to
@@ -46,7 +48,17 @@ SUSPEND_BELOW_ODDS = 1.0025  # suspend if raw odds would fall below this
 
 def pct_to_market_odds(pct):
     """The correct, publishable conversion -- mirrors regenerate_futures.py's
-    to_odds(), not diff_report.py's preview-only version."""
+    to_odds(), and (crucially) app.js's own toOdds()/formatOdds() pair,
+    which already solved the exact floating-point problem this function
+    used to get wrong on its own: 1.005 can't be represented exactly in
+    binary floating point, so a plain round(raw, 2) silently produces 1.0
+    (implying zero return on a winning bet) instead of 1.005. app.js's fix
+    is to re-clamp to ODDS_FLOOR *after* rounding, which is what actually
+    rescues the value -- not picking a different floor number. Matching
+    that here (rather than diverging to ODDS_FLOOR=1.01, which this
+    function used earlier tonight before this was found) keeps the
+    automated weekly pipeline's prices consistent with what the live app
+    would compute for the same scenario itself."""
     p = pct / 100
     if p <= 0:
         return {'odds': ODDS_CAP, 'suspended': False}
@@ -54,7 +66,11 @@ def pct_to_market_odds(pct):
     if raw < SUSPEND_BELOW_ODDS:
         return {'odds': None, 'suspended': True}
     raw = max(ODDS_FLOOR, min(raw, ODDS_CAP))
-    return {'odds': round(raw, 2), 'suspended': False}
+    odds = round(raw, 2)
+    if odds < ODDS_FLOOR:
+        odds = ODDS_FLOOR  # the actual fix -- see docstring
+    odds = min(odds, ODDS_CAP)
+    return {'odds': odds, 'suspended': False}
 
 
 def convert_draft_to_publishable(draft_path, live_futures_path, out_path):
