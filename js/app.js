@@ -6647,7 +6647,18 @@
     const saveRoundBtn = $('#save-current-round');
     if(saveRoundBtn) saveRoundBtn.onclick = () => {
       const sel = document.getElementById('admin-current-round');
-      saveCurrentRound(parseInt(sel.value, 10));
+      const newRound = parseInt(sel.value, 10);
+      // Only the backward direction gets a confirmation -- moving forward
+      // is the normal weekly action and shouldn't have friction added to
+      // it, but moving backward re-opens betting on a round that may
+      // already be settled and un-does every "this round is in the past"
+      // assumption the rest of the site relies on. No safeguard existed
+      // here before -- an accidental wrong-option click had the same
+      // consequence as a deliberate one.
+      if(newRound < state.currentRound){
+        if(!confirm(`Move the current round BACKWARDS from Round ${state.currentRound} to Round ${newRound}?\n\nThis re-opens betting for Round ${newRound} and treats every round from here onward as not-yet-played -- including any that were already settled. Only do this if you're deliberately correcting a mistake.`)) return;
+      }
+      saveCurrentRound(newRound);
     };
     const refreshFeaturedBtn = $('#refresh-featured-fixtures');
     if(refreshFeaturedBtn) refreshFeaturedBtn.onclick = refreshFeaturedFixtures;
