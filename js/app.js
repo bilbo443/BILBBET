@@ -521,6 +521,39 @@
   }
   async function getIndex(name){ return (await sget(name)) || []; }
   async function addToIndex(name, id){ const list = await getIndex(name); if(!list.includes(id)){ list.push(id); await sset(name, list); } }
+  async function removeFromIndex(name, id){
+    const list = await getIndex(name);
+    const filtered = list.filter(x => x !== id);
+    if(filtered.length !== list.length) await sset(name, filtered);
+  }
+
+  // Permanently deletes a punter account and everything tied to it -- the
+  // user record, every bet, every week's tips, and any pre-season picks.
+  // Distinct from "kick" (blocks future participation, keeps history) and
+  // "reset registration" (clears balance, keeps the account) -- neither of
+  // those actually removes a test account's data from view, which is the
+  // whole point of this one. Irreversible, so gated behind typing the
+  // exact username rather than a plain confirm() dialog.
+  async function deletePunterAccount(username){
+    await withUserLock(username, async () => {
+      const u = await getUser(username);
+      if(!u) return;
+      const betIds = await getIndex('bilbbet2_bets_index_' + username.toLowerCase());
+      for(const id of betIds){
+        await sdelete('bilbbet2_bet:'+id);
+        await removeFromIndex('bilbbet2_all_bets_index', id);
+      }
+      await sdelete('bilbbet2_bets_index_' + username.toLowerCase());
+      for(let r = 1; r <= SEASON_MAX_ROUND; r++){
+        await sdelete(tipStorageKey(username, r));
+      }
+      await sdelete(preseasonStorageKey(username));
+      await sdelete('bilbbet2_user:' + username.toLowerCase());
+      await removeFromIndex('bilbbet2_users_index', username);
+    });
+    await loadAdminData();
+  }
+
   // Every balance change, across every source (bets, admin adjustments,
   // registration bonus, tip rewards) -- so a punter has one place to see
   // the full, honest history of why their balance is what it is, not just
@@ -3792,6 +3825,7 @@
                     ? `<button class="bb-btn ghost" data-regstatus="${esc(u.username)}|APPROVED" style="padding:5px 10px;font-size:12px;">Unkick</button>`
                     : `<button class="bb-btn ghost" data-kick-user="${esc(u.username)}" style="padding:5px 10px;font-size:12px;">Kick</button>`)}
                   ${u.isAdmin || u.status==='RESET' ? '' : `<button class="bb-btn ghost" data-reset-registration="${esc(u.username)}" style="padding:5px 10px;font-size:12px;">Reset registration</button>`}
+                  ${u.isAdmin ? '' : `<button class="bb-btn ghost" data-delete-account="${esc(u.username)}" style="padding:5px 10px;font-size:12px;color:var(--bb-danger);border-color:var(--bb-danger);">Delete</button>`}
                 </td>
               </tr>`).join('')}
           </tbody>
@@ -6591,6 +6625,12 @@
       updateRegistrationStatus(username, 'KICKED');
     });
     document.querySelectorAll('[data-reset-registration]').forEach(el => el.onclick = () => resetRegistration(el.dataset.resetRegistration));
+    document.querySelectorAll('[data-delete-account]').forEach(el => el.onclick = () => {
+      const username = el.dataset.deleteAccount;
+      const typed = prompt(`This permanently deletes "${username}" -- their account, every bet, every week's tips, and any pre-season picks. This cannot be undone.\n\nType the username exactly to confirm:`);
+      if(typed !== username) return; // includes a plain Cancel, which returns null
+      deletePunterAccount(username);
+    });
     document.querySelectorAll('[data-setstatus]').forEach(el => el.onclick = () => {
       const [betId, status] = el.dataset.setstatus.split('|');
       setBetStatus(betId, status);
