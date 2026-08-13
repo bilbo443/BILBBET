@@ -11,9 +11,13 @@ this project).
 
 Odds formula matches the one already used across the live site:
 decimal = 1 / (p * 1.05), 5% margin, floor 1.005, cap 1001, suspended
-if the raw probability is under 0.25%. Reusing it here means the draft
-report shows the exact same numbers a punter would actually see if this
-were published, not an approximation.
+if the raw odds would fall below breakeven -- i.e. a near-certain outcome,
+like a team on a 96%+ path to winning its division, where there's no
+sane price to offer. Reusing this exact logic (not a simplified version
+of it) means the draft report shows the same numbers, and suspends the
+same markets, that the live app actually would -- confirmed necessary
+after a real PR's report showed a heavily-favored team's market at
+literal odds of "1.0" instead of correctly suspended, on 2026-08-12.
 """
 import json
 
@@ -21,7 +25,15 @@ import json
 MARGIN = 1.05
 ODDS_FLOOR = 1.005
 ODDS_CAP = 1001
-SUSPEND_BELOW = 0.0025
+SUSPEND_BELOW = 1.0025  # compared against raw ODDS, not probability --
+                          # suspends near-certain outcomes, matching
+                          # app.js's toOdds() and regenerate_futures.py's
+                          # to_odds(). The previous value here (0.0025,
+                          # compared against probability) could only ever
+                          # suspend a near-impossible outcome, never a
+                          # near-certain one -- which is exactly backwards
+                          # from what a diff report reviewed before
+                          # publishing needs to catch.
 
 # A swing bigger than this (in percentage points of win probability) gets
 # flagged for a human glance before publishing -- not blocked outright,
@@ -34,10 +46,22 @@ FLAG_THRESHOLD_PCT_POINTS = 15
 
 def pct_to_odds(pct):
     p = pct / 100.0
-    if p < SUSPEND_BELOW:
-        return None  # suspended
+    if p <= 0:
+        return ODDS_CAP
     raw = 1 / (p * MARGIN)
-    return round(min(max(raw, ODDS_FLOOR), ODDS_CAP), 2)
+    if raw < SUSPEND_BELOW:
+        return None  # suspended -- near-certain, no sane price to offer
+    raw = max(ODDS_FLOOR, min(raw, ODDS_CAP))
+    odds = round(raw, 2)
+    if odds < ODDS_FLOOR:
+        # 1.005 can't be represented exactly in binary floating point, so
+        # a plain round(raw, 2) can silently produce 1.0 here instead --
+        # this re-clamp is the actual fix, matching app.js's toOdds() and
+        # regenerate_futures.py's to_odds(), both of which already do
+        # this. See convert_draft_to_publishable.py's docstring for the
+        # fuller account of this exact bug.
+        odds = ODDS_FLOOR
+    return min(odds, ODDS_CAP)
 
 
 def odds_to_implied_pct(odds):
