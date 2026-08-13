@@ -321,6 +321,8 @@
     perfectRoundStatus: {}, // cache keyed by `${username}|${round}|${sectionKey}` -- true only, never explicitly false/missed (see loadPerfectRoundStatus)
     preseasonData: null, preseasonPending: {}, preseasonLeaderboard: null, preseasonResults: null, preseasonAllPicks: null, openHelpTip: null, homeTippingNudge: null, txHistory: null, txHistoryExpanded: false, recentWinners: null,
     tippingLeaderboardDiv: 'ALL', tippingLeaderboardMode: 'OVERALL', tippingLeaderboardRound: null, tippingLeaderboard: null, leaderboardKind: 'WEEKLY',
+    tippingLeaderboardSection: 'OVERALL', tippingLeaderboardSortBy: 'oddsPoints', tippingLeaderboardSortDir: 'desc',
+    preseasonLeaderboardSortBy: 'oddsPoints', preseasonLeaderboardSortDir: 'desc',
     cupFixtures: { 'FA CUP': [], 'ECL': [] },
     seasonClosed: { ELIZA: false, DIV2: false, DIV3: false, ALL: false },
     currentSeasonLabel: null, // set on boot from persistence (see loadAllData), or auto-derived on first-ever run
@@ -2546,6 +2548,8 @@
       </div>`;
   }
 
+  const LEADERBOARD_SECTIONS = [...TIPPING_SECTIONS, { key: 'OVERALL', label: 'Overall', divs: null }];
+
   function renderTippingLeaderboard(){
     const kindBar = `<div style="display:flex;gap:4px;margin-bottom:1rem;">
         <div class="bb-tab ${state.leaderboardKind==='WEEKLY'?'active':''}" data-leaderboard-kind="WEEKLY" style="font-size:12px;padding:6px 10px;">Weekly tipping</div>
@@ -2554,83 +2558,70 @@
     if(state.leaderboardKind === 'PRESEASON'){
       return kindBar + renderPreseasonLeaderboard();
     }
-    const rewardNote = `<p style="color:#9a9a9a;font-size:12px;margin-bottom:10px;">Topping a leaderboard here pays real clams \u2014 see the Prizes tab for exactly how much and what qualifies.</p>`;
+    const rewardNote = `<p style="color:var(--bb-text-muted);font-size:12px;margin-bottom:10px;">Topping a leaderboard here pays real clams \u2014 see the Prizes tab for exactly how much and what qualifies.</p>`;
     const lastPlayed = state.currentRound - 1;
     if(lastPlayed < 1){
-      return kindBar + rewardNote + '<p style="color:#9a9a9a;">No rounds played yet \u2014 check back once Round 1 is done.</p>';
+      return kindBar + rewardNote + '<p style="color:var(--bb-text-muted);">No rounds played yet \u2014 check back once Round 1 is done.</p>';
     }
     const viewRound = state.tippingLeaderboardRound || lastPlayed;
+    const sectionTabs = `<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px;">
+        ${LEADERBOARD_SECTIONS.map(s => `<div class="bb-tab ${state.tippingLeaderboardSection===s.key?'active':''}" data-leaderboard-section="${s.key}" style="font-size:12px;padding:6px 10px;">${esc(s.label)}</div>`).join('')}
+      </div>`;
     const controls = `<div class="bb-card" style="margin-bottom:1rem;display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
-        <select class="bb-select" id="tipping-lb-div" style="width:180px;">
-          <option value="ALL" ${state.tippingLeaderboardDiv==='ALL'?'selected':''}>All competitions</option>
-          ${TIPPING_DIVS.map(d => `<option value="${esc(d)}" ${state.tippingLeaderboardDiv===d?'selected':''}>${esc(d.replace(' (D1)',''))}</option>`).join('')}
-        </select>
         <div style="display:flex;gap:4px;">
           <div class="bb-tab ${state.tippingLeaderboardMode==='WEEKLY'?'active':''}" data-tipping-lb-mode="WEEKLY" style="font-size:12px;padding:5px 10px;">Weekly</div>
           <div class="bb-tab ${state.tippingLeaderboardMode==='OVERALL'?'active':''}" data-tipping-lb-mode="OVERALL" style="font-size:12px;padding:5px 10px;">Overall</div>
         </div>
-        <span style="font-size:12px;color:#9a9a9a;">${state.tippingLeaderboardMode==='WEEKLY'?'Round':'Through round'}</span>
+        <span style="font-size:12px;color:var(--bb-text-muted);">${state.tippingLeaderboardMode==='WEEKLY'?'Round':'Through round'}</span>
         <select class="bb-select" id="tipping-lb-round" style="width:130px;">
           ${Array.from({length:lastPlayed}, (_,i) => lastPlayed-i).map(r => `<option value="${r}" ${r===viewRound?'selected':''}>Round ${r}</option>`).join('')}
         </select>
       </div>`;
 
     if(state.tippingLeaderboard === null){
-      computeTippingLeaderboard(state.tippingLeaderboardDiv, state.tippingLeaderboardMode, viewRound); // async -- fires off the computation, current render shows a loading state
-      return kindBar + rewardNote + controls + '<p style="color:#9a9a9a;">Crunching the leaderboard&hellip;</p>';
+      const section = LEADERBOARD_SECTIONS.find(s => s.key === state.tippingLeaderboardSection) || LEADERBOARD_SECTIONS[LEADERBOARD_SECTIONS.length-1];
+      computeTippingLeaderboard(section.divs || 'ALL', state.tippingLeaderboardMode, viewRound); // async -- fires off the computation, current render shows a loading state
+      return kindBar + rewardNote + sectionTabs + controls + '<p style="color:var(--bb-text-muted);">Crunching the leaderboard&hellip;</p>';
     }
     if(!state.tippingLeaderboard.length){
-      return kindBar + rewardNote + controls + '<p style="color:#9a9a9a;">No tips resolved yet for this view.</p>';
+      return kindBar + rewardNote + sectionTabs + controls + '<p style="color:var(--bb-text-muted);">No tips resolved yet for this view.</p>';
     }
-    const byOdds = state.tippingLeaderboard.slice().sort((a,b) => b.oddsPoints - a.oddsPoints);
-    const byCorrect = state.tippingLeaderboard.slice().sort((a,b) => b.correct - a.correct);
-    const byPct = state.tippingLeaderboard.slice().sort((a,b) => (b.correct/b.total) - (a.correct/a.total));
 
-    // "Your standing" -- the lists below only ever show the top 10, so
-    // anyone outside that window has no way to see where they actually
-    // sit or how far off the top they are. Computed from the same full
-    // leaderboard array already loaded for those lists, not a new fetch.
+    // "Your standing" -- the table below can be sorted by any one column at
+    // a time, so this stays useful for seeing where you rank on the OTHER
+    // two metrics without having to click through each sort.
     let yourStanding = '';
     if(state.user && !state.user.isAdmin){
-      const findYou = (sorted, valueFn) => {
+      const findYou = (metricKey) => {
+        const col = LEADERBOARD_SORT_COLS.find(c => c.key === metricKey);
+        const sorted = state.tippingLeaderboard.slice().sort((a,b) => col.valueFn(b) - col.valueFn(a));
         const idx = sorted.findIndex(t => t.username === state.user.username);
         if(idx === -1) return null;
-        return { rank: idx + 1, of: sorted.length, yourValue: valueFn(sorted[idx]), leaderValue: valueFn(sorted[0]), isLeader: idx === 0 };
+        return { rank: idx + 1, of: sorted.length, yourValue: col.valueFn(sorted[idx]), leaderValue: col.valueFn(sorted[0]),
+                 yourRow: sorted[idx], leaderRow: sorted[0], isLeader: idx === 0, fmt: col.fmt, diffFmt: col.diffFmt };
       };
-      const rows = [
-        ['Odds points', findYou(byOdds, t => t.oddsPoints), v => v.toFixed(2)],
-        ['Correct tips', findYou(byCorrect, t => t.correct), v => fmtCorrect(v)],
-        ['Percentage correct', findYou(byPct, t => t.correct/t.total*100), v => v.toFixed(1)+'%'],
-      ];
-      const rowsWithData = rows.filter(r => r[1] !== null);
-      if(rowsWithData.length){
+      const rows = LEADERBOARD_SORT_COLS.map(c => [c.label, findYou(c.key)]).filter(r => r[1] !== null);
+      if(rows.length){
         yourStanding = `<div class="bb-card" style="margin-bottom:1rem;border-color:#4a4a2a;">
             <strong style="font-size:13px;color:#eee;">Your standing in this view</strong>
             <div style="margin-top:6px;">
-              ${rowsWithData.map(r => `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;color:#cfcfcf;">
-                  <span>${esc(r[0])}: #${r[1].rank} of ${r[1].of}</span>
-                  <span>${r[1].isLeader ? '<span style="color:#8fc98f;">Leading</span>' : (r[2](r[1].yourValue) + ' -- ' + r[2](r[1].leaderValue - r[1].yourValue) + ' behind 1st')}</span>
+              ${rows.map(([label, r]) => `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;color:#cfcfcf;">
+                  <span>${esc(label)}: #${r.rank} of ${r.of}</span>
+                  <span>${r.isLeader ? '<span style="color:var(--bb-ok);">Leading</span>' : (r.fmt(r.yourValue, r.yourRow) + ' -- ' + r.diffFmt(r.leaderValue - r.yourValue) + ' behind 1st')}</span>
                 </div>`).join('')}
             </div>
           </div>`;
       }
     }
-    const list = (arr, valueFn) => arr.slice(0,10).map((t,i) => `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #333333;font-size:13px;${state.user && t.username===state.user.username ? 'background:#2a2a1a;padding-left:6px;padding-right:6px;margin:0 -6px;border-radius:4px;' : ''}">
-        <span>${i+1}. ${esc(t.username)} <span style="color:#9a9a9a;font-size:11px;">(${fmtCorrect(t.correct)}/${t.total})</span></span>
-        <span style="font-weight:600;color:#ffdd00;">${valueFn(t)}</span>
-      </div>`).join('');
-    return kindBar + rewardNote + controls + yourStanding + `<div class="bb-card" style="margin-bottom:1rem;">
-        <strong style="font-size:13px;">By odds points${helpTip('oddspoints', 'Each correct tip scores what a 1-clam bet on that pick would have paid, based on its odds at the time \u2014 so an upset tip is worth more than a favourite.')}</strong>
-        <div style="margin-top:6px;">${list(byOdds, t => t.oddsPoints.toFixed(2))}</div>
-      </div>
-      <div class="bb-card" style="margin-bottom:1rem;">
-        <strong style="font-size:13px;">By correct tips</strong>
-        <div style="margin-top:6px;">${list(byCorrect, t => fmtCorrect(t.correct))}</div>
-      </div>
-      <div class="bb-card">
-        <strong style="font-size:13px;">By percentage correct${helpTip('pctcorrect', 'Correct tips as a share of everything tipped in this view. Browsable only \u2014 the actual season-long accuracy prize (see Prizes) has its own separate minimum-tipped bar to qualify, so topping this list alone doesn\u2019t guarantee that reward.')}</strong>
-        <div style="margin-top:6px;">${list(byPct, t => (t.correct/t.total*100).toFixed(1)+'%')}</div>
-      </div>`;
+
+    const tableTitle = LEADERBOARD_SECTIONS.find(s => s.key === state.tippingLeaderboardSection)?.label || 'Overall';
+    const table = renderSortableLeaderboardTable(
+      state.tippingLeaderboard, state.tippingLeaderboardSortBy, state.tippingLeaderboardSortDir,
+      state.user && !state.user.isAdmin ? state.user.username : null,
+      tableTitle, `${helpTip('oddspoints', 'Each correct tip scores what a 1-clam bet on that pick would have paid, based on its odds at the time \u2014 so an upset tip is worth more than a favourite. Click a column to sort by it.')}`,
+      true // showUpcomingCheck -- weekly only, see renderPreseasonLeaderboard for the pre-season equivalent (never shown there)
+    );
+    return kindBar + rewardNote + sectionTabs + controls + yourStanding + table;
   }
 
   function renderFixtureList(div){
@@ -3030,6 +3021,77 @@
       `<p style="font-size:12px;color:#9a9a9a;margin:8px 0 0;">The admin reviews every idea and either sets a price and adds it above, or turns it down.</p>` +
       '</div>';
     return html;
+  }
+
+  // Shared, sortable merged leaderboard table -- one ranked list with all
+  // three metrics as columns, rather than three separately-sorted lists.
+  // Click a column header to sort by it; the currently-active column shows
+  // a small direction arrow. Odds points is the default sort since that's
+  // the metric tied to the actual reward (see the helpTip below).
+  //
+  // Handles two distinct row states:
+  //  - graded: total > 0, real correct/oddsPoints/percentage shown.
+  //  - participation-only (pre-season, nothing has resolved yet): total
+  //    is 0 but the punter has genuinely submitted picks -- shown with
+  //    "--" for the not-yet-knowable stats rather than a misleading 0,
+  //    which would look identical to "predicted and got every single one
+  //    wrong" rather than "hasn't been graded yet".
+  const LEADERBOARD_SORT_COLS = [
+    { key: 'oddsPoints', label: 'Odds pts', valueFn: t => t.oddsPoints, fmt: v => v.toFixed(2), diffFmt: v => v.toFixed(2) },
+    { key: 'correct', label: 'Correct', valueFn: t => t.correct, fmt: (v,t) => `${fmtCorrect(v)}/${t.total}`, diffFmt: v => fmtCorrect(v) },
+    { key: 'pct', label: '%', valueFn: t => t.total > 0 ? t.correct/t.total : -1, fmt: v => (v*100).toFixed(1)+'%', diffFmt: v => (v*100).toFixed(1)+'%' },
+  ];
+
+  function renderSortableLeaderboardTable(rows, sortByKey, sortDir, currentUsername, title, subtitle, showUpcomingCheck){
+    if(!rows.length){
+      return `<div class="bb-card"><p style="color:var(--bb-text-muted);margin:0;">Nothing to show yet.</p></div>`;
+    }
+    const col = LEADERBOARD_SORT_COLS.find(c => c.key === sortByKey) || LEADERBOARD_SORT_COLS[0];
+    const sorted = rows.slice().sort((a,b) => {
+      const av = col.valueFn(a), bv = col.valueFn(b);
+      return sortDir === 'asc' ? av - bv : bv - av;
+    });
+    const arrow = dir => dir === 'asc' ? '&uarr;' : '&darr;';
+    const headerCell = c => {
+      const active = c.key === sortByKey;
+      return `<th data-sort-col="${c.key}" style="text-align:right;padding:8px 8px;color:${active?'var(--bb-accent)':'var(--bb-text-muted)'};font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;cursor:pointer;user-select:none;white-space:nowrap;">
+        ${esc(c.label)}${active ? ' '+arrow(sortDir) : ''}
+      </th>`;
+    };
+    return `<div class="bb-card" style="padding:0;overflow:hidden;">
+      <div style="padding:14px 18px 8px;display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:4px;">
+        <strong style="font-size:14px;">${esc(title)}</strong>
+        ${subtitle ? `<span style="font-size:11px;color:var(--bb-text-muted);">${esc(subtitle)}</span>` : ''}
+      </div>
+      <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:14px;min-width:360px;">
+        <thead>
+          <tr style="border-bottom:2px solid var(--bb-border-light);">
+            <th style="text-align:left;padding:8px 18px;color:var(--bb-text-muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;">#</th>
+            <th style="text-align:left;padding:8px 8px;color:var(--bb-text-muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;">Punter</th>
+            ${LEADERBOARD_SORT_COLS.map(headerCell).join('')}
+          </tr>
+        </thead>
+        <tbody>
+          ${sorted.map((t,i) => {
+            const isYou = currentUsername && t.username === currentUsername;
+            const zebra = i % 2 === 1 ? 'background:var(--bb-card-bg-alt);' : '';
+            const rowBg = isYou ? 'background:#2a2a1a;' : zebra;
+            const graded = t.total > 0;
+            const upcomingTick = (showUpcomingCheck && t.submittedUpcoming)
+              ? ` <span style="color:var(--bb-ok);font-weight:700;" title="Already submitted picks for the upcoming round">&#10003;</span>` : '';
+            return `<tr style="border-bottom:1px solid var(--bb-border);${rowBg}">
+              <td style="padding:9px 18px;color:var(--bb-text-muted);font-variant-numeric:tabular-nums;">${i+1}</td>
+              <td style="padding:9px 8px;font-weight:${isYou?'700':'400'};${isYou?'color:var(--bb-accent);':''}">${esc(t.username)}${upcomingTick}${isYou?' <span style="font-size:10px;color:var(--bb-text-muted);font-weight:400;">(you)</span>':''}${!graded?' <span style="font-size:10px;color:var(--bb-text-muted);">(joined, no results yet)</span>':''}</td>
+              <td style="padding:9px 8px;text-align:right;font-weight:600;color:${graded?'var(--bb-accent)':'var(--bb-text-muted)'};font-variant-numeric:tabular-nums;">${graded?t.oddsPoints.toFixed(2):'&mdash;'}</td>
+              <td style="padding:9px 8px;text-align:right;color:var(--bb-text-muted);font-variant-numeric:tabular-nums;">${graded?`${fmtCorrect(t.correct)}/${t.total}`:'&mdash;'}</td>
+              <td style="padding:9px 18px;text-align:right;color:var(--bb-text-muted);font-variant-numeric:tabular-nums;">${graded?(t.correct/t.total*100).toFixed(1)+'%':'&mdash;'}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+      </div>
+    </div>`;
   }
 
   function renderStatsTab(){
@@ -5563,13 +5625,19 @@
     const allUsers = (await Promise.all(usernames.map(getUser))).filter(Boolean);
     const users = allUsers.filter(u => !u.isAdmin);
     const totals = {};
-    for(const u of users){ totals[u.username] = { correct:0, total:0, oddsPoints:0 }; }
+    for(const u of users){ totals[u.username] = { correct:0, total:0, oddsPoints:0, submitted:0 }; }
     for(const u of users){
       const data = await sget(preseasonStorageKey(u.username));
       if(!data || !data.picks) continue;
       for(const slot of PRESEASON_SLOTS){
         const userPicks = data.picks[slot.key] || [];
         if(!userPicks.length) continue;
+        // Counted the moment a pick is submitted -- shows who's actually
+        // joined the competition before anything can possibly resolve
+        // (pre-season slots like "wins the division" only resolve once
+        // the season's basically over), separate from the graded stats
+        // below, which still only count once the real outcome is known.
+        totals[u.username].submitted += userPicks.length;
         const actual = state.preseasonResults[slot.key];
         if(!actual || actual.length < slot.count) continue; // not fully resolved yet
         for(const pick of userPicks){
@@ -5656,31 +5724,27 @@
 
   async function computePreseasonLeaderboard(){
     const totals = await computePreseasonTotals();
-    state.preseasonLeaderboard = Object.entries(totals).map(([username,t]) => ({ username, ...t })).filter(t => t.total > 0);
+    state.preseasonLeaderboard = Object.entries(totals)
+      .map(([username,t]) => ({ username, ...t }))
+      .filter(t => t.submitted > 0); // shows participation immediately -- t.total
+                                       // only becomes nonzero once a slot actually
+                                       // resolves, which pre-season it never does
     render();
   }
   function renderPreseasonLeaderboard(){
     if(state.preseasonLeaderboard === null){
       computePreseasonLeaderboard(); // async -- fires off the computation, current render shows a loading state
-      return '<p style="color:#9a9a9a;">Crunching the pre-season leaderboard&hellip;</p>';
+      return '<p style="color:var(--bb-text-muted);">Crunching the pre-season leaderboard&hellip;</p>';
     }
     if(!state.preseasonLeaderboard.length){
-      return '<p style="color:#9a9a9a;">No pre-season slots resolved yet.</p>';
+      return '<p style="color:var(--bb-text-muted);">No pre-season picks submitted yet \u2014 be the first to join.</p>';
     }
-    const byOdds = state.preseasonLeaderboard.slice().sort((a,b) => b.oddsPoints - a.oddsPoints).slice(0,10);
-    const byCorrect = state.preseasonLeaderboard.slice().sort((a,b) => b.correct - a.correct).slice(0,10);
-    const list = (arr, valueFn) => arr.map((t,i) => `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #333333;font-size:13px;">
-        <span>${i+1}. ${esc(t.username)} <span style="color:#9a9a9a;font-size:11px;">(${fmtCorrect(t.correct)}/${t.total})</span></span>
-        <span style="font-weight:600;color:#ffdd00;">${valueFn(t)}</span>
-      </div>`).join('');
-    return `<div class="bb-card" style="margin-bottom:1rem;">
-        <strong style="font-size:13px;">By odds points${helpTip('oddspoints', 'Each correct tip scores what a 1-clam bet on that pick would have paid, based on its odds at the time \u2014 so an upset tip is worth more than a favourite.')}</strong>
-        <div style="margin-top:6px;">${list(byOdds, t => t.oddsPoints.toFixed(2))}</div>
-      </div>
-      <div class="bb-card">
-        <strong style="font-size:13px;">By correct picks</strong>
-        <div style="margin-top:6px;">${list(byCorrect, t => fmtCorrect(t.correct))}</div>
-      </div>`;
+    return renderSortableLeaderboardTable(
+      state.preseasonLeaderboard, state.preseasonLeaderboardSortBy, state.preseasonLeaderboardSortDir,
+      state.user && !state.user.isAdmin ? state.user.username : null,
+      'Pre-season',
+      helpTip('oddspoints', 'Each correct pick scores what a 1-clam bet on that pick would have paid, based on its odds at the time. Rows show up here as soon as picks are submitted \u2014 odds/correct/% stay blank until a slot actually resolves, which for most pre-season picks is well into the season.')
+    );
   }
 
   // Pure computation, no side effects -- shared by the UI leaderboard and
@@ -5733,11 +5797,39 @@
     }
     return totals;
   }
+  // Whether each punter has already submitted picks for the NEXT round
+  // (state.currentRound -- the round currently open for tipping, one
+  // ahead of whatever round the leaderboard itself is showing results
+  // for) -- scoped to just this section's divisions, since submitting
+  // Div 2 picks doesn't mean anything about whether someone's engaged
+  // with Div 3 this week. Weekly-only by design -- pre-season picks are
+  // a single, one-time submission with no "upcoming round" concept.
+  async function computeUpcomingSubmissionStatus(div){
+    const usernames = await getIndex('bilbbet2_users_index');
+    const allUsers = (await Promise.all(usernames.map(getUser))).filter(Boolean);
+    const users = allUsers.filter(u => !u.isAdmin);
+    const upcomingRound = state.currentRound;
+    const divList = div === 'ALL' ? null : (Array.isArray(div) ? div : [div]);
+    const status = {};
+    for(const u of users){
+      const data = await sget(tipStorageKey(u.username, upcomingRound));
+      const picks = (data && data.picks) || {};
+      status[u.username] = Object.keys(picks).some(key => {
+        const [pickDiv] = key.split('|');
+        return !divList || divList.includes(pickDiv);
+      });
+    }
+    return status;
+  }
+
   async function computeTippingLeaderboard(div, mode, throughRound){
     const fromRound = mode === 'WEEKLY' ? throughRound : 1;
-    const totals = await computeTippingTotals(div, fromRound, throughRound);
+    const [totals, upcoming] = await Promise.all([
+      computeTippingTotals(div, fromRound, throughRound),
+      computeUpcomingSubmissionStatus(div),
+    ]);
     state.tippingLeaderboard = Object.entries(totals)
-      .map(([username, t]) => ({ username, ...t }))
+      .map(([username, t]) => ({ username, ...t, submittedUpcoming: !!upcoming[username] }))
       .filter(t => t.total > 0);
     render();
   }
@@ -6126,8 +6218,24 @@
       const divs = key === 'ALL' ? TIPPING_SECTIONS.flatMap(s => s.divs) : (TIPPING_SECTIONS.find(s => s.key === key) || {divs:[]}).divs;
       makeMultiFromTips(divs, parseInt(el.dataset.multiStake, 10) || 10);
     });
-    const tippingLbDiv = $('#tipping-lb-div');
-    if(tippingLbDiv) tippingLbDiv.onchange = e => { state.tippingLeaderboardDiv = e.target.value; state.tippingLeaderboard = null; render(); };
+    document.querySelectorAll('[data-leaderboard-section]').forEach(el => el.onclick = () => {
+      state.tippingLeaderboardSection = el.dataset.leaderboardSection;
+      state.tippingLeaderboard = null;
+      render();
+    });
+    document.querySelectorAll('[data-sort-col]').forEach(el => el.onclick = () => {
+      const col = el.dataset.sortCol;
+      const isPreseason = state.leaderboardKind === 'PRESEASON';
+      const sortByKey = isPreseason ? 'preseasonLeaderboardSortBy' : 'tippingLeaderboardSortBy';
+      const sortDirKey = isPreseason ? 'preseasonLeaderboardSortDir' : 'tippingLeaderboardSortDir';
+      if(state[sortByKey] === col){
+        state[sortDirKey] = state[sortDirKey] === 'desc' ? 'asc' : 'desc'; // same column again -- flip direction
+      } else {
+        state[sortByKey] = col;
+        state[sortDirKey] = 'desc'; // a newly-selected column always starts high-to-low
+      }
+      render(); // pure re-sort of already-loaded data -- no recomputation needed
+    });
     const tippingLbRound = $('#tipping-lb-round');
     if(tippingLbRound) tippingLbRound.onchange = e => { state.tippingLeaderboardRound = parseInt(e.target.value, 10); state.tippingLeaderboard = null; render(); };
     document.querySelectorAll('[data-tipping-lb-mode]').forEach(el => el.onclick = () => {
