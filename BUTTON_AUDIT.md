@@ -39,12 +39,13 @@ that weren't touched tonight — see the checklist below.
 to do Level 2 at scale is a real click-simulation against an actual DOM
 (so a test literally clicks the rendered button and checks the result,
 rather than a human reading the handler code). Attempted this with
-`jsdom` — it installed without an error, but the module wasn't actually
-present afterward, likely a network/environment restriction in this
-particular sandbox. Worth retrying at the start of a future session in
-case that sandbox has different constraints; if it works, it's a
-significantly more rigorous way to close out the rest of this list than
-manual code review.
+`jsdom` twice — confirmed on the second attempt that it's a genuine `403
+Forbidden` from the npm registry in this sandbox, not a transient issue.
+Not worth retrying here; if a future session has different network
+access, it's worth trying again, but otherwise the fallback is either a
+different, allowed lightweight HTML-parsing package, or a small
+hand-built parser scoped to just `id=`/`data-*` extraction (doesn't need
+to be a real DOM, just enough to find elements and call their `.onclick`).
 
 ---
 
@@ -81,18 +82,36 @@ itself matches:
 
 ---
 
-## Level 2 semantic review — NOT yet done (mechanically verified only)
+## Level 2 semantic review — done this session (2026-08-13, continued)
 
-Everything below has passed Level 1 (a working handler exists, points to a
-real function) but has not had its actual logic re-read/re-verified this
-session. Grouped by functional area so this can be worked through a
-section at a time in a future continuation. None of these are known or
-suspected to be broken — this list exists because "mechanically wired"
-and "does the right thing" are different claims, not because anything
-specific looks wrong.
+- [x] **`saveCurrentRound` / round-advancement dropdown — real gap found
+      and fixed.** No safeguard existed against an accidental backward
+      move (re-opens betting on an already-settled round, breaks every
+      "this round is in the past" assumption site-wide) — the exact risk
+      already flagged in `PRESEASON_TESTING.md`. Added a confirmation
+      specifically for backward moves only, since forward advancement is
+      the normal weekly action and shouldn't get extra friction. Verified
+      both directions against the actual deployed handler code, not just
+      a hand-written equivalent.
+- [x] **Betting slip: `placeBet`, `placeBetsAsSingles`, the core
+      `data-pick` selection handler.** All confirmed solid — genuinely
+      careful pre-existing code: proper locking against concurrent
+      submission, slip snapshotting to prevent a real exploit (adding
+      high-odds legs then removing them mid-submit to keep an inflated
+      combined price), fresh-balance re-checks inside the lock for
+      multi-tab safety, and a large-stake confirmation already matching
+      the same pattern just added to round-advancement.
+- [x] **`findConflict()` — the self-interest and impossible-combination
+      guards.** Reviewed in full. Surfaced the "username = team name"
+      escalation noted above; the impossible-combination logic (can't bet
+      4 different teams to all finish top-3 in a 3-team-a-side market)
+      correctly uses the same pooling concept as the Python pipeline's
+      promotion-pool fix from earlier tonight.
 
-- [ ] **Betting slip & bet placement** — add/remove selection, stake
-      input, place bet (single vs. multi), copy slip to clipboard.
+---
+
+## Level 2 semantic review — still not done
+
 - [ ] **Weekly tipping picks** — radio selection per fixture, "make a
       multi from tips", confirm tips flow, Mr Median check-in.
 - [ ] **Pre-season picks** — the picking UI itself (separate from the
@@ -109,11 +128,9 @@ specific looks wrong.
       clearing.
 - [ ] **Admin: odds refresh & suggestions** — request/clear odds refresh,
       submit/approve/reject suggestions.
-- [ ] **Admin: season rollover & round advancement** — `saveCurrentRound`
-      itself (the actual round-dropdown save handler) and end-of-season
-      archiving. High-value given the `currentRound` finding already
-      documented in `PRESEASON_TESTING.md` — worth prioritizing this one
-      specifically over the others in this list.
+- [ ] **Admin: end-of-season archiving** — the rollover flow itself
+      (distinct from `saveCurrentRound`, which it calls as one step of a
+      larger process — the rest of that process hasn't been reviewed).
 - [ ] **Helptip panels & outside-click-to-close behavior** — the
       `.closest()`-based dismissal pattern, and whether it's applied
       consistently everywhere a helptip appears.
@@ -128,10 +145,11 @@ specific looks wrong.
 
 ## Suggested order for continuing this
 
-1. Retry the `jsdom` install at the start of the session — if it works,
-   build a real click-simulation harness once and reuse it for everything
-   below, rather than manual review each time.
-2. Round advancement (`saveCurrentRound`) — highest value given it's
-   already flagged as a real operational risk elsewhere.
-3. Betting slip & bet placement — most real money moves through here.
+1. `jsdom` install confirmed genuinely blocked in this sandbox (403
+   Forbidden from the registry, not transient) — don't retry here; worth
+   trying only if a future session has different network access.
+2. Weekly/pre-season tipping picks — most real user interaction happens
+   here, similar traffic level to the betting slip already reviewed.
+3. Admin: end-of-season archiving — worth doing before it's ever actually
+   used for real, given it's a one-way, high-consequence operation.
 4. Everything else, in whatever order is convenient.
