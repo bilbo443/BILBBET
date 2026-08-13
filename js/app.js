@@ -2551,6 +2551,19 @@
 
   const LEADERBOARD_SECTIONS = [...TIPPING_SECTIONS, { key: 'OVERALL', label: 'Overall', divs: null }];
 
+  // Before Round 1 exists, the weekly leaderboard has no graded results to
+  // show -- but people can still see WHO's already submitted Round 1
+  // picks, the same participation-first philosophy as the pre-season tab.
+  // Reuses computeUpcomingSubmissionStatus directly, since Round 1 IS the
+  // "upcoming round" the whole time state.currentRound is still 1.
+  async function computeWeeklyParticipationOnly(div){
+    const upcoming = await computeUpcomingSubmissionStatus(div);
+    state.tippingLeaderboard = Object.entries(upcoming)
+      .filter(([, submitted]) => submitted)
+      .map(([username]) => ({ username, correct: 0, total: 0, oddsPoints: 0, submittedUpcoming: true }));
+    render();
+  }
+
   function renderTippingLeaderboard(){
     const kindBar = `<div style="display:flex;gap:4px;margin-bottom:1rem;">
         <div class="bb-tab ${state.leaderboardKind==='WEEKLY'?'active':''}" data-leaderboard-kind="WEEKLY" style="font-size:12px;padding:6px 10px;">Weekly tipping</div>
@@ -2561,13 +2574,26 @@
     }
     const rewardNote = `<p style="color:var(--bb-text-muted);font-size:12px;margin-bottom:10px;">Topping a leaderboard here pays real clams \u2014 see the Prizes tab for exactly how much and what qualifies.</p>`;
     const lastPlayed = state.currentRound - 1;
-    if(lastPlayed < 1){
-      return kindBar + rewardNote + '<p style="color:var(--bb-text-muted);">No rounds played yet \u2014 check back once Round 1 is done.</p>';
-    }
-    const viewRound = state.tippingLeaderboardRound || lastPlayed;
     const sectionTabs = `<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px;">
         ${LEADERBOARD_SECTIONS.map(s => `<div class="bb-tab ${state.tippingLeaderboardSection===s.key?'active':''}" data-leaderboard-section="${s.key}" style="font-size:12px;padding:6px 10px;">${esc(s.label)}</div>`).join('')}
       </div>`;
+    if(lastPlayed < 1){
+      if(state.tippingLeaderboard === null){
+        const section = LEADERBOARD_SECTIONS.find(s => s.key === state.tippingLeaderboardSection) || LEADERBOARD_SECTIONS[LEADERBOARD_SECTIONS.length-1];
+        computeWeeklyParticipationOnly(section.divs || 'ALL'); // async -- fires off the check, this render shows a loading state
+        return kindBar + rewardNote + sectionTabs + '<p style="color:var(--bb-text-muted);">Crunching&hellip;</p>';
+      }
+      if(!state.tippingLeaderboard.length){
+        return kindBar + rewardNote + sectionTabs + '<p style="color:var(--bb-text-muted);">Nobody\u2019s submitted Round 1 picks for this section yet \u2014 be the first to join.</p>';
+      }
+      const table = renderSortableLeaderboardTable(
+        state.tippingLeaderboard, 'oddsPoints', 'desc',
+        state.user && !state.user.isAdmin ? state.user.username : null,
+        'Round 1', 'Already in for Round 1 \u2014 scores appear once results start coming in.'
+      );
+      return kindBar + rewardNote + sectionTabs + table;
+    }
+    const viewRound = state.tippingLeaderboardRound || lastPlayed;
     const controls = `<div class="bb-card" style="margin-bottom:1rem;display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
         <div style="display:flex;gap:4px;">
           <div class="bb-tab ${state.tippingLeaderboardMode==='WEEKLY'?'active':''}" data-tipping-lb-mode="WEEKLY" style="font-size:12px;padding:5px 10px;">Weekly</div>
