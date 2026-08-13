@@ -2998,21 +2998,46 @@
 
   function renderTeamProfileOverview(teamName, div){
     const lastPlayed = state.currentRound - 1;
-    if(lastPlayed < 1){
-      return `<div class="bb-card"><p style="color:var(--bb-text-muted);margin:0;">Season hasn't started yet \u2014 standings will appear once Round 1 is played.</p></div>`;
-    }
-    const standings = computeDivisionStandings(div);
-    const rank = standings.findIndex(r => r.team === teamName) + 1;
-    const row = standings[rank - 1];
-    return `<div class="bb-card">
-        <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:14px;">
-          <div><div style="font-size:11px;color:var(--bb-text-muted);text-transform:uppercase;">Position</div><div style="font-size:20px;font-weight:700;">${rank} <span style="font-size:12px;color:var(--bb-text-muted);font-weight:400;">of ${standings.length}</span></div></div>
-          <div><div style="font-size:11px;color:var(--bb-text-muted);text-transform:uppercase;">Points</div><div style="font-size:20px;font-weight:700;">${row.points}</div></div>
-          <div><div style="font-size:11px;color:var(--bb-text-muted);text-transform:uppercase;">Record</div><div style="font-size:20px;font-weight:700;">${row.won}-${row.drawn}-${row.lost}</div></div>
+    const marketRows = FUTURES.divisions[div] || {};
+    const oddsFor = (marketKey) => {
+      const e = (marketRows[marketKey] || []).find(x => x.team === teamName);
+      return e ? (e.suspended ? 'suspended' : formatOdds(e.odds)) : null;
+    };
+    const isEliza = div.startsWith('ELIZA');
+    const isDiv3 = div.startsWith('DIVISION 3');
+    const oddsBlock = [
+      ['Win division', oddsFor('win_div_pct')],
+      ['Top 3 finish', oddsFor('top3_pct')],
+      !isEliza ? ['Promotion', oddsFor('promotion_pct')] : null,
+      (isEliza || !isDiv3) ? ['Relegation', oddsFor('relegation_pct')] : null,
+      isDiv3 ? ['Bottom 3 finish', oddsFor('bottom3_pct')] : null,
+      ['Wooden spoon', oddsFor('wooden_spoon_pct')],
+    ].filter(Boolean).filter(([,v]) => v !== null);
+    const oddsHtml = `<div class="bb-card" style="margin-bottom:10px;">
+        <strong style="font-size:13px;">${esc(div.replace(' (D1)',''))} betting markets</strong>
+        <div style="margin-top:8px;">
+          ${oddsBlock.map(([label, val]) => `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;">
+              <span style="color:var(--bb-text-muted);">${esc(label)}</span><span style="font-weight:600;${val==='suspended'?'color:var(--bb-text-muted);':''}">${esc(val)}</span>
+            </div>`).join('')}
         </div>
-        <div style="font-size:12px;color:var(--bb-text-muted);">Played ${row.played} &middot; Score for ${row.scoreFor} &middot; Score against ${row.scoreAgainst}</div>
-      </div>
-      <div style="margin-top:10px;"><span id="team-profile-view-markets" data-team="${esc(teamName)}" style="cursor:pointer;color:var(--bb-accent);font-size:12px;">View this team's betting markets &rarr;</span></div>`;
+      </div>`;
+    const standingsHtml = lastPlayed < 1
+      ? `<div class="bb-card"><p style="color:var(--bb-text-muted);margin:0;font-size:13px;">Season hasn't started yet \u2014 standings will appear once Round 1 is played.</p></div>`
+      : (() => {
+          const standings = computeDivisionStandings(div);
+          const rank = standings.findIndex(r => r.team === teamName) + 1;
+          const row = standings[rank - 1];
+          return `<div class="bb-card">
+              <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:14px;">
+                <div><div style="font-size:11px;color:var(--bb-text-muted);text-transform:uppercase;">Position</div><div style="font-size:20px;font-weight:700;">${rank} <span style="font-size:12px;color:var(--bb-text-muted);font-weight:400;">of ${standings.length}</span></div></div>
+                <div><div style="font-size:11px;color:var(--bb-text-muted);text-transform:uppercase;">Points</div><div style="font-size:20px;font-weight:700;">${row.points}</div></div>
+                <div><div style="font-size:11px;color:var(--bb-text-muted);text-transform:uppercase;">Record</div><div style="font-size:20px;font-weight:700;">${row.won}-${row.drawn}-${row.lost}</div></div>
+              </div>
+              <div style="font-size:12px;color:var(--bb-text-muted);">Played ${row.played} &middot; Score for ${row.scoreFor} &middot; Score against ${row.scoreAgainst}</div>
+            </div>`;
+        })();
+    return oddsHtml + standingsHtml +
+      `<div style="margin-top:10px;"><span id="team-profile-view-markets" data-team="${esc(teamName)}" style="cursor:pointer;color:var(--bb-accent);font-size:12px;">View this team's betting markets &rarr;</span></div>`;
   }
 
   function renderTeamProfileResults(teamName, div){
