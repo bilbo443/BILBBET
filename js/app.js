@@ -311,6 +311,7 @@
     specialsSelection: { win_round: '', lose_round: '', charity: '', philanthropy: '' },
     specialsSubTab: 'round',
     teamSearchOpen: false, teamSearchQuery: '',
+    teamDirectoryOpen: false, teamDirectoryQuery: '', viewingTeamProfile: null, teamProfileSubTab: 'OVERVIEW', teamProfileBilbbetData: null,
     registeringMode: false, customNameMode: false, tipReminderOptIn: true,
     tosModalOpen: false, tosMode: 'view', tosAgreed: false, readMeModalOpen: false,
     tutorialModalOpen: false, tutorialStep: 0, welcomeModalOpen: false,
@@ -2864,6 +2865,246 @@
     </div>`;
   }
 
+  // Real standings computed from the actual schedule and REAL_RESULTS --
+  // no precomputed table exists anywhere, so this derives it directly.
+  // Points/tiebreak convention matches the simulation exactly (3/1/0,
+  // ties broken by score-for not differential) for consistency with
+  // every other ranking shown across the site.
+  function computeDivisionStandings(div){
+    const teams = H2H_DIVISIONS[div] || [];
+    const schedule = H2H_SCHEDULE[div] || [];
+    const lastPlayed = state.currentRound - 1;
+    const table = {};
+    teams.forEach(t => { table[t] = { team: t, played: 0, won: 0, drawn: 0, lost: 0, scoreFor: 0, scoreAgainst: 0, points: 0 }; });
+    for(let r = 1; r <= Math.min(lastPlayed, schedule.length); r++){
+      const pairs = schedule[r-1] || [];
+      for(const [a, b] of pairs){
+        if(!table[a] || !table[b]) continue; // defensive -- shouldn't happen if the schedule matches the roster
+        const sa = REAL_RESULTS[a] && REAL_RESULTS[a][r-1];
+        const sb = REAL_RESULTS[b] && REAL_RESULTS[b][r-1];
+        if(sa == null || sb == null) continue; // result not in yet
+        table[a].played++; table[b].played++;
+        table[a].scoreFor += sa; table[a].scoreAgainst += sb;
+        table[b].scoreFor += sb; table[b].scoreAgainst += sa;
+        if(sa > sb){ table[a].won++; table[a].points += 3; table[b].lost++; }
+        else if(sb > sa){ table[b].won++; table[b].points += 3; table[a].lost++; }
+        else { table[a].drawn++; table[b].drawn++; table[a].points++; table[b].points++; }
+      }
+    }
+    return Object.values(table).sort((x,y) => y.points - x.points || y.scoreFor - x.scoreFor);
+  }
+
+  function findTeamDivision(teamName){
+    for(const div in H2H_DIVISIONS){
+      if(H2H_DIVISIONS[div].includes(teamName)) return div;
+    }
+    return null;
+  }
+
+  function allTeamsAlphabetical(){
+    const seen = new Set();
+    const all = [];
+    Object.values(H2H_DIVISIONS).forEach(teams => teams.forEach(t => { if(!seen.has(t)){ seen.add(t); all.push(t); } }));
+    return all.sort((a,b) => a.localeCompare(b));
+  }
+
+  function renderTeamDirectory(){
+    const query = (state.teamDirectoryQuery || '').trim().toLowerCase();
+    const all = allTeamsAlphabetical();
+    const filtered = query ? all.filter(t => t.toLowerCase().includes(query)) : all;
+    // Grouped by first letter, since a flat 62-team list is a long scroll
+    // otherwise -- letter headers give a quick visual anchor.
+    const groups = {};
+    filtered.forEach(t => {
+      const letter = /[A-Z]/i.test(t[0]) ? t[0].toUpperCase() : '#';
+      (groups[letter] = groups[letter] || []).push(t);
+    });
+    const letters = Object.keys(groups).sort();
+    return `<div class="bb-card" style="margin-bottom:1rem;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <strong style="font-size:14px;">All teams</strong>
+          <span id="close-team-directory" style="cursor:pointer;color:var(--bb-text-muted);font-size:18px;line-height:1;">&times;</span>
+        </div>
+        <input class="bb-input" id="team-directory-search" placeholder="Search for a team\u2026" value="${esc(state.teamDirectoryQuery||'')}" style="margin-bottom:10px;">
+        ${!filtered.length ? '<p style="color:var(--bb-text-muted);font-size:13px;">No teams match that search.</p>' : ''}
+        <div style="max-height:520px;overflow-y:auto;">
+        ${letters.map(letter => `
+          <div style="font-size:11px;font-weight:700;color:var(--bb-text-muted);text-transform:uppercase;letter-spacing:0.04em;padding:8px 4px 4px;">${esc(letter)}</div>
+          ${groups[letter].map(t => `<div class="bb-tab" data-view-team-profile="${esc(t)}" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;cursor:pointer;">
+            ${teamLogo(t, 22)}<span style="font-size:13px;">${esc(t)}</span>
+            <span style="margin-left:auto;font-size:11px;color:var(--bb-text-muted);">${esc((findTeamDivision(t)||'').replace(' (D1)',''))}</span>
+          </div>`).join('')}
+        `).join('')}
+        </div>
+      </div>`;
+  }
+
+  const TEAM_PROFILE_SUBTABS = [
+    { key: 'OVERVIEW', label: 'Overview' },
+    { key: 'RESULTS', label: 'Results' },
+    { key: 'COMPETITIONS', label: 'Competitions' },
+    { key: 'BILBBET', label: 'Bilbbet history' },
+  ];
+
+  function renderTeamProfile(teamName){
+    const div = findTeamDivision(teamName);
+    if(!div){
+      return `<div class="bb-card"><p style="color:var(--bb-text-muted);">Couldn't find that team.</p></div>`;
+    }
+    const tabs = `<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:1rem;">
+        ${TEAM_PROFILE_SUBTABS.map(s => `<div class="bb-tab ${state.teamProfileSubTab===s.key?'active':''}" data-team-profile-subtab="${s.key}" style="font-size:12px;padding:6px 10px;">${esc(s.label)}</div>`).join('')}
+      </div>`;
+    const header = `<div class="bb-card" style="margin-bottom:1rem;display:flex;align-items:center;gap:12px;">
+        <button class="bb-btn ghost" id="team-profile-back" style="padding:6px 10px;font-size:12px;">&larr;</button>
+        ${teamLogo(teamName, 44)}
+        <div>
+          <div style="font-size:16px;font-weight:700;">${esc(teamName)}</div>
+          <div style="font-size:12px;color:var(--bb-text-muted);">${esc(div.replace(' (D1)',''))}</div>
+        </div>
+      </div>`;
+    let body;
+    if(state.teamProfileSubTab === 'RESULTS') body = renderTeamProfileResults(teamName, div);
+    else if(state.teamProfileSubTab === 'COMPETITIONS') body = renderTeamProfileCompetitions(teamName, div);
+    else if(state.teamProfileSubTab === 'BILBBET') body = renderTeamProfileBilbbetHistory(teamName);
+    else body = renderTeamProfileOverview(teamName, div);
+    return header + tabs + body;
+  }
+
+  function renderTeamProfileOverview(teamName, div){
+    const lastPlayed = state.currentRound - 1;
+    if(lastPlayed < 1){
+      return `<div class="bb-card"><p style="color:var(--bb-text-muted);margin:0;">Season hasn't started yet \u2014 standings will appear once Round 1 is played.</p></div>`;
+    }
+    const standings = computeDivisionStandings(div);
+    const rank = standings.findIndex(r => r.team === teamName) + 1;
+    const row = standings[rank - 1];
+    return `<div class="bb-card">
+        <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:14px;">
+          <div><div style="font-size:11px;color:var(--bb-text-muted);text-transform:uppercase;">Position</div><div style="font-size:20px;font-weight:700;">${rank} <span style="font-size:12px;color:var(--bb-text-muted);font-weight:400;">of ${standings.length}</span></div></div>
+          <div><div style="font-size:11px;color:var(--bb-text-muted);text-transform:uppercase;">Points</div><div style="font-size:20px;font-weight:700;">${row.points}</div></div>
+          <div><div style="font-size:11px;color:var(--bb-text-muted);text-transform:uppercase;">Record</div><div style="font-size:20px;font-weight:700;">${row.won}-${row.drawn}-${row.lost}</div></div>
+        </div>
+        <div style="font-size:12px;color:var(--bb-text-muted);">Played ${row.played} &middot; Score for ${row.scoreFor} &middot; Score against ${row.scoreAgainst}</div>
+      </div>
+      <div style="margin-top:10px;"><span id="team-profile-view-markets" data-team="${esc(teamName)}" style="cursor:pointer;color:var(--bb-accent);font-size:12px;">View this team's betting markets &rarr;</span></div>`;
+  }
+
+  function renderTeamProfileResults(teamName, div){
+    const lastPlayed = state.currentRound - 1;
+    if(lastPlayed < 1){
+      return `<div class="bb-card"><p style="color:var(--bb-text-muted);margin:0;">No results yet this season.</p></div>`;
+    }
+    const schedule = H2H_SCHEDULE[div] || [];
+    const rows = [];
+    for(let r = 1; r <= Math.min(lastPlayed, schedule.length); r++){
+      const pairs = schedule[r-1] || [];
+      const match = pairs.find(([a,b]) => a === teamName || b === teamName);
+      if(!match) continue;
+      const opponent = match[0] === teamName ? match[1] : match[0];
+      const yourScore = REAL_RESULTS[teamName] && REAL_RESULTS[teamName][r-1];
+      const oppScore = REAL_RESULTS[opponent] && REAL_RESULTS[opponent][r-1];
+      if(yourScore == null || oppScore == null) continue;
+      const outcome = yourScore > oppScore ? 'W' : (yourScore < oppScore ? 'L' : 'D');
+      rows.push({ round: r, opponent, yourScore, oppScore, outcome });
+    }
+    if(!rows.length){
+      return `<div class="bb-card"><p style="color:var(--bb-text-muted);margin:0;">No results in yet.</p></div>`;
+    }
+    const outcomeColor = o => o === 'W' ? 'var(--bb-ok)' : (o === 'L' ? 'var(--bb-danger)' : 'var(--bb-text-muted)');
+    return `<div class="bb-card" style="padding:0;overflow:hidden;">
+        <table style="width:100%;border-collapse:collapse;font-size:14px;">
+          <thead><tr style="border-bottom:2px solid var(--bb-border-light);">
+            <th style="text-align:left;padding:8px 14px;font-size:11px;color:var(--bb-text-muted);text-transform:uppercase;">Rd</th>
+            <th style="text-align:left;padding:8px 8px;font-size:11px;color:var(--bb-text-muted);text-transform:uppercase;">Opponent</th>
+            <th style="text-align:right;padding:8px 8px;font-size:11px;color:var(--bb-text-muted);text-transform:uppercase;">Score</th>
+            <th style="text-align:center;padding:8px 14px;font-size:11px;color:var(--bb-text-muted);text-transform:uppercase;">Result</th>
+          </tr></thead>
+          <tbody>${rows.slice().reverse().map((r,i) => `<tr style="border-bottom:1px solid var(--bb-border);${i%2===1?'background:var(--bb-card-bg-alt);':''}">
+              <td style="padding:8px 14px;color:var(--bb-text-muted);">${r.round}</td>
+              <td style="padding:8px 8px;">${esc(r.opponent)}</td>
+              <td style="padding:8px 8px;text-align:right;font-variant-numeric:tabular-nums;">${r.yourScore} &ndash; ${r.oppScore}</td>
+              <td style="padding:8px 14px;text-align:center;font-weight:700;color:${outcomeColor(r.outcome)};">${r.outcome}</td>
+            </tr>`).join('')}</tbody>
+        </table>
+      </div>`;
+  }
+
+  function renderTeamProfileCompetitions(teamName, div){
+    const sections = [];
+    // League table position/points is on the Overview tab already -- this
+    // tab is specifically about the CUP competitions (FA Cup / ECL),
+    // since that's what "status in each competition" mainly means beyond
+    // the league table itself.
+    const inEcl = (FUTURES.ecl_field || []).includes(teamName);
+    const faCupOdds = {};
+    Object.entries(FUTURES.fa_cup_markets || {}).forEach(([market, rows]) => {
+      const e = rows.find(x => x.team === teamName);
+      if(e) faCupOdds[market] = e;
+    });
+    sections.push(`<div class="bb-card" style="margin-bottom:10px;">
+        <strong style="font-size:13px;">FA Cup</strong>
+        <p style="font-size:12px;color:var(--bb-text-muted);margin:4px 0 8px;">Every team enters the FA Cup. Round-by-round elimination tracking isn't available until real results start coming in \u2014 these are their current chances at each stage.</p>
+        ${Object.entries(FA_CUP_LABELS_FOR_PROFILE).map(([key, label]) => faCupOdds[key] ? `<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:13px;"><span style="color:var(--bb-text-muted);">${esc(label)}</span><span>${faCupOdds[key].suspended?'suspended':formatOdds(faCupOdds[key].odds)}</span></div>` : '').join('')}
+      </div>`);
+    if(inEcl){
+      const eclOdds = {};
+      Object.entries(FUTURES.ecl_markets || {}).forEach(([market, rows]) => {
+        const e = rows.find(x => x.team === teamName);
+        if(e) eclOdds[market] = e;
+      });
+      sections.push(`<div class="bb-card">
+          <strong style="font-size:13px;">ECL</strong>
+          <p style="font-size:12px;color:var(--bb-text-muted);margin:4px 0 8px;">One of 12 teams in this season's ECL field.</p>
+          ${Object.entries(ECL_LABELS_FOR_PROFILE).map(([key, label]) => eclOdds[key] ? `<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:13px;"><span style="color:var(--bb-text-muted);">${esc(label)}</span><span>${eclOdds[key].suspended?'suspended':formatOdds(eclOdds[key].odds)}</span></div>` : '').join('')}
+        </div>`);
+    } else {
+      sections.push(`<div class="bb-card"><p style="font-size:12px;color:var(--bb-text-muted);margin:0;">Not in this season's ECL field.</p></div>`);
+    }
+    return sections.join('');
+  }
+  const FA_CUP_LABELS_FOR_PROFILE = { reach_r32_pct: 'Reach Round of 32', reach_r16_pct: 'Reach Round of 16', reach_qf_pct: 'Reach Quarter-Final', reach_sf_pct: 'Reach Semi-Final', reach_final_pct: 'Reach Final', win_pct: 'Win the FA Cup' };
+  const ECL_LABELS_FOR_PROFILE = { reach_knockout_pct: 'Reach Knockout Stage', reach_sf_pct: 'Reach Semi-Final', reach_final_pct: 'Reach Final', win_pct: 'Win the ECL' };
+
+  function renderTeamProfileBilbbetHistory(teamName){
+    // The punter's username IS their Eliza Cup team name -- that's how
+    // registration works, so no separate link/mapping is needed. Direct
+    // lookup, same as any other username (getUser already lowercases).
+    if(state.teamProfileBilbbetData === undefined || state.teamProfileBilbbetData === null || state.teamProfileBilbbetData.forTeam !== teamName){
+      loadTeamProfileBilbbetHistory(teamName); // async -- fires off the fetch, this render shows a loading state
+      return `<div class="bb-card"><p style="color:var(--bb-text-muted);margin:0;">Loading&hellip;</p></div>`;
+    }
+    const d = state.teamProfileBilbbetData;
+    if(!d.user){
+      return `<div class="bb-card"><p style="color:var(--bb-text-muted);margin:0;font-size:13px;">No bilbbet account registered under "${esc(teamName)}" yet.</p></div>`;
+    }
+    return `<div class="bb-card" style="margin-bottom:10px;display:flex;gap:20px;flex-wrap:wrap;">
+        <div><div style="font-size:11px;color:var(--bb-text-muted);text-transform:uppercase;">Clam balance</div><div style="font-size:20px;font-weight:700;">${fmt(d.user.balance)}</div></div>
+        <div><div style="font-size:11px;color:var(--bb-text-muted);text-transform:uppercase;">Tips this season</div><div style="font-size:20px;font-weight:700;">${fmtCorrect(d.tipping.correct)}/${d.tipping.total}</div></div>
+        <div><div style="font-size:11px;color:var(--bb-text-muted);text-transform:uppercase;">Odds points</div><div style="font-size:20px;font-weight:700;">${d.tipping.oddsPoints.toFixed(2)}</div></div>
+      </div>
+      <div class="bb-card" style="padding:0;overflow:hidden;">
+        <div style="padding:12px 14px 6px;"><strong style="font-size:13px;">Recent bets</strong></div>
+        ${!d.bets.length ? '<p style="color:var(--bb-text-muted);font-size:13px;padding:0 14px 14px;">No bets placed yet.</p>' :
+          d.bets.slice(0,10).map((b,i) => `<div style="padding:8px 14px;${i<Math.min(d.bets.length,10)-1?'border-bottom:1px solid var(--bb-border);':''}font-size:13px;display:flex;justify-content:space-between;">
+            <span style="color:var(--bb-text-muted);">${b.selections.length>1?b.selections.length+'-leg multi':esc(b.selections[0]?.label||b.selections[0]?.team||'bet')}</span>
+            <span>${fmt(b.stake)} @ ${b.combinedOdds.toFixed(2)} <span style="color:var(--bb-text-muted);">(${b.status})</span></span>
+          </div>`).join('')}
+      </div>`;
+  }
+  async function loadTeamProfileBilbbetHistory(teamName){
+    const username = teamName; // the team name IS the punter username
+    const user = await getUser(username);
+    const ids = user ? await getIndex('bilbbet2_bets_index_' + username.toLowerCase()) : [];
+    const bets = (await Promise.all(ids.map(id => sget('bilbbet2_bet:'+id)))).filter(Boolean).sort((a,b) => b.timestamp - a.timestamp);
+    const lastPlayed = state.currentRound - 1;
+    const tipping = (user && lastPlayed >= 1)
+      ? (await computeTippingTotals('ALL', 1, lastPlayed))[username] || { correct: 0, total: 0, oddsPoints: 0 }
+      : { correct: 0, total: 0, oddsPoints: 0 };
+    if(state.viewingTeamProfile !== teamName) return; // navigated away while this was loading
+    state.teamProfileBilbbetData = { forTeam: teamName, user, bets, tipping };
+    render();
+  }
+
   function renderRoundExtremeMarket(kind){
     // kind: 'win_round' (highest scorer) or 'lose_round' (lowest scorer)
     const label = kind === 'win_round' ? 'To win Round' : 'To lose Round';
@@ -4449,7 +4690,10 @@
     } else {
       body = `<p style="color:#9a9a9a;">Unknown tab.</p>`;
     }
-    return `<div id="bb-page-content">${renderStorageWarning()}${renderTestingPhaseDisclaimer()}${header()}${renderTeamSearchPanel()}${mainTabs()}${body}${renderFooter()}</div>${['ADMIN','STATS'].includes(state.activeTab) ? '' : slipBar()}${state.loginModalOpen ? renderLoginModal() : ''}${state.tosModalOpen ? renderTosModal() : ''}${state.readMeModalOpen ? renderReadMeModal() : ''}${state.tutorialModalOpen ? renderTutorialModal() : ''}${state.welcomeModalOpen ? renderWelcomeModal() : ''}${state.formModalOpen ? renderFormModal() : ''}${state.contactUsModalOpen ? renderContactUsModal() : ''}${teamsDatalist()}`;
+    const mainContent = state.viewingTeamProfile ? renderTeamProfile(state.viewingTeamProfile)
+      : state.teamDirectoryOpen ? renderTeamDirectory()
+      : mainTabs() + body;
+    return `<div id="bb-page-content">${renderStorageWarning()}${renderTestingPhaseDisclaimer()}${header()}${renderTeamSearchPanel()}${mainContent}${renderFooter()}</div>${['ADMIN','STATS'].includes(state.activeTab) ? '' : slipBar()}${state.loginModalOpen ? renderLoginModal() : ''}${state.tosModalOpen ? renderTosModal() : ''}${state.readMeModalOpen ? renderReadMeModal() : ''}${state.tutorialModalOpen ? renderTutorialModal() : ''}${state.welcomeModalOpen ? renderWelcomeModal() : ''}${state.formModalOpen ? renderFormModal() : ''}${state.contactUsModalOpen ? renderContactUsModal() : ''}${teamsDatalist()}`;
   }
 
   function combinedOdds(){ return combinedOddsFor(state.slip); }
@@ -6014,8 +6258,31 @@
     const logoutBtn = $('#logout-btn');
     if(logoutBtn) logoutBtn.onclick = () => { state = {...state, screen:'main', user:null, username:'', pin:'', adminLoginMode:false, registeringMode:false, tosAgreed:false, error:'', info:'', loginModalOpen:false, slip:[], betMode:'multi', activeTab:'HOME', h2hMarket:null, h2hFixtureMarket:null, myBets:null, adminPunters:null, adminBets:null, novelty:null, statsData:null, tippingData:null, tippingPending:{}, tippingRound:null, tippingAllPicks:null, tippingLeaderboard:null, tipReminderStatus:null, tippingRewardChecked:null, tippingRewardBanner:null, preseasonData:null, preseasonPending:{}, preseasonAllPicks:null, preseasonLeaderboard:null, homeTippingNudge:null, txHistory:null}; render(); };
     const openLoginBtn = $('#open-login-btn'); if(openLoginBtn) openLoginBtn.onclick = () => { state.loginModalOpen = true; state.adminLoginMode=false; state.error=''; state.info=''; render(); };
-    const openTeamSearchBtn = $('#open-team-search-btn'); if(openTeamSearchBtn) openTeamSearchBtn.onclick = () => { state.teamSearchOpen = true; render(); };
+    const openTeamSearchBtn = $('#open-team-search-btn'); if(openTeamSearchBtn) openTeamSearchBtn.onclick = () => { state.teamDirectoryOpen = true; state.viewingTeamProfile = null; render(); };
     const closeTeamSearchBtn = $('#close-team-search'); if(closeTeamSearchBtn) closeTeamSearchBtn.onclick = () => { state.teamSearchOpen = false; state.teamSearchQuery=''; render(); };
+    document.querySelectorAll('[data-view-team-profile]').forEach(el => el.onclick = () => {
+      state.viewingTeamProfile = el.dataset.viewTeamProfile;
+      state.teamDirectoryOpen = false;
+      state.teamProfileSubTab = 'OVERVIEW';
+      state.teamProfileBilbbetData = null;
+      render();
+    });
+    const closeTeamDirectoryBtn = $('#close-team-directory'); if(closeTeamDirectoryBtn) closeTeamDirectoryBtn.onclick = () => { state.teamDirectoryOpen = false; state.teamDirectoryQuery = ''; render(); };
+    const teamDirectorySearch = $('#team-directory-search'); if(teamDirectorySearch) teamDirectorySearch.oninput = e => { state.teamDirectoryQuery = e.target.value; render(); };
+    const teamProfileBackBtn = $('#team-profile-back'); if(teamProfileBackBtn) teamProfileBackBtn.onclick = () => { state.viewingTeamProfile = null; state.teamDirectoryOpen = true; render(); };
+    document.querySelectorAll('[data-team-profile-subtab]').forEach(el => el.onclick = () => {
+      state.teamProfileSubTab = el.dataset.teamProfileSubtab;
+      render();
+    });
+    const teamProfileViewMarkets = $('#team-profile-view-markets');
+    if(teamProfileViewMarkets) teamProfileViewMarkets.onclick = () => {
+      const teamName = teamProfileViewMarkets.dataset.team;
+      state.viewingTeamProfile = null;
+      state.teamDirectoryOpen = false;
+      state.teamSearchOpen = true;
+      state.teamSearchQuery = teamName;
+      render();
+    };
     const headerTeamSearch = $('#header-team-search');
     if(headerTeamSearch){
       headerTeamSearch.oninput = e => { state.teamSearchQuery = e.target.value; };
