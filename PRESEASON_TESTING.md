@@ -54,6 +54,82 @@ so it's clear what's actually solid ground versus what's still open below.
       to run every Tuesday automatically.
 - [x] **`real_results.json` missing Heilan Coos / Toby's Troops as keys** —
       fixed.
+- [x] **Weekly leaderboard rebuilt** — merged into one sortable table
+      (was three separately-ranked lists), with real column-alignment
+      (`tabular-nums`, right-aligned) fixing the original readability
+      complaint. Section tabs now match `TIPPING_SECTIONS` exactly (Eliza,
+      Div 2 A+B combined, Div 3 A+B combined, ECL, FA Cup, Overall) — this
+      also fixed a real pre-existing inconsistency, since the leaderboard's
+      old per-division filter never actually matched how picks themselves
+      were grouped.
+- [x] **Pre-season leaderboard participation bug** — found and fixed a real,
+      pre-existing bug, not just a display choice: the old code only
+      counted a punter once their pick's slot *fully resolved*, which for
+      most pre-season picks (like "wins the division") doesn't happen
+      until deep into the season. In practice this meant the pre-season
+      leaderboard was *always* empty. Now shows anyone who's submitted
+      immediately, with honest "—" placeholders (not misleading zeros)
+      until a slot actually resolves.
+- [x] **Weekly leaderboard, pre-Round-1 view** — extended the same
+      participation-first idea to the weekly leaderboard specifically for
+      the period before Round 1 has been played (previously just showed a
+      blank "no rounds played" message).
+- [x] **Green checkmark for "already submitted the upcoming round"** —
+      weekly leaderboard only, correctly scoped per-section (submitting
+      Div 2 picks doesn't check the box on the Div 3 tab), never shown on
+      the pre-season leaderboard.
+- [x] **Team directory + profile pages** — "Find a team" now opens a real
+      alphabetical directory; each team has Overview (odds + standings),
+      Results (this season only), Competitions (FA Cup/ECL), and Bilbbet
+      history (punter account looked up directly by team name — that's
+      the actual registration convention, confirmed by you after an
+      earlier wrong assumption on my part) sub-tabs.
+- [x] **Team profile Overview odds gap** — was showing nothing but "season
+      hasn't started" pre-season; now always shows the team's actual
+      betting markets regardless of season state, with real standings
+      added once rounds have been played.
+- [x] **Admin: permanent punter account deletion** — distinct from the
+      pre-existing "kick" (blocks participation, keeps history) and "reset
+      registration" (clears balance, keeps account). Removes the user
+      record, every bet, every week's tips, and pre-season picks. Gated
+      behind typing the exact username, since it's irreversible. Verified
+      against a real scenario with an unrelated second account to confirm
+      no cross-contamination.
+
+---
+
+## Important, previously-undocumented finding (2026-08-13, later session)
+
+**`state.currentRound` is a fully manual admin control — nothing in the
+code derives it from `round_dates.json` or the real date.** It's a
+dropdown + "Save" button in the admin panel
+(`saveCurrentRound()`/`#admin-current-round`). Confirmed by searching the
+entire codebase for any automatic-advancement logic — there isn't any.
+
+This matters far more now than it would have last night, because almost
+everything built this session reads it: the shrinkage ramp's *display*,
+every leaderboard view, the "upcoming round" checkmark, and team profile
+standings all depend on it being correct.
+
+**The real risk**: this is a completely separate system from the Python
+pipeline's own "how many rounds have happened" logic
+(`rounds_completed_from()`, added earlier tonight for shrinkage), which
+self-derives from the real sheet data and is always accurate by
+construction. If the admin forgets to advance the dropdown in a given
+week, the *live site's* idea of the current round drifts out of sync with
+what the *simulation* is actually using — e.g., the site could still show
+a "Round 3" leaderboard while the real odds were already computed as if
+Round 5 had happened.
+
+- [ ] **Confirm you understand this is a manual, weekly step**, and
+      decide whether that's an acceptable process or something worth
+      automating later (e.g., deriving it from `round_dates.json` + real
+      date, the way the Python side already does). **Owner: you**
+      (process decision) **+ Claude** (build, if you want it automated).
+- [ ] **Add a cross-check**: after each real weekly pipeline run, confirm
+      the admin-panel round dropdown was actually advanced to match.
+      Cheap, high-value habit — worth doing every week for at least the
+      first month of the season until it's second nature.
 
 ---
 
@@ -66,17 +142,22 @@ Blocking issues. Don't move to Phase 2 until these are resolved.
       match the sum of their round scores — a real, cheap way to catch a
       typo'd score — but nothing downstream reads it. A silent data-entry
       error could feed straight into the simulation once the season starts.
-      **Owner: Claude.** Prerequisite: none, ready to build now.
+      **Owner: Claude.** Prerequisite: none, ready to build now. Still not
+      done as of this update — flagged twice now, worth actually
+      scheduling rather than letting it slide a third time.
 
 - [ ] **Decide: `leading_at.json` / `special_markets.json` corruption.**
       Same real bug as the Division 3A/3B schedule issue, but never fixed in
       these two files — live, user-facing junk (`"NEW PLAYER 1/2"`,
       `"TBD PROMOTED TEAM A/B"`) is currently sitting in production. This was
-      deliberately deferred until you were comfortable committing to launch;
-      that point is now close. **Owner: you** (decide whether to relabel now
-      with an odds-accuracy caveat, or hold for a proper regeneration) **+
-      Claude** (does the work once you decide). Prerequisite: your call on
-      which approach.
+      deliberately deferred until you were comfortable committing to launch.
+      Given how much *more* of the site is now real and live (team
+      profiles, the rebuilt leaderboard, account management), this is
+      worth revisiting soon rather than continuing to defer — the surface
+      area where this junk could become visible to a real punter has
+      grown materially tonight. **Owner: you** (decide whether to relabel
+      now with an odds-accuracy caveat, or hold for a proper regeneration)
+      **+ Claude** (does the work once you decide).
 
 - [ ] **Decide: `carry_balances.json` missing entries for the 4 teams in
       flux.** Real betting history, not something safe to default. Confirmed
@@ -91,6 +172,43 @@ Blocking issues. Don't move to Phase 2 until these are resolved.
       this is real, the sooner the allowlist and this whole class of
       flip-flop risk can be retired. **Owner: you** (this is a real-world
       league decision, not a code one).
+
+---
+
+## Phase 1.5 — new features from tonight's later session, before real punters see them
+
+- [ ] **Team directory/profile: sweep every real team, not just the ones
+      directly tested.** Tested tonight against Tsatas Dip and a handful
+      of others — worth a full pass checking every team with an unusual
+      name specifically (apostrophes like Silverman's XI, the literal
+      comma in "Dog Goes Woof, Payne Goes Meow") to confirm nothing breaks
+      the directory listing, the URL-free navigation, or the profile
+      render. **Owner: you** (click through) **+ Claude** (fix anything
+      found).
+
+- [ ] **Confirm the "username = team name" convention actually holds once
+      real registrations start.** The Bilbbet history tab depends entirely
+      on this — if a punter registers under a slightly different name than
+      their exact team name (extra space, different case handled fine,
+      but a genuine typo or abbreviation would not be), their profile tab
+      would incorrectly show "no account registered" even though they're
+      a real, active punter. Worth confirming there's real-world
+      discipline around this during registration, or deciding whether the
+      site should enforce/validate it. **Owner: you.**
+
+- [ ] **Dry-run the account deletion feature on a genuinely disposable
+      test account before using it on your real "test" account.** The
+      feature is tested in isolation tonight, but a real, once-only trial
+      run (create a throwaway account, place a token bet, delete it,
+      confirm it's actually gone from every view including the admin
+      punters list and any leaderboard it appeared on) is worth doing
+      once for real before relying on it. **Owner: you.**
+
+- [ ] **Confirm the rebuilt leaderboard looks right at real scale.**
+      Tonight's testing used 3-12 synthetic punters. Once more real
+      accounts exist, worth a genuine look at how the table reads with a
+      fuller, more realistic list — sort behavior, zebra striping, and
+      row density were designed around a shorter synthetic list.
 
 ---
 
@@ -178,6 +296,10 @@ realistic human-entered variance.
       PR → review `futures-publishable.json` → copy into `data/futures.json`
       → confirm the live site actually updates (same propagation-delay
       check as tonight).
+- [ ] **Confirm the admin-panel round dropdown is set correctly for
+      Round 1** right before kickoff, and that you have a clear, simple
+      habit in mind for advancing it every week once the season's live —
+      see the `currentRound` finding above.
 
 ---
 
@@ -187,6 +309,13 @@ realistic human-entered variance.
       the actual season's real data hitting every mechanism built tonight
       for the first time simultaneously — worth more attention than a
       typical mid-season week.
+- [ ] **Every week for at least the first month: confirm the admin round
+      dropdown actually got advanced after the weekly pipeline run.** This
+      is the single easiest thing to forget and the one most likely to
+      make the live site quietly show stale information across every
+      feature built this session — leaderboards, team profiles, the
+      shrinkage-adjusted odds display, all of it. Worth treating as a
+      genuine weekly checklist item, not an assumption.
 - [ ] **Confirm the round-based shrinkage feels right in practice** once
       real (not synthetic) results are coming in — the checkpoint values
       (0.20 → 0.40 → 0.70 → 1.00) were a reasonable translation of your
