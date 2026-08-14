@@ -149,6 +149,20 @@ itself matches:
       rather than risking an unsafe automatic partial-void. Resolving a
       novelty item back to `OPEN` correctly reverts any auto-settled bet
       back to PENDING, rather than leaving it stuck at a stale status.
+- [x] **Admin: cup fixture setup — investigated from a real user report,
+      not a code bug.** You noticed FA Cup/ECL leaderboard tabs showing no
+      sortable columns. Confirmed directly: every section uses the exact
+      same table code, and FA Cup correctly shows sortable columns the
+      moment a real fixture exists for it — proved this by manually
+      injecting one and re-rendering. The actual cause is that
+      `state.cupFixtures` starts (and resets every season) completely
+      empty; cup fixtures are admin-entered per round, not pre-built like
+      league fixtures, so there's genuinely nothing to tip on yet. Also
+      confirmed one real operational detail while checking the entry
+      handler: a fixture gets tagged with whatever `state.currentRound` is
+      *at the moment it's added* (`data-add-cupfixture`) — so entering FA
+      Cup's Round 2 fixtures requires the round dropdown to actually be
+      at Round 2 first, not something you can pre-schedule from Round 1.
 
 ---
 
@@ -157,9 +171,9 @@ itself matches:
 - [ ] **Admin: punter management** — balance adjustment, kick/unkick,
       reset registration, approve/reject/approve-all registration
       (deletion specifically *was* reviewed; its siblings weren't).
-- [ ] **Admin: cup fixtures & playoffs** — add/remove/clear cup fixtures,
-      playoff fixtures, cup override controls, ECL group assignment/
-      clearing.
+- [ ] **Admin: playoff fixtures & ECL group assignment/clearing** —
+      distinct from FA Cup/ECL basic fixture entry, which *was* reviewed
+      this session.
 - [ ] **Admin: odds refresh** — request/clear odds refresh (suggestion
       approve/reject *was* reviewed alongside novelty bets above).
 - [ ] **Pre-season picks** — the picking UI itself (`togglePreseasonPick`,
@@ -184,7 +198,7 @@ itself matches:
 2. Pre-season picks UI (`togglePreseasonPick`/`toggleFinalResult`) — the
    one remaining real-money-adjacent flow not yet reviewed.
 3. Admin: punter management (balance adjustment, kick/unkick, reset,
-   approve/reject) and cup fixtures/playoffs — lower individual risk than
-   what's been covered so far, but still unreviewed.
+   approve/reject) and playoff fixtures/ECL groups — lower individual risk
+   than what's been covered so far, but still unreviewed.
 4. Helptip dismissal and mobile-specific quirks — polish-level, lowest
    priority of what's left.
