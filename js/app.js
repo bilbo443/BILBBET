@@ -2620,7 +2620,7 @@
         return kindBar + rewardNote + sectionTabs + '<p style="color:var(--bb-text-muted);">Nobody\u2019s submitted Round 1 picks for this section yet \u2014 be the first to join.</p>';
       }
       const table = renderSortableLeaderboardTable(
-        state.tippingLeaderboard, 'oddsPoints', 'desc',
+        state.tippingLeaderboard, state.tippingLeaderboardSortBy, state.tippingLeaderboardSortDir,
         state.user && !state.user.isAdmin ? state.user.username : null,
         'Round 1', 'Already in for Round 1 \u2014 scores appear once results start coming in.'
       );
