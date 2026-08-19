@@ -826,62 +826,62 @@
       "promotion_pct": [
         {
           "team": "AFC BIG RED PORT",
-          "odds": 1.6,
+          "odds": 2.99,
           "suspended": false
         },
         {
           "team": "THE WAINE TRAIN",
-          "odds": 2.04,
-          "suspended": false
-        },
-        {
-          "team": "REAPERS FC",
-          "odds": 3.45,
+          "odds": 4.1,
           "suspended": false
         },
         {
           "team": "ALBANIAN BOARS",
+          "odds": 4.29,
+          "suspended": false
+        },
+        {
+          "team": "REAPERS FC",
           "odds": 5.24,
           "suspended": false
         },
         {
-          "team": "LALAS LEVEN",
-          "odds": 6.5,
-          "suspended": false
-        },
-        {
-          "team": "CARNEGIE DACHSHUNDS FC",
-          "odds": 13.5,
-          "suspended": false
-        },
-        {
           "team": "BALLERS",
-          "odds": 22.79,
+          "odds": 5.4,
           "suspended": false
         },
         {
           "team": "BEST OF A BAD BENCH",
-          "odds": 30.45,
+          "odds": 6.05,
+          "suspended": false
+        },
+        {
+          "team": "CARNEGIE DACHSHUNDS FC",
+          "odds": 6.57,
           "suspended": false
         },
         {
           "team": "MANCHESTHAIR UTD",
-          "odds": 49.6,
+          "odds": 6.61,
           "suspended": false
         },
         {
           "team": "ROTORUA UNITED",
-          "odds": 174.22,
+          "odds": 7.3,
+          "suspended": false
+        },
+        {
+          "team": "LALAS LEVEN",
+          "odds": 7.52,
           "suspended": false
         },
         {
           "team": "3DOGS",
-          "odds": 661.38,
+          "odds": 9.05,
           "suspended": false
         },
         {
           "team": "INTER MILANOVIC",
-          "odds": 1001,
+          "odds": 15.07,
           "suspended": false
         }
       ]
@@ -1262,62 +1262,62 @@
       "promotion_pct": [
         {
           "team": "SILVERMAN'S XI",
-          "odds": 1.04,
+          "odds": 2.72,
           "suspended": false
         },
         {
           "team": "SPOONERS FC",
-          "odds": 2.2,
+          "odds": 3.59,
           "suspended": false
         },
         {
           "team": "THE D GENREAU",
-          "odds": 2.24,
+          "odds": 3.71,
           "suspended": false
         },
         {
           "team": "ZEN GARDEN C.F",
-          "odds": 4.27,
+          "odds": 4.36,
           "suspended": false
         },
         {
           "team": "DINKIN CRFC",
-          "odds": 9.45,
+          "odds": 5.93,
           "suspended": false
         },
         {
           "team": "ROYAL KC UNITED FC",
-          "odds": 25.76,
+          "odds": 6.01,
           "suspended": false
         },
         {
           "team": "TOBY'S TROOPS",
-          "odds": 42.98,
-          "suspended": false
-        },
-        {
-          "team": "HEILAN COOS",
-          "odds": 340.14,
-          "suspended": false
-        },
-        {
-          "team": "JUSTICEFORMOON FC",
-          "odds": 366.3,
-          "suspended": false
-        },
-        {
-          "team": "CASUAL APPROACH",
-          "odds": 496.03,
+          "odds": 6.95,
           "suspended": false
         },
         {
           "team": "ZEN PIJ FC",
-          "odds": 496.03,
+          "odds": 9.18,
+          "suspended": false
+        },
+        {
+          "team": "HEILAN COOS",
+          "odds": 9.6,
+          "suspended": false
+        },
+        {
+          "team": "JUSTICEFORMOON FC",
+          "odds": 10.66,
+          "suspended": false
+        },
+        {
+          "team": "CASUAL APPROACH",
+          "odds": 10.95,
           "suspended": false
         },
         {
           "team": "JERRY THE PAINTER",
-          "odds": 1001,
+          "odds": 13.47,
           "suspended": false
         }
       ]
@@ -1325,7 +1325,7 @@
     "DIVISION 3A": {
       "win_div_pct": [
         {
-          "team": "ZOUMA KICKS TIM PAYNE",
+          "team": "THE DRONE POLICE",
           "odds": 6.0,
           "suspended": false
         },
@@ -1387,7 +1387,7 @@
       ],
       "top3_pct": [
         {
-          "team": "ZOUMA KICKS TIM PAYNE",
+          "team": "THE DRONE POLICE",
           "odds": 2.39,
           "suspended": false
         },
@@ -1449,7 +1449,7 @@
       ],
       "top_half_pct": [
         {
-          "team": "ZOUMA KICKS TIM PAYNE",
+          "team": "THE DRONE POLICE",
           "odds": 1.43,
           "suspended": false
         },
@@ -1566,7 +1566,7 @@
           "suspended": false
         },
         {
-          "team": "ZOUMA KICKS TIM PAYNE",
+          "team": "THE DRONE POLICE",
           "odds": 2.87,
           "suspended": false
         }
@@ -1628,136 +1628,74 @@
           "suspended": false
         },
         {
-          "team": "ZOUMA KICKS TIM PAYNE",
+          "team": "THE DRONE POLICE",
           "odds": 27.77,
           "suspended": false
         }
       ],
       "promotion_pct": [
         {
+          "team": "THE DRONE POLICE",
+          "odds": 2.4,
+          "suspended": false
+        },
+        {
           "team": "FREKEINTHESHEETS",
-          "odds": 1.69,
+          "odds": 2.67,
           "suspended": false
         },
         {
           "team": "MONGREL GARDEN",
-          "odds": 2.2,
-          "suspended": false
-        },
-        {
-          "team": "LOAVES AND FISHES",
-          "odds": 2.27,
-          "suspended": false
-        },
-        {
-          "team": "GARRY WALLAH UNITED FC",
-          "odds": 3.7,
-          "suspended": false
-        },
-        {
-          "team": "CAG'S INVESTORS",
-          "odds": 4.25,
+          "odds": 2.71,
           "suspended": false
         },
         {
           "team": "AARONGURDWOODREICH",
-          "odds": 5.44,
+          "odds": 3.09,
+          "suspended": false
+        },
+        {
+          "team": "LOAVES AND FISHES",
+          "odds": 3.31,
+          "suspended": false
+        },
+        {
+          "team": "CAG'S INVESTORS",
+          "odds": 3.56,
+          "suspended": false
+        },
+        {
+          "team": "GARRY WALLAH UNITED FC",
+          "odds": 3.58,
           "suspended": false
         },
         {
           "team": "MELBCITYGUY",
-          "odds": 35.89,
-          "suspended": false
-        },
-        {
-          "team": "DOG GOES WOOF, PAYNE GOES MEOW",
-          "odds": 231.91,
+          "odds": 4.02,
           "suspended": false
         },
         {
           "team": "THE MALTESE KNIGHTS",
-          "odds": 939.85,
+          "odds": 5.2,
           "suspended": false
         },
         {
-          "team": "PAYNE IN THE NECK",
-          "odds": 1001,
+          "team": "DOG GOES WOOF, PAYNE GOES MEOW",
+          "odds": 7.0,
           "suspended": false
         },
         {
           "team": "THE 2ND JARV ADMINISTRATION",
-          "odds": 1001,
+          "odds": 7.29,
           "suspended": false
         },
         {
-          "team": "ZOUMA KICKS TIM PAYNE",
-          "odds": null,
-          "suspended": true
+          "team": "PAYNE IN THE NECK",
+          "odds": 10.06,
+          "suspended": false
         }
       ],
       "bottom3_pct": [
-        {
-          "team": "PAYNE IN THE NECK",
-          "odds": 1.01,
-          "suspended": false
-        },
-        {
-          "team": "THE 2ND JARV ADMINISTRATION",
-          "odds": 1.2,
-          "suspended": false
-        },
-        {
-          "team": "THE MALTESE KNIGHTS",
-          "odds": 1.54,
-          "suspended": false
-        },
-        {
-          "team": "DOG GOES WOOF, PAYNE GOES MEOW",
-          "odds": 2.26,
-          "suspended": false
-        },
-        {
-          "team": "MELBCITYGUY",
-          "odds": 6.26,
-          "suspended": false
-        },
-        {
-          "team": "AARONGURDWOODREICH",
-          "odds": 34.27,
-          "suspended": false
-        },
-        {
-          "team": "CAG'S INVESTORS",
-          "odds": 51.24,
-          "suspended": false
-        },
-        {
-          "team": "GARRY WALLAH UNITED FC",
-          "odds": 64.94,
-          "suspended": false
-        },
-        {
-          "team": "LOAVES AND FISHES",
-          "odds": 191.5,
-          "suspended": false
-        },
-        {
-          "team": "MONGREL GARDEN",
-          "odds": 201.78,
-          "suspended": false
-        },
-        {
-          "team": "FREKEINTHESHEETS",
-          "odds": 454.96,
-          "suspended": false
-        },
-        {
-          "team": "ZOUMA KICKS TIM PAYNE",
-          "odds": 1001,
-          "suspended": false
-        }
-      ],
-      "relegation_pct": [
         {
           "team": "PAYNE IN THE NECK",
           "odds": 2.1,
@@ -1814,7 +1752,7 @@
           "suspended": false
         },
         {
-          "team": "ZOUMA KICKS TIM PAYNE",
+          "team": "THE DRONE POLICE",
           "odds": 7.26,
           "suspended": false
         }
@@ -2133,129 +2071,67 @@
       ],
       "promotion_pct": [
         {
+          "team": "TSATAS DIP",
+          "odds": 1.39,
+          "suspended": false
+        },
+        {
           "team": "FOR VUCK'S SAKE FC",
-          "odds": 1.18,
+          "odds": 2.51,
           "suspended": false
         },
         {
           "team": "VICTORY",
-          "odds": 2.07,
-          "suspended": false
-        },
-        {
-          "team": "DEER PARK UNITED",
-          "odds": 3.02,
+          "odds": 2.79,
           "suspended": false
         },
         {
           "team": "X2 STRANGE",
-          "odds": 3.41,
+          "odds": 3.2,
+          "suspended": false
+        },
+        {
+          "team": "DEER PARK UNITED",
+          "odds": 3.33,
           "suspended": false
         },
         {
           "team": "LINDON-CHEVELLA FC",
-          "odds": 25.91,
-          "suspended": false
-        },
-        {
-          "team": "LIMSIM UNITED",
-          "odds": 47.52,
+          "odds": 4.36,
           "suspended": false
         },
         {
           "team": "LOLLEY POP MAN",
-          "odds": 86.37,
+          "odds": 5.88,
+          "suspended": false
+        },
+        {
+          "team": "LIMSIM UNITED",
+          "odds": 5.91,
           "suspended": false
         },
         {
           "team": "NUKEFORREST NUKES",
-          "odds": 259.74,
+          "odds": 6.41,
           "suspended": false
         },
         {
           "team": "FC TIKITOKA",
-          "odds": 939.85,
-          "suspended": false
-        },
-        {
-          "team": "BREXIT LADS",
-          "odds": 1001,
+          "odds": 8.6,
           "suspended": false
         },
         {
           "team": "SHANENIGANS",
-          "odds": 1001,
+          "odds": 9.01,
           "suspended": false
         },
         {
-          "team": "TSATAS DIP",
-          "odds": null,
-          "suspended": true
+          "team": "BREXIT LADS",
+          "odds": 11.04,
+          "suspended": false
         }
       ],
       "bottom3_pct": [
-        {
-          "team": "SHANENIGANS",
-          "odds": 1.1,
-          "suspended": false
-        },
-        {
-          "team": "BREXIT LADS",
-          "odds": 1.19,
-          "suspended": false
-        },
-        {
-          "team": "FC TIKITOKA",
-          "odds": 1.85,
-          "suspended": false
-        },
-        {
-          "team": "NUKEFORREST NUKES",
-          "odds": 2.63,
-          "suspended": false
-        },
-        {
-          "team": "LOLLEY POP MAN",
-          "odds": 4.58,
-          "suspended": false
-        },
-        {
-          "team": "LIMSIM UNITED",
-          "odds": 6.66,
-          "suspended": false
-        },
-        {
-          "team": "LINDON-CHEVELLA FC",
-          "odds": 10.18,
-          "suspended": false
-        },
-        {
-          "team": "X2 STRANGE",
-          "odds": 153.61,
-          "suspended": false
-        },
-        {
-          "team": "DEER PARK UNITED",
-          "odds": 161.6,
-          "suspended": false
-        },
-        {
-          "team": "VICTORY",
-          "odds": 454.96,
-          "suspended": false
-        },
-        {
-          "team": "FOR VUCK'S SAKE FC",
-          "odds": 1001,
-          "suspended": false
-        },
-        {
-          "team": "TSATAS DIP",
-          "odds": 1001,
-          "suspended": false
-        }
-      ],
-      "relegation_pct": [
         {
           "team": "BREXIT LADS",
           "odds": 2.13,
@@ -2417,7 +2293,7 @@
         "suspended": false
       },
       {
-        "team": "ZOUMA KICKS TIM PAYNE",
+        "team": "THE DRONE POLICE",
         "odds": 736.38,
         "suspended": false
       },
@@ -2729,7 +2605,7 @@
         "suspended": false
       },
       {
-        "team": "ZOUMA KICKS TIM PAYNE",
+        "team": "THE DRONE POLICE",
         "odds": 116.33,
         "suspended": false
       },
@@ -3041,7 +2917,7 @@
         "suspended": false
       },
       {
-        "team": "ZOUMA KICKS TIM PAYNE",
+        "team": "THE DRONE POLICE",
         "odds": 42.57,
         "suspended": false
       },
@@ -3353,7 +3229,7 @@
         "suspended": false
       },
       {
-        "team": "ZOUMA KICKS TIM PAYNE",
+        "team": "THE DRONE POLICE",
         "odds": 9.73,
         "suspended": false
       },
@@ -3694,7 +3570,7 @@
         "suspended": false
       },
       {
-        "team": "ZOUMA KICKS TIM PAYNE",
+        "team": "THE DRONE POLICE",
         "odds": 1.55,
         "suspended": false
       },
@@ -4016,7 +3892,7 @@
         "suspended": false
       },
       {
-        "team": "ZOUMA KICKS TIM PAYNE",
+        "team": "THE DRONE POLICE",
         "odds": 2.84,
         "suspended": false
       },
@@ -4328,7 +4204,7 @@
         "suspended": false
       },
       {
-        "team": "ZOUMA KICKS TIM PAYNE",
+        "team": "THE DRONE POLICE",
         "odds": 5.68,
         "suspended": false
       },
@@ -4640,7 +4516,7 @@
         "suspended": false
       },
       {
-        "team": "ZOUMA KICKS TIM PAYNE",
+        "team": "THE DRONE POLICE",
         "odds": 12.19,
         "suspended": false
       },
@@ -4952,7 +4828,7 @@
         "suspended": false
       },
       {
-        "team": "ZOUMA KICKS TIM PAYNE",
+        "team": "THE DRONE POLICE",
         "odds": 28.03,
         "suspended": false
       },
@@ -5264,7 +5140,7 @@
         "suspended": false
       },
       {
-        "team": "ZOUMA KICKS TIM PAYNE",
+        "team": "THE DRONE POLICE",
         "odds": 65.29,
         "suspended": false
       },
