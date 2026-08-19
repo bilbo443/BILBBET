@@ -123,6 +123,26 @@ def run_pipeline(url, roster_path, round_dates_path, draft_dir,
         json.dump(results, f, indent=2)
     step(f"Extracted {len(results)} team record(s) to {extracted_path}")
 
+    # extract_results() already computes, per team, whether the sheet's own
+    # reported total agrees with the sum of that team's round-by-round
+    # scores -- a real, cheap way to catch a misread or typo'd cell -- but
+    # until now nothing ever checked it. A silent mismatch here would feed
+    # straight into the simulation with no one the wiser. Same halt
+    # pattern as a Layer 2 validation failure: stop before simulation,
+    # surface exactly what's wrong, let a human decide rather than guess.
+    inconsistent = [r for r in results if not r['consistent']]
+    if inconsistent:
+        step(f"EXTRACTION CONSISTENCY CHECK FAILED -- {len(inconsistent)} team(s) have a mismatch "
+             f"between the sheet's own reported total and the sum of their round-by-round scores")
+        for r in inconsistent:
+            step(f"  {r['team']} ({r['division']}): sheet says {r['total_reported']}, "
+                 f"but the round scores sum to {r['total_computed']}")
+        result = {'status': 'extraction_inconsistent', 'inconsistent_teams': inconsistent,
+                   'extracted_path': extracted_path, 'log': log}
+        write_run_report(draft_dir, run_id, result)
+        return result
+    step(f"Extraction consistency check passed -- every team's reported total matches its round-by-round sum")
+
     if not run_simulation:
         step("run_simulation=False -- stopping here as a dry run (extraction only, no odds regenerated)")
         result = {'status': 'validated_dry_run', 'extracted_path': extracted_path, 'log': log}
