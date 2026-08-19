@@ -1,0 +1,24 @@
+{
+  "status": "draft_ready",
+  "extracted_path": "draft/extracted-20260819-210619.json",
+  "odds_path": "draft/odds-draft-20260819-210619.json",
+  "log": [
+    "[2026-08-19T21:06:19] Layer 3 pipeline starting",
+    "[2026-08-19T21:06:19] Fetching sheet from https://docs.google.com/spreadsheets/d/e/2PACX-1vQsdcA8lCRuiNppvU3vpQxH0NstU7HSrhFKQzq_y_GJ6xV5dW40QY2psO6Zc4h19htMVoqFeqFKsApQ/pub?gid=724499574&single=true&output=csv",
+    "[2026-08-19T21:06:19] Fetch succeeded",
+    "[2026-08-19T21:06:19] Running Layer 2 validation gate",
+    "[2026-08-19T21:06:19] [\u2713] required_headers: All required headers present.",
+    "[2026-08-19T21:06:19] [\u2713] round_columns: All 26 round columns present.",
+    "[2026-08-19T21:06:19] [\u2713] no_duplicate_table: 'TEAM NAME' appears 1 times, matching the known sections.",
+    "[2026-08-19T21:06:19] [\u2713] row_count: 62 team rows, within expected range of 62.",
+    "[2026-08-19T21:06:19] [\u2713] known_roster: Every team name matches the current roster or the known roster-transition allowlist (['FREKEINTHESHEETS', 'DEER PARK UNITED']). Remove ROSTER_TRANSITION_ALLOWLIST once the transition is officially confirmed.",
+    "[2026-08-19T21:06:19] [\u2713] score_ranges: All scores fall within the plausible range (0, 200).",
+    "[2026-08-19T21:06:19] [\u2713] system_accounts: No system-account-like names found.",
+    "[2026-08-19T21:06:19] [\u2713] calendar_consistency: All scored rounds have reached their kickoff date.",
+    "[2026-08-19T21:06:19] Validation passed -- extracting results (Layer 1)",
+    "[2026-08-19T21:06:19] Extracted 62 team record(s) to draft/extracted-20260819-210619.json",
+    "[2026-08-19T21:06:19] Extraction consistency check passed -- every team's reported total matches its round-by-round sum",
+    "[2026-08-19T21:06:19] Running simulation",
+    "[2026-08-19T21:06:24] Simulation complete -- writing draft odds"
+  ]
+}
