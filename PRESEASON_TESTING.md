@@ -165,11 +165,23 @@ Blocking issues. Don't move to Phase 2 until these are resolved.
       now with an odds-accuracy caveat, or hold for a proper regeneration)
       **+ Claude** (does the work once you decide).
 
-- [ ] **Decide: `carry_balances.json` missing entries for the 4 teams in
-      flux.** Real betting history, not something safe to default. Confirmed
-      tonight it's not hiding under an old name. **Owner: you.**
-      Prerequisite: knowing whether those teams' real balances exist
-      somewhere else, or should genuinely start at zero.
+- [x] **`carry_balances.json` missing entries — resolved, turned out not to
+      need a fix.** Found a fifth, related issue while re-checking this
+      fresh: "Zouma Kicks Tim Payne" still had their real carry balance
+      (14 bets, real winnings/losses) sitting under the old name from
+      before this session's rename — fixed by re-keying the existing
+      entry to "The Drone Police", no data invented, nothing guessed.
+      For the original four (Heilan Coos, Toby's Troops, Frekeinthesheets,
+      Deer Park United): confirmed none have real prior history to
+      restore. Before adding zero-value entries for them, checked how a
+      missing entry actually gets read at registration
+      (`CARRY_BALANCES[username] || null`) — a missing entry already,
+      correctly, means "nothing to carry over, no historical record,"
+      exactly matching a genuine fresh start. Adding explicit zero
+      entries would have been purely redundant. No code or data change
+      needed for these four; the original caution (never guess at real
+      financial data) was the right call, and confirming the real answer
+      resolved it rather than requiring a fix.
 
 - [ ] **Get the "official confirmation" question resolved, if possible.**
       Heilan Coos/Toby's Troops departing vs Frekeinthesheets/Deer Park
