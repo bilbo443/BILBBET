@@ -54,6 +54,15 @@ DECAY_SEASONS = 10
 TROPHY_CAP = 0.20       # was 0.10 in v2 -- doubled
 CURRENT_SEASON_YY = 26
 
+# Live-roster renames confirmed to have happened before this separate
+# trophy/all-time sheet was updated to match. Add an entry here the same
+# day a rename is confirmed; safe to leave old entries in permanently --
+# once the source sheet's own CURRENT NAME catches up, the remap becomes
+# a genuine no-op (old key simply never matches a row again).
+KNOWN_RENAMES = {
+    'ZOUMA KICKS TIM PAYNE': 'THE DRONE POLICE',  # confirmed 2026-08-17
+}
+
 # Season-end TOTAL SCORE has a fundamentally different variance structure
 # than the per-round scores the original formula (shrink, promotion
 # discount, trophy bonus) was calibrated against -- a season total
@@ -111,6 +120,16 @@ def load_csv_data(csv_path):
         if not isinstance(name, str) or not name.strip():
             continue
         team = name.strip().upper()
+        # A live-roster rename can outpace this separate trophy/all-time
+        # sheet, which the league admin updates on their own schedule --
+        # confirmed happening for real on 2026-08-17 (Zouma Kicks Tim Payne
+        # -> The Drone Police, live roster updated same day, this sheet's
+        # CURRENT NAME still lagging at the time). Without this, the new
+        # name would silently miss its own real history and fall back to
+        # a neutral coefficient. Remaps at load time so it's a genuine
+        # no-op once this sheet catches up on its own -- nothing to
+        # remember to undo.
+        team = KNOWN_RENAMES.get(team, team)
 
         seasons = {}
         for label, (div_col, score_col) in season_cols.items():
