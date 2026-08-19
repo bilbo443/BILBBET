@@ -79,6 +79,15 @@ def main():
         print("\nSTOPPING: the simulation step isn't available for this run.")
         sys.exit(1)
 
+    if status == 'extraction_inconsistent':
+        print(f"\nSTOPPING: {len(result['inconsistent_teams'])} team(s) have a total that doesn't "
+              f"match the sum of their round-by-round scores -- likely a typo'd score in the sheet.")
+        for t in result['inconsistent_teams']:
+            print(f"  {t['team']} ({t['division']}): sheet says {t['total_reported']}, "
+                  f"round scores sum to {t['total_computed']}")
+        print("\nNo PR will be opened. Fix the sheet and re-run.")
+        sys.exit(1)
+
     if status != 'draft_ready':
         print(f"\nSTOPPING: unexpected pipeline status '{status}'.")
         sys.exit(1)
