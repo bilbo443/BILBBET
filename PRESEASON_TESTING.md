@@ -137,14 +137,20 @@ Round 5 had happened.
 
 Blocking issues. Don't move to Phase 2 until these are resolved.
 
-- [ ] **Fix: extraction's `consistent` flag is computed but never checked.**
-      `extract_results.py` already flags when a team's reported total doesn't
-      match the sum of their round scores — a real, cheap way to catch a
-      typo'd score — but nothing downstream reads it. A silent data-entry
-      error could feed straight into the simulation once the season starts.
-      **Owner: Claude.** Prerequisite: none, ready to build now. Still not
-      done as of this update — flagged twice now, worth actually
-      scheduling rather than letting it slide a third time.
+- [x] **Fix: extraction's `consistent` flag is computed but never checked.**
+      `extract_results.py` already flagged when a team's reported total
+      didn't match the sum of their round scores, but nothing downstream
+      ever read it. Now wired in: the pipeline halts before simulation if
+      any mismatch is found, naming the exact team and numbers, same
+      "stop and surface" pattern as a validation failure. Verified both
+      directions against real data — a clean run still passes straight
+      through, and a deliberately corrupted total (a fake typo injected
+      into the real sample data) correctly halts with a clear message,
+      no PR opens. Also caught and fixed a smaller related gap while
+      testing the CLI wrapper: the new failure status would have safely
+      stopped the run either way, but with a generic, unhelpful message
+      rather than naming the actual team and mismatch — fixed to match
+      the polish of the other failure messages.
 
 - [ ] **Decide: `leading_at.json` / `special_markets.json` corruption.**
       Same real bug as the Division 3A/3B schedule issue, but never fixed in
