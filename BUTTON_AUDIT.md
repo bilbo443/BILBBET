@@ -219,33 +219,47 @@ itself matches:
       same safeguard as ECL group changes: any fixture change
       auto-pauses stage-progression markets, since a newly-known fixture
       makes old "reach round X" odds stale.
+- [x] **Helptip dismissal (`data-helptip`/`data-helptip-panel`) and the
+      mobile-specific `mousedown` dropdown pattern.** Both confirmed
+      correct, no changes needed. Helptip: the outside-click listener is
+      bound exactly once via a guard flag, not on every render (an
+      unguarded version would have silently duplicated every time
+      `attachHandlers()` runs) — and the one other "tooltip-adjacent"
+      pattern in the file (native `title=` attributes, 13 uses) is a
+      deliberately separate, simpler mechanism the code itself notes was
+      chosen specifically because native tooltips don't work well on
+      mobile. Mobile dropdown quirk: confirmed genuinely isolated to one
+      shared, generic mechanism (`data-team-dropdown`) used by all 11 real
+      team-search inputs across the app, so the fix is automatically
+      consistent everywhere it's needed — and confirmed no *other* input
+      anywhere in the file has an adjacent tap-to-select list that would
+      share the same risk without this protection.
 
 ---
 
-## Level 2 semantic review — still not done
+## Audit status: Level 2 review complete for the whole file
 
-- [ ] **Helptip panels & outside-click-to-close behavior** — the
-      `.closest()`-based dismissal pattern, and whether it's applied
-      consistently everywhere a helptip appears.
-- [ ] **Mobile-specific interaction quirks** — the `mousedown`-not-`click`
-      pattern used for the team-search dropdown (to work around an iOS
-      Safari focus/blur timing issue) — worth checking whether this
-      pattern is needed and consistently applied anywhere else with a
-      similar input-plus-dropdown structure, or if it was only ever a risk
-      in that one place.
+Every clickable element passed Level 1 (wiring completeness, whole file,
+zero issues) at the start of this document. Every substantive area --
+betting, tipping, all of admin, navigation, and now the remaining
+polish-level items -- has had its actual logic read and verified, not
+just assumed correct because a handler exists.
 
-This is the last of the substantive admin/betting-flow areas — everything
-with real money, real season data, or real destructive potential has now
-been reviewed. What's left is genuinely polish-level.
+**Total real gaps found and fixed across the whole audit: 3** --
+`saveCurrentRound` (no backward-move confirmation), `confirmPreseasonPicks`
+(no internal lock check, relied entirely on the UI), and the missing
+`extraction_inconsistent` case in `run_refresh.py`'s CLI wrapper found
+while testing a different fix. Everything else checked out correct,
+including several deliberately conservative design choices (multi-leg
+bets punted to manual review, delta-based balance settlement everywhere
+real money moves) that turned out to be the right call, not gaps.
 
----
+**One real correction made along the way, worth remembering**: initially
+misjudged end-of-season archiving as having no confirmation, based on only
+checking the click handler's own line — the confirmation was actually
+built into the function itself. Caught by reading the whole function
+before concluding anything, which is the habit worth carrying into future
+reviews of this kind.
 
-## Suggested order for continuing this
-
-1. `jsdom` confirmed genuinely blocked in this sandbox (403 Forbidden from
-   the registry, not transient) — don't retry here.
-2. Helptip dismissal, then mobile-specific quirks — whichever's more
-   convenient, both low-stakes at this point.
-3. Once both are done, this document's Level 2 review is complete for the
-   whole file — worth a final skim of the "done" sections above as a
-   sanity check before considering the audit fully closed out.
+If new features get added later, add them to a fresh section below rather
+than reopening this as a todo list -- this pass is done.
