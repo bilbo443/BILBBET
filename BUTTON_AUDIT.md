@@ -163,22 +163,67 @@ itself matches:
       *at the moment it's added* (`data-add-cupfixture`) — so entering FA
       Cup's Round 2 fixtures requires the round dropdown to actually be
       at Round 2 first, not something you can pre-schedule from Round 1.
+- [x] **Admin: punter management — `adjustPunterBalance`,
+      `applyRegistrationStatus` (kick/approve/reject/reset all share this
+      one function), `approveAllPending`.** Confirmed solid. Balance
+      adjustment logs a real audit-trail transaction and correctly syncs
+      the admin's own session if they adjust their own account. The
+      registration bonus has an `everFunded` guard, so re-approving
+      someone after a kick/reset can never double-credit it — and it
+      correctly reapplies any carried-over balance from a previous
+      season, confirmed consistent with `resetRegistration`'s own
+      documented promise. Bulk-approve confirms with a real, dynamic
+      pending count first.
+- [x] **Admin: ECL group assignment — `assignEclGroup`,
+      `removeEclGroupTeam`, `clearEclGroups`.** Confirmed solid. Real
+      validation throughout: rejects a team not in this season's ECL
+      field, rejects assigning a team already in a different group,
+      correctly enforces the 4-team-per-group cap, and every change
+      correctly auto-suspends any now-stale ECL market rather than
+      leaving odds computed against an outdated group.
+- [x] **Pre-season picks: `togglePreseasonPick`, `confirmPreseasonPicks`,
+      `toggleFinalResult` — one real gap found and fixed.**
+      `toggleFinalResult` (the admin's mechanism for recording a slot's
+      actual outcome) was already careful — it warns explicitly if
+      changing an already-resolved slot might affect real payouts already
+      made. `confirmPreseasonPicks` (the punter-facing submit action) was
+      not: it had no internal check that picks hadn't already locked,
+      relying entirely on the button not being rendered once Round 1
+      starts. A stale page open from before the lock moment could still
+      fire it. Fixed to match the defense-in-depth pattern already used
+      elsewhere (e.g. weekly tipping's pick handlers) — verified both the
+      normal unlocked case still saves correctly, and the locked case is
+      now genuinely blocked with a clear message rather than silently
+      accepted.
+- [x] **Cup calendar overrides (`data-set-cupoverride`/`-off`/
+      `data-clear-cupoverride`) — initial concern resolved after full
+      investigation, not a bug.** Worried at first that overriding a
+      round to "off" wouldn't actually stop existing fixtures from being
+      tippable, since `getTippableFixtures` doesn't check the override at
+      all. Traced every real usage of `getCupRoundInfo` and confirmed
+      it's purely a calendar-labeling and admin-reminder tool (the
+      informational note shown above a fixture list, whether a round's
+      cup fixtures get featured, and the "you haven't entered fixtures
+      for this scheduled round yet" nudge) — never a gate on fixture
+      existence. Fixtures are always a deliberate, manual admin action
+      regardless, so there's no realistic path to a fixture existing for
+      a round the admin didn't intend tippable. Correct by design.
+- [x] **Playoff fixtures (`data-add-playofffixture`/
+      `-remove-playofffixture`/`-clear-playofffixtures`) and odds refresh
+      (`requestOddsRefresh`/`clearOddsRefreshRequest`).** Both confirmed
+      solid. Playoff entry uses the same real-team/no-self-match
+      validation as cup fixtures. Odds refresh is a simple, correct
+      communication flag for whoever runs the weekly pipeline manually —
+      matches the actual architecture (the live app never runs the
+      pipeline itself). Also noticed `saveCupFixtures` already has the
+      same safeguard as ECL group changes: any fixture change
+      auto-pauses stage-progression markets, since a newly-known fixture
+      makes old "reach round X" odds stale.
 
 ---
 
 ## Level 2 semantic review — still not done
 
-- [ ] **Admin: punter management** — balance adjustment, kick/unkick,
-      reset registration, approve/reject/approve-all registration
-      (deletion specifically *was* reviewed; its siblings weren't).
-- [ ] **Admin: playoff fixtures & ECL group assignment/clearing** —
-      distinct from FA Cup/ECL basic fixture entry, which *was* reviewed
-      this session.
-- [ ] **Admin: odds refresh** — request/clear odds refresh (suggestion
-      approve/reject *was* reviewed alongside novelty bets above).
-- [ ] **Pre-season picks** — the picking UI itself (`togglePreseasonPick`,
-      `toggleFinalResult`) — the leaderboard consuming this data *was*
-      reviewed, the picking mechanism itself wasn't yet.
 - [ ] **Helptip panels & outside-click-to-close behavior** — the
       `.closest()`-based dismissal pattern, and whether it's applied
       consistently everywhere a helptip appears.
@@ -189,16 +234,18 @@ itself matches:
       similar input-plus-dropdown structure, or if it was only ever a risk
       in that one place.
 
+This is the last of the substantive admin/betting-flow areas — everything
+with real money, real season data, or real destructive potential has now
+been reviewed. What's left is genuinely polish-level.
+
 ---
 
 ## Suggested order for continuing this
 
 1. `jsdom` confirmed genuinely blocked in this sandbox (403 Forbidden from
    the registry, not transient) — don't retry here.
-2. Pre-season picks UI (`togglePreseasonPick`/`toggleFinalResult`) — the
-   one remaining real-money-adjacent flow not yet reviewed.
-3. Admin: punter management (balance adjustment, kick/unkick, reset,
-   approve/reject) and playoff fixtures/ECL groups — lower individual risk
-   than what's been covered so far, but still unreviewed.
-4. Helptip dismissal and mobile-specific quirks — polish-level, lowest
-   priority of what's left.
+2. Helptip dismissal, then mobile-specific quirks — whichever's more
+   convenient, both low-stakes at this point.
+3. Once both are done, this document's Level 2 review is complete for the
+   whole file — worth a final skim of the "done" sections above as a
+   sanity check before considering the audit fully closed out.
