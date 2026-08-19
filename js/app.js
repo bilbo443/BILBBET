@@ -2622,7 +2622,9 @@
       const table = renderSortableLeaderboardTable(
         state.tippingLeaderboard, state.tippingLeaderboardSortBy, state.tippingLeaderboardSortDir,
         state.user && !state.user.isAdmin ? state.user.username : null,
-        'Round 1', 'Already in for Round 1 \u2014 scores appear once results start coming in.'
+        'Round 1', 'Already in for Round 1 \u2014 scores appear once results start coming in.',
+        true // showUpcomingCheck -- always true here since inclusion in this list already requires
+             // having submitted Round 1, but shown anyway for visual consistency with the normal view
       );
       return kindBar + rewardNote + sectionTabs + table;
     }
