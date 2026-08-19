@@ -5313,6 +5313,17 @@
 
   async function confirmPreseasonPicks(){
     if(!state.user) return;
+    // Defense in depth -- the button shouldn't render once Round 1 locks,
+    // but a stale page (open in a tab from before the lock moment) could
+    // still fire this handler. Re-check here rather than trusting the UI
+    // alone, matching the pattern weekly tipping's pick handlers already
+    // use for the same reason.
+    if(isRoundBlocked(1)){
+      alert('Pre-season picks have locked -- Round 1 has started.');
+      state.preseasonData = null; // force a fresh reload so the view reflects the real, locked state
+      render();
+      return;
+    }
     state.preseasonData = { picks: { ...state.preseasonPending } };
     await sset(preseasonStorageKey(state.user.username), state.preseasonData);
     render();
