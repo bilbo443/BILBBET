@@ -31,6 +31,7 @@ from datetime import datetime, date
 from validate_sheet_data import run_all_checks
 from extract_results import extract_results
 from simulation_adapter import regenerate_division_futures
+from sync_roster import sync_roster_if_changed
 
 
 def fetch_sheet_csv(url, dest_path, timeout=15):
@@ -82,10 +83,11 @@ def write_run_report(draft_dir, run_id, result):
 
 def run_pipeline(url, roster_path, round_dates_path, draft_dir,
                   coeffs_path='data/team_market_coeffs.json', history_path='data/roddy_history.json',
-                  header_row=1, today=None, run_simulation=False):
+                  header_row=1, today=None, run_simulation=False, alltime_url=None):
     os.makedirs(draft_dir, exist_ok=True)
     run_id = datetime.now().strftime('%Y%m%d-%H%M%S')
     log = []
+    roster_change_summary = None
 
     def step(msg):
         entry = f"[{datetime.now().isoformat(timespec='seconds')}] {msg}"
@@ -93,6 +95,43 @@ def run_pipeline(url, roster_path, round_dates_path, draft_dir,
         print(entry)
 
     step("Layer 3 pipeline starting")
+
+    # Roster sync runs first, before the main results sheet is even
+    # fetched -- a roster change (new team, rename, departure) needs to be
+    # reflected in THIS SAME run's validation and simulation, not lag a
+    # week behind because it was only picked up after everything else had
+    # already read the old roster. alltime_url is optional and off by
+    # default: existing manual/test invocations that don't pass it behave
+    # exactly as before, untouched.
+    if alltime_url:
+        step("Checking for roster changes (All Time Data sheet)")
+        alltime_csv_path = os.path.join(draft_dir, f'alltime-{run_id}.csv')
+        try:
+            fetch_sheet_csv(alltime_url, alltime_csv_path)
+        except Exception as e:
+            step(f"Roster check FAILED to fetch -- continuing with the existing roster unchanged: {e}")
+        else:
+            data_dir = os.path.dirname(roster_path) or '.'
+            try:
+                changed, summary = sync_roster_if_changed(alltime_csv_path, data_dir, draft_dir)
+            except Exception as e:
+                step(f"Roster sync FAILED -- continuing with the existing roster unchanged, "
+                     f"this needs a human look: {e}")
+            else:
+                if changed:
+                    step("Roster change detected -- using the freshly-synced files for this run")
+                    step(summary)
+                    roster_change_summary = summary
+                    # Redirect to the freshly-synced draft files for the
+                    # rest of THIS run, rather than the now-stale data_dir
+                    # versions -- otherwise a same-day roster change
+                    # wouldn't actually take effect until the following
+                    # week's run.
+                    roster_path = os.path.join(draft_dir, 'h2h_divisions.json')
+                    coeffs_path = os.path.join(draft_dir, 'team_market_coeffs.json')
+                    history_path = os.path.join(draft_dir, 'roddy_history.json')
+                else:
+                    step("No roster change detected")
     step(f"Fetching sheet from {url}")
     csv_path = os.path.join(draft_dir, f'sheet-{run_id}.csv')
     try:
@@ -165,7 +204,8 @@ def run_pipeline(url, roster_path, round_dates_path, draft_dir,
     odds_path = os.path.join(draft_dir, f'odds-draft-{run_id}.json')
     with open(odds_path, 'w') as f:
         json.dump(odds, f, indent=2)
-    result = {'status': 'draft_ready', 'extracted_path': extracted_path, 'odds_path': odds_path, 'log': log}
+    result = {'status': 'draft_ready', 'extracted_path': extracted_path, 'odds_path': odds_path,
+              'roster_change_summary': roster_change_summary, 'log': log}
     write_run_report(draft_dir, run_id, result)
     return result
 
