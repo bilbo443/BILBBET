@@ -247,38 +247,63 @@ realistic human-entered variance.
 > caught by anything, and a scheduled run firing mid-test could pull it into
 > a real PR. Always test in a copy.
 
-- [ ] **Round-milestone checks: 0/1, 3, 6, 10.** These are the shrinkage
-      ramp's own checkpoints. Confirm nothing looks like a lock at round 1,
-      a team with a rough start but strong priors is visibly recovering by
-      round 6, and a team still weak by round 10 looks genuinely weak, not
-      artificially propped up. **Owner: you** (review the output) **+
-      Claude** (runs it). Prerequisite: Phase 2's data prerequisite above.
+- [x] **Phase 2's prerequisite, met for real.** Tonight included a genuine
+      sheet-author-style test: a full randomized season (real variance, not
+      the flat-average shortcut) run through the actual `run_pipeline()`
+      function against your real, freshly-exported sheet — not just the
+      synthetic tool. That satisfies option (a) above properly.
 
-- [ ] **Round 13 check — the live-data confidence cap.** Separate,
-      pre-existing mechanism: observed results can never outweigh the prior
-      coefficient by more than 50%, no matter how many rounds pass. Worth
-      deliberately confirming you're comfortable with that cap using
-      realistic halfway-point data, not just trusting the number was right
-      when it was set. **Owner: you** (judgment call on the cap itself).
+- [ ] **Round-milestone checks: 0/1, 3, 6, 10 — evidence gathered, needs
+      your read on whether it looks right.** Concrete findings from
+      tonight's randomized run:
+  - No round-1 lock anywhere: the highest any team showed at round 1 was
+    Tsatas Dip at 47.5% (Division 3B) — high, but reflecting real,
+    substantial historical dominance already established earlier tonight,
+    not an artifact of the round-1 checkpoint itself. Every other
+    division's round-1 favorite sat between 13-24%.
+  - Genuine dip-then-recover patterns showing up on their own, not
+    engineered: e.g. The Drone Police went 23.3% (round 1) → 20.5%
+    (round 3, a real dip from that round's randomized results) → 29.4%
+    (round 6, recovering) — the live-blending mechanism reacting to noise
+    rather than either ignoring it or overreacting to it.
+  - Round 10: every division's weakest team sits at a clean 0.00%, not an
+    artificially propped-up small number.
+  - **Still needs you specifically**: does this *feel* right, not just
+    mathematically consistent? The numbers behaving sensibly by the tests
+    above is necessary but not the same as you being comfortable with the
+    magnitudes.
 
-- [ ] **Round 23 structural check.** Last normal round before playoffs.
-      Sanity-check promotion/relegation-zone teams look sensible as the
-      season's shape locks in.
+- [ ] **Round 13 check — the live-data confidence cap.** Not yet
+      specifically isolated from the round-milestone data above — this
+      needs a deliberate look at round 13 specifically against the "can
+      never outweigh the prior by more than 50%" rule, not just folded
+      into the general trajectory review. **Owner: you** (judgment call
+      on the cap itself).
 
-- [ ] **Data-entry edge cases, deliberately constructed:**
+- [x] **Round 23 structural check — done, evidence attached.** Full
+      round-23 ordering pulled for Division 2A and 3A: both show a
+      sensible, smoothly-decaying shape (Division 2A: 43% → 21% → 15% →
+      12%, then a long tail down to 0%; Division 3A similar) — no
+      clustering artifacts, no ties-that-should-be-spread-out, nothing
+      that looks structurally wrong as the season's shape locks in.
+
+- [ ] **Data-entry edge cases:**
   - [ ] Two teams tied on score in the same round (logic already confirmed
         correct in code; worth seeing it live once).
-  - [ ] A team's reported total not matching its round-by-round sum — once
-        Phase 1's `consistent`-flag fix lands, deliberately break a test
-        file this way and confirm it actually gets surfaced.
+  - [x] **A team's reported total not matching its round-by-round sum —
+        done, and re-verified against the new real sample tonight.** Not
+        just the original test from Phase 1's fix — rebuilt the corrupted
+        test file from your fresh CSV specifically (Alaskan Bull Worms'
+        total deliberately mismatched) and confirmed the pipeline still
+        correctly halts and names the exact team.
   - [ ] A team name with different casing or trailing whitespace appearing
         mid-season — does it get matched to the existing team, or silently
-        treated as new?
+        treated as new? Not yet tested.
 
-- [ ] **Confirm shrinkage reduces over-suspension.** A team that would have
-      been suspended (near-certain) pre-shrinkage should now show a normal,
-      if short, price instead. Quick visual check against Phase 2's test
-      data.
+- [ ] **Confirm shrinkage reduces over-suspension.** Partially observable
+      in tonight's data (Tsatas Dip's 47.5% round-1 figure, not a
+      suspended near-certainty) but not yet deliberately isolated as its
+      own check against a specific pre-shrinkage comparison.
 
 ---
 
