@@ -196,21 +196,41 @@ def sync_coefficients_and_pools(new_roster, admin_teams, data_dir, draft_dir):
     scale = old_tmc.get('scale', 15.045914141732512)
     neutral = {'eliza': 0.0, 'roddy': 0.0, 'fa_cup': 0.0, 'ecl': 0.0, 'relegation_risk': 0.0, 'variance_widen': 0.5}
 
+    # Real bug found and fixed 2026-08-19: a genuinely new team (or any
+    # team whose individual history is missing for another reason) used
+    # to get history[t] = [] outright -- an empty score pool that crashes
+    # the sampler downstream (np.random.randint(0, 0, ...) has no valid
+    # range to draw from) the moment this new roster is actually
+    # simulated. Every other place in this project handles "no individual
+    # history" the same way: fall back to the division's pool of other
+    # teams' scores, never an empty list. Built here to match.
+    division_pool = {}
+    for div, teams in new_roster.items():
+        pool = []
+        for t in teams:
+            tid = id_by_name.get(t.upper())
+            old_entry = old_coeffs_by_id.get(tid)
+            if old_entry:
+                pool.extend(old_history.get(old_entry[0], []))
+        division_pool[div] = pool if pool else [60]
+
+    team_division = {t: div for div, teams in new_roster.items() for t in teams}
     all_teams = [t for teams in new_roster.values() for t in teams]
     team_coeffs, history, shift, cup_shift, widen = {}, {}, {}, {}, {}
     for t in all_teams:
         tid = id_by_name.get(t.upper())
         old_entry = old_coeffs_by_id.get(tid)
+        fallback_pool = division_pool[team_division[t]]
         if old_entry:
             old_name, c = old_entry
             team_coeffs[t] = c
-            history[t] = old_history.get(old_name, [])
+            history[t] = old_history.get(old_name) or fallback_pool
             shift[t] = old_shift.get(old_name, round(scale * (c['eliza'] - 0.5 * c['relegation_risk']), 3))
             cup_shift[t] = old_cup_shift.get(old_name, round(scale * c['fa_cup'], 3))
             widen[t] = old_widen.get(old_name, c.get('variance_widen', 0.0))
         else:
             team_coeffs[t] = neutral
-            history[t] = []
+            history[t] = fallback_pool
             shift[t] = 0.0
             cup_shift[t] = 0.0
             widen[t] = 0.5
