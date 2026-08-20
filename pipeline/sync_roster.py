@@ -111,6 +111,27 @@ def diff_admin_teams(old_teams, new_teams):
             lines.append(f"- **Renamed**: {a} -> {b}")
         else:
             lines.append(f"- **Status change**: {a}: {b}")
+
+    # Real gap found and flagged 2026-08-20, not silently fixed: this sync
+    # does not touch leading_at.json or special_markets.json (regenerating
+    # either is a genuinely expensive full simulation -- 22 rounds x 3
+    # divisions plus a whole-league pass for leading_at.json alone --
+    # unsuitable to run silently on every routine roster check, and doing
+    # so automatically risks masking exactly the kind of thing that needs
+    # a human's attention). Any roster change here means those two files
+    # are now stale relative to the new roster -- the same class of bug
+    # this project already found and fixed once. Flagged explicitly in
+    # every roster-change summary so it's never silently missed the way
+    # it was before this was added.
+    lines.append("")
+    lines.append("**Not covered by this sync -- needs a manual follow-up if this change "
+                 "affects them**: `leading_at.json` and `special_markets.json` still "
+                 "reference the OLD roster (regenerating either is a genuinely expensive "
+                 "full simulation, unsuitable to run automatically on every routine check). "
+                 "Run `regenerate_leading_at.py` / `regenerate_special_markets.py` if this "
+                 "change touches a division or team either of those cover. "
+                 "(`h2h_record.json` is handled automatically -- no action needed there.)")
+
     return '\n'.join(lines)
 
 
@@ -322,6 +343,47 @@ def sync_futures_divisions(new_roster, team_coeffs, scale, history, data_dir, dr
     return futures
 
 
+def sync_h2h_record(admin_teams, data_dir, draft_dir):
+    """Re-keys h2h_record.json (pairwise head-to-head history) for any
+    renamed team -- both the teamA/teamB fields AND the human-readable
+    lastMatch description text, which otherwise keeps saying the old name
+    even after teamA/teamB are correct. Real bug found 2026-08-20: this
+    file was originally left untouched by this whole module, on the
+    documented assumption that "anything that resolves aliases" would
+    still find a renamed team's old entries -- confirmed false by reading
+    the actual lookup in app.js, which does a direct, exact-string match
+    with no alias resolution at all. Unlike leading_at.json/
+    special_markets.json (genuinely expensive full simulations, flagged
+    for manual follow-up instead), this is cheap, safe text substitution
+    -- no reason to leave it manual."""
+    id_by_name = {}
+    for t in admin_teams:
+        id_by_name[t['name'].strip().upper()] = t['id']
+        prev = t.get('prev_names')
+        if isinstance(prev, str) and prev.strip():
+            for old in prev.split(','):
+                id_by_name[old.strip().upper()] = t['id']
+    current_name_by_id = {t['id']: t['name'].strip() for t in admin_teams}
+
+    def resolve(name):
+        tid = id_by_name.get(str(name).strip().upper())
+        return current_name_by_id.get(tid, name) if tid else name
+
+    records = json.load(open(os.path.join(data_dir, 'h2h_record.json')))
+    for r in records:
+        old_a, old_b = r.get('teamA'), r.get('teamB')
+        new_a, new_b = resolve(old_a), resolve(old_b)
+        r['teamA'], r['teamB'] = new_a, new_b
+        if 'lastMatch' in r and isinstance(r['lastMatch'], str):
+            if old_a != new_a:
+                r['lastMatch'] = r['lastMatch'].replace(old_a, new_a)
+            if old_b != new_b:
+                r['lastMatch'] = r['lastMatch'].replace(old_b, new_b)
+
+    json.dump(records, open(os.path.join(draft_dir, 'h2h_record.json'), 'w'))
+    return records
+
+
 def sync_roster(admin_teams, data_dir='.', draft_dir='.'):
     """The core entry point given an already-loaded admin_teams list --
     regenerates every dependent file from data_dir into draft_dir."""
@@ -332,6 +394,7 @@ def sync_roster(admin_teams, data_dir='.', draft_dir='.'):
     tmc, history = sync_coefficients_and_pools(new_roster, admin_teams, data_dir, draft_dir)
     sync_carry_balances(new_roster, admin_teams, data_dir, draft_dir)
     sync_futures_divisions(new_roster, tmc['team_coeffs'], tmc['scale'], history, data_dir, draft_dir)
+    sync_h2h_record(admin_teams, data_dir, draft_dir)
     json.dump(admin_teams, open(os.path.join(draft_dir, 'admin_teams.json'), 'w'))
     return new_roster
 
