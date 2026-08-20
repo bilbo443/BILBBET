@@ -9,13 +9,48 @@ column -- exactly the validation-gate philosophy agreed on for this pipeline.
 """
 import pandas as pd
 import sys
+import re
 
 REQUIRED_HEADERS = ['TEAM NAME', 'DIVISION', 'TOT']
 ROUND_COLS = [str(n) for n in range(1, 27)]
 
 
-def extract_results(csv_path, header_row=1):
+def _normalize_name(name):
+    """Same normalization validate_sheet_data.py uses for roster matching --
+    duplicated rather than imported to keep this module's only dependency
+    being pandas, matching its existing design. Keep in sync if either
+    changes."""
+    s = str(name).strip()
+    s = re.sub(r'\s*\([A-Z0-9]+\)\s*$', '', s)
+    s = re.sub(r'[^A-Za-z0-9]+', '', s).upper()
+    return s
+
+
+def _resolve_team_name(raw_name, known_roster_lookup):
+    """Maps a raw sheet name to its canonical roster form when they match
+    after normalization but differ verbatim (different casing, extra
+    whitespace, etc). Real bug found and fixed 2026-08-19: without this,
+    extraction used the raw sheet string directly -- validation would
+    still pass (it already normalizes for its own comparison), but the
+    extracted result would be keyed by e.g. 'tsatas dip' while every other
+    file (coefficients, schedule, history) is keyed by 'TSATAS DIP'. The
+    real team would silently get no score that round, and a phantom,
+    unrecognized entry would exist instead -- exactly the kind of silent
+    data loss a validation pass gives false confidence against. Falls back
+    to the raw (stripped) name when there's no known roster to match
+    against, or no match is found -- unchanged behavior in that case, and
+    an unmatched name is already validation's job to catch, not
+    extraction's."""
+    stripped = str(raw_name).strip()
+    if not known_roster_lookup:
+        return stripped
+    canonical = known_roster_lookup.get(_normalize_name(stripped))
+    return canonical if canonical is not None else stripped
+
+
+def extract_results(csv_path, header_row=1, known_roster=None):
     df = pd.read_csv(csv_path, header=header_row, low_memory=False)
+    known_roster_lookup = {_normalize_name(t): t for t in known_roster} if known_roster else None
 
     # Fail loudly if the sheet's shape has changed enough that we can't
     # trust it -- this is the validation gate, not a guess-and-continue.
@@ -73,7 +108,7 @@ def extract_results(csv_path, header_row=1):
         consistent = (pd.notna(total_reported) and int(total_reported) == total_computed) or \
                      (pd.isna(total_reported) and total_computed == 0)
         results.append({
-            'team': str(name).strip(),
+            'team': _resolve_team_name(name, known_roster_lookup),
             'division': str(division).strip(),
             'scores_by_round': scores,
             'total_reported': None if pd.isna(total_reported) else int(total_reported),
