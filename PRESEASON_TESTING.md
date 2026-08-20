@@ -273,12 +273,19 @@ realistic human-entered variance.
     above is necessary but not the same as you being comfortable with the
     magnitudes.
 
-- [ ] **Round 13 check — the live-data confidence cap.** Not yet
-      specifically isolated from the round-milestone data above — this
-      needs a deliberate look at round 13 specifically against the "can
-      never outweigh the prior by more than 50%" rule, not just folded
-      into the general trajectory review. **Owner: you** (judgment call
-      on the cap itself).
+- [x] **Round 13 check — the live-data confidence cap. Evidence gathered,
+      needs your read on the 50% figure specifically.** Confidence is
+      `min(rounds_played / 26, 0.5)` — round 13 is the exact point it
+      first hits the ceiling (`13/26 = 0.5`), and stays flat forever
+      after, confirmed by testing rounds 13/14/20/26 all producing an
+      identical result for a team on a sustained bad run. The stakes made
+      concrete: Tsatas Dip with a full season of significantly
+      below-average performance sits at 40.43% (capped, as deployed) vs.
+      0.03% (uncapped hypothetical) — the cap is the difference between
+      "taken seriously but not written off" and "treated as
+      near-conclusively finished" after one bad season. **Still needs
+      you**: is 50% the right ceiling, or should enough sustained evidence
+      eventually be allowed to outweigh the prior further?
 
 - [x] **Round 23 structural check — done, evidence attached.** Full
       round-23 ordering pulled for Division 2A and 3A: both show a
