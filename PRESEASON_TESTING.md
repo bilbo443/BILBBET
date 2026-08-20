@@ -294,18 +294,36 @@ realistic human-entered variance.
       clustering artifacts, no ties-that-should-be-spread-out, nothing
       that looks structurally wrong as the season's shape locks in.
 
-- [ ] **Data-entry edge cases:**
-  - [ ] Two teams tied on score in the same round (logic already confirmed
-        correct in code; worth seeing it live once).
+- [x] **Two teams tied on score in the same round — confirmed live, not
+      just in code review.** Built a real test against a genuine scheduled
+      Division 3B fixture (Brexit Lads vs. X2 Strange, both scored 55):
+      both teams correctly show drawn=1, won=0, lost=0, exactly 1 point
+      each. Matches the code review exactly, now backed by a real run.
   - [x] **A team's reported total not matching its round-by-round sum —
         done, and re-verified against the new real sample tonight.** Not
         just the original test from Phase 1's fix — rebuilt the corrupted
         test file from your fresh CSV specifically (Alaskan Bull Worms'
         total deliberately mismatched) and confirmed the pipeline still
         correctly halts and names the exact team.
-  - [ ] A team name with different casing or trailing whitespace appearing
-        mid-season — does it get matched to the existing team, or silently
-        treated as new? Not yet tested.
+  - [x] **A team name with different casing or trailing whitespace —
+        real, previously-undiscovered bug found and fixed, not just
+        tested.** Deliberately varied "TSATAS DIP" to "tsatas dip  " in a
+        real sheet and ran it through actual extraction. Validation
+        passed cleanly (it already normalizes for comparison), but
+        extraction was using the raw sheet string directly — the
+        canonical "TSATAS DIP" was completely missing from the extracted
+        results, replaced by an orphaned "tsatas dip" entry that
+        wouldn't match coefficients, schedule, or history anywhere
+        downstream. In production this would have meant a real team
+        silently getting no score that week, with no error and a clean
+        validation pass giving false confidence nothing was wrong. Fixed
+        by having extraction resolve each name against the known roster
+        the same way validation already does, using the canonical name
+        in the output. Verified the fix directly (canonical name now
+        present, no phantom entry) and confirmed the full real pipeline
+        runs cleanly end to end with the varied sheet. Regression-tested
+        against both the normal clean sheet and the corrupted-total test
+        to confirm nothing else broke.
 
 - [ ] **Confirm shrinkage reduces over-suspension.** Partially observable
       in tonight's data (Tsatas Dip's 47.5% round-1 figure, not a
