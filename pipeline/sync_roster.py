@@ -28,25 +28,43 @@ Files this regenerates, and why each one is in scope:
     - h2h_schedule.json    -- round-robin pairings (name-substituted for a
                               pure rename, regenerated for any real
                               team-count change in a division)
-    - h2h_shift.json, h2h_cup_shift.json, h2h_variance_widen.json,
-      h2h_history.json     -- via the existing rebuild_coefficients.py /
-                              rebuild_roddy_history.py logic, which already
-                              knows how to alias-resolve renamed teams and
-                              give brand-new teams sensible neutral
-                              defaults rather than crashing on them
+    - team_market_coeffs.json, roddy_history.json, h2h_shift.json,
+      h2h_cup_shift.json, h2h_variance_widen.json -- a continuing or
+                              renamed team's existing values carry forward
+                              unchanged (matched via admin_teams' id/
+                              prev_names), NOT recomputed from a full
+                              rebuild -- the raw multi-season historical
+                              CSVs those rebuild scripts need were only
+                              ever processed locally and aren't available
+                              here. A brand-new team gets its division's
+                              score pool as a neutral starting point
+                              (never an empty history -- that crashes the
+                              sampler outright, a real bug found and
+                              fixed 2026-08-19).
     - carry_balances.json  -- preserves existing balances for continuing/
                               renamed teams (matched by ID), adds a genuine
                               $0 entry for anyone brand new
     - futures.json         -- division futures/Roddy/FA Cup markets
                               regenerated for any division whose actual
                               team composition changed
+    - h2h_record.json      -- pairwise H2H history re-keyed for any
+                              renamed team, both the teamA/teamB fields
+                              and the human-readable lastMatch text. Added
+                              2026-08-20 after finding this file was
+                              genuinely left stale by an earlier version
+                              of this module -- the assumption that
+                              "anything that resolves aliases" would
+                              still find a renamed team's old entries was
+                              false; the actual lookup in app.js is a
+                              direct, exact-string match with no alias
+                              resolution.
 
-Deliberately NOT touched here: team_market_coeffs.json/roddy_history.json
-staying in sync is handled by the coefficient rebuild scripts this already
-calls into; h2h_record.json (pairwise H2H history) is left alone, since a
-brand-new team simply has no history yet (correctly reflected by its
-absence, not something to synthesize), and a renamed team's old-name
-entries remain genuinely reachable by anything that resolves aliases.
+Deliberately NOT touched here (genuinely, unlike h2h_record.json above):
+`leading_at.json` and `special_markets.json` -- both are pre-computed,
+round-by-round full simulations, too expensive to regenerate on every
+routine roster check, so a roster change flags them for manual follow-up
+(`regenerate_leading_at.py` / `regenerate_special_markets.py`) instead of
+silently leaving them stale or silently slowing every check down.
 """
 import json
 import os
