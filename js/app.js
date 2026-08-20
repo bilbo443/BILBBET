@@ -321,7 +321,7 @@
     tippingRewardChecked: null, tippingRewardBanner: null, tipReminderStatus: null,
     perfectRoundStatus: {}, // cache keyed by `${username}|${round}|${sectionKey}` -- true only, never explicitly false/missed (see loadPerfectRoundStatus)
     preseasonData: null, preseasonPending: {}, preseasonLeaderboard: null, preseasonResults: null, preseasonAllPicks: null, openHelpTip: null, homeTippingNudge: null, txHistory: null, txHistoryExpanded: false, recentWinners: null,
-    tippingLeaderboardDiv: 'ALL', tippingLeaderboardMode: 'OVERALL', tippingLeaderboardRound: null, tippingLeaderboard: null, leaderboardKind: 'WEEKLY',
+    tippingLeaderboardMode: 'OVERALL', tippingLeaderboardRound: null, tippingLeaderboard: null, leaderboardKind: 'WEEKLY',
     tippingLeaderboardSection: 'OVERALL', tippingLeaderboardSortBy: 'oddsPoints', tippingLeaderboardSortDir: 'desc',
     preseasonLeaderboardSortBy: 'oddsPoints', preseasonLeaderboardSortDir: 'desc',
     cupFixtures: { 'FA CUP': [], 'ECL': [] },
@@ -408,8 +408,6 @@
     </span>`;
   }
   function teamLogo(name, size){ return logoBadge('team', name, size); }
-  function divisionLogo(name, size){ return logoBadge('division', name, size); }
-  function competitionLogo(name, size){ return logoBadge('competition', name, size); }
   function siteLogoBadge(size){
     size = size || 32;
     return `<span style="position:relative;display:inline-block;width:${size}px;height:${size}px;min-width:${size}px;vertical-align:middle;">
