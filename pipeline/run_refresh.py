@@ -12,12 +12,14 @@ handoff itself works (fetch, validate, extract, simulate, draft all fire
 correctly with the right exit codes). The first real run failed for a
 different, narrower reason -- the workflow YAML passes --alltime-url and
 --data-dir, which this script didn't recognize (argparse exit code 2).
-Both are now accepted below to stop that crash, but --alltime-url is NOT
-yet wired to any real functionality -- the roster-sync step the workflow
-step's own name promises ("roster sync -> fetch -> validate -> extract ->
-simulate -> draft") was never actually integrated into run_pipeline()
-here. Accepting the flag without using it is a deliberate, honest stopgap
-to unblock the immediate crash, not a claim that roster sync now works.
+
+--alltime-url: found and fixed 2026-08-20, a serious gap that would have
+silently undermined the whole roster-sync feature even after
+pipeline_layer3.py and the workflow's add-paths were both correctly
+wired -- this script accepted the flag to stop the crash, but never
+actually passed it through to run_pipeline(), so roster sync could never
+have fired no matter how correct everything downstream was. Now threaded
+through for real.
 """
 import sys
 import os
@@ -45,9 +47,8 @@ def main():
                               'anything; every data file path is already passed explicitly and independently '
                               '(--roster-path, --coeffs-path, etc.) rather than built from a shared base directory.')
     parser.add_argument('--alltime-url', default=None,
-                         help='Accepted for compatibility with the workflow YAML -- NOT yet wired to any real '
-                              'functionality. Intended for a roster-sync step (see sync_roster.py) that was never '
-                              'actually integrated into this script\'s pipeline. Currently a no-op.')
+                         help='The All Time Data sheet URL, for roster sync (see sync_roster.py). '
+                              'Optional -- omit to skip roster sync entirely (unchanged behavior otherwise).')
     parser.add_argument('--today', default=None,
                          help='Override "today" as YYYY-MM-DD, for testing or an intentional dry-run. '
                               'Defaults to the real current date.')
@@ -59,6 +60,7 @@ def main():
         args.sheet_url, args.roster_path, args.round_dates_path, args.draft_dir,
         coeffs_path=args.coeffs_path, history_path=args.history_path,
         header_row=args.header_row, run_simulation=True, today=today,
+        alltime_url=args.alltime_url,
     )
 
     status = result['status']
@@ -103,6 +105,24 @@ def main():
     pr_body_lines = [
         "## Weekly odds refresh -- draft ready for review",
         "",
+    ]
+    # Real gap found and fixed 2026-08-20: roster_change_summary was being
+    # correctly computed by sync_roster.py and captured in the pipeline's
+    # result dict, but nothing ever actually surfaced it here -- a real
+    # roster change (new team, rename, departure) would have been silently
+    # dropped, with the PR looking identical to a normal unchanged week.
+    # Placed first, before the odds diff, since it's the thing most likely
+    # to need a reviewer's actual judgment, not just a glance.
+    if result.get('roster_change_summary'):
+        pr_body_lines += [
+            "### \u26a0\ufe0f Roster change detected this run",
+            "",
+            result['roster_change_summary'],
+            "",
+            "---",
+            "",
+        ]
+    pr_body_lines += [
         f"Fetched from the live sheet, passed all Layer 2 validation checks, "
         f"and ran through the real simulation.",
         "",
