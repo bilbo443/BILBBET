@@ -6,15 +6,19 @@ name: Weekly Odds Refresh (auto, with manual override)
 # a workflow_dispatch input. A manual run can still override it by typing
 # a different one, useful for testing without touching the saved default.
 #
-# NOTE ON ROSTER SYNC: sync_roster.py exists and is fully built (roster
-# diffing, coefficient/history carry-over, schedule regeneration -- see
-# its own module docstring) but is NOT YET wired into this pipeline. The
-# --alltime-url flag below is accepted by run_refresh.py but is currently
-# a no-op. Until that integration lands, roster changes (renames, new
-# teams, departures) still need to be applied by hand, the same way the
-# Heilan Coos / Frekeinthesheets situation was handled this session.
-# Don't take the "roster sync" framing in older comments/PRs at face
-# value until this note is removed.
+# NOTE ON ROSTER SYNC: sync_roster.py is fully built AND wired into the
+# pipeline (see pipeline_layer3.py's run_pipeline() and this script's
+# --alltime-url threading, both fixed 2026-08-20). When the ALLTIME_URL
+# repository variable below is set, a real roster change (new team,
+# rename, departure) is detected and applied automatically -- the
+# add-paths list further down stages every file it can produce, and the
+# PR body surfaces the change prominently for review. Two things it does
+# NOT cover, by design (both genuinely expensive full simulations,
+# flagged in the roster-change summary instead of silently regenerated
+# on every routine check): leading_at.json and special_markets.json.
+# If ALLTIME_URL isn't set, this step is skipped entirely and behavior
+# is unchanged from before roster sync existed -- setting the variable
+# is what actually turns this on.
 #
 # Safety note on the schedule itself: this was deliberately manual-only
 # earlier in the project, out of concern that a scheduled run might
@@ -121,6 +125,26 @@ jobs:
             draft/extracted-*.json
             draft/run-report-*.json
             draft/futures-publishable.json
+            draft/h2h_divisions.json
+            draft/h2h_schedule.json
+            draft/team_market_coeffs.json
+            draft/roddy_history.json
+            draft/h2h_history.json
+            draft/h2h_shift.json
+            draft/h2h_cup_shift.json
+            draft/h2h_variance_widen.json
+            draft/carry_balances.json
+            draft/h2h_record.json
+            draft/real_results.json
+            draft/admin_teams.json
+          # The last 10 paths above are real gap found and fixed
+          # 2026-08-20: sync_roster.py writes these into draft/ whenever a
+          # real roster change (new team, rename, departure) is detected,
+          # but this list previously only staged the odds-refresh files --
+          # a roster change would be correctly computed by the pipeline
+          # and then silently dropped here, never actually reaching the
+          # PR at all. Keep this in sync with sync_roster.py's own
+          # write list if that ever changes.
           commit-message: "Draft odds refresh from weekly sheet pull"
           # This PR is the "draft" -- merging it is the explicit publish
           # step (Layer 6). Nothing here writes to data/ directly.
