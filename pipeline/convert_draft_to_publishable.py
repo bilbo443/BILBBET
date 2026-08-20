@@ -21,14 +21,20 @@ Odds conversion here deliberately reuses the correct reference logic
 from regenerate_futures.py's to_odds() -- which suspends markets that
 have gone past breakeven (a near-certain outcome, like a team on a
 96%+ path to winning its division) rather than pricing them below 1.00
--- NOT diff_report.py's pct_to_odds(), which is display-only, was never
-meant to produce publishable values, and has its own separate bug
-(ODDS_FLOOR=1.005 rounds down to 1.0 due to floating-point
-representation, not up to 1.005 as intended). Fixed here the same way
-app.js's own toOdds()/formatOdds() pair already fixes it: re-clamp to
-ODDS_FLOOR after rounding, rather than picking a different floor value
-that would leave this pipeline pricing the same scenario differently
-than the live app itself would.
+-- NOT diff_report.py's pct_to_odds(). Not because that function is
+broken (it isn't -- confirmed directly: it already has the same
+re-clamp-after-rounding fix described below, since 2026-08-12) but
+because it's display-only, built for a PR body's readability, and was
+never meant to be the reference implementation something else depends
+on -- keeping this script's own conversion logic independent of a
+display-formatting function avoids exactly the kind of silent coupling
+that makes future changes to one accidentally break the other.
+Formula itself matches app.js's own toOdds()/formatOdds() pair: re-clamp
+to ODDS_FLOOR after rounding (1.005 can't be represented exactly in
+binary floating point, so a plain round() can silently produce 1.0
+instead), rather than picking a different floor value that would leave
+this pipeline pricing the same scenario differently than the live app
+itself would.
 
 This script does NOT write to data/ -- consistent with this project's
 standing rule that nothing publishes automatically. It writes a ready-
