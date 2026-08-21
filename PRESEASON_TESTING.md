@@ -334,13 +334,62 @@ realistic human-entered variance.
 
 ## Phase 3 — operational hardening (by 2026-09-24)
 
-- [ ] **Wire `sync_roster.py` into the automated pipeline.** Still fully
-      built but unused — every roster change between now and season start
-      (and during the season) still needs the same manual handling tonight's
-      Heilan Coos situation did. Genuinely reduces your workload for anything
-      that comes up between now and Phase 4. **Owner: Claude** (build) **+
-      you** (review the design before it goes live, since it touches the
-      same roster files everything else depends on).
+- [x] **Wire `sync_roster.py` into the automated pipeline — fully done,
+      with a serious gap found and fixed on the very last mile.**
+      `admin_teams.json` (the source of truth this depends on) was
+      significantly stale first — same Division 3A/3B corruption as the
+      original roster bug, plus tonight's rename, plus a genuine conflict
+      where it already had Heilan Coos/Toby's Troops marked inactive
+      while the live roster still has them active. Fixed to match the
+      current operating assumption (all 62 teams as they currently
+      stand, playing, until an official decision changes that) before
+      trusting it as a sync source.
+
+      Integration runs roster sync as an optional first step (off by
+      default); when a real change is detected, the rest of that same
+      run correctly uses the freshly-synced files. Found and fixed a
+      real crash along the way: a genuinely new team got an empty
+      history list, which crashes the sampler outright — fixed to fall
+      back to the division's score pool. Tested against no-change, a
+      new team, a rename, and a departure — all four confirmed working
+      against the correct, current simulation engine (see the
+      `simulation_adapter.py` staleness note below).
+
+      **The serious, last-mile gap, found by checking the actual CLI
+      script rather than assuming the earlier work was enough**:
+      `run_refresh.py` — the real script the GitHub Action runs —
+      accepted `--alltime-url` on the command line but never actually
+      passed it into `run_pipeline()`. Every fix above would have been
+      completely inert in production; roster sync could never have
+      fired no matter how correct the code underneath it was. On top of
+      that, the workflow's `add-paths` only staged the odds-refresh
+      files, so even a correctly-computed roster change would never
+      have been committed into the PR, and the PR body never mentioned
+      it at all. All three fixed and proven end to end: ran the real CLI
+      with a genuine roster change and confirmed the PR body now
+      surfaces it prominently, right where a reviewer would see it
+      first.
+
+      **A correction to something said here earlier**: this document
+      previously said the workflow file still needed updating with a
+      real sheet URL, deferred for later. That was wrong — the workflow
+      mechanism (reading the `ALLTIME_URL` repository variable,
+      gracefully skipping roster sync if it's unset) was already fully
+      built from before this session. **The only thing actually still
+      needed from you**: set the `ALLTIME_URL` repository variable in
+      GitHub with the real published-CSV link for the All Time Data
+      tab. Nothing code-side is missing.
+
+      **Two more files found and fixed via a systematic cross-check**
+      (every file `app.js` loads, against everything `sync_roster.py`
+      writes) rather than checking files one at a time as they came to
+      mind: `h2h_record.json` (pairwise H2H history) and
+      `real_results.json` (actual per-round scores) were both
+      completely uncovered — a rename would have silently left real
+      historical data unreachable under the old name. Both now handled
+      automatically (cheap key renames, unlike `leading_at.json`/
+      `special_markets.json`, which stay correctly flagged for manual
+      follow-up given how expensive those are to regenerate).
 
 - [ ] **Decide how to handle the sheet-mid-edit timing risk.** If the
       scheduled Monday run fires while the sheet author is actively editing
@@ -349,6 +398,51 @@ realistic human-entered variance.
       range from "accept the risk, it's rare" to "add a small buffer/retry."
       **Owner: you** (how much this is worth building around) **+ Claude**
       (implements whatever you decide).
+
+- [x] **Reliability sweep — a genuinely different kind of check, done
+      once, worth repeating periodically rather than a one-time item.**
+      Not "does the logic work" (covered above) but "has anything
+      quietly drifted or gone stale that the logic-level tests wouldn't
+      catch." Found and fixed several real things this way:
+  - **My own test environment (`repo_root_sim`) had silently drifted
+        from the real pipeline** — `simulation_adapter.py` there was
+        missing the entire shrinkage mechanism and the promotion-pooling
+        fix (an old, pre-shrinkage version), and `convert_draft_to_publishable.py`
+        there was a genuinely buggy old copy (`ODDS_FLOOR = 1.01`,
+        missing the re-clamp fix entirely). Fixed, and re-ran the
+        affected tests against the corrected engine to confirm the
+        earlier structural conclusions still held (they did).
+  - **Several stale docstrings/comments were actively describing
+        outdated behavior as current** — `sync_roster.py`'s top
+        docstring described an older design than what's actually
+        implemented (claimed coefficients sync via full rebuild
+        scripts; the real code carries them forward by ID instead),
+        and `convert_draft_to_publishable.py` described a
+        `diff_report.py` bug as still present that had actually been
+        fixed weeks earlier. Both corrected.
+  - **Dead code cleanup in `app.js`** — one genuinely orphaned state
+        field (`tippingLeaderboardDiv`, superseded by
+        `tippingLeaderboardSection` from the leaderboard rebuild) and
+        two unused logo-wrapper functions, all confirmed dead (not
+        just unused-looking) before removing, with a regression test
+        after.
+  - **The three oldest, longest-untouched pipeline tools**
+        (`rollback.py`, `verify_published.py`, `backup_database.py`,
+        all from the very start of this project) **had never had their
+        actual error handling tested** — all three crashed with raw
+        Python tracebacks on realistic failures (invalid commit hash,
+        connection failure, non-JSON response) instead of a clear
+        message, tested by actually triggering each failure, not
+        assumed. All three now fail cleanly. Also confirmed via a real
+        git repo with a genuine merge conflict that `rollback.py`'s
+        trickiest part (cleaning up a dry-run) genuinely works.
+  - **One abandoned, genuinely dead file removed**
+        (`team_owner_links.json`, empty, zero references anywhere).
+  - **A systematic sweep of every historical `prev_names` entry** (45
+        of them, not just the one already known about) **against every
+        deployed data file — came back clean.** Good confirmation the
+        Drone Police staleness was a one-off tied to that specific
+        rename, not a symptom of a wider pattern.
 
 ---
 
@@ -361,7 +455,10 @@ realistic human-entered variance.
       review whatever it flags.
 - [ ] **Re-run the full internal-consistency sweep** across all 9 core data
       files (the one done tonight) one more time, since several files will
-      have changed across Phases 1-3.
+      have changed across Phases 1-3. Worth doing fresh close to kickoff
+      regardless of the reliability sweep above — that one confirmed things
+      were correct as of 2026-08-20, not as of whenever this actually gets
+      read.
 - [ ] **Confirm the manual publish flow start to finish**, once, with
       whatever the real sheet looks like closest to kickoff: real run →
       PR → review `futures-publishable.json` → copy into `data/futures.json`
