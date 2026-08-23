@@ -70,6 +70,24 @@ def odds_to_implied_pct(odds):
     return round(100.0 / (odds * MARGIN), 2)
 
 
+# The implied percentage at exactly the suspend threshold -- used as a
+# floor for a suspended LIVE entry's percentage, not 0.0. Real bug found
+# and fixed 2026-08-20, caught by testing against Tsatas Dip's actual,
+# currently-suspended live entry rather than assuming this worked: a
+# team correctly suspended in BOTH live and draft (near-certain in both,
+# genuinely unchanged) was showing as a fabricated ~95+ point "swing",
+# since a suspended live odds entry stores only {odds: null, suspended:
+# true} -- futures.json structurally discards the exact percentage that
+# triggered suspension, so there's no way to recover the true prior
+# value. This floor is the most defensible estimate available: "at
+# least this much", not a precise historical reading. Every suspended
+# team would otherwise ALWAYS appear in the flagged section of every
+# single PR regardless of whether anything actually changed -- exactly
+# the kind of noise that trains a reviewer to stop trusting the flagged
+# section, which is where a genuine anomaly needs to actually be seen.
+SUSPENDED_IMPLIED_PCT_FLOOR = round(100.0 / (SUSPEND_BELOW * MARGIN), 2)  # ~95.0
+
+
 def load_live_odds(path, market_key='win_div_pct'):
     d = json.load(open(path))
     live = {}
@@ -101,7 +119,15 @@ def compute_diff(live_path, draft_rows, market_key='win_div_pct'):
         div, team = key
         l_odds = live_odds.get(key)
         d_odds = draft_odds.get(key)
-        l_pct = odds_to_implied_pct(l_odds) if l_odds else 0.0
+        # key in live_odds but value None means "present, suspended" --
+        # distinct from the key not being in live_odds at all (genuinely
+        # new to the draft, where 0.0 really is the right baseline).
+        if key not in live_odds:
+            l_pct = 0.0
+        elif l_odds is None:
+            l_pct = SUSPENDED_IMPLIED_PCT_FLOOR
+        else:
+            l_pct = odds_to_implied_pct(l_odds)
         d_pct = draft_pct.get(key, 0.0)
         delta_pct_points = round(d_pct - l_pct, 2)
         rows.append({
