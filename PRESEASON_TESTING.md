@@ -51,7 +51,15 @@ so it's clear what's actually solid ground versus what's still open below.
       historical average and for one genuinely over/underperforming it.
 - [x] **Pre-season roster sweep** — built, tested against a reconstructed
       copy of the real Division 3A/3B bug (caught every instance), scheduled
-      to run every Tuesday automatically.
+      to run every Tuesday automatically. **Coverage gap found and fixed
+      2026-08-20**: the sweep checked 8 dependent files but not
+      `h2h_record.json`, `real_results.json`, `leading_at.json`, or
+      `special_markets.json` — the first two had *already* had real,
+      confirmed staleness bugs earlier tonight, meaning this tool's own
+      coverage hadn't kept pace with what it was supposed to be guarding
+      against. Added all four, proven both directions: a clean run
+      against current data reports genuinely clean, and a deliberately
+      corrupted `h2h_record.json` gets correctly flagged by name.
 - [x] **`real_results.json` missing Heilan Coos / Toby's Troops as keys** —
       fixed.
 - [x] **Weekly leaderboard rebuilt** — merged into one sortable table
