@@ -444,6 +444,25 @@ realistic human-entered variance.
         assumed. All three now fail cleanly. Also confirmed via a real
         git repo with a genuine merge conflict that `rollback.py`'s
         trickiest part (cleaning up a dry-run) genuinely works.
+  - **A real, previously-undiscovered false-positive bug in
+        `diff_report.py`** — any team correctly suspended in both live
+        and draft (a near-certain favorite, genuinely unchanged) was
+        being flagged as a fabricated ~95+ point "swing", because a
+        suspended live entry only stores `{odds: null, suspended:
+        true}` and the diff code treated that as 0% implied probability
+        instead of the ~95% it actually represents. Confirmed against
+        Tsatas Dip's real, currently-suspended entry — this would have
+        put a fake massive alarm on every single PR for as long as any
+        team stays suspended, exactly the kind of noise that trains a
+        reviewer to stop trusting the flagged section, which is where a
+        genuine anomaly needs to actually be seen. Fixed using the
+        suspend threshold's own implied percentage (~95%) as a floor.
+        Tested three ways: the false-positive case (now correctly
+        shows a small, real delta and isn't flagged), a genuine large
+        change *from* suspended (still correctly flagged), and a
+        genuinely new team with no live entry at all (still correctly
+        baselines at 0%). Confirmed against a real, full pipeline run
+        too, not just isolated unit tests.
   - **One abandoned, genuinely dead file removed**
         (`team_owner_links.json`, empty, zero references anywhere).
   - **A systematic sweep of every historical `prev_names` entry** (45
