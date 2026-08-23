@@ -117,7 +117,7 @@ def main():
         for r in sorted(rows, key=lambda r: -r['win_div_pct']):
             print(f"  {r['team']:25s} win_div={r['win_div_pct']:6.2f}%  "
                   f"top3={r.get('top3_pct', 0):6.2f}%  "
-                  f"promo={r.get('promotion_pct', '--' if 'promotion_pct' not in r else r['promotion_pct'])}")
+                  f"promo={r.get('promotion_pct', '--')}")
         if adjustments:
             print(f"  (live-data adjustments applied: {len(adjustments)})")
             for a in adjustments:
