@@ -521,12 +521,27 @@ function calls in isolation.
       on logout too, or a second person logging into the same browser
       session could have briefly seen the previous person's leftover
       banner.
-- [ ] **Worth continuing if there's appetite**: an admin-side scenario
-      (resolving bets, approving registrations, end-of-season archiving,
-      walked through as a real session rather than individual function
-      calls) and a mobile-specific pass haven't been done yet — the same
-      method that found the login banner issue could plausibly find more
-      in areas not yet walked through this way.
+- [x] **Scenario 4: admin resolving a real bet, including a misclick and
+      correction.** Marked a real pending bet Won (correctly credited the
+      exact potential return), then walked through the realistic mistake
+      case — Reset (correctly reversed the credit back to the exact
+      original balance) followed by the actually-correct Lost (correctly
+      cost nothing further, since the stake was already deducted at
+      placement). Every step matched exactly. This is the single most
+      financially consequential admin action in the whole app, and it's
+      now been proven correct through a real sequential session, not
+      just isolated function calls.
+- [x] **Mobile-specific pass — clean, with an honest limit stated.**
+      Checked the two things that are genuinely verifiable without real
+      browser rendering: zero uses of hover-only interaction anywhere in
+      the app (`onmouseover`/`onmouseout`/`:hover`) and zero
+      viewport-conditional JavaScript logic (`innerWidth`/`matchMedia`/
+      touch-detection) — meaning the *functional* layer is mobile-safe
+      by construction, nothing is only reachable by hovering or behaves
+      differently based on screen size. What this can't verify: the
+      visual/CSS layer (button spacing, text overflow, whether the slip
+      bar overlaps content on a small screen) — that needs real
+      rendering, which this method doesn't have.
 
 ---
 
