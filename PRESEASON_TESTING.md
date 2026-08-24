@@ -473,6 +473,63 @@ realistic human-entered variance.
 
 ---
 
+## Roleplay testing (2026-08-20) — a genuinely different kind of check
+
+Everything above tests whether the *code* works. This tests whether a real
+person's actual journey through the site works — registering, logging in,
+placing a bet, doing weekly tips, browsing without an account — walked
+through step by step against real rendered output, not just individual
+function calls in isolation.
+
+- [x] **Scenario 1: brand new user — register, get approved, place a
+      first bet.** Worked correctly end to end, real bet placed at real
+      odds. Two things worth knowing, not fixing: the very first account
+      ever registered on a fresh deployment automatically becomes admin
+      (correct, deliberate — there's no admin yet to approve anyone, but
+      worth knowing explicitly rather than discovering it by accident),
+      and registering isn't automatic after typing a username — you have
+      to notice and click "First time? Create account" separately.
+      Confirmed the actual login error for a non-existent username is
+      clear and correctly points there: `"No account with that username.
+      Try 'create account' below."`
+- [x] **Scenario 2: existing punter, weekly tipping picks.** Worked
+      correctly once picks were made in the right order. Found one
+      fragile (but currently unreachable) spot: `confirmTips()` fails
+      completely silently — no error, no alert — if the round's tipping
+      data hasn't finished loading yet. Not a live bug (the Confirm
+      button doesn't exist in the UI until that data has loaded), but
+      worth knowing it has zero user feedback if that assumption were
+      ever violated by a future change.
+- [x] **Scenario 3: casual, logged-out browsing.** Clean confirmation
+      that the team profile odds fix from earlier this session genuinely
+      works in a real, sequential context — not just in isolation.
+- [x] **Real finding, found and fixed: the "Expect to lose more sucker"
+      login alert.** Every returning punter with real betting history and
+      under 500 carried-over clams got hit with a blocking native
+      `alert()` on login — inconsistent with every other use of `alert()`
+      in the app (all functional, none with personality), broken grammar,
+      and would never have been caught by any of the function-level
+      testing above since every test account used tonight was brand new.
+      Confirmed intentional (a friendly dig, not a leftover), then fixed
+      properly rather than just left alone: grammar corrected, and
+      changed from a blocking popup to a small, styled, dismissible
+      banner matching the existing testing-phase-disclaimer pattern.
+      Tested four ways — the actual trigger condition, a healthy
+      returning punter (correctly doesn't see it), a brand new punter
+      (correctly doesn't see it), and dismissal — plus caught and fixed
+      a real follow-on gap while building it: the banner needed clearing
+      on logout too, or a second person logging into the same browser
+      session could have briefly seen the previous person's leftover
+      banner.
+- [ ] **Worth continuing if there's appetite**: an admin-side scenario
+      (resolving bets, approving registrations, end-of-season archiving,
+      walked through as a real session rather than individual function
+      calls) and a mobile-specific pass haven't been done yet — the same
+      method that found the login banner issue could plausibly find more
+      in areas not yet walked through this way.
+
+---
+
 ## Phase 4 — final pre-season sweep (2026-10-06 to 2026-10-15)
 
 - [ ] **Let the scheduled Tuesday roster sweep actually run for real** at
