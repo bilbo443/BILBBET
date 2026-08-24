@@ -300,7 +300,12 @@
     slip:[], stake:50, betMode:'multi', useBoost:false, showImpliedChance:false,
     myBets:null,
     adminPunters:null, adminBets:null, novelty:null, statsData:null, suggestions:null, suggestionText:'', feedback:null,
-    currentRound: 1,       // the next round yet to be played; anything before this is "past"
+    currentRound: 1,       // the next round yet to be played; anything before this is "past" --
+                            // auto-derived from round_dates.json + today's date at boot (see
+                            // deriveCurrentRoundFromDate), UNLESS currentRoundOverride below is set
+    currentRoundOverride: null, // admin-forced round, for a genuine edge case round_dates.json
+                                 // doesn't reflect (a real-world bye week or schedule slip) -- null
+                                 // means "trust the automatic derivation", which is the normal state
     leadingAtRound: 1,
     specialsRound: 1,
     specialsExtremeExpanded: null, // 'win_round' | 'lose_round' | 'charity' | 'philanthropy' | null -- which list is open
@@ -3494,13 +3499,27 @@
       '</div>';
 
     const SEASON_HTML = `\n      <h3 style="margin-top:0;">Season progress</h3>
-      <div class="bb-card" style="margin-bottom:1.5rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-        <span style="font-size:13px;color:#9a9a9a;">Next round to be played:</span>
-        <select class="bb-select" id="admin-current-round" style="width:140px;">
-          ${Array.from({length:26},(_, i) => i+1).map(r => `<option value="${r}" ${r===state.currentRound?'selected':''}>Round ${r}</option>`).join('')}
-        </select>
-        <button class="bb-btn" id="save-current-round">Update</button>
-        <span style="font-size:12px;color:#9a9a9a;">Rounds before this are greyed out everywhere as already played. Advancing this reopens betting fresh.</span>
+      <div class="bb-card" style="margin-bottom:1.5rem;">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
+          <span style="font-size:13px;color:#9a9a9a;">Next round to be played:</span>
+          <strong style="font-size:15px;">Round ${state.currentRound}</strong>
+          ${state.currentRoundOverride
+            ? `<span style="font-size:12px;color:#e0c060;">(manually overridden -- would otherwise be Round ${deriveCurrentRoundFromDate()} automatically)</span>`
+            : `<span style="font-size:12px;color:#8fc98f;">(auto-derived from today's date, no admin action needed)</span>`}
+        </div>
+        <p style="font-size:12px;color:#9a9a9a;margin:0 0 10px;">
+          This now advances on its own from round_dates.json + today's date -- nothing to remember weekly.
+          Only override it for a genuine edge case that date isn't correct for (a real-world bye week or
+          schedule slip round_dates.json doesn't reflect yet).
+        </p>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <select class="bb-select" id="admin-current-round" style="width:140px;">
+            ${Array.from({length:26},(_, i) => i+1).map(r => `<option value="${r}" ${r===state.currentRound?'selected':''}>Round ${r}</option>`).join('')}
+          </select>
+          <button class="bb-btn ghost" id="save-current-round">Set override</button>
+          ${state.currentRoundOverride ? `<button class="bb-btn ghost" id="clear-current-round-override" style="border-color:#8fc98f;color:#8fc98f;">Clear override, go back to automatic</button>` : ''}
+        </div>
+        <span style="font-size:12px;color:#9a9a9a;display:block;margin-top:8px;">Rounds before this are greyed out everywhere as already played. Changing this reopens betting fresh.</span>
       </div>
       <div class="bb-card" style="margin-bottom:1.5rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
         <span style="font-size:13px;color:#9a9a9a;">Home tab's featured picks are computed once per round and then locked in -- if the selection logic changes, an already-computed round won't pick up the fix on its own.</span>
@@ -3964,6 +3983,31 @@
     const yy = n => String(n % 100).padStart(2, '0');
     return `${yy(startYear)}/${yy(startYear + 1)}`;
   }
+  // Automates the currentRound risk flagged and accepted earlier this
+  // project: a manual admin dropdown, easy to forget to advance, entirely
+  // separate from the Python pipeline's own round-counting (which
+  // self-derives correctly from real results). Derives the same answer
+  // the admin would have picked by hand -- the most recent round whose
+  // real kickoff date has arrived -- straight from round_dates.json,
+  // so there's nothing to remember. Pure calendar-date string comparison
+  // (YYYY-MM-DD), not Date object comparison: JS parses a date-only
+  // string as UTC midnight, which could disagree with the site's local
+  // "today" by several hours right at a round boundary -- avoided
+  // entirely by never constructing a Date from round_dates.json's values
+  // at all.
+  function deriveCurrentRoundFromDate(date){
+    const d = date || new Date();
+    const todayStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const roundDates = DATA.round_dates || {};
+    const rounds = Object.keys(roundDates).map(Number).sort((a,b) => a-b);
+    if(!rounds.length) return 1; // no calendar data -- safe fallback, matches the pre-automation default
+    let current = rounds[0];
+    for(const r of rounds){
+      if(todayStr >= roundDates[String(r)]) current = r;
+      else break; // round_dates.json is chronological -- no need to keep checking once we've passed today
+    }
+    return current;
+  }
   // Storage keys use this slash-free form of the season label -- the
   // primary Supabase backend confirmed safe with a literal "/" (plain
   // string column, no path interpretation), but the window.storage
@@ -4053,7 +4097,11 @@
     await sset('bilbbet2_novelty_index', []);
     state.novelty = [];
 
-    await saveCurrentRound(1);
+    // Clears any override rather than forcing round 1 permanently -- the
+    // new season's own round_dates.json will correctly derive round 1
+    // right now (pre-season) and advance automatically from there on its
+    // own, same as a normal season needs no admin action at all.
+    await clearCurrentRoundOverride();
     await reopenBetting();
 
     const archivedCount = results.reduce((s,r)=>s+r.archived, 0);
@@ -4066,7 +4114,12 @@
 
   async function saveCurrentRound(round){
     const advanced = round !== state.currentRound;
-    await sset('bilbbet2_current_round', round);
+    // Sets an explicit OVERRIDE now, not the plain persisted value directly
+    // -- this is meant for a genuine edge case round_dates.json doesn't
+    // reflect, not the normal weekly flow, which no longer needs any
+    // admin action at all.
+    await sset('bilbbet2_current_round_override', round);
+    state.currentRoundOverride = round;
     state.currentRound = round;
     if(advanced){
       // moving to a new round starts that round's betting fresh, regardless
@@ -4074,6 +4127,21 @@
       state.roundBettingOpen = true;
       await sset('bilbbet2_round_betting_open', true);
     }
+    render();
+  }
+
+  // Returns to automatic date-derivation, clearing whatever override is
+  // currently set -- the normal path once a new season starts (the new
+  // season's round_dates.json will correctly derive round 1 and advance
+  // on its own from there), or any time an admin decides an override is
+  // no longer needed.
+  async function clearCurrentRoundOverride(){
+    await sset('bilbbet2_current_round_override', null);
+    state.currentRoundOverride = null;
+    const derived = deriveCurrentRoundFromDate();
+    state.currentRound = derived; state.h2hRound = derived; state.leadingAtRound = derived; state.specialsRound = derived;
+    state.roundBettingOpen = true;
+    await sset('bilbbet2_round_betting_open', true);
     render();
   }
 
@@ -6680,6 +6748,8 @@
       }
       saveCurrentRound(newRound);
     };
+    const clearOverrideBtn = $('#clear-current-round-override');
+    if(clearOverrideBtn) clearOverrideBtn.onclick = () => { clearCurrentRoundOverride(); };
     const refreshFeaturedBtn = $('#refresh-featured-fixtures');
     if(refreshFeaturedBtn) refreshFeaturedBtn.onclick = refreshFeaturedFixtures;
     const endSeasonBtn = $('#end-season-btn');
@@ -7058,8 +7128,16 @@
     render();
   }
 
-  const savedCurrentRound = await sget('bilbbet2_current_round');
-  if(savedCurrentRound){ state.currentRound = savedCurrentRound; state.h2hRound = savedCurrentRound; state.leadingAtRound = savedCurrentRound; state.specialsRound = savedCurrentRound; }
+  // Real behavior change from earlier this project: currentRound used to
+  // load purely from whatever an admin last manually saved, with nothing
+  // to fall back on if they forgot. Now checks for an explicit override
+  // first (a genuine edge case round_dates.json doesn't reflect), and
+  // falls back to deriving the correct round from today's real date
+  // otherwise -- the normal case, needing no admin action at all.
+  const savedOverride = await sget('bilbbet2_current_round_override');
+  const resolvedRound = savedOverride || deriveCurrentRoundFromDate();
+  state.currentRoundOverride = savedOverride || null;
+  state.currentRound = resolvedRound; state.h2hRound = resolvedRound; state.leadingAtRound = resolvedRound; state.specialsRound = resolvedRound;
   const savedCupFixtures = await sget('bilbbet2_cup_fixtures');
   if(savedCupFixtures){ state.cupFixtures = savedCupFixtures; }
   const savedSeasonClosed = await sget('bilbbet2_season_closed');
