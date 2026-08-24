@@ -26,6 +26,7 @@ import os
 import json
 import requests
 import pandas as pd
+import time
 from datetime import datetime, date
 
 from validate_sheet_data import run_all_checks
@@ -40,6 +41,44 @@ def fetch_sheet_csv(url, dest_path, timeout=15):
     with open(dest_path, 'w', encoding='utf-8') as f:
         f.write(resp.text)
     return dest_path
+
+
+def fetch_sheet_stable(url, dest_path, wait_seconds=180, max_attempts=3, timeout=15, log_fn=None):
+    """
+    Real risk this addresses: the scheduled run could fire while the sheet
+    author is actively mid-edit -- some rounds fully entered, one row
+    half-typed. Fetches twice, `wait_seconds` apart, and compares the raw
+    content byte-for-byte; if they differ, the sheet is very likely being
+    edited right now, so this waits and retries rather than proceeding
+    with what could be a half-written snapshot. Deliberately strict (ANY
+    difference triggers a retry, not just a change to a round column) --
+    better to retry once too often on an unrelated edit than to process a
+    genuinely partial one.
+
+    Returns stable (bool) -- True means dest_path holds a fetch confirmed
+    unchanged across the wait; False means every attempt saw the content
+    change, and dest_path holds whatever the LAST fetch returned (not used
+    by the caller in that case, but left in a known state rather than
+    half-written). Progress is reported via log_fn as it happens, not
+    returned separately -- the caller's own step()/log mechanism already
+    captures everything passed to it.
+    """
+    log_fn = log_fn or (lambda msg: None)
+    for attempt in range(1, max_attempts + 1):
+        fetch_sheet_csv(url, dest_path, timeout=timeout)
+        first = open(dest_path, encoding='utf-8').read()
+        log_fn(f"Stability check {attempt}/{max_attempts}: first fetch done, "
+               f"waiting {wait_seconds}s before re-checking...")
+        time.sleep(wait_seconds)
+        fetch_sheet_csv(url, dest_path, timeout=timeout)
+        second = open(dest_path, encoding='utf-8').read()
+        if first == second:
+            log_fn(f"Stability check {attempt}/{max_attempts}: sheet content "
+                   f"unchanged across the wait -- proceeding.")
+            return True
+        log_fn(f"Stability check {attempt}/{max_attempts}: sheet content CHANGED "
+               f"during the wait -- looks like it's being actively edited right now.")
+    return False
 
 
 def regenerate_futures_odds(extracted_results, coeffs_path, roster_path, history_path):
@@ -83,7 +122,8 @@ def write_run_report(draft_dir, run_id, result):
 
 def run_pipeline(url, roster_path, round_dates_path, draft_dir,
                   coeffs_path='data/team_market_coeffs.json', history_path='data/roddy_history.json',
-                  header_row=1, today=None, run_simulation=False, alltime_url=None):
+                  header_row=1, today=None, run_simulation=False, alltime_url=None,
+                  stability_wait_seconds=180, stability_max_attempts=3):
     os.makedirs(draft_dir, exist_ok=True)
     run_id = datetime.now().strftime('%Y%m%d-%H%M%S')
     log = []
@@ -135,13 +175,20 @@ def run_pipeline(url, roster_path, round_dates_path, draft_dir,
     step(f"Fetching sheet from {url}")
     csv_path = os.path.join(draft_dir, f'sheet-{run_id}.csv')
     try:
-        fetch_sheet_csv(url, csv_path)
+        stable = fetch_sheet_stable(url, csv_path, wait_seconds=stability_wait_seconds,
+                                     max_attempts=stability_max_attempts, log_fn=step)
     except Exception as e:
         step(f"FETCH FAILED: {e}")
         result = {'status': 'fetch_failed', 'error': str(e), 'log': log}
         write_run_report(draft_dir, run_id, result)
         return result
-    step("Fetch succeeded")
+    if not stable:
+        step("SHEET UNSTABLE -- content kept changing across every retry, likely being "
+             "actively edited right now. Halting rather than risk a half-written snapshot.")
+        result = {'status': 'sheet_unstable', 'log': log}
+        write_run_report(draft_dir, run_id, result)
+        return result
+    step("Fetch succeeded and confirmed stable")
 
     step("Running Layer 2 validation gate")
     report = run_all_checks(csv_path, roster_path, round_dates_path,
