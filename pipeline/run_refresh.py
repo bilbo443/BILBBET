@@ -70,6 +70,13 @@ def main():
         print("No PR will be opened. Check the sheet's publish settings and the URL.")
         sys.exit(1)
 
+    if status == 'sheet_unstable':
+        print("\nSTOPPING: the sheet's content kept changing every time it was re-checked -- "
+              "looks like it's being actively edited right now.")
+        print("No PR will be opened. This isn't a data problem, just bad timing -- the next "
+              "scheduled run (or a manual re-run) should pick it up cleanly once editing settles.")
+        sys.exit(1)
+
     if status == 'validation_failed':
         print(f"\nSTOPPING: the sheet failed validation.\n{result['report']}")
         print("\nNo PR will be opened. This needs a human look before anything gets published --")
