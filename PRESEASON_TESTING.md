@@ -106,38 +106,31 @@ so it's clear what's actually solid ground versus what's still open below.
 
 ---
 
-## Important, previously-undocumented finding (2026-08-13, later session)
+## Important finding, now resolved (originally 2026-08-13, automated 2026-08-24)
 
-**`state.currentRound` is a fully manual admin control — nothing in the
-code derives it from `round_dates.json` or the real date.** It's a
-dropdown + "Save" button in the admin panel
-(`saveCurrentRound()`/`#admin-current-round`). Confirmed by searching the
-entire codebase for any automatic-advancement logic — there isn't any.
+**`state.currentRound` used to be a fully manual admin control — nothing in
+the code derived it from `round_dates.json` or the real date.** This
+mattered because almost everything built this session reads it: the
+shrinkage ramp's display, every leaderboard view, the "upcoming round"
+checkmark, and team profile standings all depend on it being correct, and
+it was a completely separate system from the Python pipeline's own
+self-deriving round logic — a real risk of silent drift if the admin ever
+forgot to advance it.
 
-This matters far more now than it would have last night, because almost
-everything built this session reads it: the shrinkage ramp's *display*,
-every leaderboard view, the "upcoming round" checkmark, and team profile
-standings all depend on it being correct.
-
-**The real risk**: this is a completely separate system from the Python
-pipeline's own "how many rounds have happened" logic
-(`rounds_completed_from()`, added earlier tonight for shrinkage), which
-self-derives from the real sheet data and is always accurate by
-construction. If the admin forgets to advance the dropdown in a given
-week, the *live site's* idea of the current round drifts out of sync with
-what the *simulation* is actually using — e.g., the site could still show
-a "Round 3" leaderboard while the real odds were already computed as if
-Round 5 had happened.
-
-- [ ] **Confirm you understand this is a manual, weekly step**, and
-      decide whether that's an acceptable process or something worth
-      automating later (e.g., deriving it from `round_dates.json` + real
-      date, the way the Python side already does). **Owner: you**
-      (process decision) **+ Claude** (build, if you want it automated).
-- [ ] **Add a cross-check**: after each real weekly pipeline run, confirm
-      the admin-panel round dropdown was actually advanced to match.
-      Cheap, high-value habit — worth doing every week for at least the
-      first month of the season until it's second nature.
+- [x] **Automated.** `currentRound` now derives automatically from
+      `round_dates.json` + today's real date at boot, same self-correcting
+      principle the pipeline's shrinkage math already used. The admin
+      dropdown still exists, but now sets an explicit *override* — meant
+      for a genuine edge case the calendar doesn't reflect (a real bye
+      week, a schedule slip), not the normal weekly flow, which needs no
+      admin action at all. A one-click "back to automatic" button clears
+      the override. Season rollover correctly clears any override too,
+      rather than permanently forcing round 1 — so next season's own
+      `round_dates.json` takes over automatically. Tested across 21
+      checks: real calendar boundaries (pre-season, exact kickoff day,
+      mid-season, past the final round without crashing), the override
+      set/persist/clear cycle, and confirmed today's real boot value is
+      genuinely unchanged (still pre-season, correctly Round 1).
 
 ---
 
@@ -399,13 +392,21 @@ realistic human-entered variance.
       `special_markets.json`, which stay correctly flagged for manual
       follow-up given how expensive those are to regenerate).
 
-- [ ] **Decide how to handle the sheet-mid-edit timing risk.** If the
-      scheduled Monday run fires while the sheet author is actively editing
-      — some rounds fully entered, one half-typed — the pipeline extracts
-      whatever's there at that instant. Narrow window, but real. Options
-      range from "accept the risk, it's rare" to "add a small buffer/retry."
-      **Owner: you** (how much this is worth building around) **+ Claude**
-      (implements whatever you decide).
+- [x] **Sheet-mid-edit timing risk — built and tested, not just decided.**
+      The scheduled run now fetches the sheet twice, 3 minutes apart by
+      default, and compares the raw content before proceeding. Identical
+      content across the wait means confidence it wasn't mid-edit — the
+      run proceeds exactly as before. Different content means someone's
+      likely actively editing right now, so it retries (up to 3 attempts)
+      rather than risk processing a half-written snapshot; if it never
+      settles, the run halts cleanly with a clear message and the next
+      scheduled run picks it up naturally. Tested all three real cases:
+      genuinely stable (succeeds immediately), genuinely unstable
+      (correctly exhausts retries and halts), and — the case that
+      actually matters most — unstable on the first check but genuinely
+      settling down by the second, confirming the retry mechanism truly
+      recovers rather than just detecting failure once. Proved end to
+      end through the real pipeline in both directions.
 
 - [x] **Reliability sweep — a genuinely different kind of check, done
       once, worth repeating periodically rather than a one-time item.**
@@ -563,10 +564,10 @@ function calls in isolation.
       PR → review `futures-publishable.json` → copy into `data/futures.json`
       → confirm the live site actually updates (same propagation-delay
       check as tonight).
-- [ ] **Confirm the admin-panel round dropdown is set correctly for
-      Round 1** right before kickoff, and that you have a clear, simple
-      habit in mind for advancing it every week once the season's live —
-      see the `currentRound` finding above.
+- [ ] **Confirm `currentRound` correctly shows Round 1 right before
+      kickoff** — should happen automatically now (derived from
+      `round_dates.json` + the real date, no admin action needed), but
+      worth a real glance right before the season actually starts.
 
 ---
 
