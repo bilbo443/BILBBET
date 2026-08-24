@@ -320,7 +320,7 @@
     tippingSubTab: 'PICKS', tippingSection: 'ELIZA', tippingRound: null, tippingViewRound: null, tippingData: null, tippingPending: {}, tippingAllPicks: null,
     tippingRewardChecked: null, tippingRewardBanner: null, tipReminderStatus: null,
     perfectRoundStatus: {}, // cache keyed by `${username}|${round}|${sectionKey}` -- true only, never explicitly false/missed (see loadPerfectRoundStatus)
-    preseasonData: null, preseasonPending: {}, preseasonLeaderboard: null, preseasonResults: null, preseasonAllPicks: null, openHelpTip: null, homeTippingNudge: null, txHistory: null, txHistoryExpanded: false, recentWinners: null,
+    preseasonData: null, preseasonPending: {}, preseasonLeaderboard: null, preseasonResults: null, preseasonAllPicks: null, openHelpTip: null, homeTippingNudge: null, txHistory: null, txHistoryExpanded: false, recentWinners: null, trashTalkBanner: null,
     tippingLeaderboardMode: 'OVERALL', tippingLeaderboardRound: null, tippingLeaderboard: null, leaderboardKind: 'WEEKLY',
     tippingLeaderboardSection: 'OVERALL', tippingLeaderboardSortBy: 'oddsPoints', tippingLeaderboardSortDir: 'desc',
     preseasonLeaderboardSortBy: 'oddsPoints', preseasonLeaderboardSortDir: 'desc',
@@ -1342,6 +1342,14 @@
     if(isRoundBlocked(1)) return '';
     return `<div style="background:#2a2410;color:#e0d090;padding:10px 14px;text-align:center;font-size:13px;border-bottom:2px solid #4a3a10;">
       \u26A0\uFE0F Testing phase &mdash; odds shown right now aren't final and may change before the season launches. Only bets placed once team rosters are confirmed will count, unless stated otherwise.
+    </div>`;
+  }
+
+  function renderTrashTalkBanner(){
+    if(!state.trashTalkBanner) return '';
+    return `<div style="background:#2a1010;color:#e0a0a0;padding:10px 14px;text-align:center;font-size:13px;border-bottom:2px solid #4a1a1a;display:flex;justify-content:center;align-items:center;gap:10px;">
+      <span>${esc(state.trashTalkBanner)}</span>
+      <span id="dismiss-trash-talk" style="cursor:pointer;opacity:0.7;font-size:15px;line-height:1;">&times;</span>
     </div>`;
   }
 
@@ -4778,7 +4786,7 @@
     const mainContent = state.viewingTeamProfile ? renderTeamProfile(state.viewingTeamProfile)
       : state.teamDirectoryOpen ? renderTeamDirectory()
       : mainTabs() + body;
-    return `<div id="bb-page-content">${renderStorageWarning()}${renderTestingPhaseDisclaimer()}${header()}${renderTeamSearchPanel()}${mainContent}${renderFooter()}</div>${['ADMIN','STATS'].includes(state.activeTab) ? '' : slipBar()}${state.loginModalOpen ? renderLoginModal() : ''}${state.tosModalOpen ? renderTosModal() : ''}${state.readMeModalOpen ? renderReadMeModal() : ''}${state.tutorialModalOpen ? renderTutorialModal() : ''}${state.welcomeModalOpen ? renderWelcomeModal() : ''}${state.formModalOpen ? renderFormModal() : ''}${state.contactUsModalOpen ? renderContactUsModal() : ''}${teamsDatalist()}`;
+    return `<div id="bb-page-content">${renderStorageWarning()}${renderTestingPhaseDisclaimer()}${renderTrashTalkBanner()}${header()}${renderTeamSearchPanel()}${mainContent}${renderFooter()}</div>${['ADMIN','STATS'].includes(state.activeTab) ? '' : slipBar()}${state.loginModalOpen ? renderLoginModal() : ''}${state.tosModalOpen ? renderTosModal() : ''}${state.readMeModalOpen ? renderReadMeModal() : ''}${state.tutorialModalOpen ? renderTutorialModal() : ''}${state.welcomeModalOpen ? renderWelcomeModal() : ''}${state.formModalOpen ? renderFormModal() : ''}${state.contactUsModalOpen ? renderContactUsModal() : ''}${teamsDatalist()}`;
   }
 
   function combinedOdds(){ return combinedOddsFor(state.slip); }
@@ -6352,7 +6360,7 @@
     const toggleTxHistory = $('[data-toggle-tx-history]');
     if(toggleTxHistory) toggleTxHistory.onclick = () => { state.txHistoryExpanded = !state.txHistoryExpanded; render(); };
     const logoutBtn = $('#logout-btn');
-    if(logoutBtn) logoutBtn.onclick = () => { state = {...state, screen:'main', user:null, username:'', pin:'', adminLoginMode:false, registeringMode:false, tosAgreed:false, error:'', info:'', loginModalOpen:false, slip:[], betMode:'multi', activeTab:'HOME', h2hMarket:null, h2hFixtureMarket:null, myBets:null, adminPunters:null, adminBets:null, novelty:null, statsData:null, tippingData:null, tippingPending:{}, tippingRound:null, tippingAllPicks:null, tippingLeaderboard:null, tipReminderStatus:null, tippingRewardChecked:null, tippingRewardBanner:null, preseasonData:null, preseasonPending:{}, preseasonAllPicks:null, preseasonLeaderboard:null, homeTippingNudge:null, txHistory:null}; render(); };
+    if(logoutBtn) logoutBtn.onclick = () => { state = {...state, screen:'main', user:null, username:'', pin:'', adminLoginMode:false, registeringMode:false, tosAgreed:false, error:'', info:'', loginModalOpen:false, slip:[], betMode:'multi', activeTab:'HOME', h2hMarket:null, h2hFixtureMarket:null, myBets:null, adminPunters:null, adminBets:null, novelty:null, statsData:null, tippingData:null, tippingPending:{}, tippingRound:null, tippingAllPicks:null, tippingLeaderboard:null, tipReminderStatus:null, tippingRewardChecked:null, tippingRewardBanner:null, preseasonData:null, preseasonPending:{}, preseasonAllPicks:null, preseasonLeaderboard:null, homeTippingNudge:null, txHistory:null, trashTalkBanner:null}; render(); };
     const openLoginBtn = $('#open-login-btn'); if(openLoginBtn) openLoginBtn.onclick = () => { state.loginModalOpen = true; state.adminLoginMode=false; state.error=''; state.info=''; render(); };
     const openTeamSearchBtn = $('#open-team-search-btn'); if(openTeamSearchBtn) openTeamSearchBtn.onclick = () => { state.teamDirectoryOpen = true; state.viewingTeamProfile = null; render(); };
     const closeTeamSearchBtn = $('#close-team-search'); if(closeTeamSearchBtn) closeTeamSearchBtn.onclick = () => { state.teamSearchOpen = false; state.teamSearchQuery=''; render(); };
@@ -6385,6 +6393,7 @@
       headerTeamSearch.onchange = e => { state.teamSearchQuery = e.target.value; render(); };
     }
     const closeLoginBtn = $('#close-login-modal'); if(closeLoginBtn) closeLoginBtn.onclick = () => { state.loginModalOpen = false; state.adminLoginMode=false; state.registeringMode=false; state.customNameMode=false; state.tosAgreed=false; state.error=''; state.info=''; render(); };
+    const dismissTrashTalk = $('#dismiss-trash-talk'); if(dismissTrashTalk) dismissTrashTalk.onclick = () => { state.trashTalkBanner = null; render(); };
     const useAdminBtn = $('#use-admin-login'); if(useAdminBtn) useAdminBtn.onclick = () => { state.adminLoginMode = true; render(); };
     document.querySelectorAll('[data-tab]').forEach(el => el.onclick = () => {
       state.activeTab = el.dataset.tab;
@@ -6986,13 +6995,17 @@
       u.welcomeSeen = true;
       saveUser(u); // fire-and-forget -- the modal shouldn't wait on this to appear
     }
-    render();
     checkTipReminderStatus(); // async, fire-and-forget -- flag appears on its own re-render once resolved
-    // a punter who's genuinely punted before (not brand new) and ended last
-    // season under 500 clams gets a little needling on the way in.
+    // A punter who's genuinely punted before (not brand new) and ended last
+    // season under 500 clams gets a little needling on the way in -- kept
+    // as a dismissible banner rather than a blocking alert() (grammar also
+    // fixed: "Expect to lose more sucker" -> "Expect to lose more, sucker.").
+    // Set before the render call below, not after, so it shows immediately
+    // on login rather than waiting for some unrelated next render.
     if(u.historicalRecord && u.historicalRecord.totalBets > 0 && (u.dormantCarry||0) < 500){
-      alert('Expect to lose more sucker');
+      state.trashTalkBanner = 'Expect to lose more, sucker.';
     }
+    render();
   }
 
   async function doRegister(){
