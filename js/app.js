@@ -1,4 +1,18 @@
 (async function(){
+  // Captured here (top-level, outside the render cycle) because the
+  // beforeinstallprompt event can fire at any time before the user ever
+  // opens the install modal, and the browser only lets you call .prompt()
+  // once per captured event -- so it just sits ready until the user asks.
+  let deferredInstallPrompt = null;
+  let pwaAlreadyInstalled = false;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+  });
+  window.addEventListener('appinstalled', () => {
+    deferredInstallPrompt = null;
+    pwaAlreadyInstalled = true;
+  });
   const DATA = {};
   // Catches a real, repeated failure mode: a data file getting the WRONG
   // file's content deployed under its name (this has happened twice --
@@ -319,7 +333,7 @@
     teamDirectoryOpen: false, teamDirectoryQuery: '', viewingTeamProfile: null, teamProfileSubTab: 'OVERVIEW', teamProfileBilbbetData: null,
     registeringMode: false, customNameMode: false, tipReminderOptIn: true,
     tosModalOpen: false, tosMode: 'view', tosAgreed: false, readMeModalOpen: false,
-    tutorialModalOpen: false, tutorialStep: 0, welcomeModalOpen: false,
+    tutorialModalOpen: false, tutorialStep: 0, welcomeModalOpen: false, installAppModalOpen: false,
     contactUsModalOpen: false, feedbackCategory: '', feedbackOtherText: '', feedbackSubmitted: false,
     formModalOpen: false, formModalTeam: null,
     tippingSubTab: 'PICKS', tippingSection: 'ELIZA', tippingRound: null, tippingViewRound: null, tippingData: null, tippingPending: {}, tippingAllPicks: null,
@@ -1375,6 +1389,8 @@
       <span id="open-tutorial-btn" style="font-size:12px;color:#9a9a9a;text-decoration:underline;cursor:pointer;" title="New here? Take the tour">Tutorial</span>
       <span style="color:#5a5a5a;margin:0 8px;">&middot;</span>
       <span id="open-contact-us-btn" style="font-size:12px;color:#9a9a9a;text-decoration:underline;cursor:pointer;">Contact us</span>
+      <span style="color:#5a5a5a;margin:0 8px;">&middot;</span>
+      <span id="open-install-app-footer" style="font-size:12px;color:#9a9a9a;text-decoration:underline;cursor:pointer;">Install app</span>
     </div>`;
   }
 
@@ -1603,6 +1619,40 @@
             <p style="margin-bottom:0;">If you do forget your PIN, Bilbo can reset your team upon request, so you can create a new registration that will keep the stored betting information at all times.</p>
           </div>
           <button class="bb-btn ghost" id="close-readme-modal" style="width:100%;">Close</button>
+        </div>
+      </div>`;
+  }
+
+  function renderInstallAppModal(){
+    const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+    const androidPromptReady = !!deferredInstallPrompt;
+    return `
+      <div id="install-app-modal-backdrop" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:110;display:flex;align-items:center;justify-content:center;padding:1rem;">
+        <div class="bb-card" style="max-width:420px;width:100%;max-height:80vh;display:flex;flex-direction:column;">
+          <h3 style="margin:0 0 10px;">Install app</h3>
+          <div style="overflow-y:auto;flex:1;font-size:14px;line-height:1.6;">
+
+            <div style="border:1px solid #3d3d3d;border-radius:8px;padding:14px;margin-bottom:12px;">
+              <p style="margin:0 0 8px;font-weight:600;">Android</p>
+              ${androidPromptReady
+                ? `<p style="color:#9a9a9a;margin:0 0 12px;">Add Bilbbet to your home screen as a full app.</p>
+                   <button class="bb-btn" id="install-app-android-btn" style="width:100%;">Install now</button>`
+                : `<p style="color:#9a9a9a;margin:0;">${pwaAlreadyInstalled
+                    ? 'Already installed on this device.'
+                    : 'Open Chrome\u2019s \u22ee menu and tap \u201cInstall app\u201d (or \u201cAdd to Home screen\u201d).'}</p>`}
+            </div>
+
+            <div style="border:1px solid #3d3d3d;border-radius:8px;padding:14px;">
+              <p style="margin:0 0 8px;font-weight:600;">iPhone</p>
+              <ol style="padding-left:18px;margin:0;color:#9a9a9a;">
+                <li>Open this page in Safari</li>
+                <li>Tap the Share icon</li>
+                <li>Tap "Add to Home Screen"</li>
+              </ol>
+            </div>
+
+          </div>
+          <button class="bb-btn ghost" id="close-install-app-modal" style="width:100%;margin-top:12px;">Close</button>
         </div>
       </div>`;
   }
@@ -4854,7 +4904,7 @@
     const mainContent = state.viewingTeamProfile ? renderTeamProfile(state.viewingTeamProfile)
       : state.teamDirectoryOpen ? renderTeamDirectory()
       : mainTabs() + body;
-    return `<div id="bb-page-content">${renderStorageWarning()}${renderTestingPhaseDisclaimer()}${renderTrashTalkBanner()}${header()}${renderTeamSearchPanel()}${mainContent}${renderFooter()}</div>${['ADMIN','STATS'].includes(state.activeTab) ? '' : slipBar()}${state.loginModalOpen ? renderLoginModal() : ''}${state.tosModalOpen ? renderTosModal() : ''}${state.readMeModalOpen ? renderReadMeModal() : ''}${state.tutorialModalOpen ? renderTutorialModal() : ''}${state.welcomeModalOpen ? renderWelcomeModal() : ''}${state.formModalOpen ? renderFormModal() : ''}${state.contactUsModalOpen ? renderContactUsModal() : ''}${teamsDatalist()}`;
+    return `<div id="bb-page-content">${renderStorageWarning()}${renderTestingPhaseDisclaimer()}${renderTrashTalkBanner()}${header()}${renderTeamSearchPanel()}${mainContent}${renderFooter()}</div>${['ADMIN','STATS'].includes(state.activeTab) ? '' : slipBar()}${state.loginModalOpen ? renderLoginModal() : ''}${state.tosModalOpen ? renderTosModal() : ''}${state.readMeModalOpen ? renderReadMeModal() : ''}${state.tutorialModalOpen ? renderTutorialModal() : ''}${state.welcomeModalOpen ? renderWelcomeModal() : ''}${state.formModalOpen ? renderFormModal() : ''}${state.contactUsModalOpen ? renderContactUsModal() : ''}${state.installAppModalOpen ? renderInstallAppModal() : ''}${teamsDatalist()}`;
   }
 
   function combinedOdds(){ return combinedOddsFor(state.slip); }
@@ -6358,6 +6408,20 @@
     if(openReadMeLink) openReadMeLink.onclick = () => { state.readMeModalOpen = true; render(); };
     const closeReadMeBtn = $('#close-readme-modal');
     if(closeReadMeBtn) closeReadMeBtn.onclick = () => { state.readMeModalOpen = false; render(); };
+
+    const openInstallAppLink = $('#open-install-app-footer');
+    if(openInstallAppLink) openInstallAppLink.onclick = () => { state.installAppModalOpen = true; render(); };
+    const closeInstallAppBtn = $('#close-install-app-modal');
+    if(closeInstallAppBtn) closeInstallAppBtn.onclick = () => { state.installAppModalOpen = false; render(); };
+    const installAppAndroidBtn = $('#install-app-android-btn');
+    if(installAppAndroidBtn) installAppAndroidBtn.onclick = async () => {
+      if(!deferredInstallPrompt) return;
+      deferredInstallPrompt.prompt();
+      await deferredInstallPrompt.userChoice;
+      deferredInstallPrompt = null;
+      state.installAppModalOpen = false;
+      render();
+    };
 
     const openTutorialBtn = $('#open-tutorial-btn');
     if(openTutorialBtn) openTutorialBtn.onclick = () => { state.tutorialStep = 0; state.info=''; state.tutorialModalOpen = true; render(); };
