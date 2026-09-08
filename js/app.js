@@ -3449,7 +3449,7 @@
     return `<div class="bb-card" style="padding:0;overflow:hidden;">
       <div style="padding:14px 18px 8px;display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:4px;">
         <strong style="font-size:14px;">${esc(title)}</strong>
-        ${subtitle ? `<span style="font-size:11px;color:var(--bb-text-muted);">${esc(subtitle)}</span>` : ''}
+        ${subtitle ? `<span style="font-size:11px;color:var(--bb-text-muted);">${subtitle}</span>` : ''}
       </div>
       <div style="overflow-x:auto;">
       <table style="width:100%;border-collapse:collapse;font-size:14px;min-width:360px;">
