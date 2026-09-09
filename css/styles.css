@@ -110,11 +110,14 @@ table.bb-table td{padding:8px;border-bottom:1px solid #333;vertical-align:top;co
 /* Thick grey outline framing the main betting-markets column, separating it
    visually from the side banner slots either side of it on wide screens.
    Positioned + z-index'd above the watermark below, so the watermark sits
-   behind the actual page content regardless of DOM order. */
+   behind the actual page content regardless of DOM order. No forced
+   min-height here anymore -- the frame now just wraps whatever content is
+   actually on the page, so short tabs (e.g. Home) don't leave a large empty
+   stretch of bare background (with the watermark floating oddly in it)
+   below the real content. */
 .bb-content-frame{
   border-left:6px solid var(--bb-border-light);
   border-right:6px solid var(--bb-border-light);
-  min-height:100vh;
   box-sizing:border-box;
   position:relative;
   z-index:2;
@@ -125,14 +128,16 @@ table.bb-table td{padding:8px;border-bottom:1px solid #333;vertical-align:top;co
 
 /* Large, faint bilby watermark centred behind the main content. Fixed so it
    stays put while the page scrolls, rather than moving with the content.
-   Low opacity keeps it from competing with text/cards for attention. */
+   Low opacity keeps it from competing with text/cards for attention --
+   kept deliberately faint since on longer, scrolling tabs it can end up
+   sitting directly behind real text rather than just in empty space. */
 .bb-watermark{
   position:fixed; top:0; right:0; bottom:0; left:0;
   background-image:url('../assets/logos/bilby-logo.png');
   background-repeat:no-repeat;
   background-position:center;
   background-size:min(70vw, 640px);
-  opacity:0.05;
+  opacity:0.035;
   z-index:1;
   pointer-events:none;
 }
