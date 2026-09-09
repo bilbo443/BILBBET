@@ -108,13 +108,7 @@ table.bb-table td{padding:8px;border-bottom:1px solid #333;vertical-align:top;co
 }
 
 /* Thick grey outline framing the main betting-markets column, separating it
-   visually from the side banner slots either side of it on wide screens.
-   Positioned + z-index'd above the watermark below, so the watermark sits
-   behind the actual page content regardless of DOM order. No forced
-   min-height here anymore -- the frame now just wraps whatever content is
-   actually on the page, so short tabs (e.g. Home) don't leave a large empty
-   stretch of bare background (with the watermark floating oddly in it)
-   below the real content. */
+   visually from the side banner slots either side of it on wide screens. */
 .bb-content-frame{
   border-left:6px solid var(--bb-border-light);
   border-right:6px solid var(--bb-border-light);
