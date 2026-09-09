@@ -5265,20 +5265,20 @@
   }
 
   function slipBar(){
-    if(!state.slip.length) return `<div class="bb-slip"><div class="bb-slip-inner" style="color:#9a9a9a;font-size:18px;">Tap any outcome to build a bet slip.</div></div>`;
+    if(!state.slip.length) return `<div class="bb-slip"><div class="bb-slip-inner" style="color:#9a9a9a;font-size:14px;">Tap any outcome to build a bet slip.</div></div>`;
     const modeToggle = `
-      <div style="display:flex;gap:6px;margin-bottom:8px;">
-        <div class="bb-tab ${state.betMode==='multi'?'active':''}" data-betmode="multi" style="font-size:17px;padding:5px 10px;">Multi (one combined bet)</div>
-        <div class="bb-tab ${state.betMode==='singles'?'active':''}" data-betmode="singles" style="font-size:17px;padding:5px 10px;">Singles (bet each separately)</div>
+      <div style="display:flex;gap:6px;margin-bottom:6px;">
+        <div class="bb-tab ${state.betMode==='multi'?'active':''}" data-betmode="multi" style="font-size:13px;padding:4px 8px;">Multi (one combined bet)</div>
+        <div class="bb-tab ${state.betMode==='singles'?'active':''}" data-betmode="singles" style="font-size:13px;padding:4px 8px;">Singles (bet each separately)</div>
       </div>`;
-    const header = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-        <strong style="font-size:18px;">${state.slip.length} selection${state.slip.length>1?'s':''}</strong>
+    const header = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <strong style="font-size:14px;">${state.slip.length} selection${state.slip.length>1?'s':''}</strong>
         <span style="display:flex;gap:6px;align-items:center;">
-          <label style="display:flex;align-items:center;gap:4px;font-size:16px;color:#9a9a9a;cursor:pointer;">
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px;color:#9a9a9a;cursor:pointer;">
             <input type="checkbox" id="toggle-implied-chance" ${state.showImpliedChance?'checked':''}/> Implied %${helpTip('implied', 'The odds converted into a rough win chance \u2014 e.g. odds of 2.00 mean roughly a 50% implied chance.')}
           </label>
-          <button class="bb-btn ghost" id="copy-slip" style="padding:4px 10px;font-size:17px;">Copy slip</button>
-          <button class="bb-btn ghost" id="clear-slip" style="padding:4px 10px;font-size:17px;">Clear</button>
+          <button class="bb-btn ghost" id="copy-slip" style="padding:3px 8px;font-size:13px;">Copy slip</button>
+          <button class="bb-btn ghost" id="clear-slip" style="padding:3px 8px;font-size:13px;">Clear</button>
         </span>
       </div>`;
 
@@ -5287,16 +5287,16 @@
       const totalPotential = state.slip.reduce((s,x)=>s+Math.round((x.singleStake||0)*x.odds),0);
       return `<div class="bb-slip"><div class="bb-slip-inner">
         ${modeToggle}${header}
-        <div style="max-height:160px;overflow-y:auto;margin-bottom:8px;">
-          ${state.slip.map(s => `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:17px;padding:5px 0;border-bottom:1px solid #333333;">
+        <div style="max-height:140px;overflow-y:auto;margin-bottom:6px;">
+          ${state.slip.map(s => `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;padding:3px 0;border-bottom:1px solid #333333;">
             <span style="color:#cfcfcf;flex:1;">${esc(s.label)} <span class="bb-odds">${formatOdds(s.odds)}</span>${state.showImpliedChance?` <span style="color:#9a9a9a;">(${impliedChance(s.odds)})</span>`:''}</span>
-            <input class="bb-input" data-single-stake="${esc(s.id)}" type="number" min="1" value="${s.singleStake||50}" style="width:80px;padding:4px 6px;font-size:17px;"/>
-            <span style="color:#9a9a9a;width:56px;text-align:right;">&rarr;${fmt(Math.round((s.singleStake||0)*s.odds))}</span>
+            <input class="bb-input" data-single-stake="${esc(s.id)}" type="number" min="1" value="${s.singleStake||50}" style="width:70px;padding:3px 5px;font-size:13px;"/>
+            <span style="color:#9a9a9a;width:52px;text-align:right;">&rarr;${fmt(Math.round((s.singleStake||0)*s.odds))}</span>
             <span data-remove="${esc(s.id)}" style="cursor:pointer;color:#9a9a9a;">&times;</span>
           </div>`).join('')}
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:17px;color:#9a9a9a;">Total stake ${fmt(totalStake)} &rarr; potential ${fmt(totalPotential)}</span>
+          <span style="font-size:13px;color:#9a9a9a;">Total stake ${fmt(totalStake)} &rarr; potential ${fmt(totalPotential)}</span>
           <button class="bb-btn" id="place-singles">Place ${state.slip.length} single${state.slip.length>1?'s':''}</button>
         </div>
       </div></div>`;
@@ -5309,27 +5309,27 @@
     const displayedCombined = boostApplied ? combined * BOOST_MULTIPLIER : combined;
     const displayedPotential = state.stake * displayedCombined;
     const boostToggle = boostEligible ? `
-      <label style="display:flex;align-items:center;gap:8px;font-size:17px;margin-bottom:8px;background:#4a3a10;border-radius:8px;padding:8px 10px;">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:6px;background:#4a3a10;border-radius:8px;padding:6px 8px;">
         <input type="checkbox" id="use-boost-checkbox" ${state.useBoost?'checked':''}/>
         <span style="color:#ffdd00;">Use your Round ${state.currentRound} boosted odd \u2014 free +${Math.round((BOOST_MULTIPLIER-1)*100)}% on this multi (one per round).</span>
       </label>` : (hasFeaturedInSlip ? `
-      <div style="font-size:16px;color:#9a9a9a;margin-bottom:8px;">This slip already includes a featured (boosted) pick, so the separate multi-boost can't also be applied.</div>` : '');
+      <div style="font-size:13px;color:#9a9a9a;margin-bottom:6px;">This slip already includes a featured (boosted) pick, so the separate multi-boost can't also be applied.</div>` : '');
     return `<div class="bb-slip"><div class="bb-slip-inner">
       ${modeToggle}${header}
-      <div style="max-height:100px;overflow-y:auto;margin-bottom:8px;">
-        ${state.slip.map(s => `<div style="display:flex;justify-content:space-between;font-size:17px;padding:4px 0;border-bottom:1px solid #333333;">
+      <div style="max-height:90px;overflow-y:auto;margin-bottom:6px;">
+        ${state.slip.map(s => `<div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0;border-bottom:1px solid #333333;">
           <span style="color:#cfcfcf;">${esc(s.label)}</span>
-          <span style="display:flex;gap:8px;align-items:center;"><span class="bb-odds">${formatOdds(s.odds)}</span>${state.showImpliedChance?`<span style="color:#9a9a9a;font-size:16px;">${impliedChance(s.odds)}</span>`:''}
+          <span style="display:flex;gap:8px;align-items:center;"><span class="bb-odds">${formatOdds(s.odds)}</span>${state.showImpliedChance?`<span style="color:#9a9a9a;font-size:13px;">${impliedChance(s.odds)}</span>`:''}
           <span data-remove="${esc(s.id)}" style="cursor:pointer;color:#9a9a9a;">&times;</span></span></div>`).join('')}
       </div>
       ${boostToggle}
       <div style="display:flex;gap:8px;align-items:center;">
-        <div style="flex:1;"><span style="font-size:16px;color:#9a9a9a;">Stake (clams)</span>
-          <input class="bb-input" id="stake-input" type="number" min="1" value="${state.stake}" style="padding:6px 10px;"/></div>
-        <div style="flex:1;"><span style="font-size:16px;color:#9a9a9a;">Combined odds</span>
-          <div style="font-weight:600;color:#ffdd00;padding:6px 0;">${displayedCombined.toFixed(2)}${boostApplied?' \u26A1':''}${state.showImpliedChance?` <span style="font-size:16px;color:#9a9a9a;font-weight:400;">(${impliedChance(displayedCombined)})</span>`:''}</div></div>
-        <div style="flex:1;"><span style="font-size:16px;color:#9a9a9a;">Potential return</span>
-          <div style="font-weight:600;padding:6px 0;">${fmt(Math.round(displayedPotential))}</div></div>
+        <div style="flex:1;"><span style="font-size:13px;color:#9a9a9a;">Stake (clams)</span>
+          <input class="bb-input" id="stake-input" type="number" min="1" value="${state.stake}" style="padding:5px 8px;"/></div>
+        <div style="flex:1;"><span style="font-size:13px;color:#9a9a9a;">Combined odds</span>
+          <div style="font-weight:600;color:#ffdd00;padding:5px 0;">${displayedCombined.toFixed(2)}${boostApplied?' \u26A1':''}${state.showImpliedChance?` <span style="font-size:13px;color:#9a9a9a;font-weight:400;">(${impliedChance(displayedCombined)})</span>`:''}</div></div>
+        <div style="flex:1;"><span style="font-size:13px;color:#9a9a9a;">Potential return</span>
+          <div style="font-weight:600;padding:5px 0;">${fmt(Math.round(displayedPotential))}</div></div>
         <button class="bb-btn" id="place-bet" style="align-self:flex-end;">Place bet</button>
       </div>
     </div></div>`;
