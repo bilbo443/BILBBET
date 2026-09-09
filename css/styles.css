@@ -126,21 +126,6 @@ table.bb-table td{padding:8px;border-bottom:1px solid #333;vertical-align:top;co
   .bb-content-frame{margin-left:140px; margin-right:140px;}
 }
 
-/* Large, faint bilby watermark centred behind the main content. Fixed so it
-   stays put while the page scrolls, rather than moving with the content.
-   Low opacity keeps it from competing with text/cards for attention --
-   kept deliberately faint since on longer, scrolling tabs it can end up
-   sitting directly behind real text rather than just in empty space. */
-.bb-watermark{
-  position:fixed; top:0; right:0; bottom:0; left:0;
-  background-image:url('../assets/logos/bilby-logo.png');
-  background-repeat:no-repeat;
-  background-position:center;
-  background-size:min(70vw, 640px);
-  opacity:0.035;
-  z-index:1;
-  pointer-events:none;
-}
 
 /* Read Me link: draws the eye before login, then settles down once someone's
    logged in (no reason to keep flashing at a returning, familiar punter). */
