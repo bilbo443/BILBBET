@@ -3451,8 +3451,16 @@
         <strong style="font-size:19px;">${esc(title)}</strong>
         ${subtitle ? `<span style="font-size:16px;color:var(--bb-text-muted);">${subtitle}</span>` : ''}
       </div>
+      <div class="bb-lb-mobile-sort" style="padding:0 18px 10px;">
+        <select class="bb-select" data-lb-mobile-sort-select style="font-size:15px;padding:6px 10px;">
+          ${LEADERBOARD_SORT_COLS.map(c => `
+            <option value="${c.key}|desc" ${sortByKey===c.key && sortDir==='desc' ? 'selected' : ''}>${esc(c.label)} (high to low)</option>
+            <option value="${c.key}|asc" ${sortByKey===c.key && sortDir==='asc' ? 'selected' : ''}>${esc(c.label)} (low to high)</option>
+          `).join('')}
+        </select>
+      </div>
       <div style="overflow-x:auto;">
-      <table style="width:100%;border-collapse:collapse;font-size:19px;min-width:360px;">
+      <table class="bb-lb-table" style="width:100%;border-collapse:collapse;font-size:19px;min-width:360px;">
         <thead>
           <tr style="border-bottom:2px solid var(--bb-border-light);">
             <th style="text-align:left;padding:8px 18px;color:var(--bb-text-muted);font-weight:600;font-size:16px;text-transform:uppercase;letter-spacing:0.04em;">#</th>
@@ -3469,11 +3477,11 @@
             const upcomingTick = (showUpcomingCheck && t.submittedUpcoming)
               ? ` <span style="color:var(--bb-ok);font-weight:700;" title="Already submitted picks for the upcoming round">&#10003;</span>` : '';
             return `<tr style="border-bottom:1px solid var(--bb-border);${rowBg}">
-              <td style="padding:9px 18px;color:var(--bb-text-muted);font-variant-numeric:tabular-nums;">${i+1}</td>
-              <td style="padding:9px 8px;font-weight:${isYou?'700':'400'};${isYou?'color:var(--bb-accent);':''}">${esc(t.username)}${upcomingTick}${isYou?' <span style="font-size:15px;color:var(--bb-text-muted);font-weight:400;">(you)</span>':''}${!graded?' <span style="font-size:15px;color:var(--bb-text-muted);">(joined, no results yet)</span>':''}</td>
-              <td style="padding:9px 8px;text-align:right;font-weight:600;color:${graded?'var(--bb-accent)':'var(--bb-text-muted)'};font-variant-numeric:tabular-nums;">${graded?t.oddsPoints.toFixed(2):'&mdash;'}</td>
-              <td style="padding:9px 8px;text-align:right;color:var(--bb-text-muted);font-variant-numeric:tabular-nums;">${graded?`${fmtCorrect(t.correct)}/${t.total}`:'&mdash;'}</td>
-              <td style="padding:9px 18px;text-align:right;color:var(--bb-text-muted);font-variant-numeric:tabular-nums;">${graded?(t.correct/t.total*100).toFixed(1)+'%':'&mdash;'}</td>
+              <td data-label="#" style="padding:9px 18px;color:var(--bb-text-muted);font-variant-numeric:tabular-nums;">${i+1}</td>
+              <td data-label="Punter" style="padding:9px 8px;font-weight:${isYou?'700':'400'};${isYou?'color:var(--bb-accent);':''}">${esc(t.username)}${upcomingTick}${isYou?' <span style="font-size:15px;color:var(--bb-text-muted);font-weight:400;">(you)</span>':''}${!graded?' <span style="font-size:15px;color:var(--bb-text-muted);">(joined, no results yet)</span>':''}</td>
+              <td data-label="Odds pts" style="padding:9px 8px;text-align:right;font-weight:600;color:${graded?'var(--bb-accent)':'var(--bb-text-muted)'};font-variant-numeric:tabular-nums;">${graded?t.oddsPoints.toFixed(2):'&mdash;'}</td>
+              <td data-label="Correct" style="padding:9px 8px;text-align:right;color:var(--bb-text-muted);font-variant-numeric:tabular-nums;">${graded?`${fmtCorrect(t.correct)}/${t.total}`:'&mdash;'}</td>
+              <td data-label="%" style="padding:9px 18px;text-align:right;color:var(--bb-text-muted);font-variant-numeric:tabular-nums;">${graded?(t.correct/t.total*100).toFixed(1)+'%':'&mdash;'}</td>
             </tr>`;
           }).join('')}
         </tbody>
@@ -6739,6 +6747,19 @@
         state[sortDirKey] = 'desc'; // a newly-selected column always starts high-to-low
       }
       render(); // pure re-sort of already-loaded data -- no recomputation needed
+    });
+    // Mobile-only dropdown standing in for the tap-to-sort column headers,
+    // which get hidden below the bb-lb-table breakpoint (see styles.css) in
+    // favour of a stacked-card row layout -- there's no header row left to
+    // tap there, so this is the only way to change sort order on a phone.
+    document.querySelectorAll('[data-lb-mobile-sort-select]').forEach(el => el.onchange = () => {
+      const [col, dir] = el.value.split('|');
+      const isPreseason = state.leaderboardKind === 'PRESEASON';
+      const sortByKey = isPreseason ? 'preseasonLeaderboardSortBy' : 'tippingLeaderboardSortBy';
+      const sortDirKey = isPreseason ? 'preseasonLeaderboardSortDir' : 'tippingLeaderboardSortDir';
+      state[sortByKey] = col;
+      state[sortDirKey] = dir;
+      render();
     });
     const tippingLbRound = $('#tipping-lb-round');
     if(tippingLbRound) tippingLbRound.onchange = e => { state.tippingLeaderboardRound = parseInt(e.target.value, 10); state.tippingLeaderboard = null; render(); };
