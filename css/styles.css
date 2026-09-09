@@ -52,7 +52,7 @@
 .bb-outcome:hover{background:var(--bb-card-bg-alt);}
 .bb-outcome.selected{background:#3a3316;border-color:var(--bb-accent);}
 .bb-odds{font-weight:700;color:var(--bb-accent);min-width:44px;text-align:right;}
-.bb-slip{position:fixed;bottom:0;left:0;right:0;background:#151515;border-top:1px solid var(--bb-border);padding:12px 16px;z-index:50;}
+.bb-slip{position:fixed;bottom:0;left:0;right:0;background:#151515;border-top:1px solid var(--bb-border);padding:9px 14px;z-index:50;}
 .bb-slip-inner{max-width:820px;margin:0 auto;}
 table.bb-table{width:100%;border-collapse:collapse;font-size:18px;}
 table.bb-table th{text-align:left;color:var(--bb-text-muted);font-weight:500;padding:6px 8px;border-bottom:1px solid var(--bb-border);}
