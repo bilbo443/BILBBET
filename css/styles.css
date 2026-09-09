@@ -26,15 +26,15 @@
 }
 
 #app{color:var(--bb-text);}
-.bb-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 16px;border-radius:8px;border:1px solid var(--bb-accent);background:var(--bb-accent);color:var(--bb-accent-text);font-size:14px;font-weight:600;cursor:pointer;}
+.bb-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 16px;border-radius:8px;border:1px solid var(--bb-accent);background:var(--bb-accent);color:var(--bb-accent-text);font-size:16px;font-weight:600;cursor:pointer;}
 .bb-btn:hover{background:#e6c700;border-color:#e6c700;}
 .bb-btn:disabled{opacity:0.5;cursor:not-allowed;}
 .bb-btn.ghost{background:transparent;color:var(--bb-text);border:1px solid var(--bb-border-light);}
 .bb-btn.ghost:hover{background:var(--bb-card-bg-alt);}
-.bb-input,.bb-select{width:100%;box-sizing:border-box;padding:9px 12px;border-radius:8px;border:1px solid var(--bb-border);background:#151515;font-size:14px;color:var(--bb-text);}
+.bb-input,.bb-select{width:100%;box-sizing:border-box;padding:9px 12px;border-radius:8px;border:1px solid var(--bb-border);background:#151515;font-size:16px;color:var(--bb-text);}
 .bb-input:focus,.bb-select:focus{outline:none;border-color:var(--bb-accent);box-shadow:0 0 0 2px rgba(255,221,0,0.25);}
 .bb-card{background:var(--bb-card-bg);border:1px solid var(--bb-border);border-radius:12px;padding:16px 18px;}
-.bb-tab{padding:8px 14px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:1px solid transparent;color:var(--bb-text-muted);}
+.bb-tab{padding:8px 14px;border-radius:8px;font-size:15px;font-weight:500;cursor:pointer;border:1px solid transparent;color:var(--bb-text-muted);}
 .bb-tab.active{background:var(--bb-accent);color:var(--bb-accent-text);border-color:var(--bb-accent);font-weight:600;}
 .bb-tab:hover:not(.active){background:var(--bb-card-bg-alt);color:var(--bb-text);}
 /* Division/competition-specific active-tab colouring -- overrides the generic gold
@@ -54,10 +54,10 @@
 .bb-odds{font-weight:700;color:var(--bb-accent);min-width:44px;text-align:right;}
 .bb-slip{position:fixed;bottom:0;left:0;right:0;background:#151515;border-top:1px solid var(--bb-border);padding:12px 16px;z-index:50;}
 .bb-slip-inner{max-width:820px;margin:0 auto;}
-table.bb-table{width:100%;border-collapse:collapse;font-size:13px;}
+table.bb-table{width:100%;border-collapse:collapse;font-size:15px;}
 table.bb-table th{text-align:left;color:var(--bb-text-muted);font-weight:500;padding:6px 8px;border-bottom:1px solid var(--bb-border);}
 table.bb-table td{padding:8px;border-bottom:1px solid #333;vertical-align:top;color:var(--bb-text);}
-.bb-pill{display:inline-block;font-size:11px;padding:2px 9px;border-radius:99px;font-weight:500;}
+.bb-pill{display:inline-block;font-size:13px;padding:2px 9px;border-radius:99px;font-weight:500;}
 /* A thin coloured accent stripe, placed above a division/competition's market
    content so the section reads by colour even away from the tab bar itself. */
 .bb-div-stripe{height:4px;border-radius:2px;margin-bottom:14px;}
@@ -97,7 +97,7 @@ table.bb-table td{padding:8px;border-bottom:1px solid #333;vertical-align:top;co
 .bb-side-banner-right{right:0;}
 .bb-side-banner-fallback{
   color:var(--bb-text-muted); font-family:system-ui,sans-serif; font-weight:700;
-  letter-spacing:3px; font-size:15px; writing-mode:vertical-rl; text-orientation:mixed;
+  letter-spacing:3px; font-size:17px; writing-mode:vertical-rl; text-orientation:mixed;
 }
 .bb-side-banner img{
   position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
