@@ -1368,7 +1368,7 @@
     if(!state.trashTalkBanner) return '';
     return `<div style="background:#2a1010;color:#e0a0a0;padding:10px 14px;text-align:center;font-size:18px;border-bottom:2px solid #4a1a1a;display:flex;justify-content:center;align-items:center;gap:10px;">
       <span>${esc(state.trashTalkBanner)}</span>
-      <span id="dismiss-trash-talk" style="cursor:pointer;opacity:0.7;font-size:20px;line-height:1;">&times;</span>
+      <span id="dismiss-trash-talk" style="cursor:pointer;opacity:0.7;font-size:20px;line-height:1;padding:10px;margin:-10px;display:inline-block;">&times;</span>
     </div>`;
   }
 
@@ -1533,7 +1533,7 @@
         <div class="bb-card" style="max-width:380px;width:100%;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
             <h3 style="margin:0;display:flex;align-items:center;gap:8px;">${teamLogo(team,22)}${esc(team)}</h3>
-            <span style="font-size:17px;color:#9a9a9a;cursor:pointer;" id="close-form-modal-x">&times;</span>
+            <span style="font-size:17px;color:#9a9a9a;cursor:pointer;padding:10px;margin:-10px;display:inline-block;" id="close-form-modal-x">&times;</span>
           </div>
           ${body}
         </div>
@@ -1561,7 +1561,7 @@
           ${state.info ? `<div style="color:#7fbf8f;font-size:18px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #3d3d3d;">${esc(state.info)}</div>` : ''}
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
             <span style="font-size:17px;color:#9a9a9a;">Step ${i+1} of ${steps.length}</span>
-            <span style="font-size:17px;color:#9a9a9a;cursor:pointer;" id="close-tutorial-modal-x">&times;</span>
+            <span style="font-size:17px;color:#9a9a9a;cursor:pointer;padding:10px;margin:-10px;display:inline-block;" id="close-tutorial-modal-x">&times;</span>
           </div>
           <h3 style="margin:4px 0 10px;">${esc(step.title)}</h3>
           <p style="font-size:19px;line-height:1.6;margin:0 0 16px;">${esc(step.body)}</p>
@@ -1594,7 +1594,7 @@
         <div class="bb-card" style="max-width:420px;width:100%;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
             <h3 style="margin:0;">Contact us</h3>
-            <span style="font-size:17px;color:#9a9a9a;cursor:pointer;" id="close-contact-us-modal-x">&times;</span>
+            <span style="font-size:17px;color:#9a9a9a;cursor:pointer;padding:10px;margin:-10px;display:inline-block;" id="close-contact-us-modal-x">&times;</span>
           </div>
           <p style="font-size:18px;line-height:1.6;color:#cfcfcf;margin:0 0 14px;">We understand not everything will go to expectations. To help us improve the site, we welcome your feedback \u2014 pick whatever's closest to how you're feeling below.</p>
           <select class="bb-select" id="feedback-category-select" style="width:100%;margin-bottom:10px;">
@@ -2307,7 +2307,7 @@
     if(locked){
       const rewardBanner = state.tippingRewardBanner ? `<div class="bb-card" style="margin-bottom:1rem;background:#3a3320;display:flex;justify-content:space-between;align-items:center;">
           <span style="font-size:18px;">${esc(state.tippingRewardBanner)}</span>
-          <span id="dismiss-reward-banner" style="cursor:pointer;color:#9a9a9a;">&times;</span>
+          <span id="dismiss-reward-banner" style="cursor:pointer;color:#9a9a9a;padding:10px;margin:-10px;display:inline-block;">&times;</span>
         </div>` : '';
       const confirmedKeys = Object.keys(state.tippingData.picks).filter(k => activeSection.divs.includes(k.split('|')[0]));
       if(!confirmedKeys.length){
@@ -2980,7 +2980,7 @@
     return `<div class="bb-card" style="margin-bottom:1rem;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
         <strong style="font-size:18px;">Find a team's markets</strong>
-        <span id="close-team-search" style="cursor:pointer;color:#9a9a9a;font-size:21px;line-height:1;">&times;</span>
+        <span id="close-team-search" style="cursor:pointer;color:#9a9a9a;font-size:21px;line-height:1;padding:10px;margin:-10px;display:inline-block;">&times;</span>
       </div>
       ${teamSearchInput('header-team-search', state.teamSearchQuery, 'Search for a team\u2026')}
       <div style="margin-top:4px;max-height:360px;overflow-y:auto;">${renderTeamSearchResults(matched)}</div>
@@ -3045,7 +3045,7 @@
     return `<div class="bb-card" style="margin-bottom:1rem;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
           <strong style="font-size:19px;">All teams</strong>
-          <span id="close-team-directory" style="cursor:pointer;color:var(--bb-text-muted);font-size:21px;line-height:1;">&times;</span>
+          <span id="close-team-directory" style="cursor:pointer;color:var(--bb-text-muted);font-size:21px;line-height:1;padding:10px;margin:-10px;display:inline-block;">&times;</span>
         </div>
         <input class="bb-input" id="team-directory-search" placeholder="Search for a team\u2026" value="${esc(state.teamDirectoryQuery||'')}" style="margin-bottom:10px;">
         ${!filtered.length ? '<p style="color:var(--bb-text-muted);font-size:18px;">No teams match that search.</p>' : ''}
@@ -3158,7 +3158,7 @@
       return `<div class="bb-card"><p style="color:var(--bb-text-muted);margin:0;">No results in yet.</p></div>`;
     }
     const outcomeColor = o => o === 'W' ? 'var(--bb-ok)' : (o === 'L' ? 'var(--bb-danger)' : 'var(--bb-text-muted)');
-    return `<div class="bb-card" style="padding:0;overflow:hidden;">
+    return `<div class="bb-card" style="padding:0;overflow-x:auto;">
         <table style="width:100%;border-collapse:collapse;font-size:19px;">
           <thead><tr style="border-bottom:2px solid var(--bb-border-light);">
             <th style="text-align:left;padding:8px 14px;font-size:16px;color:var(--bb-text-muted);text-transform:uppercase;">Rd</th>
@@ -3717,7 +3717,7 @@
             <div style="font-size:18px;font-weight:600;margin-bottom:4px;">Group ${g} (${(state.eclGroups[g]||[]).length}/4)</div>
             ${(state.eclGroups[g]||[]).map(t => `
               <span style="display:inline-flex;align-items:center;gap:6px;background:#262626;border:1px solid #3d3d3d;border-radius:14px;padding:3px 10px;margin:2px 4px 2px 0;font-size:17px;">
-                ${esc(t)} <span data-remove-eclteam="${g}|${esc(t)}" style="cursor:pointer;color:#9a9a9a;">&times;</span>
+                ${esc(t)} <span data-remove-eclteam="${g}|${esc(t)}" style="cursor:pointer;color:#9a9a9a;padding:10px;margin:-10px;display:inline-block;">&times;</span>
               </span>`).join('')}
           </div>`).join('')}
         <div style="display:flex;gap:6px;align-items:flex-end;margin-top:8px;flex-wrap:wrap;">
@@ -5292,7 +5292,7 @@
             <span style="color:#cfcfcf;flex:1;">${esc(s.label)} <span class="bb-odds">${formatOdds(s.odds)}</span>${state.showImpliedChance?` <span style="color:#9a9a9a;">(${impliedChance(s.odds)})</span>`:''}</span>
             <input class="bb-input" data-single-stake="${esc(s.id)}" type="number" min="1" value="${s.singleStake||50}" style="width:70px;padding:3px 5px;font-size:13px;"/>
             <span style="color:#9a9a9a;width:52px;text-align:right;">&rarr;${fmt(Math.round((s.singleStake||0)*s.odds))}</span>
-            <span data-remove="${esc(s.id)}" style="cursor:pointer;color:#9a9a9a;">&times;</span>
+            <span data-remove="${esc(s.id)}" style="cursor:pointer;color:#9a9a9a;padding:10px;margin:-10px;display:inline-block;">&times;</span>
           </div>`).join('')}
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -5320,7 +5320,7 @@
         ${state.slip.map(s => `<div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0;border-bottom:1px solid #333333;">
           <span style="color:#cfcfcf;">${esc(s.label)}</span>
           <span style="display:flex;gap:8px;align-items:center;"><span class="bb-odds">${formatOdds(s.odds)}</span>${state.showImpliedChance?`<span style="color:#9a9a9a;font-size:13px;">${impliedChance(s.odds)}</span>`:''}
-          <span data-remove="${esc(s.id)}" style="cursor:pointer;color:#9a9a9a;">&times;</span></span></div>`).join('')}
+          <span data-remove="${esc(s.id)}" style="cursor:pointer;color:#9a9a9a;padding:10px;margin:-10px;display:inline-block;">&times;</span></span></div>`).join('')}
       </div>
       ${boostToggle}
       <div style="display:flex;gap:8px;align-items:center;">
