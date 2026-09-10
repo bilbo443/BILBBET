@@ -151,31 +151,6 @@ table.bb-table td{padding:8px;border-bottom:1px solid #333;vertical-align:top;co
   animation: bb-readme-flash 1.4s ease-in-out infinite;
 }
 
-/* Leaderboard table -> stacked cards on phones. The table itself uses
-   inline styles (matching the rest of the codebase's pattern), so
-   overriding it here for the mobile layout needs !important -- a plain
-   class rule can't beat an inline style's specificity. The dropdown
-   stands in for the tap-to-sort column headers, which get hidden along
-   with the rest of the <thead> since there's no header row left to tap. */
-.bb-lb-mobile-sort{ display:none; }
-@media (max-width: 768px){
-  .bb-lb-mobile-sort{ display:block; }
-  .bb-lb-table{ min-width:0 !important; }
-  .bb-lb-table thead{ display:none; }
-  .bb-lb-table, .bb-lb-table tbody, .bb-lb-table tr, .bb-lb-table td{
-    display:block; width:100%; box-sizing:border-box;
-  }
-  .bb-lb-table tr{ padding:10px 14px !important; }
-  .bb-lb-table td{
-    display:flex !important; justify-content:space-between; align-items:center;
-    padding:4px 0 !important; border-bottom:none !important; text-align:right;
-  }
-  .bb-lb-table td::before{
-    content: attr(data-label); font-weight:600; color:var(--bb-text-muted);
-    text-align:left; margin-right:10px;
-  }
-}
-
 /* Main nav: full tab row on wider screens, hamburger dropdown on phones.
    Both are always rendered by mainTabs() -- this just shows/hides whichever
    one fits, so the same [data-tab] click handler works for either without
