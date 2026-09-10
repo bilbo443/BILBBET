@@ -3472,54 +3472,48 @@
       const av = col.valueFn(a), bv = col.valueFn(b);
       return sortDir === 'asc' ? av - bv : bv - av;
     });
-    const arrow = dir => dir === 'asc' ? '&uarr;' : '&darr;';
-    const headerCell = c => {
-      const active = c.key === sortByKey;
-      return `<th data-sort-col="${c.key}" style="text-align:right;padding:8px 8px;color:${active?'var(--bb-accent)':'var(--bb-text-muted)'};font-weight:600;font-size:clamp(16px, calc(16px + 0.4vw), 19px);text-transform:uppercase;letter-spacing:0.04em;cursor:pointer;user-select:none;white-space:nowrap;">
-        ${esc(c.label)}${active ? ' '+arrow(sortDir) : ''}
-      </th>`;
-    };
+    // A ranked list rather than a table: no column grid to fight over
+    // horizontal space, so it's equally comfortable at any screen width
+    // without needing a separate mobile-vs-desktop layout for this
+    // component at all. Rank + name lead each row; the currently-sorted
+    // metric is shown large on the right (whichever one that is, so it's
+    // always clear what's driving the order); the other two metrics sit
+    // together as a small secondary line underneath the name.
     return `<div class="bb-card" style="padding:0;overflow:hidden;">
       <div style="padding:14px 18px 8px;display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:4px;">
         <strong style="font-size:clamp(19px, calc(19px + 0.4vw), 22px);">${esc(title)}</strong>
         ${subtitle ? `<span style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:var(--bb-text-muted);">${subtitle}</span>` : ''}
       </div>
-      <div class="bb-lb-mobile-sort" style="padding:0 18px 10px;">
+      <div style="padding:0 18px 10px;">
         <select class="bb-select" data-lb-mobile-sort-select style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);padding:6px 10px;">
           ${LEADERBOARD_SORT_COLS.map(c => `
-            <option value="${c.key}|desc" ${sortByKey===c.key && sortDir==='desc' ? 'selected' : ''}>${esc(c.label)} (high to low)</option>
-            <option value="${c.key}|asc" ${sortByKey===c.key && sortDir==='asc' ? 'selected' : ''}>${esc(c.label)} (low to high)</option>
+            <option value="${c.key}|desc" ${sortByKey===c.key && sortDir==='desc' ? 'selected' : ''}>Sort: ${esc(c.label)} (high to low)</option>
+            <option value="${c.key}|asc" ${sortByKey===c.key && sortDir==='asc' ? 'selected' : ''}>Sort: ${esc(c.label)} (low to high)</option>
           `).join('')}
         </select>
       </div>
-      <div style="overflow-x:auto;">
-      <table class="bb-lb-table" style="width:100%;border-collapse:collapse;font-size:clamp(19px, calc(19px + 0.4vw), 22px);min-width:360px;">
-        <thead>
-          <tr style="border-bottom:2px solid var(--bb-border-light);">
-            <th style="text-align:left;padding:8px 18px;color:var(--bb-text-muted);font-weight:600;font-size:clamp(16px, calc(16px + 0.4vw), 19px);text-transform:uppercase;letter-spacing:0.04em;">#</th>
-            <th style="text-align:left;padding:8px 8px;color:var(--bb-text-muted);font-weight:600;font-size:clamp(16px, calc(16px + 0.4vw), 19px);text-transform:uppercase;letter-spacing:0.04em;">Punter</th>
-            ${LEADERBOARD_SORT_COLS.map(headerCell).join('')}
-          </tr>
-        </thead>
-        <tbody>
-          ${sorted.map((t,i) => {
-            const isYou = currentUsername && t.username === currentUsername;
-            const zebra = i % 2 === 1 ? 'background:var(--bb-card-bg-alt);' : '';
-            const rowBg = isYou ? 'background:#2a2a1a;' : zebra;
-            const graded = t.total > 0;
-            const upcomingTick = (showUpcomingCheck && t.submittedUpcoming)
-              ? ` <span style="color:var(--bb-ok);font-weight:700;" title="Already submitted picks for the upcoming round">&#10003;</span>` : '';
-            return `<tr style="border-bottom:1px solid var(--bb-border);${rowBg}">
-              <td data-label="#" style="padding:9px 18px;color:var(--bb-text-muted);font-variant-numeric:tabular-nums;">${i+1}</td>
-              <td data-label="Punter" style="padding:9px 8px;font-weight:${isYou?'700':'400'};${isYou?'color:var(--bb-accent);':''}">${esc(t.username)}${upcomingTick}${isYou?' <span style="font-size:clamp(15px, calc(15px + 0.4vw), 18px);color:var(--bb-text-muted);font-weight:400;">(you)</span>':''}${!graded?' <span style="font-size:clamp(15px, calc(15px + 0.4vw), 18px);color:var(--bb-text-muted);">(joined, no results yet)</span>':''}</td>
-              <td data-label="Odds pts" style="padding:9px 8px;text-align:right;font-weight:600;color:${graded?'var(--bb-accent)':'var(--bb-text-muted)'};font-variant-numeric:tabular-nums;">${graded?t.oddsPoints.toFixed(2):'&mdash;'}</td>
-              <td data-label="Correct" style="padding:9px 8px;text-align:right;color:var(--bb-text-muted);font-variant-numeric:tabular-nums;">${graded?`${fmtCorrect(t.correct)}/${t.total}`:'&mdash;'}</td>
-              <td data-label="%" style="padding:9px 18px;text-align:right;color:var(--bb-text-muted);font-variant-numeric:tabular-nums;">${graded?(t.correct/t.total*100).toFixed(1)+'%':'&mdash;'}</td>
-            </tr>`;
-          }).join('')}
-        </tbody>
-      </table>
-      </div>
+      ${sorted.map((t,i) => {
+        const isYou = currentUsername && t.username === currentUsername;
+        const zebra = i % 2 === 1 ? 'background:var(--bb-card-bg-alt);' : '';
+        const rowBg = isYou ? 'background:#2a2a1a;' : zebra;
+        const graded = t.total > 0;
+        const upcomingTick = (showUpcomingCheck && t.submittedUpcoming)
+          ? ` <span style="color:var(--bb-ok);font-weight:700;" title="Already submitted picks for the upcoming round">&#10003;</span>` : '';
+        const otherCols = LEADERBOARD_SORT_COLS.filter(c => c.key !== col.key);
+        const secondaryLine = graded
+          ? otherCols.map(c => `${esc(c.label)} ${c.fmt(c.valueFn(t), t)}`).join(' \u00b7 ')
+          : (showUpcomingCheck ? 'Joined, no results yet' : '\u2014');
+        return `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 18px;border-bottom:1px solid var(--bb-border);${rowBg}">
+          <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+            <span style="color:var(--bb-text-muted);font-variant-numeric:tabular-nums;min-width:1.4em;">${i+1}</span>
+            <div style="min-width:0;">
+              <div style="font-weight:${isYou?'700':'400'};${isYou?'color:var(--bb-accent);':''}overflow-wrap:break-word;">${esc(t.username)}${upcomingTick}${isYou?' <span style="font-size:clamp(15px, calc(15px + 0.4vw), 18px);color:var(--bb-text-muted);font-weight:400;">(you)</span>':''}</div>
+              <div style="font-size:clamp(15px, calc(15px + 0.4vw), 18px);color:var(--bb-text-muted);">${secondaryLine}</div>
+            </div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;font-weight:700;color:${graded?'var(--bb-accent)':'var(--bb-text-muted)'};font-variant-numeric:tabular-nums;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">${graded?col.fmt(col.valueFn(t), t):'&mdash;'}</div>
+        </div>`;
+      }).join('')}
     </div>`;
   }
 
@@ -6771,23 +6765,10 @@
       state.tippingLeaderboard = null;
       render();
     });
-    document.querySelectorAll('[data-sort-col]').forEach(el => el.onclick = () => {
-      const col = el.dataset.sortCol;
-      const isPreseason = state.leaderboardKind === 'PRESEASON';
-      const sortByKey = isPreseason ? 'preseasonLeaderboardSortBy' : 'tippingLeaderboardSortBy';
-      const sortDirKey = isPreseason ? 'preseasonLeaderboardSortDir' : 'tippingLeaderboardSortDir';
-      if(state[sortByKey] === col){
-        state[sortDirKey] = state[sortDirKey] === 'desc' ? 'asc' : 'desc'; // same column again -- flip direction
-      } else {
-        state[sortByKey] = col;
-        state[sortDirKey] = 'desc'; // a newly-selected column always starts high-to-low
-      }
-      render(); // pure re-sort of already-loaded data -- no recomputation needed
-    });
-    // Mobile-only dropdown standing in for the tap-to-sort column headers,
-    // which get hidden below the bb-lb-table breakpoint (see styles.css) in
-    // favour of a stacked-card row layout -- there's no header row left to
-    // tap there, so this is the only way to change sort order on a phone.
+    // The leaderboard's only sort control now -- it used to stand in just
+    // for mobile alongside tap-to-sort table headers, but the whole table
+    // was replaced with a ranked-list layout at every screen size, so this
+    // dropdown is the single, universal way to change sort order now.
     document.querySelectorAll('[data-lb-mobile-sort-select]').forEach(el => el.onchange = () => {
       const [col, dir] = el.value.split('|');
       const isPreseason = state.leaderboardKind === 'PRESEASON';
