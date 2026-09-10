@@ -186,13 +186,11 @@ table.bb-table td{padding:8px;border-bottom:1px solid #333;vertical-align:top;co
   .bb-tabs-mobile{ display:block; }
 }
 
-/* Featured fixture/future cards on Home: the label side uses flex:1 (fill
-   remaining space) while the odds sit in a fixed-width column, which is
-   fine on desktop -- but on a narrow phone, short label text left a big
-   empty gap between the text and the odds, since flex:1 stretches the
-   label's box even though the text inside it doesn't fill it. Letting the
-   label size to its own content on mobile pulls the odds back in close to
-   the text instead of leaving them stranded at the far edge. */
-@media (max-width: 640px){
-  .bb-featured-label{ flex:0 1 auto !important; }
-}
+/* Featured fixture/future cards on Home, and the .bb-outcome betting rows
+   used throughout the markets: the odds column sits at a consistent
+   position on the right in every row of a section (locked, not shifting
+   per-row based on label text length), but the breathing room before it
+   scales with the viewport instead of being a fixed pixel gap -- tighter
+   on a phone, roomier on a wide screen. */
+.bb-featured-card{ padding-right:clamp(12px, 4vw, 32px) !important; }
+.bb-outcome{ padding-right:clamp(12px, 4vw, 32px) !important; }
