@@ -147,10 +147,8 @@ table.bb-table td{padding:8px;border-bottom:1px solid #333;vertical-align:top;co
   0%, 100% { opacity: 1; }
   50% { opacity: 0.35; }
 }
-.bb-tabs-mobile{ display:none; }
-@media (max-width: 640px){
-  .bb-tabs-row{ display:none !important; }
-  .bb-tabs-mobile{ display:block; }
+.bb-readme-flash{
+  animation: bb-readme-flash 1.4s ease-in-out infinite;
 }
 
 /* Leaderboard table -> stacked cards on phones. The table itself uses
@@ -178,16 +176,6 @@ table.bb-table td{padding:8px;border-bottom:1px solid #333;vertical-align:top;co
   }
 }
 
-/* Read Me link: draws the eye before login, then settles down once someone's
-   logged in (no reason to keep flashing at a returning, familiar punter). */
-@keyframes bb-readme-flash{
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.35; }
-}
-.bb-readme-flash{
-  animation: bb-readme-flash 1.4s ease-in-out infinite;
-}
-
 /* Main nav: full tab row on wider screens, hamburger dropdown on phones.
    Both are always rendered by mainTabs() -- this just shows/hides whichever
    one fits, so the same [data-tab] click handler works for either without
@@ -196,4 +184,15 @@ table.bb-table td{padding:8px;border-bottom:1px solid #333;vertical-align:top;co
 @media (max-width: 640px){
   .bb-tabs-row{ display:none !important; }
   .bb-tabs-mobile{ display:block; }
+}
+
+/* Featured fixture/future cards on Home: the label side uses flex:1 (fill
+   remaining space) while the odds sit in a fixed-width column, which is
+   fine on desktop -- but on a narrow phone, short label text left a big
+   empty gap between the text and the odds, since flex:1 stretches the
+   label's box even though the text inside it doesn't fill it. Letting the
+   label size to its own content on mobile pulls the odds back in close to
+   the text instead of leaving them stranded at the far edge. */
+@media (max-width: 640px){
+  .bb-featured-label{ flex:0 1 auto !important; }
 }
