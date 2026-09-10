@@ -334,6 +334,7 @@
     registeringMode: false, customNameMode: false, tipReminderOptIn: true,
     tosModalOpen: false, tosMode: 'view', tosAgreed: false, readMeModalOpen: false,
     tutorialModalOpen: false, tutorialStep: 0, welcomeModalOpen: false, installAppModalOpen: false,
+    mobileNavOpen: false,
     contactUsModalOpen: false, feedbackCategory: '', feedbackOtherText: '', feedbackSubmitted: false,
     formModalOpen: false, formModalTeam: null,
     tippingSubTab: 'PICKS', tippingSection: 'ELIZA', tippingRound: null, tippingViewRound: null, tippingData: null, tippingPending: {}, tippingAllPicks: null,
@@ -1753,17 +1754,36 @@
     </div>`;
   }
 
+  // Two parallel nav renderings sharing the same tab data and the same
+  // [data-tab] click handler (wired once, generically, for whichever one is
+  // actually visible) -- .bb-tabs-row/.bb-tabs-mobile toggle via CSS media
+  // query, so this never depends on JS to detect screen size.
   function mainTabs(){
-    return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">' +
-      currentTabs().map(t => {
-        const label = t==='MY BETS'?'My Bets':(t==='ADMIN'?'Admin':(t==='H2H'?'H2H':(t==='HOME'?'Home':(t==='FUTURES'?'Futures':(t==='TIPPING'?'Tipping':t)))));
-        const adminFlag = (t==='ADMIN' && state.user && state.user.isAdmin && adminNeedsAttention())
-          ? ' <span title="Needs attention" style="font-size:16px;">\u{1F6A9}</span>' : '';
-        const tipFlag = (t==='TIPPING' && state.tipReminderStatus === true)
-          ? ' <span title="You haven\'t submitted your tips for this week yet" style="font-size:16px;">\u{1F6A9}</span>' : '';
-        return `<div class="bb-tab ${state.activeTab===t?'active':''}" data-tab="${esc(t)}" style="display:flex;align-items:center;gap:5px;">${label}${adminFlag}${tipFlag}</div>`;
-      }).join('') +
+    const items = currentTabs().map(t => {
+      const label = t==='MY BETS'?'My Bets':(t==='ADMIN'?'Admin':(t==='H2H'?'H2H':(t==='HOME'?'Home':(t==='FUTURES'?'Futures':(t==='TIPPING'?'Tipping':t)))));
+      const adminFlag = (t==='ADMIN' && state.user && state.user.isAdmin && adminNeedsAttention())
+        ? ' <span title="Needs attention" style="font-size:16px;">\u{1F6A9}</span>' : '';
+      const tipFlag = (t==='TIPPING' && state.tipReminderStatus === true)
+        ? ' <span title="You haven\'t submitted your tips for this week yet" style="font-size:16px;">\u{1F6A9}</span>' : '';
+      return { t, label, adminFlag, tipFlag };
+    });
+
+    const desktopRow = '<div class="bb-tabs-row" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">' +
+      items.map(i => `<div class="bb-tab ${state.activeTab===i.t?'active':''}" data-tab="${esc(i.t)}" style="display:flex;align-items:center;gap:5px;">${i.label}${i.adminFlag}${i.tipFlag}</div>`).join('') +
       '</div>';
+
+    const active = items.find(i => i.t === state.activeTab);
+    const mobileNav = `<div class="bb-tabs-mobile" style="margin-bottom:10px;">
+        <button id="mobile-nav-toggle" class="bb-btn ghost" style="width:100%;display:flex;justify-content:space-between;align-items:center;">
+          <span>&#9776;&nbsp; ${active?active.label:''}${active?active.adminFlag:''}${active?active.tipFlag:''}</span>
+          <span>${state.mobileNavOpen ? '\u25B2' : '\u25BC'}</span>
+        </button>
+        ${state.mobileNavOpen ? `<div style="display:flex;flex-direction:column;gap:4px;margin-top:6px;border:1px solid var(--bb-border);border-radius:8px;overflow:hidden;">
+          ${items.map(i => `<div class="bb-tab ${state.activeTab===i.t?'active':''}" data-tab="${esc(i.t)}" style="border-radius:0;padding:14px 16px;display:flex;align-items:center;gap:5px;">${i.label}${i.adminFlag}${i.tipFlag}</div>`).join('')}
+        </div>` : ''}
+      </div>`;
+
+    return desktopRow + mobileNav;
   }
 
   const DIV3_TABS = ['DIVISION 3A', 'DIVISION 3B'];
@@ -6537,6 +6557,7 @@
     const useAdminBtn = $('#use-admin-login'); if(useAdminBtn) useAdminBtn.onclick = () => { state.adminLoginMode = true; render(); };
     document.querySelectorAll('[data-tab]').forEach(el => el.onclick = () => {
       state.activeTab = el.dataset.tab;
+      state.mobileNavOpen = false; // picking a tab (desktop or mobile) always closes the mobile dropdown
       state.cupFixtureMarket = null;
       state.playoffFixtureMarket = null;
       if(state.activeTab === 'FUTURES'){
@@ -6552,6 +6573,8 @@
       render();
     });
     document.querySelectorAll('[data-marketkey]').forEach(el => el.onclick = () => { state.futureMarketTab = el.dataset.marketkey; state.cupFixtureMarket = null; render(); });
+    const mobileNavToggle = $('#mobile-nav-toggle');
+    if(mobileNavToggle) mobileNavToggle.onclick = () => { state.mobileNavOpen = !state.mobileNavOpen; render(); };
     const teamAEl = $('#team-a');
     if(teamAEl){
       teamAEl.oninput = e => { state.teamA = e.target.value; };
