@@ -437,7 +437,7 @@
   // inconsistent and occasionally still crowded the odds on narrow screens.
   // Truncating to a fixed max length keeps every row a predictable width;
   // the full name is always still available via the title tooltip.
-  function abbrevTeam(name, maxLen=14){
+  function abbrevTeam(name, maxLen=12){
     if(name.length <= maxLen) return name;
     return name.slice(0, maxLen-1).trimEnd() + '\u2026';
   }
