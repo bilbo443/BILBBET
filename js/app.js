@@ -135,7 +135,7 @@
     document.getElementById('app').innerHTML = `
       <div style="padding:2rem 1rem;max-width:420px;margin:0 auto;color:#f5f5f5;font-family:system-ui,sans-serif;">
         <h2 style="margin:0 0 8px;">Couldn't load bilbbet</h2>
-        <p style="color:#9a9a9a;font-size:19px;">One of the files in <code>/data</code> failed to load (${esc(e.message)}). If you're setting this up from a fresh copy, check every file in the <code>data/</code> folder was uploaded, including any newly added ones -- a single missing or renamed data file stops the whole page from starting.</p>
+        <p style="color:#9a9a9a;font-size:clamp(19px, calc(19px + 0.4vw), 22px);">One of the files in <code>/data</code> failed to load (${esc(e.message)}). If you're setting this up from a fresh copy, check every file in the <code>data/</code> folder was uploaded, including any newly added ones -- a single missing or renamed data file stops the whole page from starting.</p>
       </div>`;
     return;
   }
@@ -916,10 +916,10 @@
     }
     return `<div class="bb-card" style="margin-bottom:1rem;">
       <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">
-        <span style="font-size:17px;color:#9a9a9a;text-transform:uppercase;letter-spacing:0.05em;">Round ${round} projected score</span>
-        <span style="font-size:23px;font-weight:800;color:#ffdd00;">${baseline.toFixed(1)} pts</span>
+        <span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;text-transform:uppercase;letter-spacing:0.05em;">Round ${round} projected score</span>
+        <span style="font-size:clamp(23px, calc(23px + 0.4vw), 26px);font-weight:800;color:#ffdd00;">${baseline.toFixed(1)} pts</span>
       </div>
-      <div style="font-size:17px;color:#9a9a9a;margin-top:2px;">${note}</div>
+      <div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-top:2px;">${note}</div>
     </div>`;
   }
 
@@ -1167,12 +1167,12 @@
     const fixtureCards = fixtures.length ? fixtures.map(p => `
       <div class="bb-card" style="display:flex;align-items:stretch;gap:12px;margin-bottom:8px;">
         <div class="bb-featured-label" style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:3px;">
-          <div style="font-size:16px;color:#9a9a9a;">${p.isCup ? esc(p.stage) + ' \u2014 ' + esc(p.division) : esc(p.division.replace(' (D1)',''))}</div>
+          <div style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:#9a9a9a;">${p.isCup ? esc(p.stage) + ' \u2014 ' + esc(p.division) : esc(p.division.replace(' (D1)',''))}</div>
           <div style="font-weight:600;display:flex;align-items:center;gap:6px;">${teamLogo(p.team,18)}${esc(p.team)}</div>
-          <div style="font-weight:600;display:flex;align-items:center;gap:6px;color:#9a9a9a;font-size:18px;">vs ${esc(p.opp)}</div>
+          <div style="font-weight:600;display:flex;align-items:center;gap:6px;color:#9a9a9a;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">vs ${esc(p.opp)}</div>
         </div>
         <div style="width:88px;flex-shrink:0;display:flex;flex-direction:column;justify-content:center;gap:2px;">
-          <div style="font-size:15px;color:#6a6a6a;text-decoration:line-through;text-align:center;">${p.baseOdds.toFixed(2)}</div>
+          <div style="font-size:clamp(15px, calc(15px + 0.4vw), 18px);color:#6a6a6a;text-decoration:line-through;text-align:center;">${p.baseOdds.toFixed(2)}</div>
           ${priceOnlyButton(p.id, p.team + ' to win (boosted)', {odds:p.odds, suspended:false})}
         </div>
       </div>`).join('') : `<div class="bb-card" style="text-align:center;padding:1.5rem;color:#9a9a9a;">${fixturesLoading ? 'Loading&hellip;' : "No featured fixtures this round yet \u2014 check back once the round's matches are set."}</div>`;
@@ -1180,11 +1180,11 @@
     const futureCards = futures.length ? futures.map(p => `
       <div class="bb-card" style="display:flex;align-items:stretch;gap:12px;margin-bottom:8px;">
         <div class="bb-featured-label" style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:3px;">
-          <div style="font-size:16px;color:#9a9a9a;">${esc(p.market)} \u2014 ${esc(String(p.division).replace(' (D1)',''))}</div>
+          <div style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:#9a9a9a;">${esc(p.market)} \u2014 ${esc(String(p.division).replace(' (D1)',''))}</div>
           <div style="font-weight:600;display:flex;align-items:center;gap:6px;">${teamLogo(p.team,18)}${esc(p.team)}</div>
         </div>
         <div style="width:88px;flex-shrink:0;display:flex;flex-direction:column;justify-content:center;gap:2px;">
-          <div style="font-size:15px;color:#6a6a6a;text-decoration:line-through;text-align:center;">${p.baseOdds.toFixed(2)}</div>
+          <div style="font-size:clamp(15px, calc(15px + 0.4vw), 18px);color:#6a6a6a;text-decoration:line-through;text-align:center;">${p.baseOdds.toFixed(2)}</div>
           ${priceOnlyButton(p.id, esc(p.team) + ' ' + esc(p.market) + ' (boosted)', {odds:p.odds, suspended:false})}
         </div>
       </div>`).join('') : `<div class="bb-card" style="text-align:center;padding:1.5rem;color:#9a9a9a;">${state.currentRound >= 24 ? "No futures featured this late in the season \u2014 not much left for a season-long bet to play out." : "No standout futures right now \u2014 check back soon."}</div>`;
@@ -1192,10 +1192,10 @@
     const bvw = state.homeBestValueWinner;
     const bestValueCard = bvw ? `
       <div class="bb-card" style="display:flex;align-items:center;gap:10px;">
-        <span style="font-size:25px;">\u{1F48E}</span>
+        <span style="font-size:clamp(25px, calc(25px + 0.4vw), 28px);">\u{1F48E}</span>
         <div>
           <div style="font-weight:600;display:flex;align-items:center;gap:6px;">${teamLogo(bvw.team,18)}${esc(bvw.team)} beat ${esc(bvw.opp)}</div>
-          <div style="font-size:17px;color:#9a9a9a;">Round ${bvw.round} &middot; ${esc(bvw.division.replace(' (D1)',''))} &middot; would have paid <span style="color:#ffdd00;font-weight:600;">${formatOdds(bvw.odds)}</span> \u2014 whether anyone backed it or not</div>
+          <div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">Round ${bvw.round} &middot; ${esc(bvw.division.replace(' (D1)',''))} &middot; would have paid <span style="color:#ffdd00;font-weight:600;">${formatOdds(bvw.odds)}</span> \u2014 whether anyone backed it or not</div>
         </div>
       </div>` : `<div class="bb-card" style="text-align:center;padding:1.5rem;color:#9a9a9a;">No results in yet for last round.</div>`;
 
@@ -1210,10 +1210,10 @@
     } else {
       bestBetCard = `
       <div class="bb-card" style="display:flex;align-items:center;gap:10px;">
-        <span style="font-size:25px;">\u{1F3C6}</span>
+        <span style="font-size:clamp(25px, calc(25px + 0.4vw), 28px);">\u{1F3C6}</span>
         <div>
           <div style="font-weight:600;">${esc(bb.username)}'s bet won at ${bb.combinedOdds.toFixed(2)}</div>
-          <div style="font-size:17px;color:#9a9a9a;">${bb.selections.length} selection${bb.selections.length>1?'s':''} &middot; ${fmt(bb.stake)} staked &middot; returned <span style="color:#ffdd00;font-weight:600;">${fmt(bb.potentialReturn)}</span> clams</div>
+          <div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">${bb.selections.length} selection${bb.selections.length>1?'s':''} &middot; ${fmt(bb.stake)} staked &middot; returned <span style="color:#ffdd00;font-weight:600;">${fmt(bb.potentialReturn)}</span> clams</div>
         </div>
       </div>`;
     }
@@ -1221,8 +1221,8 @@
     return `
       ${renderHomeDigest()}
       <div class="bb-card" style="background:linear-gradient(135deg,#2a2410,#1a1a1a);border-color:#4a3a10;margin-bottom:16px;text-align:center;padding:1.25rem;">
-        <div style="font-size:17px;letter-spacing:0.08em;color:#ffdd00;text-transform:uppercase;font-weight:700;">This week's boosted odds</div>
-        <div style="font-size:17px;color:#9a9a9a;margin-top:4px;">Every pick below is +${Math.round((FEATURED_BOOST_MULTIPLIER-1)*100)}% on the normal price \u2014 just for being featured.</div>
+        <div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);letter-spacing:0.08em;color:#ffdd00;text-transform:uppercase;font-weight:700;">This week's boosted odds</div>
+        <div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-top:4px;">Every pick below is +${Math.round((FEATURED_BOOST_MULTIPLIER-1)*100)}% on the normal price \u2014 just for being featured.</div>
       </div>
       ${renderTippingNudgeCard()}
       ${renderPointProjection(state.currentRound)}
@@ -1294,7 +1294,7 @@
       </div>
       <div style="text-align:center;margin-top:4px;">
         <a href="https://bilbo443.github.io/BILBBET/" target="_blank" rel="noopener noreferrer"
-           style="display:inline-block;background:#ffdd00;color:#1a1a1a;font-weight:700;font-size:17px;padding:9px 18px;border-radius:4px;text-decoration:none;letter-spacing:0.02em;">
+           style="display:inline-block;background:#ffdd00;color:#1a1a1a;font-weight:700;font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:9px 18px;border-radius:4px;text-decoration:none;letter-spacing:0.02em;">
           See full odds &amp; place a bet &rarr;
         </a>
       </div>
@@ -1307,8 +1307,8 @@
   function helpTip(id, text){
     const open = state.openHelpTip === id;
     return `<span style="position:relative;display:inline-block;">
-        <span data-helptip="${esc(id)}" style="cursor:pointer;color:#9a9a9a;font-size:15px;border:1px solid #5a5a5a;border-radius:50%;width:14px;height:14px;display:inline-flex;align-items:center;justify-content:center;margin-left:4px;vertical-align:middle;">?</span>
-        ${open ? `<span data-helptip-panel style="position:absolute;top:18px;left:0;z-index:70;background:#2a2a2a;border:1px solid #3d3d3d;border-radius:6px;padding:8px 10px;font-size:16px;font-weight:400;color:#cfcfcf;width:200px;box-shadow:0 4px 10px rgba(0,0,0,0.4);">${esc(text)}</span>` : ''}
+        <span data-helptip="${esc(id)}" style="cursor:pointer;color:#9a9a9a;font-size:clamp(15px, calc(15px + 0.4vw), 18px);border:1px solid #5a5a5a;border-radius:50%;width:14px;height:14px;display:inline-flex;align-items:center;justify-content:center;margin-left:4px;vertical-align:middle;">?</span>
+        ${open ? `<span data-helptip-panel style="position:absolute;top:18px;left:0;z-index:70;background:#2a2a2a;border:1px solid #3d3d3d;border-radius:6px;padding:8px 10px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);font-weight:400;color:#cfcfcf;width:200px;box-shadow:0 4px 10px rgba(0,0,0,0.4);">${esc(text)}</span>` : ''}
       </span>`;
   }
 
@@ -1328,7 +1328,7 @@
     return `<div style="position:relative;">
       <input class="bb-input" type="text" id="${id}" value="${esc(currentValue||'')}" placeholder="${esc(placeholder||'Search for a team\u2026')}" autocomplete="off" data-team-dropdown="${listId}" style="width:100%;box-sizing:border-box;"/>
       <div id="${listId}" class="bb-team-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;max-height:200px;overflow-y:auto;background:#2a2a2a;border:1px solid #3d3d3d;border-radius:6px;z-index:60;margin-top:2px;box-shadow:0 4px 10px rgba(0,0,0,0.4);">
-        ${ALL_TEAMS.map(t => `<div class="bb-team-option" data-team-option="${esc(t)}" data-option-for="${id}" style="padding:8px 12px;cursor:pointer;font-size:18px;">${esc(t)}</div>`).join('')}
+        ${ALL_TEAMS.map(t => `<div class="bb-team-option" data-team-option="${esc(t)}" data-option-for="${id}" style="padding:8px 12px;cursor:pointer;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">${esc(t)}</div>`).join('')}
       </div>
     </div>`;
   }
@@ -1349,7 +1349,7 @@
 
   function renderStorageWarning(){
     if(!state.storageDegraded) return '';
-    return `<div style="background:#3a2a26;color:#f0b8a8;padding:10px 14px;text-align:center;font-size:18px;border-bottom:2px solid #a3402f;">
+    return `<div style="background:#3a2a26;color:#f0b8a8;padding:10px 14px;text-align:center;font-size:clamp(18px, calc(18px + 0.4vw), 21px);border-bottom:2px solid #a3402f;">
       \u26A0\uFE0F Running without a persistent connection right now &mdash; anything you do (bets, balance changes, registrations) will be lost if you close or refresh this page. Try reloading in a bit; if it keeps happening, tell the admin.
     </div>`;
   }
@@ -1360,16 +1360,16 @@
   // actually launches rather than needing a separate manual toggle.
   function renderTestingPhaseDisclaimer(){
     if(isRoundBlocked(1)) return '';
-    return `<div style="background:#2a2410;color:#e0d090;padding:10px 14px;text-align:center;font-size:18px;border-bottom:2px solid #4a3a10;">
+    return `<div style="background:#2a2410;color:#e0d090;padding:10px 14px;text-align:center;font-size:clamp(18px, calc(18px + 0.4vw), 21px);border-bottom:2px solid #4a3a10;">
       \u26A0\uFE0F Testing phase &mdash; odds shown right now aren't final and may change before the season launches. Only bets placed once team rosters are confirmed will count, unless stated otherwise.
     </div>`;
   }
 
   function renderTrashTalkBanner(){
     if(!state.trashTalkBanner) return '';
-    return `<div style="background:#2a1010;color:#e0a0a0;padding:10px 14px;text-align:center;font-size:18px;border-bottom:2px solid #4a1a1a;display:flex;justify-content:center;align-items:center;gap:10px;">
+    return `<div style="background:#2a1010;color:#e0a0a0;padding:10px 14px;text-align:center;font-size:clamp(18px, calc(18px + 0.4vw), 21px);border-bottom:2px solid #4a1a1a;display:flex;justify-content:center;align-items:center;gap:10px;">
       <span>${esc(state.trashTalkBanner)}</span>
-      <span id="dismiss-trash-talk" style="cursor:pointer;opacity:0.7;font-size:20px;line-height:1;padding:10px;margin:-10px;display:inline-block;">&times;</span>
+      <span id="dismiss-trash-talk" style="cursor:pointer;opacity:0.7;font-size:clamp(20px, calc(20px + 0.4vw), 23px);line-height:1;padding:10px;margin:-10px;display:inline-block;">&times;</span>
     </div>`;
   }
 
@@ -1383,15 +1383,15 @@
   function renderFooter(){
     const flashClass = state.user ? '' : ' bb-readme-flash';
     return `<div style="text-align:center;padding:24px 0 12px;">
-      <span id="open-tos-footer" style="font-size:17px;color:#9a9a9a;text-decoration:underline;cursor:pointer;">Terms &amp; Conditions</span>
+      <span id="open-tos-footer" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;text-decoration:underline;cursor:pointer;">Terms &amp; Conditions</span>
       <span style="color:#5a5a5a;margin:0 8px;">&middot;</span>
-      <span id="open-readme-footer" class="${flashClass}" style="font-size:17px;color:#9a9a9a;text-decoration:underline;cursor:pointer;">Read me</span>
+      <span id="open-readme-footer" class="${flashClass}" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;text-decoration:underline;cursor:pointer;">Read me</span>
       <span style="color:#5a5a5a;margin:0 8px;">&middot;</span>
-      <span id="open-tutorial-btn" style="font-size:17px;color:#9a9a9a;text-decoration:underline;cursor:pointer;" title="New here? Take the tour">Tutorial</span>
+      <span id="open-tutorial-btn" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;text-decoration:underline;cursor:pointer;" title="New here? Take the tour">Tutorial</span>
       <span style="color:#5a5a5a;margin:0 8px;">&middot;</span>
-      <span id="open-contact-us-btn" style="font-size:17px;color:#9a9a9a;text-decoration:underline;cursor:pointer;">Contact us</span>
+      <span id="open-contact-us-btn" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;text-decoration:underline;cursor:pointer;">Contact us</span>
       <span style="color:#5a5a5a;margin:0 8px;">&middot;</span>
-      <span id="open-install-app-footer" style="font-size:17px;color:#9a9a9a;text-decoration:underline;cursor:pointer;">Install app</span>
+      <span id="open-install-app-footer" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;text-decoration:underline;cursor:pointer;">Install app</span>
     </div>`;
   }
 
@@ -1401,15 +1401,15 @@
       <div id="tos-modal-backdrop" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:110;display:flex;align-items:center;justify-content:center;padding:1rem;">
         <div class="bb-card" style="max-width:420px;width:100%;max-height:80vh;display:flex;flex-direction:column;">
           <h3 style="margin:0 0 10px;">Terms &amp; Conditions</h3>
-          <div id="tos-scroll-content" style="overflow-y:auto;flex:1;border:1px solid #3d3d3d;border-radius:8px;padding:14px;margin-bottom:12px;font-size:19px;line-height:1.6;">
+          <div id="tos-scroll-content" style="overflow-y:auto;flex:1;border:1px solid #3d3d3d;border-radius:8px;padding:14px;margin-bottom:12px;font-size:clamp(19px, calc(19px + 0.4vw), 22px);line-height:1.6;">
             <p style="color:#9a9a9a;margin-top:0;">By registering an account on bilbbet, you agree to the following:</p>
             <ol style="padding-left:20px;margin-bottom:0;">
               ${TOS_CONDITIONS.map(c => `<li style="margin-bottom:14px;">${esc(c)}</li>`).join('')}
             </ol>
-            <p style="color:#8a8a8a;font-size:17px;margin-bottom:0;">(End of terms.)</p>
+            <p style="color:#8a8a8a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:0;">(End of terms.)</p>
           </div>
           ${registerMode ? `
-            <label style="display:flex;align-items:flex-start;gap:8px;font-size:18px;margin-bottom:12px;">
+            <label style="display:flex;align-items:flex-start;gap:8px;font-size:clamp(18px, calc(18px + 0.4vw), 21px);margin-bottom:12px;">
               <input type="checkbox" id="tos-agree-checkbox" ${state.tosAgreed?'checked':''} style="margin-top:2px;"/>
               <span>I have read and agree to the Terms &amp; Conditions.</span>
             </label>` : ''}
@@ -1511,9 +1511,9 @@
     if(thisSeasonRows.length){
       const scores = thisSeasonRows.map(r=>r.score);
       const avg = scores.reduce((a,b)=>a+b,0) / scores.length;
-      body = `<div style="font-size:17px;color:#9a9a9a;margin-bottom:8px;">This season, ${thisSeasonRows.length} round${thisSeasonRows.length!==1?'s':''} played \u2014 average ${avg.toFixed(1)}.</div>
+      body = `<div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-bottom:8px;">This season, ${thisSeasonRows.length} round${thisSeasonRows.length!==1?'s':''} played \u2014 average ${avg.toFixed(1)}.</div>
         <div style="max-height:320px;overflow-y:auto;">
-          ${thisSeasonRows.slice().reverse().map(r => `<div style="display:flex;justify-content:space-between;padding:7px 4px;border-bottom:1px solid #3d3d3d;font-size:18px;">
+          ${thisSeasonRows.slice().reverse().map(r => `<div style="display:flex;justify-content:space-between;padding:7px 4px;border-bottom:1px solid #3d3d3d;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">
             <span style="color:#9a9a9a;">Round ${r.round}</span><span style="font-weight:600;">${r.score}</span>
           </div>`).join('')}
         </div>`;
@@ -1521,12 +1521,12 @@
       const hist = H2H_HISTORY[team];
       if(hist && hist.length){
         const avg = hist.reduce((a,b)=>a+b,0) / hist.length;
-        body = `<div style="font-size:17px;color:#9a9a9a;margin-bottom:8px;">No results yet this season. Showing a sample of historical scores instead (${hist.length} total on record, average ${avg.toFixed(1)}) \u2014 not necessarily in chronological order, just the most recent real data available until this season's results come in.</div>
+        body = `<div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-bottom:8px;">No results yet this season. Showing a sample of historical scores instead (${hist.length} total on record, average ${avg.toFixed(1)}) \u2014 not necessarily in chronological order, just the most recent real data available until this season's results come in.</div>
           <div style="max-height:320px;overflow-y:auto;display:flex;flex-wrap:wrap;gap:6px;">
-            ${hist.slice(0, 20).map(s => `<span style="background:#2a2a2a;border-radius:4px;padding:4px 8px;font-size:17px;">${Math.round(s)}</span>`).join('')}
+            ${hist.slice(0, 20).map(s => `<span style="background:#2a2a2a;border-radius:4px;padding:4px 8px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">${Math.round(s)}</span>`).join('')}
           </div>`;
       } else {
-        body = `<p style="color:#9a9a9a;font-size:18px;">No results on record for this team yet.</p>`;
+        body = `<p style="color:#9a9a9a;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">No results on record for this team yet.</p>`;
       }
     }
     return `
@@ -1534,7 +1534,7 @@
         <div class="bb-card" style="max-width:380px;width:100%;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
             <h3 style="margin:0;display:flex;align-items:center;gap:8px;">${teamLogo(team,22)}${esc(team)}</h3>
-            <span style="font-size:17px;color:#9a9a9a;cursor:pointer;padding:10px;margin:-10px;display:inline-block;" id="close-form-modal-x">&times;</span>
+            <span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;cursor:pointer;padding:10px;margin:-10px;display:inline-block;" id="close-form-modal-x">&times;</span>
           </div>
           ${body}
         </div>
@@ -1546,8 +1546,8 @@
       <div id="welcome-modal-backdrop" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:110;display:flex;align-items:center;justify-content:center;padding:1rem;">
         <div class="bb-card" style="max-width:380px;width:100%;text-align:center;">
           <h3 style="margin:4px 0 10px;">Welcome, ${esc(state.user.username)}!</h3>
-          <p style="font-size:19px;line-height:1.6;">You're approved and ready to go \u2014 ${fmt(state.user.balance)} clams${carry > 0 ? ` are already in your account, including ${fmt(carry)} carried over from last season` : ' are already in your account'}.</p>
-          <p style="font-size:18px;color:#9a9a9a;line-height:1.6;">New to Bilbbet? The <span id="welcome-open-tutorial" style="text-decoration:underline;cursor:pointer;color:#ffdd00;">tutorial</span> walks through what each tab does.</p>
+          <p style="font-size:clamp(19px, calc(19px + 0.4vw), 22px);line-height:1.6;">You're approved and ready to go \u2014 ${fmt(state.user.balance)} clams${carry > 0 ? ` are already in your account, including ${fmt(carry)} carried over from last season` : ' are already in your account'}.</p>
+          <p style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);color:#9a9a9a;line-height:1.6;">New to Bilbbet? The <span id="welcome-open-tutorial" style="text-decoration:underline;cursor:pointer;color:#ffdd00;">tutorial</span> walks through what each tab does.</p>
           <button class="bb-btn" id="close-welcome-modal" style="width:100%;margin-top:8px;">Let's go</button>
         </div>
       </div>`;
@@ -1559,13 +1559,13 @@
     return `
       <div id="tutorial-modal-backdrop" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:110;display:flex;align-items:center;justify-content:center;padding:1rem;">
         <div class="bb-card" style="max-width:420px;width:100%;">
-          ${state.info ? `<div style="color:#7fbf8f;font-size:18px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #3d3d3d;">${esc(state.info)}</div>` : ''}
+          ${state.info ? `<div style="color:#7fbf8f;font-size:clamp(18px, calc(18px + 0.4vw), 21px);margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #3d3d3d;">${esc(state.info)}</div>` : ''}
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-            <span style="font-size:17px;color:#9a9a9a;">Step ${i+1} of ${steps.length}</span>
-            <span style="font-size:17px;color:#9a9a9a;cursor:pointer;padding:10px;margin:-10px;display:inline-block;" id="close-tutorial-modal-x">&times;</span>
+            <span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">Step ${i+1} of ${steps.length}</span>
+            <span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;cursor:pointer;padding:10px;margin:-10px;display:inline-block;" id="close-tutorial-modal-x">&times;</span>
           </div>
           <h3 style="margin:4px 0 10px;">${esc(step.title)}</h3>
-          <p style="font-size:19px;line-height:1.6;margin:0 0 16px;">${esc(step.body)}</p>
+          <p style="font-size:clamp(19px, calc(19px + 0.4vw), 22px);line-height:1.6;margin:0 0 16px;">${esc(step.body)}</p>
           <div style="display:flex;gap:8px;margin-bottom:10px;">
             ${steps.map((s,idx) => `<span style="flex:1;height:4px;border-radius:2px;background:${idx<=i?'var(--bb-accent)':'#3d3d3d'};"></span>`).join('')}
           </div>
@@ -1584,7 +1584,7 @@
         <div id="contact-us-modal-backdrop" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:110;display:flex;align-items:center;justify-content:center;padding:1rem;">
           <div class="bb-card" style="max-width:420px;width:100%;text-align:center;padding:2.5rem 1.5rem;">
             <div style="font-size:72px;line-height:1;margin-bottom:16px;">\u{1F6AE}</div>
-            <p style="font-size:21px;font-weight:600;margin:0 0 20px;">Your feedback is important to us.</p>
+            <p style="font-size:clamp(21px, calc(21px + 0.4vw), 24px);font-weight:600;margin:0 0 20px;">Your feedback is important to us.</p>
             <button class="bb-btn" id="close-contact-us-modal">Close</button>
           </div>
         </div>`;
@@ -1595,15 +1595,15 @@
         <div class="bb-card" style="max-width:420px;width:100%;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
             <h3 style="margin:0;">Contact us</h3>
-            <span style="font-size:17px;color:#9a9a9a;cursor:pointer;padding:10px;margin:-10px;display:inline-block;" id="close-contact-us-modal-x">&times;</span>
+            <span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;cursor:pointer;padding:10px;margin:-10px;display:inline-block;" id="close-contact-us-modal-x">&times;</span>
           </div>
-          <p style="font-size:18px;line-height:1.6;color:#cfcfcf;margin:0 0 14px;">We understand not everything will go to expectations. To help us improve the site, we welcome your feedback \u2014 pick whatever's closest to how you're feeling below.</p>
+          <p style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);line-height:1.6;color:#cfcfcf;margin:0 0 14px;">We understand not everything will go to expectations. To help us improve the site, we welcome your feedback \u2014 pick whatever's closest to how you're feeling below.</p>
           <select class="bb-select" id="feedback-category-select" style="width:100%;margin-bottom:10px;">
             <option value="" disabled ${state.feedbackCategory===''?'selected':''}>Choose a complaint&hellip;</option>
             ${FEEDBACK_OPTIONS.map(opt => `<option value="${esc(opt)}" ${state.feedbackCategory===opt?'selected':''}>${esc(opt)}</option>`).join('')}
             <option value="OTHER" ${isOther?'selected':''}>Other (tell us yourself)</option>
           </select>
-          ${isOther ? `<textarea id="feedback-other-text" placeholder="Go on, let it out." style="width:100%;min-height:90px;background:#2a2a2a;border:1px solid #3d3d3d;border-radius:6px;color:#eee;padding:8px;font-size:18px;box-sizing:border-box;margin-bottom:10px;">${esc(state.feedbackOtherText)}</textarea>` : ''}
+          ${isOther ? `<textarea id="feedback-other-text" placeholder="Go on, let it out." style="width:100%;min-height:90px;background:#2a2a2a;border:1px solid #3d3d3d;border-radius:6px;color:#eee;padding:8px;font-size:clamp(18px, calc(18px + 0.4vw), 21px);box-sizing:border-box;margin-bottom:10px;">${esc(state.feedbackOtherText)}</textarea>` : ''}
           <button class="bb-btn" id="submit-feedback-btn" style="width:100%;">File complaint</button>
         </div>
       </div>`;
@@ -1613,7 +1613,7 @@
       <div id="readme-modal-backdrop" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:110;display:flex;align-items:center;justify-content:center;padding:1rem;">
         <div class="bb-card" style="max-width:420px;width:100%;max-height:80vh;display:flex;flex-direction:column;">
           <h3 style="margin:0 0 10px;">Read me</h3>
-          <div style="overflow-y:auto;flex:1;border:1px solid #3d3d3d;border-radius:8px;padding:14px;margin-bottom:12px;font-size:19px;line-height:1.6;">
+          <div style="overflow-y:auto;flex:1;border:1px solid #3d3d3d;border-radius:8px;padding:14px;margin-bottom:12px;font-size:clamp(19px, calc(19px + 0.4vw), 22px);line-height:1.6;">
             <p style="margin-top:0;">Bilbbet is a passion project run by Bilbo since the 23/24 season of the Eliza Cup. This platform was the vague vision at that time to provide a fun way for teams to bet on themselves or against their rivals within our Eliza Cup platform.</p>
             <p>If you see any issues on the site can you let Bilbo know in one of the chats, it isn't meant to be a serious thing (as professional as it looks) so any crowd sourced fixes or updates required are appreciated for the better of the experience of everyone involved.</p>
             <p>Once logging in, don't use a PIN tied to any personal identity or financial connections. Whilst Bilbbet will guarantee that it doesn't look at anyone's PINs or share them willingly to other parties, because the information is stored on a free-to-use server, there is no guarantee that this information is immune from 3rd party breaches.</p>
@@ -1631,7 +1631,7 @@
       <div id="install-app-modal-backdrop" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:110;display:flex;align-items:center;justify-content:center;padding:1rem;">
         <div class="bb-card" style="max-width:420px;width:100%;max-height:80vh;display:flex;flex-direction:column;">
           <h3 style="margin:0 0 10px;">Install app</h3>
-          <div style="overflow-y:auto;flex:1;font-size:19px;line-height:1.6;">
+          <div style="overflow-y:auto;flex:1;font-size:clamp(19px, calc(19px + 0.4vw), 22px);line-height:1.6;">
 
             <div style="border:1px solid #3d3d3d;border-radius:8px;padding:14px;margin-bottom:12px;">
               <p style="margin:0 0 8px;font-weight:600;">Android</p>
@@ -1664,29 +1664,29 @@
         <div style="max-width:340px;width:100%;">
           <div style="text-align:center;margin-bottom:1rem;">
             <h2 style="margin:0;letter-spacing:0.5px;">bilbbet</h2>
-            <p style="color:#9a9a9a;font-size:19px;margin:4px 0 0;">Log in to place a bet</p>
+            <p style="color:#9a9a9a;font-size:clamp(19px, calc(19px + 0.4vw), 22px);margin:4px 0 0;">Log in to place a bet</p>
           </div>
           <form id="login-form" class="bb-card" style="display:flex;flex-direction:column;gap:10px;">
-            <div><span style="font-size:17px;color:#9a9a9a;display:block;margin-bottom:4px;">${state.customNameMode ? 'Your display name' : 'Your Eliza team'}</span>
+            <div><span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;display:block;margin-bottom:4px;">${state.customNameMode ? 'Your display name' : 'Your Eliza team'}</span>
               ${state.customNameMode
                 ? `<input class="bb-input" id="f-user-custom" value="${esc(state.username)}" placeholder="Pick a name&hellip;"/>`
                 : teamSearchInput('f-user', state.adminLoginMode?'':state.username, 'Search for your team\u2026')}
-              ${state.registeringMode ? `<span id="toggle-custom-name" style="display:block;font-size:16px;color:#9a9a9a;text-decoration:underline;cursor:pointer;margin-top:4px;">${state.customNameMode ? 'Actually, I have a team in the Eliza Cup' : "Not part of the Eliza Cup? Make up your own name"}</span>` : ''}
-              <button type="button" class="bb-btn ghost" id="use-admin-login" style="margin-top:6px;width:100%;font-size:17px;padding:6px;">${state.adminLoginMode ? '\u2713 Logging in as admin' : 'Log in as admin instead'}</button>
+              ${state.registeringMode ? `<span id="toggle-custom-name" style="display:block;font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:#9a9a9a;text-decoration:underline;cursor:pointer;margin-top:4px;">${state.customNameMode ? 'Actually, I have a team in the Eliza Cup' : "Not part of the Eliza Cup? Make up your own name"}</span>` : ''}
+              <button type="button" class="bb-btn ghost" id="use-admin-login" style="margin-top:6px;width:100%;font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px;">${state.adminLoginMode ? '\u2713 Logging in as admin' : 'Log in as admin instead'}</button>
             </div>
-            <div><span style="font-size:17px;color:#9a9a9a;display:block;margin-bottom:4px;">PIN</span>
+            <div><span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;display:block;margin-bottom:4px;">PIN</span>
               <input class="bb-input" id="f-pin" type="password" inputmode="numeric" value="${esc(state.pin)}"/></div>
             ${state.registeringMode ? `
-              <label style="display:flex;align-items:flex-start;gap:8px;font-size:18px;">
+              <label style="display:flex;align-items:flex-start;gap:8px;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">
                 <input type="checkbox" id="tos-agree-checkbox-inline" ${state.tosAgreed?'checked':''} style="margin-top:2px;"/>
                 <span>I agree to the <span id="open-tos-register" style="text-decoration:underline;cursor:pointer;color:#ffdd00;">Terms &amp; Conditions</span>.</span>
               </label>
-              <label style="display:flex;align-items:flex-start;gap:8px;font-size:18px;">
+              <label style="display:flex;align-items:flex-start;gap:8px;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">
                 <input type="checkbox" id="tip-reminder-optin-checkbox" ${state.tipReminderOptIn?'checked':''} style="margin-top:2px;"/>
                 <span>Flag it for me on the Tipping tab if I haven't submitted my tips for the week. <span style="color:#9a9a9a;">(On by default \u2014 turn off anytime from My Bets.)</span></span>
               </label>` : ''}
-            ${state.error ? `<div style="color:#c0604f;font-size:18px;">${esc(state.error)}</div>` : ''}
-            ${state.info ? `<div style="color:#7fbf8f;font-size:18px;">${esc(state.info)}</div>` : ''}
+            ${state.error ? `<div style="color:#c0604f;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">${esc(state.error)}</div>` : ''}
+            ${state.info ? `<div style="color:#7fbf8f;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">${esc(state.info)}</div>` : ''}
             ${state.registeringMode ? `
               <button type="button" class="bb-btn" id="confirm-register-submit" ${state.tosAgreed?'':'disabled'}>Confirm &amp; register</button>
               <button type="button" class="bb-btn ghost" id="back-from-register">Back</button>
@@ -1696,20 +1696,20 @@
             `}
             <button type="button" class="bb-btn ghost" id="close-login-modal">Cancel</button>
           </form>
-          <p style="font-size:17px;color:#9a9a9a;text-align:center;margin-top:1rem;">Everyone starts with 1,000 clams once an admin approves your registration.</p>
-          ${(!supabaseClient && !hasRealStorage) ? `<p style="font-size:17px;color:#c0604f;text-align:center;margin-top:0.5rem;">Running without persistent storage &mdash; set up Supabase (see supabase/schema.sql) or open inside Claude's artifact panel for accounts to be saved between visits.</p>` : ''}
+          <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;text-align:center;margin-top:1rem;">Everyone starts with 1,000 clams once an admin approves your registration.</p>
+          ${(!supabaseClient && !hasRealStorage) ? `<p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#c0604f;text-align:center;margin-top:0.5rem;">Running without persistent storage &mdash; set up Supabase (see supabase/schema.sql) or open inside Claude's artifact panel for accounts to be saved between visits.</p>` : ''}
         </div>
       </div>`;
   }
 
   function header(){
-    const brand = `<span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">${siteLogoBadge(32)}<strong style="letter-spacing:1px;font-size:25px;text-transform:uppercase;">BILBBET</strong><a href="https://elizacup.com/" target="_blank" rel="noopener noreferrer" style="color:#9a9a9a;font-size:17px;text-decoration:none;border-left:1px solid #3d3d3d;padding-left:10px;margin-left:2px;">Official Fantasy Partner of the Eliza Cup</a></span>`;
+    const brand = `<span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">${siteLogoBadge(32)}<strong style="letter-spacing:1px;font-size:clamp(25px, calc(25px + 0.4vw), 28px);text-transform:uppercase;">BILBBET</strong><a href="https://elizacup.com/" target="_blank" rel="noopener noreferrer" style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);text-decoration:none;border-left:1px solid #3d3d3d;padding-left:10px;margin-left:2px;">Official Fantasy Partner of the Eliza Cup</a></span>`;
     if(!state.user){
       return `
         <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 4px;border-bottom:5px solid var(--bb-accent);margin-bottom:1rem;">
           ${brand}
           <div style="display:flex;align-items:center;gap:10px;">
-            <button class="bb-btn ghost" id="open-team-search-btn" style="padding:6px 12px;font-size:18px;">Find a team</button>
+            <button class="bb-btn ghost" id="open-team-search-btn" style="padding:6px 12px;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">Find a team</button>
             <button class="bb-btn" id="open-login-btn" style="padding:7px 14px;">Log in</button>
           </div>
         </div>`;
@@ -1717,10 +1717,10 @@
     return `
       <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 4px;border-bottom:5px solid var(--bb-accent);margin-bottom:1rem;flex-wrap:wrap;gap:8px;">
         ${brand}
-        <div style="display:flex;align-items:center;gap:14px;font-size:19px;">
-          <button class="bb-btn ghost" id="open-team-search-btn" style="padding:6px 12px;font-size:18px;">Find a team</button>
+        <div style="display:flex;align-items:center;gap:14px;font-size:clamp(19px, calc(19px + 0.4vw), 22px);">
+          <button class="bb-btn ghost" id="open-team-search-btn" style="padding:6px 12px;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">Find a team</button>
           <span>${fmt(state.user.balance)} clams</span>
-          <span style="color:#9a9a9a;">${esc(state.user.username)}${(state.user.isAdmin && adminNeedsAttention()) ? ' <span title="Needs attention" style="font-size:17px;">\u{1F6A9}</span>' : ''}</span>
+          <span style="color:#9a9a9a;">${esc(state.user.username)}${(state.user.isAdmin && adminNeedsAttention()) ? ' <span title="Needs attention" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);">\u{1F6A9}</span>' : ''}</span>
           <button class="bb-btn ghost" id="logout-btn" style="padding:6px 12px;">Log out</button>
         </div>
       </div>`;
@@ -1762,9 +1762,9 @@
     const items = currentTabs().map(t => {
       const label = t==='MY BETS'?'My Bets':(t==='ADMIN'?'Admin':(t==='H2H'?'H2H':(t==='HOME'?'Home':(t==='FUTURES'?'Futures':(t==='TIPPING'?'Tipping':t)))));
       const adminFlag = (t==='ADMIN' && state.user && state.user.isAdmin && adminNeedsAttention())
-        ? ' <span title="Needs attention" style="font-size:16px;">\u{1F6A9}</span>' : '';
+        ? ' <span title="Needs attention" style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);">\u{1F6A9}</span>' : '';
       const tipFlag = (t==='TIPPING' && state.tipReminderStatus === true)
-        ? ' <span title="You haven\'t submitted your tips for this week yet" style="font-size:16px;">\u{1F6A9}</span>' : '';
+        ? ' <span title="You haven\'t submitted your tips for this week yet" style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);">\u{1F6A9}</span>' : '';
       return { t, label, adminFlag, tipFlag };
     });
 
@@ -1794,17 +1794,17 @@
         (key !== 'relegation_pct' || !DIV3_TABS.includes(state.futuresSubTab)) &&
         (key !== 'bottom3_pct' || DIV3_TABS.includes(state.futuresSubTab))
       ).map(([key,label]) =>
-        `<div class="bb-tab ${state.futureMarketTab===key?'active':''}" data-marketkey="${key}" style="font-size:17px;padding:6px 10px;">${esc(label)}</div>`
+        `<div class="bb-tab ${state.futureMarketTab===key?'active':''}" data-marketkey="${key}" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;">${esc(label)}</div>`
       ).join('') +
-      `<div class="bb-tab ${state.futureMarketTab==='leading_at'?'active':''}" data-marketkey="leading_at" style="font-size:17px;padding:6px 10px;">To Be Leading At&hellip;</div>` +
+      `<div class="bb-tab ${state.futureMarketTab==='leading_at'?'active':''}" data-marketkey="leading_at" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;">To Be Leading At&hellip;</div>` +
       '</div>';
   }
   function roddyMarketTabs(){
     return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">' +
       Object.entries(FUTURES.roddy_labels).map(([key,label]) =>
-        `<div class="bb-tab ${state.futureMarketTab===key?'active':''}" data-marketkey="${key}" style="font-size:17px;padding:6px 10px;">${esc(label)}</div>`
+        `<div class="bb-tab ${state.futureMarketTab===key?'active':''}" data-marketkey="${key}" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;">${esc(label)}</div>`
       ).join('') +
-      `<div class="bb-tab ${state.futureMarketTab==='leading_at'?'active':''}" data-marketkey="leading_at" style="font-size:17px;padding:6px 10px;">To Be Leading At&hellip;</div>` +
+      `<div class="bb-tab ${state.futureMarketTab==='leading_at'?'active':''}" data-marketkey="leading_at" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;">To Be Leading At&hellip;</div>` +
       '</div>';
   }
 
@@ -1812,10 +1812,10 @@
     // scopeKey is a division name, or 'RODDY' for the open-field standings
     const round = state.leadingAtRound;
     const picker = `<div class="bb-card" style="margin-bottom:1rem;display:flex;align-items:center;gap:10px;">
-        <span style="font-size:17px;color:#9a9a9a;">Round</span>
+        <span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">Round</span>
         <select class="bb-select" id="leadingat-round" style="width:170px;">${roundOptions(state.leadingAtRound)}</select>
       </div>
-      <p style="color:#9a9a9a;font-size:17px;margin-bottom:10px;">Who's on top of the table after this specific round, not who wins the season.</p>`;
+      <p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:10px;">Who's on top of the table after this specific round, not who wins the season.</p>`;
     if(isRoundBlocked(round)){
       const msg = round < state.currentRound
         ? '\u{1F512} This round has already been played &mdash; betting closed.'
@@ -1846,10 +1846,10 @@
     const labels = FUTURES[labelsKey];
     const isEcl = labelsKey === 'ecl_labels';
     return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">' +
-      `<div class="bb-tab ${state.futureMarketTab==='fixtures'?'active':''}" data-marketkey="fixtures" style="font-size:17px;padding:6px 10px;">Current fixtures</div>` +
-      (isEcl ? `<div class="bb-tab ${state.futureMarketTab==='groups'?'active':''}" data-marketkey="groups" style="font-size:17px;padding:6px 10px;">Groups</div>` : '') +
+      `<div class="bb-tab ${state.futureMarketTab==='fixtures'?'active':''}" data-marketkey="fixtures" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;">Current fixtures</div>` +
+      (isEcl ? `<div class="bb-tab ${state.futureMarketTab==='groups'?'active':''}" data-marketkey="groups" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;">Groups</div>` : '') +
       Object.entries(labels).map(([key,label]) =>
-        `<div class="bb-tab ${state.futureMarketTab===key?'active':''}" data-marketkey="${key}" style="font-size:17px;padding:6px 10px;">${esc(label)}</div>`
+        `<div class="bb-tab ${state.futureMarketTab===key?'active':''}" data-marketkey="${key}" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;">${esc(label)}</div>`
       ).join('') + '</div>';
   }
 
@@ -1862,17 +1862,17 @@
     }
     const roundInfo = getCupRoundInfo(compKey, state.currentRound);
     const calendarNote = roundInfo
-      ? `<p style="color:#9a9a9a;font-size:17px;margin-bottom:10px;">Round ${state.currentRound}, per the 26/27 calendar${roundInfo.overridden?' (admin override)':''}: <strong style="color:#ffdd00;">${esc(roundInfo.stage)}</strong>.</p>`
-      : `<p style="color:#9a9a9a;font-size:17px;margin-bottom:10px;">Round ${state.currentRound} isn't a scheduled ${esc(compKey)} round on the 26/27 calendar.</p>`;
+      ? `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:10px;">Round ${state.currentRound}, per the 26/27 calendar${roundInfo.overridden?' (admin override)':''}: <strong style="color:#ffdd00;">${esc(roundInfo.stage)}</strong>.</p>`
+      : `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:10px;">Round ${state.currentRound} isn't a scheduled ${esc(compKey)} round on the 26/27 calendar.</p>`;
     if(!fixtures.length){
       return calendarNote + `<div class="bb-card" style="text-align:center;padding:2rem 1rem;color:#9a9a9a;">No fixtures scheduled yet.</div>`;
     }
     return calendarNote + '<div class="bb-card" style="padding:0;overflow:hidden;">' +
       fixtures.map((f,i) => `<div data-cupfixture="${esc(compKey)}|${i}" style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;cursor:pointer;${i<fixtures.length-1?'border-bottom:1px solid #3d3d3d;':''}">
         <span>${f.stage ? `<span style="color:#ffdd00;font-weight:600;">${esc(f.stage)}:</span> ` : ''}${esc(f.teamA)} <span style="color:#9a9a9a;">vs</span> ${esc(f.teamB)}</span>
-        <span class="bb-btn ghost" style="padding:5px 12px;font-size:17px;">View market</span>
+        <span class="bb-btn ghost" style="padding:5px 12px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">View market</span>
       </div>`).join('') + '</div>' +
-      `<p style="color:#9a9a9a;font-size:17px;margin-top:10px;">Odds here use the same head-to-head model as the division matches -- cup-specific pricing (rewarding spike ability for the FA Cup, tough-opposition form for the ECL) isn't wired in yet.</p>`;
+      `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-top:10px;">Odds here use the same head-to-head model as the division matches -- cup-specific pricing (rewarding spike ability for the FA Cup, tough-opposition form for the ECL) isn't wired in yet.</p>`;
   }
 
   const PLAYOFF_DIVS = ['DIVISION 2', 'DIVISION 3'];
@@ -1887,7 +1887,7 @@
 
   function playoffSubTabBar(){
     return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">' +
-      PLAYOFF_DIVS.map(d => `<div class="bb-tab ${state.playoffSubTab===d?'active '+divColorClass(d):''}" data-playoffsubtab="${esc(d)}" style="font-size:17px;padding:6px 10px;">${d.replace('DIVISION ','Div ')}</div>`).join('') +
+      PLAYOFF_DIVS.map(d => `<div class="bb-tab ${state.playoffSubTab===d?'active '+divColorClass(d):''}" data-playoffsubtab="${esc(d)}" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;">${d.replace('DIVISION ','Div ')}</div>`).join('') +
       '</div>';
   }
 
@@ -1901,15 +1901,15 @@
     const fixtures = state.playoffFixtures[div] || [];
     const inPlayoffWindow = isPlayoffRound(div, state.currentRound);
     const windowNote = inPlayoffWindow
-      ? `<p style="color:#9a9a9a;font-size:17px;margin-bottom:10px;">Round ${state.currentRound} is a scheduled playoff week for ${esc(div)}.</p>`
-      : `<p style="color:#9a9a9a;font-size:17px;margin-bottom:10px;">Round ${state.currentRound} isn't one of ${esc(div)}'s playoff weeks (those are Rounds 24-26).</p>`;
+      ? `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:10px;">Round ${state.currentRound} is a scheduled playoff week for ${esc(div)}.</p>`
+      : `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:10px;">Round ${state.currentRound} isn't one of ${esc(div)}'s playoff weeks (those are Rounds 24-26).</p>`;
     if(!fixtures.length){
       return playoffSubTabBar() + windowNote + `<div class="bb-card" style="text-align:center;padding:2rem 1rem;color:#9a9a9a;">No fixtures scheduled yet.</div>`;
     }
     return playoffSubTabBar() + windowNote + '<div class="bb-card" style="padding:0;overflow:hidden;">' +
       fixtures.map((f,i) => `<div data-playofffixture="${esc(div)}|${i}" style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;cursor:pointer;${i<fixtures.length-1?'border-bottom:1px solid #3d3d3d;':''}">
         <span>${f.stage ? `<span style="color:#ffdd00;font-weight:600;">${esc(f.stage)}:</span> ` : ''}${esc(f.teamA)} <span style="color:#9a9a9a;">vs</span> ${esc(f.teamB)}</span>
-        <span class="bb-btn ghost" style="padding:5px 12px;font-size:17px;">View market</span>
+        <span class="bb-btn ghost" style="padding:5px 12px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">View market</span>
       </div>`).join('') + '</div>';
   }
 
@@ -1933,7 +1933,7 @@
   function categoryPauseControl(category, label){
     if(!state.user || !state.user.isAdmin) return '';
     const paused = !!state.pausedCategories[category];
-    return `<label style="display:flex;align-items:center;gap:6px;font-size:17px;color:#9a9a9a;margin-bottom:8px;" title="Pause this whole market for everyone (admin only)">
+    return `<label style="display:flex;align-items:center;gap:6px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-bottom:8px;" title="Pause this whole market for everyone (admin only)">
       <input type="checkbox" data-pause-category="${esc(category)}" ${paused?'checked':''}/> Pause ${esc(label||'this market')}
     </label>`;
   }
@@ -2008,13 +2008,13 @@
     function row(id, label, pct, oddsInfo){
       if(oddsInfo.suspended){
         return `<div class="bb-outcome" style="opacity:0.5;cursor:default;">
-          <span>${esc(label)} <span style="color:#9a9a9a;font-size:17px;">(${pct.toFixed(1)}%)</span></span>
+          <span>${esc(label)} <span style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">(${pct.toFixed(1)}%)</span></span>
           <span class="bb-odds" style="color:#9a9a9a;">suspended</span></div>`;
       }
       const odds = oddsInfo.odds;
       const selected = state.slip.some(s=>s.id===id);
       return `<div class="bb-outcome ${selected?'selected':''}" data-pick="${id}" data-label="${esc(label)}" data-odds="${odds}">
-        <span>${esc(label)} <span style="color:#9a9a9a;font-size:17px;">(${pct.toFixed(1)}%)</span></span>
+        <span>${esc(label)} <span style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">(${pct.toFixed(1)}%)</span></span>
         <span class="bb-odds">${formatOdds(odds)}</span></div>`;
     }
     return `<div class="bb-card" style="margin-bottom:1rem;">
@@ -2022,27 +2022,27 @@
         <span class="bb-pill" style="background:#4a3a10;color:#ffdd00;">Round ${m.round}</span>
       </div>
       <div style="display:flex;justify-content:space-between;margin-bottom:12px;">
-        <div><div style="font-size:17px;color:#9a9a9a;">${esc(m.teamA)} viable range</div><div style="font-size:23px;font-weight:600;">${m.aRange[0]}&ndash;${m.aRange[1]}</div></div>
-        <div style="text-align:right;"><div style="font-size:17px;color:#9a9a9a;">${esc(m.teamB)} viable range</div><div style="font-size:23px;font-weight:600;">${m.bRange[0]}&ndash;${m.bRange[1]}</div></div>
+        <div><div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">${esc(m.teamA)} viable range</div><div style="font-size:clamp(23px, calc(23px + 0.4vw), 26px);font-weight:600;">${m.aRange[0]}&ndash;${m.aRange[1]}</div></div>
+        <div style="text-align:right;"><div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">${esc(m.teamB)} viable range</div><div style="font-size:clamp(23px, calc(23px + 0.4vw), 26px);font-weight:600;">${m.bRange[0]}&ndash;${m.bRange[1]}</div></div>
       </div>
       ${(() => {
         const found = getH2HRecord(m.teamA, m.teamB);
-        if(!found) return `<p style="color:#9a9a9a;font-size:17px;margin-bottom:12px;">\u{1F195} First time these two have played each other \u2014 no history to show.</p>`;
+        if(!found) return `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:12px;">\u{1F195} First time these two have played each other \u2014 no history to show.</p>`;
         const r = found.rec;
         const aWins = found.flipped ? r.aLosses : r.aWins;
         const aLosses = found.flipped ? r.aWins : r.aLosses;
         return `<div style="background:#1b1b1b;border:1px solid #3d3d3d;border-radius:8px;padding:10px 12px;margin-bottom:12px;">
-          <div style="font-size:17px;color:#9a9a9a;margin-bottom:2px;">All-time head-to-head &mdash; played ${r.played}</div>
-          <div style="font-size:19px;">${esc(m.teamA)} <strong>${aWins}</strong> &ndash; <strong>${r.draws}D</strong> &ndash; <strong>${aLosses}</strong> ${esc(m.teamB)}</div>
-          <div style="font-size:16px;color:#8a8a8a;margin-top:4px;">Most recent meeting: ${esc(r.lastMatch)}</div>
-          ${m.edge && m.edge.applied ? `<div style="font-size:16px;color:#ffdd00;margin-top:6px;">\u26A1 ${esc(m.edge.favored)} carries a${m.edge.decay<1?' reduced':' slight'} edge here from a considerably lopsided head-to-head record (${m.edge.winMargin>0?aWins:aLosses}W-${m.edge.winMargin>0?aLosses:aWins}L across ${r.played} meetings)${m.edge.decay<1?`, weighted down since the last meeting was a while ago`:''}.</div>` : ''}
+          <div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-bottom:2px;">All-time head-to-head &mdash; played ${r.played}</div>
+          <div style="font-size:clamp(19px, calc(19px + 0.4vw), 22px);">${esc(m.teamA)} <strong>${aWins}</strong> &ndash; <strong>${r.draws}D</strong> &ndash; <strong>${aLosses}</strong> ${esc(m.teamB)}</div>
+          <div style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:#8a8a8a;margin-top:4px;">Most recent meeting: ${esc(r.lastMatch)}</div>
+          ${m.edge && m.edge.applied ? `<div style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:#ffdd00;margin-top:6px;">\u26A1 ${esc(m.edge.favored)} carries a${m.edge.decay<1?' reduced':' slight'} edge here from a considerably lopsided head-to-head record (${m.edge.winMargin>0?aWins:aLosses}W-${m.edge.winMargin>0?aLosses:aWins}L across ${r.played} meetings)${m.edge.decay<1?`, weighted down since the last meeting was a while ago`:''}.</div>` : ''}
         </div>`;
       })()}
-      <h4 style="margin:0 0 8px;font-size:18px;color:#9a9a9a;">Match result</h4>
+      <h4 style="margin:0 0 8px;font-size:clamp(18px, calc(18px + 0.4vw), 21px);color:#9a9a9a;">Match result</h4>
       ${row('H2H|res-a|'+roundTag+'|'+m.teamA+'|'+m.teamB, 'R'+m.round+': '+m.teamA+' to win', m.aWinPct, winOdds.a)}
       ${row('H2H|res-draw|'+roundTag+'|'+m.teamA+'|'+m.teamB, 'R'+m.round+': Draw', m.drawPct, winOdds.draw)}
       ${row('H2H|res-b|'+roundTag+'|'+m.teamA+'|'+m.teamB, 'R'+m.round+': '+m.teamB+' to win', m.bWinPct, winOdds.b)}
-      <h4 style="margin:14px 0 8px;font-size:18px;color:#9a9a9a;">Handicap${helpTip('handicap', 'A virtual head start or deficit applied to level the odds \u2014 pick a team to "cover the line," meaning win by more than (or lose by less than) the handicap.')}</h4>
+      <h4 style="margin:14px 0 8px;font-size:clamp(18px, calc(18px + 0.4vw), 21px);color:#9a9a9a;">Handicap${helpTip('handicap', 'A virtual head start or deficit applied to level the odds \u2014 pick a team to "cover the line," meaning win by more than (or lose by less than) the handicap.')}</h4>
       ${row('H2H|hcap-a-'+(m.line>=0?'fav':'dog')+'|'+roundTag+'|'+m.teamA+'|'+m.teamB, 'R'+m.round+': '+m.teamA+' '+(m.line>=0?'-':'+')+Math.abs(m.line).toFixed(1), m.aCoversPct, hcapOdds.a)}
       ${row('H2H|hcap-b-'+(m.line>=0?'dog':'fav')+'|'+roundTag+'|'+m.teamA+'|'+m.teamB, 'R'+m.round+': '+m.teamB+' '+(m.line>=0?'+':'-')+Math.abs(m.line).toFixed(1), m.bCoversPct, hcapOdds.b)}
     </div>`;
@@ -2078,12 +2078,12 @@
   }
 
   function h2hSubTabBar(){
-    const renderItem = t => `<div class="bb-tab ${state.h2hSubTab===t?'active':''}" data-h2hsubtab="${esc(t)}" style="font-size:17px;padding:6px 10px;display:flex;align-items:center;gap:4px;">${subTabLogo(t)}${t==='CUSTOM MATCHUP'?'Custom matchup':(t==='PLAYOFFS'?'Playoffs':t.replace(' (D1)',''))}</div>`;
+    const renderItem = t => `<div class="bb-tab ${state.h2hSubTab===t?'active':''}" data-h2hsubtab="${esc(t)}" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;display:flex;align-items:center;gap:4px;">${subTabLogo(t)}${t==='CUSTOM MATCHUP'?'Custom matchup':(t==='PLAYOFFS'?'Playoffs':t.replace(' (D1)',''))}</div>`;
     return twoRowTabBar(FUTURE_DIVS, ['FA CUP', 'ECL', 'PLAYOFFS', 'CUSTOM MATCHUP'], renderItem);
   }
   const FUTURES_SUBTABS = [...FUTURE_DIVS, 'RODDY', 'FA CUP', 'ECL'];
   function futuresSubTabBar(){
-    const renderItem = t => `<div class="bb-tab ${state.futuresSubTab===t?'active '+divColorClass(t):''}" data-futuressubtab="${esc(t)}" style="font-size:17px;padding:6px 10px;display:flex;align-items:center;gap:4px;">${subTabLogo(t)}${t==='RODDY'?'The Roddy':t.replace(' (D1)','')}</div>`;
+    const renderItem = t => `<div class="bb-tab ${state.futuresSubTab===t?'active '+divColorClass(t):''}" data-futuressubtab="${esc(t)}" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;display:flex;align-items:center;gap:4px;">${subTabLogo(t)}${t==='RODDY'?'The Roddy':t.replace(' (D1)','')}</div>`;
     return twoRowTabBar(FUTURE_DIVS, ['RODDY', 'FA CUP', 'ECL'], renderItem);
   }
 
@@ -2107,20 +2107,20 @@
 
   function quickOddsButton(pickId, label, teamLabel, oddsInfo){
     if(oddsInfo.suspended){
-      return `<span class="bb-btn ghost" style="padding:6px 10px;font-size:17px;opacity:0.5;cursor:default;display:inline-flex;align-items:center;gap:6px;">${teamLogo(teamLabel,16)}${esc(teamLabel)} susp.</span>`;
+      return `<span class="bb-btn ghost" style="padding:6px 10px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);opacity:0.5;cursor:default;display:inline-flex;align-items:center;gap:6px;">${teamLogo(teamLabel,16)}${esc(teamLabel)} susp.</span>`;
     }
     const selected = state.slip.some(s=>s.id===pickId);
-    return `<button class="bb-btn ${selected?'':'ghost'}" data-pick="${esc(pickId)}" data-label="${esc(label)}" data-odds="${oddsInfo.odds}" style="padding:6px 10px;font-size:17px;display:inline-flex;align-items:center;gap:6px;">${teamLogo(teamLabel,16)}${esc(teamLabel)} ${formatOdds(oddsInfo.odds)}</button>`;
+    return `<button class="bb-btn ${selected?'':'ghost'}" data-pick="${esc(pickId)}" data-label="${esc(label)}" data-odds="${oddsInfo.odds}" style="padding:6px 10px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);display:inline-flex;align-items:center;gap:6px;">${teamLogo(teamLabel,16)}${esc(teamLabel)} ${formatOdds(oddsInfo.odds)}</button>`;
   }
   // Same pick/click mechanics as quickOddsButton, just without the repeated
   // team logo+name -- for layouts where the team is already shown once,
   // separately, and only the price itself needs to sit in its own box.
   function priceOnlyButton(pickId, label, oddsInfo){
     if(oddsInfo.suspended){
-      return `<span class="bb-btn ghost" style="padding:8px 14px;font-size:18px;opacity:0.5;cursor:default;width:100%;text-align:center;">susp.</span>`;
+      return `<span class="bb-btn ghost" style="padding:8px 14px;font-size:clamp(18px, calc(18px + 0.4vw), 21px);opacity:0.5;cursor:default;width:100%;text-align:center;">susp.</span>`;
     }
     const selected = state.slip.some(s=>s.id===pickId);
-    return `<button class="bb-btn ${selected?'':'ghost'}" data-pick="${esc(pickId)}" data-label="${esc(label)}" data-odds="${oddsInfo.odds}" style="padding:8px 14px;font-size:18px;font-weight:700;width:100%;text-align:center;">${formatOdds(oddsInfo.odds)}</button>`;
+    return `<button class="bb-btn ${selected?'':'ghost'}" data-pick="${esc(pickId)}" data-label="${esc(label)}" data-odds="${oddsInfo.odds}" style="padding:8px 14px;font-size:clamp(18px, calc(18px + 0.4vw), 21px);font-weight:700;width:100%;text-align:center;">${formatOdds(oddsInfo.odds)}</button>`;
   }
 
   // Unifies league-division fixtures (a fixed, pre-computed schedule) and
@@ -2259,13 +2259,13 @@
     const locked = isRoundBlocked(round);
     const viewingPast = round !== state.currentRound;
     const subTabs = `<div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
-        <div class="bb-tab ${state.tippingSubTab==='PICKS'?'active':''}" data-tippingtab="PICKS" style="font-size:17px;padding:6px 10px;display:flex;align-items:center;gap:5px;">This week's tips${state.tipReminderStatus===true ? ' <span title="You haven\'t submitted your tips for this week yet" style="font-size:16px;">\u{1F6A9}</span>' : ''}</div>
-        <div class="bb-tab ${state.tippingSubTab==='PRESEASON'?'active':''}" data-tippingtab="PRESEASON" style="font-size:17px;padding:6px 10px;">Pre-season</div>
-        <div class="bb-tab ${state.tippingSubTab==='LEADERBOARD'?'active':''}" data-tippingtab="LEADERBOARD" style="font-size:17px;padding:6px 10px;">Leaderboard</div>
-        <div class="bb-tab ${state.tippingSubTab==='PRIZES'?'active':''}" data-tippingtab="PRIZES" style="font-size:17px;padding:6px 10px;">Prizes</div>
+        <div class="bb-tab ${state.tippingSubTab==='PICKS'?'active':''}" data-tippingtab="PICKS" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;display:flex;align-items:center;gap:5px;">This week's tips${state.tipReminderStatus===true ? ' <span title="You haven\'t submitted your tips for this week yet" style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);">\u{1F6A9}</span>' : ''}</div>
+        <div class="bb-tab ${state.tippingSubTab==='PRESEASON'?'active':''}" data-tippingtab="PRESEASON" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;">Pre-season</div>
+        <div class="bb-tab ${state.tippingSubTab==='LEADERBOARD'?'active':''}" data-tippingtab="LEADERBOARD" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;">Leaderboard</div>
+        <div class="bb-tab ${state.tippingSubTab==='PRIZES'?'active':''}" data-tippingtab="PRIZES" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;">Prizes</div>
       </div>`;
-    const intro = `<p style="color:#9a9a9a;font-size:17px;margin-bottom:10px;">Free to play, but topping it pays real clams \u2014 see the Prizes tab for the full breakdown. Correct tips score two ways: a straight tally, and what a 1-clam bet on that tip would have paid (upsets are worth more). A drawn fixture pays half credit either way \u2014 half the tally, half the odds \u2014 and never counts against a perfect round. Nothing saves until you hit Confirm, and you can come back and change your tips right up until this round locks.</p>` +
-      (FIXTURES_ARE_PLACEHOLDER ? `<div class="bb-card" style="background:#3a3320;margin-bottom:10px;padding:10px 12px;font-size:17px;color:#e0d090;">\u26A0\uFE0F The weekly schedule shown here is a placeholder, not yet the real season draw \u2014 specific matchups may still change once the real draw is confirmed. Everything you tip still counts as normal; this notice will come down once the schedule is final.</div>` : '');
+    const intro = `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:10px;">Free to play, but topping it pays real clams \u2014 see the Prizes tab for the full breakdown. Correct tips score two ways: a straight tally, and what a 1-clam bet on that tip would have paid (upsets are worth more). A drawn fixture pays half credit either way \u2014 half the tally, half the odds \u2014 and never counts against a perfect round. Nothing saves until you hit Confirm, and you can come back and change your tips right up until this round locks.</p>` +
+      (FIXTURES_ARE_PLACEHOLDER ? `<div class="bb-card" style="background:#3a3320;margin-bottom:10px;padding:10px 12px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#e0d090;">\u26A0\uFE0F The weekly schedule shown here is a placeholder, not yet the real season draw \u2014 specific matchups may still change once the real draw is confirmed. Everything you tip still counts as normal; this notice will come down once the schedule is final.</div>` : '');
 
     if(state.tippingSubTab === 'PRESEASON'){
       return subTabs + renderPreseasonTab();
@@ -2285,7 +2285,7 @@
     // guarantees that).
     const lastPlayedForBrowse = state.currentRound - 1;
     const roundBrowser = lastPlayedForBrowse >= 1 ? `<div class="bb-card" style="margin-bottom:1rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-        <span style="font-size:17px;color:#9a9a9a;">Viewing</span>
+        <span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">Viewing</span>
         <select class="bb-select" id="tipping-view-round" style="width:170px;">
           <option value="" ${!viewingPast?'selected':''}>This week (Round ${state.currentRound})</option>
           ${Array.from({length:lastPlayedForBrowse}, (_,i) => lastPlayedForBrowse-i).map(r => `<option value="${r}" ${round===r?'selected':''}>Round ${r}</option>`).join('')}
@@ -2311,7 +2311,7 @@
 
     // Section sub-tabs -- shown in both the open and locked states, so
     // navigation stays consistent either way.
-    const renderSectionItem = s => `<div class="bb-tab ${state.tippingSection===s.key?'active':''}" data-tipping-section="${s.key}" style="font-size:17px;padding:6px 10px;">${esc(s.label)}</div>`;
+    const renderSectionItem = s => `<div class="bb-tab ${state.tippingSection===s.key?'active':''}" data-tipping-section="${s.key}" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;">${esc(s.label)}</div>`;
     const sectionBar = twoRowTabBar(
       TIPPING_SECTIONS.filter(s => ['ELIZA','DIV2','DIV3'].includes(s.key)),
       TIPPING_SECTIONS.filter(s => ['ECL','FACUP'].includes(s.key)),
@@ -2319,14 +2319,14 @@
     );
     const activeSection = TIPPING_SECTIONS.find(s => s.key === state.tippingSection) || TIPPING_SECTIONS[0];
     const mrMedianNote = activeSection.divs.some(d => isMrMedianWeek(d, round))
-      ? `<div class="bb-card" style="margin-bottom:1rem;padding:12px;font-size:17px;line-height:1.6;color:#cfcfcf;">
+      ? `<div class="bb-card" style="margin-bottom:1rem;padding:12px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);line-height:1.6;color:#cfcfcf;">
           <strong style="color:#eee;">What's "Mr Median"?</strong> This tier's Round 1 has no real head-to-head fixtures yet, so instead you're predicting against the tier's own median \u2014 the middle score across all 24 teams in the combined tier (both conferences together) once the round's played. Tick the box next to any team you believe will score <em>above</em> that median \u2014 up to 12 ticks total. There's no way to predict a team loses; just leave it unticked if you don't fancy them. Get at least 12 right and it's treated exactly like a perfect round anywhere else.
         </div>`
       : '';
 
     if(locked){
       const rewardBanner = state.tippingRewardBanner ? `<div class="bb-card" style="margin-bottom:1rem;background:#3a3320;display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:18px;">${esc(state.tippingRewardBanner)}</span>
+          <span style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">${esc(state.tippingRewardBanner)}</span>
           <span id="dismiss-reward-banner" style="cursor:pointer;color:#9a9a9a;padding:10px;margin:-10px;display:inline-block;">&times;</span>
         </div>` : '';
       const confirmedKeys = Object.keys(state.tippingData.picks).filter(k => activeSection.divs.includes(k.split('|')[0]));
@@ -2339,14 +2339,14 @@
         (byDiv[div] = byDiv[div] || []).push({ idx: parseInt(idxStr,10), ...state.tippingData.picks[key] });
       }
       const readOnly = Object.entries(byDiv).map(([div, picks]) => `<div class="bb-card" style="margin-bottom:1rem;">
-          <strong style="font-size:18px;">${esc(div.replace(' (D1)',''))}</strong>
-          <div style="margin-top:6px;">${picks.map(p => `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #333333;font-size:18px;">
+          <strong style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">${esc(div.replace(' (D1)',''))}</strong>
+          <div style="margin-top:6px;">${picks.map(p => `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #333333;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">
               <span>${teamLogo(p.team,18)}${esc(p.team)}</span><span style="color:#ffdd00;font-weight:600;">${formatOdds(p.odds)}</span>
             </div>`).join('')}</div>
         </div>`).join('');
       loadPerfectRoundStatus(round, activeSection); // async -- fires off the check, re-renders itself if it turns out to be a hit
       const perfectBadge = (state.user && !state.user.isAdmin && state.perfectRoundStatus[state.user.username.toLowerCase() + '|' + round + '|' + activeSection.key])
-        ? `<div class="bb-card" style="margin-bottom:1rem;background:#2a3a20;text-align:center;padding:10px;font-size:18px;color:#8fc98f;">\u2705 Perfect round in ${esc(activeSection.label)} for Round ${round}!</div>`
+        ? `<div class="bb-card" style="margin-bottom:1rem;background:#2a3a20;text-align:center;padding:10px;font-size:clamp(18px, calc(18px + 0.4vw), 21px);color:#8fc98f;">\u2705 Perfect round in ${esc(activeSection.label)} for Round ${round}!</div>`
         : '';
       return subTabs + intro + roundBrowser + sectionBar + mrMedianNote + rewardBanner + perfectBadge + `<div class="bb-card" style="text-align:center;padding:1rem;color:#9a9a9a;margin-bottom:1rem;">\u{1F512} ${viewingPast?`Round ${round} is over`:`Tipping is closed for Round ${round}`} \u2014 here's what you confirmed:</div>` + readOnly + renderAllTipstersTable(round, activeSection);
     }
@@ -2357,7 +2357,7 @@
 
     if(!divsWithFixtures.length){
       const confirmBar = `<div class="bb-card" style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:1rem;">
-          <span style="font-size:17px;color:#9a9a9a;">${pendingCount} tip${pendingCount!==1?'s':''} selected across all sections${dirty?' \u2014 not yet saved':''}</span>
+          <span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">${pendingCount} tip${pendingCount!==1?'s':''} selected across all sections${dirty?' \u2014 not yet saved':''}</span>
           <button class="bb-btn" id="confirm-tips-btn" ${dirty?'':'disabled'}>Confirm tips</button>
         </div>`;
       return subTabs + intro + roundBrowser + sectionBar + mrMedianNote + confirmBar + `<div class="bb-card" style="text-align:center;padding:2rem 1rem;color:#9a9a9a;">No ${esc(activeSection.label)} fixtures scheduled this round.</div>` + renderEntireFieldOption(round);
@@ -2377,7 +2377,7 @@
           // a team LOSES to the median, only whether you believe it wins.
           const checked = !!current;
           return `<div style="padding:4px 0;">
-              <label style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;background:${checked?'#3a3320':'#2a2a2a'};cursor:pointer;font-size:17px;">
+              <label style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;background:${checked?'#3a3320':'#2a2a2a'};cursor:pointer;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">
                 <input type="checkbox" data-mrmedian-check="${esc(div)}|${i}|${esc(teamA)}|${aOdds.odds}" ${checked?'checked':''}/>
                 ${teamLogo(teamA,16)}${esc(teamA)} <span style="color:#9a9a9a;">beats the median</span>
                 <span style="margin-left:auto;color:#ffdd00;font-weight:600;">${formatOdds(aOdds.odds)}</span>
@@ -2385,22 +2385,22 @@
             </div>`;
         }
         const radio = (team, oddsInfo, side) => {
-          if(oddsInfo.suspended) return `<span style="flex:1;text-align:center;font-size:17px;color:#9a9a9a;opacity:0.6;">susp.</span>`;
+          if(oddsInfo.suspended) return `<span style="flex:1;text-align:center;font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;opacity:0.6;">susp.</span>`;
           const checked = current && current.team === team;
-          return `<label style="flex:1;display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:6px;background:${checked?'#3a3320':'#2a2a2a'};cursor:pointer;font-size:17px;">
+          return `<label style="flex:1;display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:6px;background:${checked?'#3a3320':'#2a2a2a'};cursor:pointer;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">
               <input type="radio" name="tip-${esc(div)}-${i}" data-tip-radio="${esc(div)}|${i}|${side}|${esc(team)}|${oddsInfo.odds}" ${checked?'checked':''}/>
               ${teamLogo(team,16)}${esc(team)} <span style="margin-left:auto;color:#ffdd00;font-weight:600;">${formatOdds(oddsInfo.odds)}</span>
             </label>`;
         };
         return `<div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid #333333;">
-          ${radio(teamA, aOdds, 'home')}<span style="color:#9a9a9a;font-size:16px;">v</span>${radio(teamB, bOdds, 'away')}
+          ${radio(teamA, aOdds, 'home')}<span style="color:#9a9a9a;font-size:clamp(16px, calc(16px + 0.4vw), 19px);">v</span>${radio(teamB, bOdds, 'away')}
         </div>`;
       }).join('');
       const doneStored = divisionTipsCompleted(div, round);
       return `<div class="bb-card" style="margin-bottom:1rem;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-          <strong style="font-size:18px;">${esc(div.replace(' (D1)',''))}</strong>
-          <span style="font-size:17px;color:#9a9a9a;">${doneStored}/${fixtures.length} confirmed</span>
+          <strong style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">${esc(div.replace(' (D1)',''))}</strong>
+          <span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">${doneStored}/${fixtures.length} confirmed</span>
         </div>
         ${rows}
       </div>`;
@@ -2412,14 +2412,14 @@
     const sectionStatus = sectionTipsStatus(activeSection.divs, round);
     const sectionMultiCard = sectionStatus.allConfirmed ? `<div class="bb-card" style="margin-bottom:1rem;background:#3a3320;">
         <div style="display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:18px;">\u{1F3AF} Perfect round for ${esc(activeSection.label)} \u2014 ${sectionStatus.confirmedCount} legs</span>
-          <span style="font-size:21px;font-weight:800;color:#ffdd00;">${sectionStatus.combinedOdds.toFixed(2)}</span>
+          <span style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">\u{1F3AF} Perfect round for ${esc(activeSection.label)} \u2014 ${sectionStatus.confirmedCount} legs</span>
+          <span style="font-size:clamp(21px, calc(21px + 0.4vw), 24px);font-weight:800;color:#ffdd00;">${sectionStatus.combinedOdds.toFixed(2)}</span>
         </div>
         <button class="bb-btn" data-make-multi="${esc(activeSection.key)}" data-multi-stake="10" style="width:100%;margin-top:10px;">Bet this multi \u2014 10 clams</button>
       </div>` : '';
 
     const confirmBar = `<div class="bb-card" style="position:sticky;bottom:0;display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:1rem;">
-        <span style="font-size:17px;color:#9a9a9a;">${pendingCount} tip${pendingCount!==1?'s':''} selected across all sections${dirty?' \u2014 not yet saved':''}</span>
+        <span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">${pendingCount} tip${pendingCount!==1?'s':''} selected across all sections${dirty?' \u2014 not yet saved':''}</span>
         <button class="bb-btn" id="confirm-tips-btn" ${dirty?'':'disabled'}>Confirm tips</button>
       </div>`;
 
@@ -2435,8 +2435,8 @@
     if(fieldStatus.confirmedCount < 2) return ''; // not meaningfully a "multi" with fewer than 2 legs
     return `<div class="bb-card" style="margin-top:1rem;background:#22301f;">
         <div style="display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:18px;">\u{1F30D} Entire field \u2014 ${fieldStatus.confirmedCount} confirmed tip${fieldStatus.confirmedCount!==1?'s':''} across everything</span>
-          <span style="font-size:21px;font-weight:800;color:#ffdd00;">${fieldStatus.combinedOdds.toFixed(2)}</span>
+          <span style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">\u{1F30D} Entire field \u2014 ${fieldStatus.confirmedCount} confirmed tip${fieldStatus.confirmedCount!==1?'s':''} across everything</span>
+          <span style="font-size:clamp(21px, calc(21px + 0.4vw), 24px);font-weight:800;color:#ffdd00;">${fieldStatus.combinedOdds.toFixed(2)}</span>
         </div>
         <button class="bb-btn ghost" data-make-multi="ALL" data-multi-stake="10" style="width:100%;margin-top:10px;">Bet the entire field \u2014 10 clams</button>
       </div>`;
@@ -2485,7 +2485,7 @@
         return '<p style="color:#9a9a9a;">Loading your pre-season picks&hellip;</p>';
       }
     }
-    const intro = `<p style="color:#9a9a9a;font-size:17px;margin-bottom:10px;">One-time, season-long predictions \u2014 free to enter, but genuinely pays real clams (see the Prizes tab for the full breakdown). ${locked ? 'Locked now that the season has started.' : 'Locks the moment Round 1 kicks off, so get your picks in before then.'}</p>`;
+    const intro = `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:10px;">One-time, season-long predictions \u2014 free to enter, but genuinely pays real clams (see the Prizes tab for the full breakdown). ${locked ? 'Locked now that the season has started.' : 'Locks the moment Round 1 kicks off, so get your picks in before then.'}</p>`;
 
     const adminResultsSection = (state.user && state.user.isAdmin && state.preseasonResults !== null) ? renderPreseasonAdminResults() : '';
     if(state.user && state.user.isAdmin && state.preseasonResults === null){
@@ -2497,26 +2497,26 @@
         const picks = state.preseasonData.picks[slot.key] || [];
         if(!picks.length) return null;
         return `<div style="padding:8px 0;border-bottom:1px solid #333333;">
-            <div style="font-size:17px;color:#9a9a9a;margin-bottom:4px;">${esc(slot.label)}</div>
+            <div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-bottom:4px;">${esc(slot.label)}</div>
             <div style="display:flex;flex-wrap:wrap;gap:8px;">
-              ${picks.map(p => `<span style="display:flex;align-items:center;gap:5px;background:#2a2a2a;border-radius:6px;padding:4px 10px;font-size:18px;">${teamLogo(p.team,16)}${esc(p.team)} <span style="color:#ffdd00;font-weight:600;">${formatOdds(p.odds)}</span></span>`).join('')}
+              ${picks.map(p => `<span style="display:flex;align-items:center;gap:5px;background:#2a2a2a;border-radius:6px;padding:4px 10px;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">${teamLogo(p.team,16)}${esc(p.team)} <span style="color:#ffdd00;font-weight:600;">${formatOdds(p.odds)}</span></span>`).join('')}
             </div>
           </div>`;
       }).filter(Boolean);
       const ownPicks = rows.length
-        ? `<div class="bb-card" style="margin-bottom:1rem;"><strong style="font-size:18px;">Your picks</strong>${rows.join('')}</div>`
+        ? `<div class="bb-card" style="margin-bottom:1rem;"><strong style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">Your picks</strong>${rows.join('')}</div>`
         : `<div class="bb-card" style="text-align:center;padding:2rem 1rem;color:#9a9a9a;margin-bottom:1rem;">You didn't confirm any pre-season picks.</div>`;
       return intro + adminResultsSection + ownPicks + renderAllPreseasonPicks();
     }
 
     const dirty = JSON.stringify(state.preseasonPending) !== JSON.stringify(state.preseasonData.picks);
     const group = (title, slots) => `<div class="bb-card" style="margin-bottom:1rem;">
-        <strong style="font-size:18px;display:block;margin-bottom:8px;">${esc(title)}</strong>
+        <strong style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);display:block;margin-bottom:8px;">${esc(title)}</strong>
         ${slots.map(slot => {
           const options = preseasonSlotOptions(slot);
           const current = state.preseasonPending[slot.key] || [];
           return `<div style="margin-bottom:12px;">
-              <div style="font-size:17px;color:#9a9a9a;margin-bottom:6px;">${esc(slot.label)} ${slot.count>1?`<span style="color:#7fbf8f;">(${current.length}/${slot.count})</span>`:''}</div>
+              <div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-bottom:6px;">${esc(slot.label)} ${slot.count>1?`<span style="color:#7fbf8f;">(${current.length}/${slot.count})</span>`:''}</div>
               <div style="display:flex;flex-wrap:wrap;gap:6px;">
                 ${options.map(o => {
                   const picked = current.some(p => p.team === o.team);
@@ -2527,7 +2527,7 @@
                   // than the real null -- passing null through to formatOdds() or
                   // parseFloat() would throw/produce NaN downstream.
                   const displayOdds = o.suspended ? 1.00 : o.odds;
-                  return `<button class="bb-btn ${picked?'':'ghost'}" data-preseason-pick="${esc(slot.key)}|${esc(o.team)}|${displayOdds}|${slot.count}" style="padding:5px 10px;font-size:17px;display:flex;align-items:center;gap:5px;${o.suspended?'opacity:0.85;':''}">${teamLogo(o.team,14)}${esc(o.team)} ${formatOdds(displayOdds)}${o.suspended?' <span style="color:#9a9a9a;font-size:15px;" title="Heavy favorite -- no real betting price, so this pick pays a flat 1.00 (stake back) rather than real odds.">(favorite)</span>':''}</button>`;
+                  return `<button class="bb-btn ${picked?'':'ghost'}" data-preseason-pick="${esc(slot.key)}|${esc(o.team)}|${displayOdds}|${slot.count}" style="padding:5px 10px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);display:flex;align-items:center;gap:5px;${o.suspended?'opacity:0.85;':''}">${teamLogo(o.team,14)}${esc(o.team)} ${formatOdds(displayOdds)}${o.suspended?' <span style="color:#9a9a9a;font-size:clamp(15px, calc(15px + 0.4vw), 18px);" title="Heavy favorite -- no real betting price, so this pick pays a flat 1.00 (stake back) rather than real odds.">(favorite)</span>':''}</button>`;
                 }).join('')}
               </div>
             </div>`;
@@ -2539,7 +2539,7 @@
     const promotions = PRESEASON_SLOTS.filter(s => s.key.startsWith('promoted|'));
 
     const confirmBar = `<div class="bb-card" style="position:sticky;bottom:0;display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:1rem;">
-        <span style="font-size:17px;color:#9a9a9a;">${Object.values(state.preseasonPending).flat().length} pick${Object.values(state.preseasonPending).flat().length!==1?'s':''} selected${dirty?' \u2014 not yet saved':''}</span>
+        <span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">${Object.values(state.preseasonPending).flat().length} pick${Object.values(state.preseasonPending).flat().length!==1?'s':''} selected${dirty?' \u2014 not yet saved':''}</span>
         <button class="bb-btn" id="confirm-preseason-btn" ${dirty?'':'disabled'}>Confirm picks</button>
       </div>`;
 
@@ -2556,17 +2556,17 @@
   // automatically as teams/odds data changes.
   function renderPreseasonAdminResults(){
     return `<div class="bb-card" style="margin-bottom:1rem;border:1px solid #ffdd00;">
-        <strong style="font-size:18px;display:block;margin-bottom:8px;color:#ffdd00;">Admin: record final results</strong>
-        <p style="font-size:16px;color:#9a9a9a;margin-bottom:10px;">What actually happened, not a prediction -- this is what every punter's pre-season picks get scored against.</p>
+        <strong style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);display:block;margin-bottom:8px;color:#ffdd00;">Admin: record final results</strong>
+        <p style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:#9a9a9a;margin-bottom:10px;">What actually happened, not a prediction -- this is what every punter's pre-season picks get scored against.</p>
         ${PRESEASON_SLOTS.map(slot => {
           const options = preseasonSlotOptions(slot);
           const current = state.preseasonResults[slot.key] || [];
           return `<div style="margin-bottom:10px;">
-              <div style="font-size:17px;color:#9a9a9a;margin-bottom:4px;">${esc(slot.label)} ${slot.count>1?`<span style="color:#7fbf8f;">(${current.length}/${slot.count})</span>`:''}</div>
+              <div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-bottom:4px;">${esc(slot.label)} ${slot.count>1?`<span style="color:#7fbf8f;">(${current.length}/${slot.count})</span>`:''}</div>
               <div style="display:flex;flex-wrap:wrap;gap:5px;">
                 ${options.map(o => {
                   const picked = current.includes(o.team);
-                  return `<button class="bb-btn ${picked?'':'ghost'}" data-final-result="${esc(slot.key)}|${esc(o.team)}|${slot.count}" style="padding:4px 8px;font-size:16px;">${esc(o.team)}</button>`;
+                  return `<button class="bb-btn ${picked?'':'ghost'}" data-final-result="${esc(slot.key)}|${esc(o.team)}|${slot.count}" style="padding:4px 8px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);">${esc(o.team)}</button>`;
                 }).join('')}
               </div>
             </div>`;
@@ -2597,10 +2597,10 @@
       return `<div class="bb-card" style="margin-top:1rem;"><p style="color:#9a9a9a;">Nobody confirmed pre-season picks.</p></div>`;
     }
     return `<div class="bb-card" style="margin-top:1rem;">
-        <strong style="font-size:18px;">Everyone's picks</strong>
+        <strong style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">Everyone's picks</strong>
         <div style="margin-top:8px;">
           ${state.preseasonAllPicks.map(r => `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #333333;flex-wrap:wrap;">
-              <span style="font-size:17px;width:110px;flex-shrink:0;">${esc(r.username)}</span>
+              <span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);width:110px;flex-shrink:0;">${esc(r.username)}</span>
               <span style="display:flex;gap:6px;flex-wrap:wrap;">${r.picks.map(p => `<span title="${esc(p.team)}">${teamLogo(p.team,22)}</span>`).join('')}</span>
             </div>`).join('')}
         </div>
@@ -2610,15 +2610,15 @@
   function prizeCard(title, amount, body, example){
     return `<div class="bb-card" style="margin-bottom:1rem;">
         <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
-          <strong style="font-size:19px;">${esc(title)}</strong>
-          <span style="color:#ffdd00;font-weight:700;font-size:19px;">${esc(amount)}</span>
+          <strong style="font-size:clamp(19px, calc(19px + 0.4vw), 22px);">${esc(title)}</strong>
+          <span style="color:#ffdd00;font-weight:700;font-size:clamp(19px, calc(19px + 0.4vw), 22px);">${esc(amount)}</span>
         </div>
-        <p style="font-size:17px;color:#cfcfcf;margin:0 0 8px;line-height:1.5;">${body}</p>
-        <p style="font-size:16px;color:#9a9a9a;margin:0;font-style:italic;">${esc(example)}</p>
+        <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#cfcfcf;margin:0 0 8px;line-height:1.5;">${body}</p>
+        <p style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:#9a9a9a;margin:0;font-style:italic;">${esc(example)}</p>
       </div>`;
   }
   function renderPrizesTab(){
-    const description = `<p style="color:#9a9a9a;font-size:17px;margin-bottom:14px;">Every reward below pays real clams, straight into your balance the moment it's earned \u2014 check My Bets \u2192 Balance history for the full record. A dead heat splits the amount between everyone tied, rounded UP, so a 3-way tie for 10 clams pays 4 each, not 3.33.</p>` +
+    const description = `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:14px;">Every reward below pays real clams, straight into your balance the moment it's earned \u2014 check My Bets \u2192 Balance history for the full record. A dead heat splits the amount between everyone tied, rounded UP, so a 3-way tie for 10 clams pays 4 each, not 3.33.</p>` +
       prizeCard('Perfect round', `${TIP_REWARD_AMOUNT} clams each`,
         `Confirm every fixture in a section and get all of them right that week. Not a leaderboard placement \u2014 anyone who does it earns it independently, even several people in the same week. Applies to Eliza Cup, Div 2 (2A+2B combined), and Div 3 (3A+3B combined) every week except their playoff rounds. For FA Cup, only Round of 64/32/16 qualify; for ECL, only Matchdays 1-3 \u2014 the knockout stages onward don't count.`,
         `Example: you tip all 7 Eliza Cup fixtures one week and every one comes in \u2014 ${TIP_REWARD_AMOUNT} clams, regardless of anyone else's results.`) +
@@ -2649,14 +2649,14 @@
   function renderRecentWinners(){
     if(state.recentWinners === null){
       loadRecentWinners(); // async -- fires off the fetch, current render shows a brief loading state
-      return `<p style="color:#9a9a9a;font-size:18px;">Loading&hellip;</p>`;
+      return `<p style="color:#9a9a9a;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">Loading&hellip;</p>`;
     }
     if(!state.recentWinners.length){
-      return `<p style="color:#9a9a9a;font-size:18px;">No prizes claimed yet \u2014 check back once a round wraps up.</p>`;
+      return `<p style="color:#9a9a9a;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">No prizes claimed yet \u2014 check back once a round wraps up.</p>`;
     }
     const recent = state.recentWinners.slice(0, 30);
     return `<div class="bb-card">
-        ${recent.map(w => `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #333333;font-size:17px;">
+        ${recent.map(w => `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #333333;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">
             <span><strong>${esc(w.username)}</strong> <span style="color:#9a9a9a;">\u2014 ${esc(w.category)}${w.round?` (Round ${w.round})`:''}: ${esc(w.reason)}</span></span>
             <span style="color:#ffdd00;font-weight:600;white-space:nowrap;margin-left:8px;">+${w.amount}</span>
           </div>`).join('')}
@@ -2680,16 +2680,16 @@
 
   function renderTippingLeaderboard(){
     const kindBar = `<div style="display:flex;gap:4px;margin-bottom:1rem;">
-        <div class="bb-tab ${state.leaderboardKind==='WEEKLY'?'active':''}" data-leaderboard-kind="WEEKLY" style="font-size:17px;padding:6px 10px;">Weekly tipping</div>
-        <div class="bb-tab ${state.leaderboardKind==='PRESEASON'?'active':''}" data-leaderboard-kind="PRESEASON" style="font-size:17px;padding:6px 10px;">Pre-season</div>
+        <div class="bb-tab ${state.leaderboardKind==='WEEKLY'?'active':''}" data-leaderboard-kind="WEEKLY" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;">Weekly tipping</div>
+        <div class="bb-tab ${state.leaderboardKind==='PRESEASON'?'active':''}" data-leaderboard-kind="PRESEASON" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;">Pre-season</div>
       </div>`;
     if(state.leaderboardKind === 'PRESEASON'){
       return kindBar + renderPreseasonLeaderboard();
     }
-    const rewardNote = `<p style="color:var(--bb-text-muted);font-size:17px;margin-bottom:10px;">Topping a leaderboard here pays real clams \u2014 see the Prizes tab for exactly how much and what qualifies.</p>`;
+    const rewardNote = `<p style="color:var(--bb-text-muted);font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:10px;">Topping a leaderboard here pays real clams \u2014 see the Prizes tab for exactly how much and what qualifies.</p>`;
     const lastPlayed = state.currentRound - 1;
     const sectionTabs = `<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px;">
-        ${LEADERBOARD_SECTIONS.map(s => `<div class="bb-tab ${state.tippingLeaderboardSection===s.key?'active':''}" data-leaderboard-section="${s.key}" style="font-size:17px;padding:6px 10px;">${esc(s.label)}</div>`).join('')}
+        ${LEADERBOARD_SECTIONS.map(s => `<div class="bb-tab ${state.tippingLeaderboardSection===s.key?'active':''}" data-leaderboard-section="${s.key}" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;">${esc(s.label)}</div>`).join('')}
       </div>`;
     if(lastPlayed < 1){
       if(state.tippingLeaderboard === null){
@@ -2712,10 +2712,10 @@
     const viewRound = state.tippingLeaderboardRound || lastPlayed;
     const controls = `<div class="bb-card" style="margin-bottom:1rem;display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
         <div style="display:flex;gap:4px;">
-          <div class="bb-tab ${state.tippingLeaderboardMode==='WEEKLY'?'active':''}" data-tipping-lb-mode="WEEKLY" style="font-size:17px;padding:5px 10px;">Weekly</div>
-          <div class="bb-tab ${state.tippingLeaderboardMode==='OVERALL'?'active':''}" data-tipping-lb-mode="OVERALL" style="font-size:17px;padding:5px 10px;">Overall</div>
+          <div class="bb-tab ${state.tippingLeaderboardMode==='WEEKLY'?'active':''}" data-tipping-lb-mode="WEEKLY" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:5px 10px;">Weekly</div>
+          <div class="bb-tab ${state.tippingLeaderboardMode==='OVERALL'?'active':''}" data-tipping-lb-mode="OVERALL" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:5px 10px;">Overall</div>
         </div>
-        <span style="font-size:17px;color:var(--bb-text-muted);">${state.tippingLeaderboardMode==='WEEKLY'?'Round':'Through round'}</span>
+        <span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:var(--bb-text-muted);">${state.tippingLeaderboardMode==='WEEKLY'?'Round':'Through round'}</span>
         <select class="bb-select" id="tipping-lb-round" style="width:130px;">
           ${Array.from({length:lastPlayed}, (_,i) => lastPlayed-i).map(r => `<option value="${r}" ${r===viewRound?'selected':''}>Round ${r}</option>`).join('')}
         </select>
@@ -2746,9 +2746,9 @@
       const rows = LEADERBOARD_SORT_COLS.map(c => [c.label, findYou(c.key)]).filter(r => r[1] !== null);
       if(rows.length){
         yourStanding = `<div class="bb-card" style="margin-bottom:1rem;border-color:#4a4a2a;">
-            <strong style="font-size:18px;color:#eee;">Your standing in this view</strong>
+            <strong style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);color:#eee;">Your standing in this view</strong>
             <div style="margin-top:6px;">
-              ${rows.map(([label, r]) => `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:17px;color:#cfcfcf;">
+              ${rows.map(([label, r]) => `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#cfcfcf;">
                   <span>${esc(label)}: #${r.rank} of ${r.of}</span>
                   <span>${r.isLeader ? '<span style="color:var(--bb-ok);">Leading</span>' : (r.fmt(r.yourValue, r.yourRow) + ' -- ' + r.diffFmt(r.leaderValue - r.yourValue) + ' behind 1st')}</span>
                 </div>`).join('')}
@@ -2790,7 +2790,7 @@
           <div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:3px;">
             <div style="display:flex;align-items:center;gap:6px;font-weight:600;cursor:pointer;" data-show-form="${esc(m.teamA)}" title="See ${esc(m.teamA)}'s results">${teamLogo(m.teamA,18)}${esc(m.teamA)}</div>
             <div style="display:flex;align-items:center;gap:6px;font-weight:600;cursor:pointer;" data-show-form="${esc(m.teamB)}" title="See ${esc(m.teamB)}'s results"><span style="color:#9a9a9a;font-weight:400;">vs</span> ${teamLogo(m.teamB,18)}${esc(m.teamB)}</div>
-            <span class="bb-btn ghost" data-fixture-expand="${esc(div)}|${i}" style="align-self:flex-start;padding:3px 9px;font-size:15px;margin-top:2px;">Full market (draw &amp; handicap)</span>
+            <span class="bb-btn ghost" data-fixture-expand="${esc(div)}|${i}" style="align-self:flex-start;padding:3px 9px;font-size:clamp(15px, calc(15px + 0.4vw), 18px);margin-top:2px;">Full market (draw &amp; handicap)</span>
           </div>
           <div style="width:88px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;justify-content:center;">
             ${priceOnlyButton(aId, roundTag+': '+m.teamA+' to win', toOdds(m.aWinPct))}
@@ -2799,26 +2799,26 @@
         </div>`;
       }).join('') +
       '</div>' +
-      '<p style="color:#9a9a9a;font-size:17px;margin-top:10px;">Fixture list is a projected double round-robin, not an official 26/27 schedule \u2014 swap in the real one once fixtures are confirmed. Tap either team\'s price to back the moneyline directly, or open the full market for the draw and handicap.</p>';
+      '<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-top:10px;">Fixture list is a projected double round-robin, not an official 26/27 schedule \u2014 swap in the real one once fixtures are confirmed. Tap either team\'s price to back the moneyline directly, or open the full market for the draw and handicap.</p>';
   }
 
   function renderH2HTab(){
     const stripe = divisionHeaderBanner(state.h2hSubTab);
     const roundBar = `<div class="bb-card" style="margin-bottom:1rem;display:flex;align-items:center;gap:10px;">
-      <span style="font-size:17px;color:#9a9a9a;">Round</span>
+      <span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">Round</span>
       <select class="bb-select" id="h2h-round" style="width:140px;">${roundOptions(state.h2hRound)}</select>
     </div>` + renderPointProjection(state.h2hRound);
     if(state.h2hSubTab === 'CUSTOM MATCHUP'){
       return stripe + roundBar + h2hSubTabBar() + `<div class="bb-card" style="margin-bottom:1rem;">
         <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
-          <div style="flex:1;min-width:180px;"><span style="font-size:17px;color:#9a9a9a;display:block;margin-bottom:4px;">Team A</span>
+          <div style="flex:1;min-width:180px;"><span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;display:block;margin-bottom:4px;">Team A</span>
             ${teamSearchInput('team-a', state.teamA)}</div>
-          <div style="flex:1;min-width:180px;"><span style="font-size:17px;color:#9a9a9a;display:block;margin-bottom:4px;">Team B</span>
+          <div style="flex:1;min-width:180px;"><span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;display:block;margin-bottom:4px;">Team B</span>
             ${teamSearchInput('team-b', state.teamB)}</div>
           <button class="bb-btn" id="get-market" ${(!ALL_TEAMS.includes(state.teamA)||!ALL_TEAMS.includes(state.teamB)||state.teamA===state.teamB)?'disabled':''}>Get market</button>
         </div>
-        ${state.teamA && state.teamB && state.teamA===state.teamB ? '<p style="color:#c0604f;font-size:18px;margin:8px 0 0;">Pick two different teams.</p>' : ''}
-        ${(state.teamA && !ALL_TEAMS.includes(state.teamA)) || (state.teamB && !ALL_TEAMS.includes(state.teamB)) ? '<p style="color:#c0604f;font-size:18px;margin:8px 0 0;">No match for that team name \u2014 pick one from the suggestions as you type.</p>' : ''}
+        ${state.teamA && state.teamB && state.teamA===state.teamB ? '<p style="color:#c0604f;font-size:clamp(18px, calc(18px + 0.4vw), 21px);margin:8px 0 0;">Pick two different teams.</p>' : ''}
+        ${(state.teamA && !ALL_TEAMS.includes(state.teamA)) || (state.teamB && !ALL_TEAMS.includes(state.teamB)) ? '<p style="color:#c0604f;font-size:clamp(18px, calc(18px + 0.4vw), 21px);margin:8px 0 0;">No match for that team name \u2014 pick one from the suggestions as you type.</p>' : ''}
       </div>${state.h2hMarket ? renderH2HMarket(state.h2hMarket) : ''}`;
     }
     if(state.h2hSubTab === 'FA CUP' || state.h2hSubTab === 'ECL'){
@@ -2845,14 +2845,14 @@
   function renderTxHistoryList(){
     if(state.txHistory === null){
       loadTxHistory(); // async -- fires off the fetch, current render shows a brief loading state
-      return `<p style="color:#9a9a9a;font-size:18px;margin-top:8px;">Loading&hellip;</p>`;
+      return `<p style="color:#9a9a9a;font-size:clamp(18px, calc(18px + 0.4vw), 21px);margin-top:8px;">Loading&hellip;</p>`;
     }
     if(!state.txHistory.length){
-      return `<p style="color:#9a9a9a;font-size:18px;margin-top:8px;">Nothing here yet.</p>`;
+      return `<p style="color:#9a9a9a;font-size:clamp(18px, calc(18px + 0.4vw), 21px);margin-top:8px;">Nothing here yet.</p>`;
     }
     const recent = state.txHistory.slice(0, 30);
     return `<div style="margin-top:8px;">
-        ${recent.map(tx => `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #333333;font-size:17px;">
+        ${recent.map(tx => `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #333333;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">
             <span style="display:flex;align-items:center;gap:6px;color:#cfcfcf;">${TX_TYPE_LABELS[tx.type]||'\u2022'} ${esc(tx.reason)}</span>
             <span style="font-weight:600;color:${tx.amount>=0?'#7fbf8f':'#e08a8a'};white-space:nowrap;margin-left:8px;">${tx.amount>=0?'+':''}${fmt(tx.amount)}</span>
           </div>`).join('')}
@@ -2863,7 +2863,7 @@
     if(!state.user) return '<p style="color:#9a9a9a;">Log in to see your bets.</p>';
     const prefsCard = `<div class="bb-card" style="margin-bottom:1rem;">
         <h4 style="margin:0 0 8px;color:#9a9a9a;">Your preferences</h4>
-        <label style="display:flex;align-items:flex-start;gap:8px;font-size:18px;cursor:pointer;">
+        <label style="display:flex;align-items:flex-start;gap:8px;font-size:clamp(18px, calc(18px + 0.4vw), 21px);cursor:pointer;">
           <input type="checkbox" id="tip-reminder-toggle" ${state.user.tipReminderEnabled?'checked':''} style="margin-top:2px;"/>
           <span>Flag it for me on the Tipping tab if I haven't submitted my tips for the week.</span>
         </label>
@@ -2871,29 +2871,29 @@
     const txCard = `<div class="bb-card" style="margin-bottom:1rem;">
         <div data-toggle-tx-history style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
           <h4 style="margin:0;color:#9a9a9a;">Balance history</h4>
-          <span style="font-size:17px;color:#9a9a9a;">${state.txHistoryExpanded?'Hide \u25B4':'Show \u25BE'}</span>
+          <span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">${state.txHistoryExpanded?'Hide \u25B4':'Show \u25BE'}</span>
         </div>
         ${state.txHistoryExpanded ? renderTxHistoryList() : ''}
       </div>`;
     const h = state.user.historicalRecord;
     const careerBox = (h && h.totalBets > 0) ? `
       <div class="bb-card" style="margin-bottom:1rem;">
-        <div style="font-size:18px;font-weight:600;margin-bottom:8px;">Career record (carried over from previous seasons)</div>
+        <div style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);font-weight:600;margin-bottom:8px;">Career record (carried over from previous seasons)</div>
         <div style="display:flex;gap:20px;flex-wrap:wrap;">
-          <div><div style="font-size:17px;color:#9a9a9a;">Bets</div><div style="font-size:21px;font-weight:600;">${h.totalBets}</div></div>
-          <div><div style="font-size:17px;color:#9a9a9a;">Won</div><div style="font-size:21px;font-weight:600;color:#4a9166;">${h.winningBets}</div></div>
-          <div><div style="font-size:17px;color:#9a9a9a;">Lost</div><div style="font-size:21px;font-weight:600;color:#a3402f;">${h.losingBets}</div></div>
-          <div><div style="font-size:17px;color:#9a9a9a;">Void</div><div style="font-size:21px;font-weight:600;">${h.voidBets}</div></div>
-          <div><div style="font-size:17px;color:#9a9a9a;">Net</div><div style="font-size:21px;font-weight:600;">${(h.winnings-h.losses)>=0?'+':''}${fmt(h.winnings-h.losses)}</div></div>
+          <div><div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">Bets</div><div style="font-size:clamp(21px, calc(21px + 0.4vw), 24px);font-weight:600;">${h.totalBets}</div></div>
+          <div><div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">Won</div><div style="font-size:clamp(21px, calc(21px + 0.4vw), 24px);font-weight:600;color:#4a9166;">${h.winningBets}</div></div>
+          <div><div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">Lost</div><div style="font-size:clamp(21px, calc(21px + 0.4vw), 24px);font-weight:600;color:#a3402f;">${h.losingBets}</div></div>
+          <div><div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">Void</div><div style="font-size:clamp(21px, calc(21px + 0.4vw), 24px);font-weight:600;">${h.voidBets}</div></div>
+          <div><div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">Net</div><div style="font-size:clamp(21px, calc(21px + 0.4vw), 24px);font-weight:600;">${(h.winnings-h.losses)>=0?'+':''}${fmt(h.winnings-h.losses)}</div></div>
         </div>
       </div>` : '';
     const legacyBox = (state.user.legacyBestBets && state.user.legacyBestBets.length) ? `
       <div class="bb-card" style="margin-bottom:1rem;">
-        <div style="font-size:18px;font-weight:600;margin-bottom:8px;">All-time best bets</div>
+        <div style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);font-weight:600;margin-bottom:8px;">All-time best bets</div>
         ${state.user.legacyBestBets.map((b,i) => `
           <div style="padding:6px 0;${i<state.user.legacyBestBets.length-1?'border-bottom:1px solid #2a2a2a;':''}">
-            <div style="font-size:18px;">${b.selections.map(s=>esc(s.label)).join(', ')}</div>
-            <div style="font-size:16px;color:#8a8a8a;">Stake ${fmt(b.stake)} @ ${b.combinedOdds.toFixed(2)} &rarr; won ${fmt(b.potentialReturn)}${b.season?' &mdash; '+esc(b.season):''}</div>
+            <div style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">${b.selections.map(s=>esc(s.label)).join(', ')}</div>
+            <div style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:#8a8a8a;">Stake ${fmt(b.stake)} @ ${b.combinedOdds.toFixed(2)} &rarr; won ${fmt(b.potentialReturn)}${b.season?' &mdash; '+esc(b.season):''}</div>
           </div>`).join('')}
       </div>` : '';
     if(state.myBets === null) return prefsCard + txCard + careerBox + legacyBox + '<p style="color:#9a9a9a;">Loading&hellip;</p>';
@@ -2910,11 +2910,11 @@
     }, 0);
     return prefsCard + txCard + careerBox + legacyBox + `
       <div class="bb-card" style="margin-bottom:1rem;display:flex;gap:20px;flex-wrap:wrap;">
-        <div><div style="font-size:17px;color:#9a9a9a;">Pending</div><div style="font-size:21px;font-weight:600;">${pending}</div></div>
-        <div><div style="font-size:17px;color:#9a9a9a;">Won</div><div style="font-size:21px;font-weight:600;color:#4a9166;">${won}</div></div>
-        <div><div style="font-size:17px;color:#9a9a9a;">Lost</div><div style="font-size:21px;font-weight:600;color:#a3402f;">${lost}</div></div>
-        <div><div style="font-size:17px;color:#9a9a9a;">Voided</div><div style="font-size:21px;font-weight:600;">${voided}</div></div>
-        <div><div style="font-size:17px;color:#9a9a9a;">Net (settled bets)</div><div style="font-size:21px;font-weight:600;">${netFromSettled>=0?'+':''}${fmt(netFromSettled)}</div></div>
+        <div><div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">Pending</div><div style="font-size:clamp(21px, calc(21px + 0.4vw), 24px);font-weight:600;">${pending}</div></div>
+        <div><div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">Won</div><div style="font-size:clamp(21px, calc(21px + 0.4vw), 24px);font-weight:600;color:#4a9166;">${won}</div></div>
+        <div><div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">Lost</div><div style="font-size:clamp(21px, calc(21px + 0.4vw), 24px);font-weight:600;color:#a3402f;">${lost}</div></div>
+        <div><div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">Voided</div><div style="font-size:clamp(21px, calc(21px + 0.4vw), 24px);font-weight:600;">${voided}</div></div>
+        <div><div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">Net (settled bets)</div><div style="font-size:clamp(21px, calc(21px + 0.4vw), 24px);font-weight:600;">${netFromSettled>=0?'+':''}${fmt(netFromSettled)}</div></div>
       </div>
       <div class="bb-card" style="padding:0;overflow-x:auto;">
         <table class="bb-table">
@@ -2932,7 +2932,7 @@
           </tbody>
         </table>
       </div>
-      <p style="font-size:17px;color:#9a9a9a;margin-top:10px;">
+      <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-top:10px;">
         Every bet here is recorded as <strong>pending</strong> until the 26/27 season actually plays out and results come in &mdash;
         this table is the template that will populate with won/lost once there's a way to resolve markets against real results.
       </p>`;
@@ -2945,7 +2945,7 @@
   // slip, no separate code path to keep in sync.
   function renderTeamSearchResults(team){
     if(!team || !ALL_TEAMS.includes(team)){
-      return '<p style="color:#9a9a9a;font-size:18px;">Type a team name and pick a suggestion.</p>';
+      return '<p style="color:#9a9a9a;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">Type a team name and pick a suggestion.</p>';
     }
     function row(id, label, o){
       if(!o) return '';
@@ -2999,8 +2999,8 @@
     const matched = matchTeamName(state.teamSearchQuery);
     return `<div class="bb-card" style="margin-bottom:1rem;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-        <strong style="font-size:18px;">Find a team's markets</strong>
-        <span id="close-team-search" style="cursor:pointer;color:#9a9a9a;font-size:21px;line-height:1;padding:10px;margin:-10px;display:inline-block;">&times;</span>
+        <strong style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">Find a team's markets</strong>
+        <span id="close-team-search" style="cursor:pointer;color:#9a9a9a;font-size:clamp(21px, calc(21px + 0.4vw), 24px);line-height:1;padding:10px;margin:-10px;display:inline-block;">&times;</span>
       </div>
       ${teamSearchInput('header-team-search', state.teamSearchQuery, 'Search for a team\u2026')}
       <div style="margin-top:4px;max-height:360px;overflow-y:auto;">${renderTeamSearchResults(matched)}</div>
@@ -3064,17 +3064,17 @@
     const letters = Object.keys(groups).sort();
     return `<div class="bb-card" style="margin-bottom:1rem;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-          <strong style="font-size:19px;">All teams</strong>
-          <span id="close-team-directory" style="cursor:pointer;color:var(--bb-text-muted);font-size:21px;line-height:1;padding:10px;margin:-10px;display:inline-block;">&times;</span>
+          <strong style="font-size:clamp(19px, calc(19px + 0.4vw), 22px);">All teams</strong>
+          <span id="close-team-directory" style="cursor:pointer;color:var(--bb-text-muted);font-size:clamp(21px, calc(21px + 0.4vw), 24px);line-height:1;padding:10px;margin:-10px;display:inline-block;">&times;</span>
         </div>
         <input class="bb-input" id="team-directory-search" placeholder="Search for a team\u2026" value="${esc(state.teamDirectoryQuery||'')}" style="margin-bottom:10px;">
-        ${!filtered.length ? '<p style="color:var(--bb-text-muted);font-size:18px;">No teams match that search.</p>' : ''}
+        ${!filtered.length ? '<p style="color:var(--bb-text-muted);font-size:clamp(18px, calc(18px + 0.4vw), 21px);">No teams match that search.</p>' : ''}
         <div style="max-height:520px;overflow-y:auto;">
         ${letters.map(letter => `
-          <div style="font-size:16px;font-weight:700;color:var(--bb-text-muted);text-transform:uppercase;letter-spacing:0.04em;padding:8px 4px 4px;">${esc(letter)}</div>
+          <div style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);font-weight:700;color:var(--bb-text-muted);text-transform:uppercase;letter-spacing:0.04em;padding:8px 4px 4px;">${esc(letter)}</div>
           ${groups[letter].map(t => `<div class="bb-tab" data-view-team-profile="${esc(t)}" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;cursor:pointer;">
-            ${teamLogo(t, 22)}<span style="font-size:18px;">${esc(t)}</span>
-            <span style="margin-left:auto;font-size:16px;color:var(--bb-text-muted);">${esc((findTeamDivision(t)||'').replace(' (D1)',''))}</span>
+            ${teamLogo(t, 22)}<span style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">${esc(t)}</span>
+            <span style="margin-left:auto;font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:var(--bb-text-muted);">${esc((findTeamDivision(t)||'').replace(' (D1)',''))}</span>
           </div>`).join('')}
         `).join('')}
         </div>
@@ -3094,14 +3094,14 @@
       return `<div class="bb-card"><p style="color:var(--bb-text-muted);">Couldn't find that team.</p></div>`;
     }
     const tabs = `<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:1rem;">
-        ${TEAM_PROFILE_SUBTABS.map(s => `<div class="bb-tab ${state.teamProfileSubTab===s.key?'active':''}" data-team-profile-subtab="${s.key}" style="font-size:17px;padding:6px 10px;">${esc(s.label)}</div>`).join('')}
+        ${TEAM_PROFILE_SUBTABS.map(s => `<div class="bb-tab ${state.teamProfileSubTab===s.key?'active':''}" data-team-profile-subtab="${s.key}" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;">${esc(s.label)}</div>`).join('')}
       </div>`;
     const header = `<div class="bb-card" style="margin-bottom:1rem;display:flex;align-items:center;gap:12px;">
-        <button class="bb-btn ghost" id="team-profile-back" style="padding:6px 10px;font-size:17px;">&larr;</button>
+        <button class="bb-btn ghost" id="team-profile-back" style="padding:6px 10px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">&larr;</button>
         ${teamLogo(teamName, 44)}
         <div>
-          <div style="font-size:21px;font-weight:700;">${esc(teamName)}</div>
-          <div style="font-size:17px;color:var(--bb-text-muted);">${esc(div.replace(' (D1)',''))}</div>
+          <div style="font-size:clamp(21px, calc(21px + 0.4vw), 24px);font-weight:700;">${esc(teamName)}</div>
+          <div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:var(--bb-text-muted);">${esc(div.replace(' (D1)',''))}</div>
         </div>
       </div>`;
     let body;
@@ -3130,30 +3130,30 @@
       ['Wooden spoon', oddsFor('wooden_spoon_pct')],
     ].filter(Boolean).filter(([,v]) => v !== null);
     const oddsHtml = `<div class="bb-card" style="margin-bottom:10px;">
-        <strong style="font-size:18px;">${esc(div.replace(' (D1)',''))} betting markets</strong>
+        <strong style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">${esc(div.replace(' (D1)',''))} betting markets</strong>
         <div style="margin-top:8px;">
-          ${oddsBlock.map(([label, val]) => `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:18px;">
+          ${oddsBlock.map(([label, val]) => `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">
               <span style="color:var(--bb-text-muted);">${esc(label)}</span><span style="font-weight:600;${val==='suspended'?'color:var(--bb-text-muted);':''}">${esc(val)}</span>
             </div>`).join('')}
         </div>
       </div>`;
     const standingsHtml = lastPlayed < 1
-      ? `<div class="bb-card"><p style="color:var(--bb-text-muted);margin:0;font-size:18px;">Season hasn't started yet \u2014 standings will appear once Round 1 is played.</p></div>`
+      ? `<div class="bb-card"><p style="color:var(--bb-text-muted);margin:0;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">Season hasn't started yet \u2014 standings will appear once Round 1 is played.</p></div>`
       : (() => {
           const standings = computeDivisionStandings(div);
           const rank = standings.findIndex(r => r.team === teamName) + 1;
           const row = standings[rank - 1];
           return `<div class="bb-card">
               <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:14px;">
-                <div><div style="font-size:16px;color:var(--bb-text-muted);text-transform:uppercase;">Position</div><div style="font-size:23px;font-weight:700;">${rank} <span style="font-size:17px;color:var(--bb-text-muted);font-weight:400;">of ${standings.length}</span></div></div>
-                <div><div style="font-size:16px;color:var(--bb-text-muted);text-transform:uppercase;">Points</div><div style="font-size:23px;font-weight:700;">${row.points}</div></div>
-                <div><div style="font-size:16px;color:var(--bb-text-muted);text-transform:uppercase;">Record</div><div style="font-size:23px;font-weight:700;">${row.won}-${row.drawn}-${row.lost}</div></div>
+                <div><div style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:var(--bb-text-muted);text-transform:uppercase;">Position</div><div style="font-size:clamp(23px, calc(23px + 0.4vw), 26px);font-weight:700;">${rank} <span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:var(--bb-text-muted);font-weight:400;">of ${standings.length}</span></div></div>
+                <div><div style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:var(--bb-text-muted);text-transform:uppercase;">Points</div><div style="font-size:clamp(23px, calc(23px + 0.4vw), 26px);font-weight:700;">${row.points}</div></div>
+                <div><div style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:var(--bb-text-muted);text-transform:uppercase;">Record</div><div style="font-size:clamp(23px, calc(23px + 0.4vw), 26px);font-weight:700;">${row.won}-${row.drawn}-${row.lost}</div></div>
               </div>
-              <div style="font-size:17px;color:var(--bb-text-muted);">Played ${row.played} &middot; Score for ${row.scoreFor} &middot; Score against ${row.scoreAgainst}</div>
+              <div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:var(--bb-text-muted);">Played ${row.played} &middot; Score for ${row.scoreFor} &middot; Score against ${row.scoreAgainst}</div>
             </div>`;
         })();
     return oddsHtml + standingsHtml +
-      `<div style="margin-top:10px;"><span id="team-profile-view-markets" data-team="${esc(teamName)}" style="cursor:pointer;color:var(--bb-accent);font-size:17px;">View this team's betting markets &rarr;</span></div>`;
+      `<div style="margin-top:10px;"><span id="team-profile-view-markets" data-team="${esc(teamName)}" style="cursor:pointer;color:var(--bb-accent);font-size:clamp(17px, calc(17px + 0.4vw), 20px);">View this team's betting markets &rarr;</span></div>`;
   }
 
   function renderTeamProfileResults(teamName, div){
@@ -3179,12 +3179,12 @@
     }
     const outcomeColor = o => o === 'W' ? 'var(--bb-ok)' : (o === 'L' ? 'var(--bb-danger)' : 'var(--bb-text-muted)');
     return `<div class="bb-card" style="padding:0;overflow-x:auto;">
-        <table style="width:100%;border-collapse:collapse;font-size:19px;">
+        <table style="width:100%;border-collapse:collapse;font-size:clamp(19px, calc(19px + 0.4vw), 22px);">
           <thead><tr style="border-bottom:2px solid var(--bb-border-light);">
-            <th style="text-align:left;padding:8px 14px;font-size:16px;color:var(--bb-text-muted);text-transform:uppercase;">Rd</th>
-            <th style="text-align:left;padding:8px 8px;font-size:16px;color:var(--bb-text-muted);text-transform:uppercase;">Opponent</th>
-            <th style="text-align:right;padding:8px 8px;font-size:16px;color:var(--bb-text-muted);text-transform:uppercase;">Score</th>
-            <th style="text-align:center;padding:8px 14px;font-size:16px;color:var(--bb-text-muted);text-transform:uppercase;">Result</th>
+            <th style="text-align:left;padding:8px 14px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:var(--bb-text-muted);text-transform:uppercase;">Rd</th>
+            <th style="text-align:left;padding:8px 8px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:var(--bb-text-muted);text-transform:uppercase;">Opponent</th>
+            <th style="text-align:right;padding:8px 8px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:var(--bb-text-muted);text-transform:uppercase;">Score</th>
+            <th style="text-align:center;padding:8px 14px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:var(--bb-text-muted);text-transform:uppercase;">Result</th>
           </tr></thead>
           <tbody>${rows.slice().reverse().map((r,i) => `<tr style="border-bottom:1px solid var(--bb-border);${i%2===1?'background:var(--bb-card-bg-alt);':''}">
               <td style="padding:8px 14px;color:var(--bb-text-muted);">${r.round}</td>
@@ -3209,9 +3209,9 @@
       if(e) faCupOdds[market] = e;
     });
     sections.push(`<div class="bb-card" style="margin-bottom:10px;">
-        <strong style="font-size:18px;">FA Cup</strong>
-        <p style="font-size:17px;color:var(--bb-text-muted);margin:4px 0 8px;">Every team enters the FA Cup. Round-by-round elimination tracking isn't available until real results start coming in \u2014 these are their current chances at each stage.</p>
-        ${Object.entries(FA_CUP_LABELS_FOR_PROFILE).map(([key, label]) => faCupOdds[key] ? `<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:18px;"><span style="color:var(--bb-text-muted);">${esc(label)}</span><span>${faCupOdds[key].suspended?'suspended':formatOdds(faCupOdds[key].odds)}</span></div>` : '').join('')}
+        <strong style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">FA Cup</strong>
+        <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:var(--bb-text-muted);margin:4px 0 8px;">Every team enters the FA Cup. Round-by-round elimination tracking isn't available until real results start coming in \u2014 these are their current chances at each stage.</p>
+        ${Object.entries(FA_CUP_LABELS_FOR_PROFILE).map(([key, label]) => faCupOdds[key] ? `<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:clamp(18px, calc(18px + 0.4vw), 21px);"><span style="color:var(--bb-text-muted);">${esc(label)}</span><span>${faCupOdds[key].suspended?'suspended':formatOdds(faCupOdds[key].odds)}</span></div>` : '').join('')}
       </div>`);
     if(inEcl){
       const eclOdds = {};
@@ -3220,12 +3220,12 @@
         if(e) eclOdds[market] = e;
       });
       sections.push(`<div class="bb-card">
-          <strong style="font-size:18px;">ECL</strong>
-          <p style="font-size:17px;color:var(--bb-text-muted);margin:4px 0 8px;">One of 12 teams in this season's ECL field.</p>
-          ${Object.entries(ECL_LABELS_FOR_PROFILE).map(([key, label]) => eclOdds[key] ? `<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:18px;"><span style="color:var(--bb-text-muted);">${esc(label)}</span><span>${eclOdds[key].suspended?'suspended':formatOdds(eclOdds[key].odds)}</span></div>` : '').join('')}
+          <strong style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">ECL</strong>
+          <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:var(--bb-text-muted);margin:4px 0 8px;">One of 12 teams in this season's ECL field.</p>
+          ${Object.entries(ECL_LABELS_FOR_PROFILE).map(([key, label]) => eclOdds[key] ? `<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:clamp(18px, calc(18px + 0.4vw), 21px);"><span style="color:var(--bb-text-muted);">${esc(label)}</span><span>${eclOdds[key].suspended?'suspended':formatOdds(eclOdds[key].odds)}</span></div>` : '').join('')}
         </div>`);
     } else {
-      sections.push(`<div class="bb-card"><p style="font-size:17px;color:var(--bb-text-muted);margin:0;">Not in this season's ECL field.</p></div>`);
+      sections.push(`<div class="bb-card"><p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:var(--bb-text-muted);margin:0;">Not in this season's ECL field.</p></div>`);
     }
     return sections.join('');
   }
@@ -3242,17 +3242,17 @@
     }
     const d = state.teamProfileBilbbetData;
     if(!d.user){
-      return `<div class="bb-card"><p style="color:var(--bb-text-muted);margin:0;font-size:18px;">No bilbbet account registered under "${esc(teamName)}" yet.</p></div>`;
+      return `<div class="bb-card"><p style="color:var(--bb-text-muted);margin:0;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">No bilbbet account registered under "${esc(teamName)}" yet.</p></div>`;
     }
     return `<div class="bb-card" style="margin-bottom:10px;display:flex;gap:20px;flex-wrap:wrap;">
-        <div><div style="font-size:16px;color:var(--bb-text-muted);text-transform:uppercase;">Clam balance</div><div style="font-size:23px;font-weight:700;">${fmt(d.user.balance)}</div></div>
-        <div><div style="font-size:16px;color:var(--bb-text-muted);text-transform:uppercase;">Tips this season</div><div style="font-size:23px;font-weight:700;">${fmtCorrect(d.tipping.correct)}/${d.tipping.total}</div></div>
-        <div><div style="font-size:16px;color:var(--bb-text-muted);text-transform:uppercase;">Odds points</div><div style="font-size:23px;font-weight:700;">${d.tipping.oddsPoints.toFixed(2)}</div></div>
+        <div><div style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:var(--bb-text-muted);text-transform:uppercase;">Clam balance</div><div style="font-size:clamp(23px, calc(23px + 0.4vw), 26px);font-weight:700;">${fmt(d.user.balance)}</div></div>
+        <div><div style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:var(--bb-text-muted);text-transform:uppercase;">Tips this season</div><div style="font-size:clamp(23px, calc(23px + 0.4vw), 26px);font-weight:700;">${fmtCorrect(d.tipping.correct)}/${d.tipping.total}</div></div>
+        <div><div style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:var(--bb-text-muted);text-transform:uppercase;">Odds points</div><div style="font-size:clamp(23px, calc(23px + 0.4vw), 26px);font-weight:700;">${d.tipping.oddsPoints.toFixed(2)}</div></div>
       </div>
       <div class="bb-card" style="padding:0;overflow:hidden;">
-        <div style="padding:12px 14px 6px;"><strong style="font-size:18px;">Recent bets</strong></div>
-        ${!d.bets.length ? '<p style="color:var(--bb-text-muted);font-size:18px;padding:0 14px 14px;">No bets placed yet.</p>' :
-          d.bets.slice(0,10).map((b,i) => `<div style="padding:8px 14px;${i<Math.min(d.bets.length,10)-1?'border-bottom:1px solid var(--bb-border);':''}font-size:18px;display:flex;justify-content:space-between;">
+        <div style="padding:12px 14px 6px;"><strong style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">Recent bets</strong></div>
+        ${!d.bets.length ? '<p style="color:var(--bb-text-muted);font-size:clamp(18px, calc(18px + 0.4vw), 21px);padding:0 14px 14px;">No bets placed yet.</p>' :
+          d.bets.slice(0,10).map((b,i) => `<div style="padding:8px 14px;${i<Math.min(d.bets.length,10)-1?'border-bottom:1px solid var(--bb-border);':''}font-size:clamp(18px, calc(18px + 0.4vw), 21px);display:flex;justify-content:space-between;">
             <span style="color:var(--bb-text-muted);">${b.selections.length>1?b.selections.length+'-leg multi':esc(b.selections[0]?.label||b.selections[0]?.team||'bet')}</span>
             <span>${fmt(b.stake)} @ ${b.combinedOdds.toFixed(2)} <span style="color:var(--bb-text-muted);">(${b.status})</span></span>
           </div>`).join('')}
@@ -3282,9 +3282,9 @@
 
     let html = `<div class="bb-card" style="margin-bottom:10px;">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
-        <div style="font-size:18px;font-weight:600;">${label} ${round} (${sublabel})</div>
+        <div style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);font-weight:600;">${label} ${round} (${sublabel})</div>
         <div style="display:flex;align-items:center;gap:8px;">
-          <span style="font-size:17px;color:#9a9a9a;">Round</span>
+          <span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">Round</span>
           <select class="bb-select" data-specials-round-picker style="width:150px;">${roundOptions(round)}</select>
         </div>
       </div>`;
@@ -3293,7 +3293,7 @@
       const msg = round < state.currentRound
         ? '\u{1F512} This round has already been played &mdash; betting closed.'
         : '\u{1F512} Betting is closed for this round right now &mdash; hidden until it reopens.';
-      html += `<p style="color:#9a9a9a;font-size:17px;">${msg}</p></div>`;
+      html += `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">${msg}</p></div>`;
       return html;
     }
 
@@ -3304,7 +3304,7 @@
     if(selectedTeam){
       const o = outcomes.find(x => x.team === selectedTeam);
       if(!o){
-        html += `<p style="color:#9a9a9a;font-size:17px;margin-top:8px;">No match for that team name.</p>`;
+        html += `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-top:8px;">No match for that team name.</p>`;
       } else if(o.suspended){
         html += `<div class="bb-outcome" style="opacity:0.5;cursor:default;margin-top:8px;"><span>${esc(selectedTeam)}</span><span class="bb-odds" style="color:#9a9a9a;">suspended</span></div>`;
       } else {
@@ -3316,7 +3316,7 @@
     }
 
     const expanded = state.specialsExtremeExpanded === kind;
-    html += `<button class="bb-btn ghost" data-toggle-extreme-list="${kind}" style="margin-top:10px;font-size:17px;padding:6px 12px;">${expanded ? 'Hide full list \u25b4' : 'Show every team in odds order \u25be'}</button>`;
+    html += `<button class="bb-btn ghost" data-toggle-extreme-list="${kind}" style="margin-top:10px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 12px;">${expanded ? 'Hide full list \u25b4' : 'Show every team in odds order \u25be'}</button>`;
 
     if(expanded){
       html += `<div style="margin-top:10px;max-height:400px;overflow-y:auto;">` + outcomes.map(o => {
@@ -3340,7 +3340,7 @@
     if(selectedTeam){
       const o = outcomes.find(x => x.team === selectedTeam);
       if(!o){
-        odds_row = `<p style="color:#9a9a9a;font-size:17px;margin-top:8px;">No match for that team name.</p>`;
+        odds_row = `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-top:8px;">No match for that team name.</p>`;
       } else if(o.suspended){
         odds_row = `<div class="bb-outcome" style="opacity:0.5;cursor:default;margin-top:8px;">
           <span>${esc(selectedTeam)}</span><span class="bb-odds" style="color:#9a9a9a;">suspended</span></div>`;
@@ -3352,7 +3352,7 @@
       }
     }
     const expanded = state.specialsExtremeExpanded === kind;
-    let listHtml = `<button class="bb-btn ghost" data-toggle-extreme-list="${kind}" style="margin-top:10px;font-size:17px;padding:6px 12px;">${expanded ? 'Hide full list \u25b4' : 'Show every team in odds order \u25be'}</button>`;
+    let listHtml = `<button class="bb-btn ghost" data-toggle-extreme-list="${kind}" style="margin-top:10px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 12px;">${expanded ? 'Hide full list \u25b4' : 'Show every team in odds order \u25be'}</button>`;
     if(expanded){
       listHtml += `<div style="margin-top:10px;max-height:400px;overflow-y:auto;">` + outcomes.map(o => {
         if(o.suspended){
@@ -3365,7 +3365,7 @@
       }).join('') + `</div>`;
     }
     return `<div class="bb-card" style="margin-bottom:10px;">
-      <div style="font-size:18px;font-weight:600;margin-bottom:8px;">${esc(marketLabel)}</div>
+      <div style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);font-weight:600;margin-bottom:8px;">${esc(marketLabel)}</div>
       ${teamSearchInput(selectId, selectedTeam)}
       ${odds_row}
       ${listHtml}
@@ -3379,7 +3379,7 @@
       {key:'novelty', label:'Novelty &amp; Suggestions'},
     ];
     return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">' +
-      TABS.map(t => `<div class="bb-tab ${state.specialsSubTab===t.key?'active':''}" data-specialssubtab="${t.key}" style="font-size:17px;padding:6px 10px;">${t.label}</div>`).join('') +
+      TABS.map(t => `<div class="bb-tab ${state.specialsSubTab===t.key?'active':''}" data-specialssubtab="${t.key}" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;">${t.label}</div>`).join('') +
       '</div>';
   }
 
@@ -3388,14 +3388,14 @@
     let html = '<h3 style="margin-top:0;">Specials</h3>' + specialsSubTabBar();
 
     if(state.specialsSubTab === 'round'){
-      html += `<p style="color:#9a9a9a;font-size:17px;margin-bottom:10px;">Pick any upcoming round to back who'll be leading or trailing after it.</p>`;
+      html += `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:10px;">Pick any upcoming round to back who'll be leading or trailing after it.</p>`;
       html += renderRoundExtremeMarket('win_round');
       html += renderRoundExtremeMarket('lose_round');
       return html;
     }
 
     if(state.specialsSubTab === 'season'){
-      html += `<p style="color:#9a9a9a;font-size:17px;margin-bottom:10px;">These cover the whole season -- set once, resolved at the end of Round 26.</p>`;
+      html += `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:10px;">These cover the whole season -- set once, resolved at the end of Round 26.</p>`;
       html += fixedSpecialDropdown('SPECIALFIX|charity', 'Most Charity (least points conceded all season)', SPECIAL_MARKETS.charity, state.specialsSelection.charity, 'special-charity');
       html += fixedSpecialDropdown('SPECIALFIX|philanthropy', 'Most Philanthropy (most points conceded all season)', SPECIAL_MARKETS.philanthropy, state.specialsSelection.philanthropy, 'special-philanthropy');
       return html;
@@ -3426,7 +3426,7 @@
     html += '<h3>Suggest your own</h3><div class="bb-card">' +
       `<textarea class="bb-input" id="suggestion-text" placeholder="Describe your special bet idea\u2026" rows="3" style="resize:vertical;">${esc(state.suggestionText||'')}</textarea>` +
       `<button class="bb-btn" id="submit-suggestion-btn" style="margin-top:8px;">Submit idea</button>` +
-      `<p style="font-size:17px;color:#9a9a9a;margin:8px 0 0;">The admin reviews every idea and either sets a price and adds it above, or turns it down.</p>` +
+      `<p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin:8px 0 0;">The admin reviews every idea and either sets a price and adds it above, or turns it down.</p>` +
       '</div>';
     return html;
   }
@@ -3462,17 +3462,17 @@
     const arrow = dir => dir === 'asc' ? '&uarr;' : '&darr;';
     const headerCell = c => {
       const active = c.key === sortByKey;
-      return `<th data-sort-col="${c.key}" style="text-align:right;padding:8px 8px;color:${active?'var(--bb-accent)':'var(--bb-text-muted)'};font-weight:600;font-size:16px;text-transform:uppercase;letter-spacing:0.04em;cursor:pointer;user-select:none;white-space:nowrap;">
+      return `<th data-sort-col="${c.key}" style="text-align:right;padding:8px 8px;color:${active?'var(--bb-accent)':'var(--bb-text-muted)'};font-weight:600;font-size:clamp(16px, calc(16px + 0.4vw), 19px);text-transform:uppercase;letter-spacing:0.04em;cursor:pointer;user-select:none;white-space:nowrap;">
         ${esc(c.label)}${active ? ' '+arrow(sortDir) : ''}
       </th>`;
     };
     return `<div class="bb-card" style="padding:0;overflow:hidden;">
       <div style="padding:14px 18px 8px;display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:4px;">
-        <strong style="font-size:19px;">${esc(title)}</strong>
-        ${subtitle ? `<span style="font-size:16px;color:var(--bb-text-muted);">${subtitle}</span>` : ''}
+        <strong style="font-size:clamp(19px, calc(19px + 0.4vw), 22px);">${esc(title)}</strong>
+        ${subtitle ? `<span style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:var(--bb-text-muted);">${subtitle}</span>` : ''}
       </div>
       <div class="bb-lb-mobile-sort" style="padding:0 18px 10px;">
-        <select class="bb-select" data-lb-mobile-sort-select style="font-size:15px;padding:6px 10px;">
+        <select class="bb-select" data-lb-mobile-sort-select style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);padding:6px 10px;">
           ${LEADERBOARD_SORT_COLS.map(c => `
             <option value="${c.key}|desc" ${sortByKey===c.key && sortDir==='desc' ? 'selected' : ''}>${esc(c.label)} (high to low)</option>
             <option value="${c.key}|asc" ${sortByKey===c.key && sortDir==='asc' ? 'selected' : ''}>${esc(c.label)} (low to high)</option>
@@ -3480,11 +3480,11 @@
         </select>
       </div>
       <div style="overflow-x:auto;">
-      <table class="bb-lb-table" style="width:100%;border-collapse:collapse;font-size:19px;min-width:360px;">
+      <table class="bb-lb-table" style="width:100%;border-collapse:collapse;font-size:clamp(19px, calc(19px + 0.4vw), 22px);min-width:360px;">
         <thead>
           <tr style="border-bottom:2px solid var(--bb-border-light);">
-            <th style="text-align:left;padding:8px 18px;color:var(--bb-text-muted);font-weight:600;font-size:16px;text-transform:uppercase;letter-spacing:0.04em;">#</th>
-            <th style="text-align:left;padding:8px 8px;color:var(--bb-text-muted);font-weight:600;font-size:16px;text-transform:uppercase;letter-spacing:0.04em;">Punter</th>
+            <th style="text-align:left;padding:8px 18px;color:var(--bb-text-muted);font-weight:600;font-size:clamp(16px, calc(16px + 0.4vw), 19px);text-transform:uppercase;letter-spacing:0.04em;">#</th>
+            <th style="text-align:left;padding:8px 8px;color:var(--bb-text-muted);font-weight:600;font-size:clamp(16px, calc(16px + 0.4vw), 19px);text-transform:uppercase;letter-spacing:0.04em;">Punter</th>
             ${LEADERBOARD_SORT_COLS.map(headerCell).join('')}
           </tr>
         </thead>
@@ -3498,7 +3498,7 @@
               ? ` <span style="color:var(--bb-ok);font-weight:700;" title="Already submitted picks for the upcoming round">&#10003;</span>` : '';
             return `<tr style="border-bottom:1px solid var(--bb-border);${rowBg}">
               <td data-label="#" style="padding:9px 18px;color:var(--bb-text-muted);font-variant-numeric:tabular-nums;">${i+1}</td>
-              <td data-label="Punter" style="padding:9px 8px;font-weight:${isYou?'700':'400'};${isYou?'color:var(--bb-accent);':''}">${esc(t.username)}${upcomingTick}${isYou?' <span style="font-size:15px;color:var(--bb-text-muted);font-weight:400;">(you)</span>':''}${!graded?' <span style="font-size:15px;color:var(--bb-text-muted);">(joined, no results yet)</span>':''}</td>
+              <td data-label="Punter" style="padding:9px 8px;font-weight:${isYou?'700':'400'};${isYou?'color:var(--bb-accent);':''}">${esc(t.username)}${upcomingTick}${isYou?' <span style="font-size:clamp(15px, calc(15px + 0.4vw), 18px);color:var(--bb-text-muted);font-weight:400;">(you)</span>':''}${!graded?' <span style="font-size:clamp(15px, calc(15px + 0.4vw), 18px);color:var(--bb-text-muted);">(joined, no results yet)</span>':''}</td>
               <td data-label="Odds pts" style="padding:9px 8px;text-align:right;font-weight:600;color:${graded?'var(--bb-accent)':'var(--bb-text-muted)'};font-variant-numeric:tabular-nums;">${graded?t.oddsPoints.toFixed(2):'&mdash;'}</td>
               <td data-label="Correct" style="padding:9px 8px;text-align:right;color:var(--bb-text-muted);font-variant-numeric:tabular-nums;">${graded?`${fmtCorrect(t.correct)}/${t.total}`:'&mdash;'}</td>
               <td data-label="%" style="padding:9px 18px;text-align:right;color:var(--bb-text-muted);font-variant-numeric:tabular-nums;">${graded?(t.correct/t.total*100).toFixed(1)+'%':'&mdash;'}</td>
@@ -3514,7 +3514,7 @@
     if(state.statsData === null) return '<p style="color:#9a9a9a;">Loading&hellip;</p>';
     const s = state.statsData;
     function leaderboard(title, rows, valueFmt){
-      if(!rows.length) return `<h4 style="color:#9a9a9a;">${title}</h4><p style="color:#9a9a9a;font-size:18px;">Nothing to show yet.</p>`;
+      if(!rows.length) return `<h4 style="color:#9a9a9a;">${title}</h4><p style="color:#9a9a9a;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">Nothing to show yet.</p>`;
       return `<h4 style="color:#9a9a9a;margin-bottom:6px;">${title}</h4>
         <div class="bb-card" style="padding:0;overflow:hidden;margin-bottom:1.25rem;">
           ${rows.map((r,i) => `<div style="display:flex;justify-content:space-between;padding:8px 14px;${i<rows.length-1?'border-bottom:1px solid #3d3d3d;':''}">
@@ -3524,9 +3524,9 @@
     }
     return '<h3 style="margin-top:0;">Site stats</h3>' +
       `<div class="bb-card" style="margin-bottom:1.25rem;display:flex;gap:20px;flex-wrap:wrap;">
-        <div><div style="font-size:17px;color:#9a9a9a;">Total clams wagered</div><div style="font-size:21px;font-weight:600;">${fmt(s.totalWagered)}</div></div>
-        <div><div style="font-size:17px;color:#9a9a9a;">Bets placed</div><div style="font-size:21px;font-weight:600;">${s.totalBets}</div></div>
-        <div><div style="font-size:17px;color:#9a9a9a;">Punters</div><div style="font-size:21px;font-weight:600;">${s.totalPunters}</div></div>
+        <div><div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">Total clams wagered</div><div style="font-size:clamp(21px, calc(21px + 0.4vw), 24px);font-weight:600;">${fmt(s.totalWagered)}</div></div>
+        <div><div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">Bets placed</div><div style="font-size:clamp(21px, calc(21px + 0.4vw), 24px);font-weight:600;">${s.totalBets}</div></div>
+        <div><div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">Punters</div><div style="font-size:clamp(21px, calc(21px + 0.4vw), 24px);font-weight:600;">${s.totalPunters}</div></div>
       </div>` +
       leaderboard('Top 5 stakes', s.topStakes, v=>fmt(v)) +
       leaderboard('Top 5 multis (by legs)', s.topMultis, v=>v+' legs') +
@@ -3535,13 +3535,13 @@
       leaderboard('Longest odds actually backed', s.topOdds, v=>v.toFixed(2)) +
       leaderboard('Most popular selection', s.mostPopular, v=>v+' bet'+(v>1?'s':'')) +
       leaderboard('Kitty leaderboard (richest punters)', s.topKitty, v=>fmt(v)) +
-      (s.myKittyRank ? `<p style="color:#9a9a9a;font-size:17px;margin-top:-10px;margin-bottom:1.25rem;">You're ranked #${s.myKittyRank.rank} of ${s.myKittyRank.of} punters by balance.</p>` : '') +
+      (s.myKittyRank ? `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-top:-10px;margin-bottom:1.25rem;">You're ranked #${s.myKittyRank.rank} of ${s.myKittyRank.of} punters by balance.</p>` : '') +
       leaderboard('Most career wins (carried over from previous seasons)', s.topCareerWins, v=>v+' win'+(v!==1?'s':'')) +
       '<h4 style="color:#9a9a9a;margin-bottom:6px;">Beating the line</h4>' +
       (s.lineBeat.ready
         ? leaderboard('Cover their line most often', s.lineBeat.best.map(r => ({ label: r.team+' \u2014 '+r.covered+'/'+r.total, value: r.pct })), v=>v.toFixed(0)+'%') +
           leaderboard('Miss their line most often', s.lineBeat.worst.map(r => ({ label: r.team+' \u2014 '+r.covered+'/'+r.total, value: r.pct })), v=>v.toFixed(0)+'%')
-        : '<p style="color:#9a9a9a;font-size:18px;">Not enough completed rounds yet to make this meaningful \u2014 check back around Round 5.</p>');
+        : '<p style="color:#9a9a9a;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">Not enough completed rounds yet to make this meaningful \u2014 check back around Round 5.</p>');
   }
 
   function renderAdminTab(){
@@ -3573,19 +3573,19 @@
       {key:'feedback', label:'Feedback'},
     ];
     const tabBar = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;">' +
-      TABS.map(t => `<div class="bb-tab ${state.adminSubTab===t.key?'active':''}" data-adminsubtab="${t.key}" style="font-size:18px;padding:7px 12px;position:relative;">${t.label}${t.flag?' <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#ffdd00;margin-left:4px;"></span>':''}</div>`).join('') +
+      TABS.map(t => `<div class="bb-tab ${state.adminSubTab===t.key?'active':''}" data-adminsubtab="${t.key}" style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);padding:7px 12px;position:relative;">${t.label}${t.flag?' <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#ffdd00;margin-left:4px;"></span>':''}</div>`).join('') +
       '</div>';
 
     const SEASON_HTML = `\n      <h3 style="margin-top:0;">Season progress</h3>
       <div class="bb-card" style="margin-bottom:1.5rem;">
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
-          <span style="font-size:18px;color:#9a9a9a;">Next round to be played:</span>
-          <strong style="font-size:20px;">Round ${state.currentRound}</strong>
+          <span style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);color:#9a9a9a;">Next round to be played:</span>
+          <strong style="font-size:clamp(20px, calc(20px + 0.4vw), 23px);">Round ${state.currentRound}</strong>
           ${state.currentRoundOverride
-            ? `<span style="font-size:17px;color:#e0c060;">(manually overridden -- would otherwise be Round ${deriveCurrentRoundFromDate()} automatically)</span>`
-            : `<span style="font-size:17px;color:#8fc98f;">(auto-derived from today's date, no admin action needed)</span>`}
+            ? `<span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#e0c060;">(manually overridden -- would otherwise be Round ${deriveCurrentRoundFromDate()} automatically)</span>`
+            : `<span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#8fc98f;">(auto-derived from today's date, no admin action needed)</span>`}
         </div>
-        <p style="font-size:17px;color:#9a9a9a;margin:0 0 10px;">
+        <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin:0 0 10px;">
           This now advances on its own from round_dates.json + today's date -- nothing to remember weekly.
           Only override it for a genuine edge case that date isn't correct for (a real-world bye week or
           schedule slip round_dates.json doesn't reflect yet).
@@ -3597,27 +3597,27 @@
           <button class="bb-btn ghost" id="save-current-round">Set override</button>
           ${state.currentRoundOverride ? `<button class="bb-btn ghost" id="clear-current-round-override" style="border-color:#8fc98f;color:#8fc98f;">Clear override, go back to automatic</button>` : ''}
         </div>
-        <span style="font-size:17px;color:#9a9a9a;display:block;margin-top:8px;">Rounds before this are greyed out everywhere as already played. Changing this reopens betting fresh.</span>
+        <span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;display:block;margin-top:8px;">Rounds before this are greyed out everywhere as already played. Changing this reopens betting fresh.</span>
       </div>
       <div class="bb-card" style="margin-bottom:1.5rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-        <span style="font-size:18px;color:#9a9a9a;">Home tab's featured picks are computed once per round and then locked in -- if the selection logic changes, an already-computed round won't pick up the fix on its own.</span>
+        <span style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);color:#9a9a9a;">Home tab's featured picks are computed once per round and then locked in -- if the selection logic changes, an already-computed round won't pick up the fix on its own.</span>
         <button class="bb-btn ghost" id="refresh-featured-fixtures" ${state.refreshingFeatured?'disabled':''}>${state.refreshingFeatured?'Refreshing\u2026':'Force recompute for Round '+state.currentRound}</button>
-        ${state.refreshedFeaturedInfo ? `<span style="font-size:17px;color:#8fc98f;width:100%;">${esc(state.refreshedFeaturedInfo)}</span>` : ''}
+        ${state.refreshedFeaturedInfo ? `<span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#8fc98f;width:100%;">${esc(state.refreshedFeaturedInfo)}</span>` : ''}
       </div>
       <h3>End of season</h3>
       <div class="bb-card" style="margin-bottom:1.5rem;border-color:#a3402f;">
-        <p style="font-size:17px;color:#9a9a9a;margin-top:0;">
+        <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-top:0;">
           Current season: <strong style="color:#eee;">${esc(state.currentSeasonLabel || 'not yet set')}</strong>
           &mdash; auto-derived from today's date (Jul&ndash;Dec counts as the season starting that year, Jan&ndash;Jun as
           the one that started the previous year, matching this league's actual Oct&ndash;May calendar).
           Ending the season right now would set it to <strong style="color:#eee;">${esc(deriveSeasonLabel())}</strong>.
         </p>
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-          <input type="text" id="season-label-override" placeholder="e.g. 26/27" value="${esc(state.currentSeasonLabel || '')}" style="width:100px;padding:6px 8px;font-size:18px;"/>
-          <button class="bb-btn ghost" id="save-season-label-btn" style="padding:6px 12px;font-size:17px;">Correct current season</button>
-          <span style="font-size:16px;color:#9a9a9a;">Only for fixing a wrong auto-derived value -- doesn't archive or reset anything, just relabels going forward.</span>
+          <input type="text" id="season-label-override" placeholder="e.g. 26/27" value="${esc(state.currentSeasonLabel || '')}" style="width:100px;padding:6px 8px;font-size:clamp(18px, calc(18px + 0.4vw), 21px);"/>
+          <button class="bb-btn ghost" id="save-season-label-btn" style="padding:6px 12px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Correct current season</button>
+          <span style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:#9a9a9a;">Only for fixing a wrong auto-derived value -- doesn't archive or reset anything, just relabels going forward.</span>
         </div>
-        <p style="font-size:17px;color:#9a9a9a;">
+        <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">
           Folds everyone's settled bets this season into their running career record (kept, not deleted -- just
           compacted from individual bet lines into a summary), keeps each punter's all-time best 3 wins in full detail
           for bragging rights, resets Round back to 1 with betting reopened, and clears out everyone's pre-season
@@ -3628,17 +3628,17 @@
       </div>
       <h3>Tipping season prizes</h3>
       <div class="bb-card" style="margin-bottom:1.5rem;">
-        <p style="font-size:17px;color:#9a9a9a;margin-top:0;">
+        <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-top:0;">
           Flag a section closed once its position is genuinely settled -- mathematically confirmed (title, promotion, relegation) or the season's literally finished -- to release its seasonal tipping prizes. Purely manual; nothing here is inferred automatically.
         </p>
         ${['ELIZA','DIV2','DIV3'].map(key => {
           const label = TIPPING_SECTIONS.find(s => s.key === key).label;
-          return `<label style="display:flex;align-items:center;gap:8px;font-size:18px;margin-bottom:8px;cursor:pointer;">
+          return `<label style="display:flex;align-items:center;gap:8px;font-size:clamp(18px, calc(18px + 0.4vw), 21px);margin-bottom:8px;cursor:pointer;">
               <input type="checkbox" data-toggle-season-closed="${key}" ${state.seasonClosed[key]?'checked':''}/>
               <span>${esc(label)} season closed</span>
             </label>`;
         }).join('')}
-        <label style="display:flex;align-items:center;gap:8px;font-size:18px;padding-top:6px;border-top:1px solid #333333;margin-top:4px;cursor:pointer;">
+        <label style="display:flex;align-items:center;gap:8px;font-size:clamp(18px, calc(18px + 0.4vw), 21px);padding-top:6px;border-top:1px solid #333333;margin-top:4px;cursor:pointer;">
           <input type="checkbox" data-toggle-season-closed="ALL" ${state.seasonClosed.ALL?'checked':''}/>
           <span>Combined competition (all tipping) season closed</span>
         </label>
@@ -3647,113 +3647,113 @@
       <div class="bb-card" style="margin-bottom:1.5rem;">
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
           <span class="bb-pill" style="background:${state.roundBettingOpen?'#1e3a2a':'#3a2a26'};color:${state.roundBettingOpen?'#7fbf8f':'#c0604f'};">${state.roundBettingOpen?'OPEN':'CLOSED'}</span>
-          <span style="font-size:18px;">Round ${state.currentRound} betting is currently ${state.roundBettingOpen?'open':`closed (${state.closeScope==='all'?'entire betting markets':'H2H only'})`}.</span>
+          <span style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">Round ${state.currentRound} betting is currently ${state.roundBettingOpen?'open':`closed (${state.closeScope==='all'?'entire betting markets':'H2H only'})`}.</span>
         </div>
-        <p style="font-size:17px;color:#9a9a9a;margin:0 0 10px;">
+        <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin:0 0 10px;">
           ${ROUND_DATES[state.currentRound] ? `Scheduled kickoff per the 26/27 calendar: ${esc(ROUND_DATES[state.currentRound])}, assumed 7:00pm Sydney time (no exact kickoff times are given, so the round's first match is assumed to start then). Betting auto-closes the first time the site's loaded on or after that moment, if nobody's closed it already.` : `No scheduled date on file for this round -- auto-close won't trigger, close it manually when needed.`}
           Auto-close only ever fires this way for this round once; reopening it manually will stick.
         </p>
         <div style="margin-bottom:8px;">
-          <span style="font-size:17px;color:#9a9a9a;display:block;margin-bottom:4px;">When closing, what should it cover?</span>
-          <label style="display:inline-flex;align-items:center;gap:6px;font-size:18px;margin-right:16px;">
+          <span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;display:block;margin-bottom:4px;">When closing, what should it cover?</span>
+          <label style="display:inline-flex;align-items:center;gap:6px;font-size:clamp(18px, calc(18px + 0.4vw), 21px);margin-right:16px;">
             <input type="radio" name="close-scope" id="close-scope-h2h" value="h2h" ${state.closeScope==='h2h'?'checked':''}/> H2H only (this round's matches)
           </label>
-          <label style="display:inline-flex;align-items:center;gap:6px;font-size:18px;">
+          <label style="display:inline-flex;align-items:center;gap:6px;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">
             <input type="radio" name="close-scope" id="close-scope-all" value="all" ${state.closeScope==='all'?'checked':''}/> Entire betting markets
           </label>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="bb-btn ghost" id="close-betting-btn" ${!state.roundBettingOpen?'disabled':''} style="padding:8px 14px;font-size:17px;">Close betting now</button>
-          <button class="bb-btn" id="reopen-betting-btn" ${state.roundBettingOpen?'disabled':''} style="padding:8px 14px;font-size:17px;">Reopen betting</button>
+          <button class="bb-btn ghost" id="close-betting-btn" ${!state.roundBettingOpen?'disabled':''} style="padding:8px 14px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Close betting now</button>
+          <button class="bb-btn" id="reopen-betting-btn" ${state.roundBettingOpen?'disabled':''} style="padding:8px 14px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Reopen betting</button>
         </div>
-        <p style="font-size:17px;color:#9a9a9a;margin:10px 0 6px;">"H2H only" affects this round's H2H, leading-at, and win/lose-the-round markets, leaving season-long futures bettable. "Entire betting markets" also locks division/Roddy/cup futures until reopened. Either way, the affected round's H2H fixture list is hidden (not just unclickable) while closed.</p>
+        <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin:10px 0 6px;">"H2H only" affects this round's H2H, leading-at, and win/lose-the-round markets, leaving season-long futures bettable. "Entire betting markets" also locks division/Roddy/cup futures until reopened. Either way, the affected round's H2H fixture list is hidden (not just unclickable) while closed.</p>
       </div>
       <h3>Odds refresh</h3>
       <div class="bb-card" style="margin-bottom:1.5rem;">
-        <p style="font-size:17px;color:#9a9a9a;margin-top:0;">
+        <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-top:0;">
           The futures odds (division standings, Roddy, cup stages, leading-at, charity/philanthropy) are precomputed and can't recalculate themselves from live results -- that needs the underlying simulation rerun and the data files redeployed. This button doesn't do that on its own; it just raises the attention flag as a reminder to come back and ask for a refresh once a round's fully resolved. H2H match odds already recompute live on every visit and don't need this.
         </p>
         ${state.oddsRefreshRequested
-          ? `<div style="display:flex;align-items:center;gap:10px;"><span class="bb-pill" style="background:#4a3a10;color:#ffdd00;">Requested</span><button class="bb-btn ghost" id="clear-odds-refresh-btn" style="padding:6px 12px;font-size:17px;">Clear</button></div>`
-          : `<button class="bb-btn ghost" id="request-odds-refresh-btn" style="padding:8px 14px;font-size:17px;">Flag odds as needing a refresh</button>`}
+          ? `<div style="display:flex;align-items:center;gap:10px;"><span class="bb-pill" style="background:#4a3a10;color:#ffdd00;">Requested</span><button class="bb-btn ghost" id="clear-odds-refresh-btn" style="padding:6px 12px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Clear</button></div>`
+          : `<button class="bb-btn ghost" id="request-odds-refresh-btn" style="padding:8px 14px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Flag odds as needing a refresh</button>`}
       </div>
 `;
     const FIXTURES_HTML = `\n      <h3>Cup fixtures (FA Cup &amp; ECL)</h3>
       <div class="bb-card" style="margin-bottom:1.5rem;">
-        <p style="font-size:17px;color:#9a9a9a;margin-top:0;">Based on the 26/27 calendar. Rounds may shift to dodge unplanned byes/doubles -- override the current round below if the calendar's out of date.</p>
+        <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-top:0;">Based on the 26/27 calendar. Rounds may shift to dodge unplanned byes/doubles -- override the current round below if the calendar's out of date.</p>
         ${['FA CUP','ECL'].map(comp => {
           const calDefault = getCalendarDefault(comp, state.currentRound);
           const override = (state.cupCalendarOverrides[comp]||{})[state.currentRound];
           const hasOverride = Object.prototype.hasOwnProperty.call(state.cupCalendarOverrides[comp]||{}, state.currentRound);
           return `
           <div style="margin-bottom:14px;">
-            <div style="font-size:18px;font-weight:600;margin-bottom:6px;">${esc(comp)}</div>
-            <div style="font-size:17px;color:#9a9a9a;margin-bottom:6px;">
+            <div style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);font-weight:600;margin-bottom:6px;">${esc(comp)}</div>
+            <div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-bottom:6px;">
               Round ${state.currentRound} calendar default: <strong>${calDefault ? esc(calDefault) : 'not a cup round'}</strong>
               ${hasOverride ? ` &mdash; currently overridden to: <strong style="color:#ffdd00;">${override ? esc(override) : 'not a cup round'}</strong>` : ''}
             </div>
             <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
               <input class="bb-input" type="text" id="cup-override-stage-${esc(comp)}" placeholder="Stage name to force (e.g. Round Of 32)\u2026" style="max-width:220px;"/>
-              <button class="bb-btn ghost" data-set-cupoverride="${esc(comp)}" style="padding:6px 12px;font-size:17px;">Force this round as cup round</button>
-              <button class="bb-btn ghost" data-set-cupoverride-off="${esc(comp)}" style="padding:6px 12px;font-size:17px;">Force NOT a cup round</button>
-              ${hasOverride ? `<button class="bb-btn ghost" data-clear-cupoverride="${esc(comp)}" style="padding:6px 12px;font-size:17px;">Clear override (use calendar)</button>` : ''}
+              <button class="bb-btn ghost" data-set-cupoverride="${esc(comp)}" style="padding:6px 12px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Force this round as cup round</button>
+              <button class="bb-btn ghost" data-set-cupoverride-off="${esc(comp)}" style="padding:6px 12px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Force NOT a cup round</button>
+              ${hasOverride ? `<button class="bb-btn ghost" data-clear-cupoverride="${esc(comp)}" style="padding:6px 12px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Clear override (use calendar)</button>` : ''}
             </div>
             ${(state.cupFixtures[comp]||[]).length ? (state.cupFixtures[comp]||[]).map((f,i) => `
-              <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #2a2a2a;font-size:18px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #2a2a2a;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">
                 <span>${esc(f.teamA)} vs ${esc(f.teamB)}</span>
-                <span data-remove-cupfixture="${esc(comp)}|${i}" style="cursor:pointer;color:#9a9a9a;font-size:17px;">remove</span>
-              </div>`).join('') : `<p style="color:#9a9a9a;font-size:17px;">No fixtures set for this competition.</p>`}
+                <span data-remove-cupfixture="${esc(comp)}|${i}" style="cursor:pointer;color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">remove</span>
+              </div>`).join('') : `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">No fixtures set for this competition.</p>`}
             <div style="display:flex;gap:6px;align-items:flex-end;margin-top:8px;flex-wrap:wrap;">
               <div style="flex:1;min-width:140px;">${teamSearchInput('cup-team-a-'+idSafe(comp), '', 'Team A\u2026')}</div>
               <div style="flex:1;min-width:140px;">${teamSearchInput('cup-team-b-'+idSafe(comp), '', 'Team B\u2026')}</div>
-              <button class="bb-btn" data-add-cupfixture="${esc(comp)}" style="padding:8px 14px;font-size:17px;">Add</button>
-              ${(state.cupFixtures[comp]||[]).length ? `<button class="bb-btn ghost" data-clear-cupfixtures="${esc(comp)}" style="padding:8px 14px;font-size:17px;">Clear all</button>` : ''}
+              <button class="bb-btn" data-add-cupfixture="${esc(comp)}" style="padding:8px 14px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Add</button>
+              ${(state.cupFixtures[comp]||[]).length ? `<button class="bb-btn ghost" data-clear-cupfixtures="${esc(comp)}" style="padding:8px 14px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Clear all</button>` : ''}
             </div>
           </div>`;
         }).join('')}
-        <p style="font-size:17px;color:#9a9a9a;margin-top:4px;">Set fixtures when there's an actual cup weekend; clear them once it's passed so the tab correctly shows "No fixtures scheduled yet" the rest of the time.</p>
+        <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-top:4px;">Set fixtures when there's an actual cup weekend; clear them once it's passed so the tab correctly shows "No fixtures scheduled yet" the rest of the time.</p>
       </div>
       <h3>Playoff fixtures (Division 2 &amp; 3, Rounds 24-26)</h3>
       <div class="bb-card" style="margin-bottom:1.5rem;">
         ${PLAYOFF_DIVS.map(div => `
           <div style="margin-bottom:14px;">
-            <div style="font-size:18px;font-weight:600;margin-bottom:6px;">${esc(div)}</div>
+            <div style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);font-weight:600;margin-bottom:6px;">${esc(div)}</div>
             ${(state.playoffFixtures[div]||[]).length ? (state.playoffFixtures[div]||[]).map((f,i) => `
-              <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #2a2a2a;font-size:18px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #2a2a2a;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">
                 <span>${f.stage ? `<span style="color:#ffdd00;font-weight:600;">${esc(f.stage)}:</span> ` : ''}${esc(f.teamA)} vs ${esc(f.teamB)}</span>
-                <span data-remove-playofffixture="${esc(div)}|${i}" style="cursor:pointer;color:#9a9a9a;font-size:17px;">remove</span>
-              </div>`).join('') : `<p style="color:#9a9a9a;font-size:17px;">No fixtures set for this division.</p>`}
+                <span data-remove-playofffixture="${esc(div)}|${i}" style="cursor:pointer;color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">remove</span>
+              </div>`).join('') : `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">No fixtures set for this division.</p>`}
             <div style="display:flex;gap:6px;align-items:flex-end;margin-top:8px;flex-wrap:wrap;">
-              <div style="min-width:160px;"><span style="font-size:16px;color:#9a9a9a;display:block;">Stage</span>
+              <div style="min-width:160px;"><span style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:#9a9a9a;display:block;">Stage</span>
                 <select class="bb-select" data-playoff-stage="${esc(div)}" style="width:100%;">
                   ${PLAYOFF_STAGES.map(s => `<option value="${esc(s)}" ${state.playoffAdminEntry[div].stage===s?'selected':''}>${esc(s)}</option>`).join('')}
                 </select>
               </div>
               <div style="flex:1;min-width:140px;">${teamSearchInput('playoff-team-a-'+idSafe(div), '', 'Team A\u2026')}</div>
               <div style="flex:1;min-width:140px;">${teamSearchInput('playoff-team-b-'+idSafe(div), '', 'Team B\u2026')}</div>
-              <button class="bb-btn" data-add-playofffixture="${esc(div)}" style="padding:8px 14px;font-size:17px;">Add</button>
-              ${(state.playoffFixtures[div]||[]).length ? `<button class="bb-btn ghost" data-clear-playofffixtures="${esc(div)}" style="padding:8px 14px;font-size:17px;">Clear all</button>` : ''}
+              <button class="bb-btn" data-add-playofffixture="${esc(div)}" style="padding:8px 14px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Add</button>
+              ${(state.playoffFixtures[div]||[]).length ? `<button class="bb-btn ghost" data-clear-playofffixtures="${esc(div)}" style="padding:8px 14px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Clear all</button>` : ''}
             </div>
           </div>`).join('')}
-        <p style="font-size:17px;color:#9a9a9a;margin-top:4px;">Rounds 24-26 are the playoff weeks for Division 2/3 (no regular H2H fixtures those weeks) -- set matchups here once the bracket's known.</p>
+        <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-top:4px;">Rounds 24-26 are the playoff weeks for Division 2/3 (no regular H2H fixtures those weeks) -- set matchups here once the bracket's known.</p>
       </div>
       <h3>ECL group draw</h3>
       <div class="bb-card" style="margin-bottom:1.5rem;">
-        <p style="font-size:17px;color:#9a9a9a;margin-top:0;">12 confirmed qualifiers this season. Assign each to a group of 4 once the real draw's known -- betting for a group opens automatically once it has all 4.</p>
+        <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-top:0;">12 confirmed qualifiers this season. Assign each to a group of 4 once the real draw's known -- betting for a group opens automatically once it has all 4.</p>
         ${['A','B','C'].map(g => `
           <div style="margin-bottom:10px;">
-            <div style="font-size:18px;font-weight:600;margin-bottom:4px;">Group ${g} (${(state.eclGroups[g]||[]).length}/4)</div>
+            <div style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);font-weight:600;margin-bottom:4px;">Group ${g} (${(state.eclGroups[g]||[]).length}/4)</div>
             ${(state.eclGroups[g]||[]).map(t => `
-              <span style="display:inline-flex;align-items:center;gap:6px;background:#262626;border:1px solid #3d3d3d;border-radius:14px;padding:3px 10px;margin:2px 4px 2px 0;font-size:17px;">
+              <span style="display:inline-flex;align-items:center;gap:6px;background:#262626;border:1px solid #3d3d3d;border-radius:14px;padding:3px 10px;margin:2px 4px 2px 0;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">
                 ${esc(t)} <span data-remove-eclteam="${g}|${esc(t)}" style="cursor:pointer;color:#9a9a9a;padding:10px;margin:-10px;display:inline-block;">&times;</span>
               </span>`).join('')}
           </div>`).join('')}
         <div style="display:flex;gap:6px;align-items:flex-end;margin-top:8px;flex-wrap:wrap;">
           <div style="flex:1;min-width:160px;">${teamSearchInput('ecl-group-pick', '', 'Team from the ECL field\u2026')}</div>
-          <button class="bb-btn" data-assign-eclgroup="A" style="padding:8px 14px;font-size:17px;">Add to A</button>
-          <button class="bb-btn" data-assign-eclgroup="B" style="padding:8px 14px;font-size:17px;">Add to B</button>
-          <button class="bb-btn" data-assign-eclgroup="C" style="padding:8px 14px;font-size:17px;">Add to C</button>
-          <button class="bb-btn ghost" id="clear-ecl-groups-btn" style="padding:8px 14px;font-size:17px;">Clear all</button>
+          <button class="bb-btn" data-assign-eclgroup="A" style="padding:8px 14px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Add to A</button>
+          <button class="bb-btn" data-assign-eclgroup="B" style="padding:8px 14px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Add to B</button>
+          <button class="bb-btn" data-assign-eclgroup="C" style="padding:8px 14px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Add to C</button>
+          <button class="bb-btn ghost" id="clear-ecl-groups-btn" style="padding:8px 14px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Clear all</button>
         </div>
       </div>
 `;
@@ -3762,25 +3762,25 @@
         ${(() => {
           const resolvable = bets.filter(b => (b.status||'PENDING')==='PENDING' && b.selections.length===1 &&
             (() => { const r = getPickRound(b.selections[0].id); return r !== null && r <= state.currentRound; })());
-          if(!resolvable.length) return `<p style="color:#9a9a9a;font-size:18px;margin:0;">Nothing waiting on a result for this round or earlier.</p>`;
-          return `<p style="color:#9a9a9a;font-size:17px;margin-top:0;">Single-selection bets on Round ${state.currentRound} or earlier, still pending. Multi-leg bets aren't shown here -- resolve those individually in the table below once every leg's known.</p>` +
+          if(!resolvable.length) return `<p style="color:#9a9a9a;font-size:clamp(18px, calc(18px + 0.4vw), 21px);margin:0;">Nothing waiting on a result for this round or earlier.</p>`;
+          return `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-top:0;">Single-selection bets on Round ${state.currentRound} or earlier, still pending. Multi-leg bets aren't shown here -- resolve those individually in the table below once every leg's known.</p>` +
             resolvable.map(b => `
-              <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #2a2a2a;font-size:18px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #2a2a2a;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">
                 <span>${esc(b.username)} \u2014 ${esc(b.selections[0].label)} <span style="color:#8a8a8a;">(stake ${fmt(b.stake)}, odds ${formatOdds(b.selections[0].odds)})</span></span>
                 <span style="display:flex;gap:4px;">
-                  <button class="bb-btn ghost" data-setstatus="${b.id}|WON" style="padding:4px 8px;font-size:16px;">Won</button>
-                  <button class="bb-btn ghost" data-setstatus="${b.id}|LOST" style="padding:4px 8px;font-size:16px;">Lost</button>
+                  <button class="bb-btn ghost" data-setstatus="${b.id}|WON" style="padding:4px 8px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);">Won</button>
+                  <button class="bb-btn ghost" data-setstatus="${b.id}|LOST" style="padding:4px 8px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);">Lost</button>
                 </span>
               </div>`).join('');
         })()}
       </div>
       <h3>All registered bets</h3>
       ${!bets.length ? '<p style="color:#9a9a9a;">No bets placed by anyone yet.</p>' : `
-      <button class="bb-btn ghost" id="export-bets-csv" style="margin-bottom:10px;padding:6px 12px;font-size:17px;">Export to CSV</button>
+      <button class="bb-btn ghost" id="export-bets-csv" style="margin-bottom:10px;padding:6px 12px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Export to CSV</button>
       ${(() => {
         const readyCount = bets.filter(b => (b.status||'PENDING')==='PENDING' &&
           b.selections.some((s,i) => (b.selections.length===1 || !s.result) && computeSuggestedResult(s.id))).length;
-        return readyCount ? `<p style="color:#ffdd00;font-size:17px;margin-bottom:8px;">\u26a1 ${readyCount} bet(s) below have a real result available and are ready to review -- highlighted first.</p>` : '';
+        return readyCount ? `<p style="color:#ffdd00;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:8px;">\u26a1 ${readyCount} bet(s) below have a real result available and are ready to review -- highlighted first.</p>` : '';
       })()}
       <div class="bb-card" style="padding:0;overflow-x:auto;">
         <table class="bb-table">
@@ -3800,14 +3800,14 @@
                 <td>${b.selections.map((s,i)=>{
                   const label = esc(s.label)+' <span style="color:#8a8a8a;">('+formatOdds(s.odds)+')</span>';
                   const suggestion = !s.result ? computeSuggestedResult(s.id) : null;
-                  const suggestionTag = suggestion ? ` <span style="color:#ffdd00;font-size:15px;font-weight:600;">&#9889; suggested: ${suggestion}</span>` : '';
+                  const suggestionTag = suggestion ? ` <span style="color:#ffdd00;font-size:clamp(15px, calc(15px + 0.4vw), 18px);font-weight:600;">&#9889; suggested: ${suggestion}</span>` : '';
                   if(b.selections.length===1) return label + suggestionTag;
                   const legStatus = s.result || 'PENDING';
                   return `<div style="margin-bottom:4px;">${label} ${statusPill(legStatus)}${suggestionTag}<br/>
                     <span style="display:inline-flex;gap:3px;margin-top:2px;">
-                      <span data-resolveleg="${b.id}|${i}|WON" style="cursor:pointer;color:#4a9166;font-size:15px;text-decoration:underline;${suggestion==='WON'?'font-weight:700;':''}">won</span>
-                      <span data-resolveleg="${b.id}|${i}|LOST" style="cursor:pointer;color:#a3402f;font-size:15px;text-decoration:underline;${suggestion==='LOST'?'font-weight:700;':''}">lost</span>
-                      <span data-resolveleg="${b.id}|${i}|VOID" style="cursor:pointer;color:#9a9a9a;font-size:15px;text-decoration:underline;">void</span>
+                      <span data-resolveleg="${b.id}|${i}|WON" style="cursor:pointer;color:#4a9166;font-size:clamp(15px, calc(15px + 0.4vw), 18px);text-decoration:underline;${suggestion==='WON'?'font-weight:700;':''}">won</span>
+                      <span data-resolveleg="${b.id}|${i}|LOST" style="cursor:pointer;color:#a3402f;font-size:clamp(15px, calc(15px + 0.4vw), 18px);text-decoration:underline;${suggestion==='LOST'?'font-weight:700;':''}">lost</span>
+                      <span data-resolveleg="${b.id}|${i}|VOID" style="cursor:pointer;color:#9a9a9a;font-size:clamp(15px, calc(15px + 0.4vw), 18px);text-decoration:underline;">void</span>
                     </span></div>`;
                 }).join(b.selections.length===1?'<br/>':'')}</td>
                 <td>${fmt(b.stake)}</td>
@@ -3815,17 +3815,17 @@
                 <td>${fmt(b.potentialReturn)}</td>
                 <td>${statusPill(b.status || 'PENDING')}${b.nearMissBonusAwarded?' <span class="bb-pill" style="background:#4a3a10;color:#ffdd00;">bonus paid</span>':''}</td>
                 <td style="display:flex;gap:4px;flex-wrap:wrap;">
-                  <button class="bb-btn ghost" data-setstatus="${b.id}|WON" style="padding:4px 8px;font-size:16px;${b.selections.length===1&&computeSuggestedResult(b.selections[0].id)==='WON'?'border-color:#ffdd00;':''}">Won</button>
-                  <button class="bb-btn ghost" data-setstatus="${b.id}|LOST" style="padding:4px 8px;font-size:16px;${b.selections.length===1&&computeSuggestedResult(b.selections[0].id)==='LOST'?'border-color:#ffdd00;':''}">Lost</button>
-                  <button class="bb-btn ghost" data-setstatus="${b.id}|VOID" style="padding:4px 8px;font-size:16px;">Kick (void)</button>
-                  <button class="bb-btn ghost" data-setstatus="${b.id}|PENDING" style="padding:4px 8px;font-size:16px;">Reset</button>
+                  <button class="bb-btn ghost" data-setstatus="${b.id}|WON" style="padding:4px 8px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);${b.selections.length===1&&computeSuggestedResult(b.selections[0].id)==='WON'?'border-color:#ffdd00;':''}">Won</button>
+                  <button class="bb-btn ghost" data-setstatus="${b.id}|LOST" style="padding:4px 8px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);${b.selections.length===1&&computeSuggestedResult(b.selections[0].id)==='LOST'?'border-color:#ffdd00;':''}">Lost</button>
+                  <button class="bb-btn ghost" data-setstatus="${b.id}|VOID" style="padding:4px 8px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);">Kick (void)</button>
+                  <button class="bb-btn ghost" data-setstatus="${b.id}|PENDING" style="padding:4px 8px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);">Reset</button>
                 </td>
               </tr>`;
             }).join('')}
           </tbody>
         </table>
       </div>`}
-      <p style="font-size:17px;color:#9a9a9a;margin-top:10px;">
+      <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-top:10px;">
         Marking a bet Won credits its full potential return to that punter's balance; marking it Lost (or resetting to Pending
         after a mistaken override) reverses that credit automatically, so balances always stay consistent with the bet's current status.
         Kick (void) cancels the bet and refunds the stake, as if it had never been placed.
@@ -3833,39 +3833,39 @@
     const SPECIALS_HTML = `\n      <h3>Specials &amp; Novelty</h3>
       <div class="bb-card" style="margin-bottom:1.5rem;">
         <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px;">
-          <div style="flex:2;min-width:200px;"><span style="font-size:17px;color:#9a9a9a;display:block;margin-bottom:4px;">Bet name</span>
+          <div style="flex:2;min-width:200px;"><span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;display:block;margin-bottom:4px;">Bet name</span>
             <input class="bb-input" id="novelty-name" placeholder="e.g. Someone forgets to make a trade all season"/></div>
-          <div style="width:110px;"><span style="font-size:17px;color:#9a9a9a;display:block;margin-bottom:4px;">Odds</span>
+          <div style="width:110px;"><span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;display:block;margin-bottom:4px;">Odds</span>
             <input class="bb-input" id="novelty-odds" type="number" step="0.01" min="1.01" placeholder="4.50"/></div>
           <button class="bb-btn" id="add-novelty">Add</button>
         </div>
-        ${!(state.novelty||[]).length ? '<p style="color:#9a9a9a;font-size:18px;">Nothing added yet.</p>' : (state.novelty||[]).slice().sort((a,b)=>b.createdAt-a.createdAt).map(n => `
+        ${!(state.novelty||[]).length ? '<p style="color:#9a9a9a;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">Nothing added yet.</p>' : (state.novelty||[]).slice().sort((a,b)=>b.createdAt-a.createdAt).map(n => `
           <div style="padding:8px 0;border-bottom:1px solid #333333;">
             ${state.editingNoveltyId === n.id ? `
               <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;">
-                <div style="flex:2;min-width:180px;"><span style="font-size:16px;color:#9a9a9a;display:block;">Bet name</span>
+                <div style="flex:2;min-width:180px;"><span style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:#9a9a9a;display:block;">Bet name</span>
                   <input class="bb-input" id="edit-novelty-name-${n.id}" value="${esc(n.name)}"/></div>
-                <div style="width:100px;"><span style="font-size:16px;color:#9a9a9a;display:block;">Odds</span>
+                <div style="width:100px;"><span style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:#9a9a9a;display:block;">Odds</span>
                   <input class="bb-input" id="edit-novelty-odds-${n.id}" type="number" step="0.01" min="1.01" value="${n.odds}"/></div>
-                <button class="bb-btn" data-save-novelty="${n.id}" style="padding:6px 10px;font-size:17px;">Save</button>
-                <button class="bb-btn ghost" data-cancel-novelty-edit style="padding:6px 10px;font-size:17px;">Cancel</button>
+                <button class="bb-btn" data-save-novelty="${n.id}" style="padding:6px 10px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Save</button>
+                <button class="bb-btn ghost" data-cancel-novelty-edit style="padding:6px 10px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Cancel</button>
               </div>
             ` : `
               <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
                 <span>${esc(n.name)} <span class="bb-odds">${formatOdds(n.odds)}</span> ${statusPill(n.status)}</span>
                 <span style="display:flex;gap:4px;flex-wrap:wrap;">
                   ${n.status==='OPEN' ? `
-                    <button class="bb-btn ghost" data-noveltystatus="${n.id}|WON" style="padding:4px 8px;font-size:16px;">Won</button>
-                    <button class="bb-btn ghost" data-noveltystatus="${n.id}|LOST" style="padding:4px 8px;font-size:16px;">Lost</button>
-                    <button class="bb-btn ghost" data-noveltystatus="${n.id}|VOID" style="padding:4px 8px;font-size:16px;">Close (void)</button>
-                  ` : `<button class="bb-btn ghost" data-noveltystatus="${n.id}|OPEN" style="padding:4px 8px;font-size:16px;">Reopen</button>`}
-                  <button class="bb-btn ghost" data-edit-novelty="${n.id}" style="padding:4px 8px;font-size:16px;">Edit</button>
-                  <button class="bb-btn ghost" data-delete-novelty="${n.id}" style="padding:4px 8px;font-size:16px;border-color:#a3402f;color:#c0604f;">Remove</button>
+                    <button class="bb-btn ghost" data-noveltystatus="${n.id}|WON" style="padding:4px 8px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);">Won</button>
+                    <button class="bb-btn ghost" data-noveltystatus="${n.id}|LOST" style="padding:4px 8px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);">Lost</button>
+                    <button class="bb-btn ghost" data-noveltystatus="${n.id}|VOID" style="padding:4px 8px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);">Close (void)</button>
+                  ` : `<button class="bb-btn ghost" data-noveltystatus="${n.id}|OPEN" style="padding:4px 8px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);">Reopen</button>`}
+                  <button class="bb-btn ghost" data-edit-novelty="${n.id}" style="padding:4px 8px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);">Edit</button>
+                  <button class="bb-btn ghost" data-delete-novelty="${n.id}" style="padding:4px 8px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);border-color:#a3402f;color:#c0604f;">Remove</button>
                 </span>
               </div>
             `}
           </div>`).join('')}
-        <p style="font-size:17px;color:#9a9a9a;margin-top:10px;">
+        <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-top:10px;">
           Won credits the full payout; Lost keeps the stake forfeited; Close (void) refunds the stake as if the bet never happened.
           Only single-selection bets on this exact item are auto-settled &mdash; if it's one leg of a bigger multi, resolve that bet manually below instead.
         </p>
@@ -3874,34 +3874,34 @@
       <div class="bb-card" style="margin-bottom:1.5rem;">
         ${(() => {
           const pendingSuggestions = (state.suggestions||[]).filter(s => s.status === 'PENDING_REVIEW');
-          if(!pendingSuggestions.length) return `<p style="color:#9a9a9a;font-size:18px;margin:0;">No ideas waiting on review.</p>`;
+          if(!pendingSuggestions.length) return `<p style="color:#9a9a9a;font-size:clamp(18px, calc(18px + 0.4vw), 21px);margin:0;">No ideas waiting on review.</p>`;
           return pendingSuggestions.map(s => `
             <div style="padding:8px 0;border-bottom:1px solid #333333;">
-              <div style="font-size:18px;margin-bottom:6px;">${esc(s.text)} <span style="color:#8a8a8a;font-size:17px;">(from ${esc(s.submittedBy)})</span></div>
+              <div style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);margin-bottom:6px;">${esc(s.text)} <span style="color:#8a8a8a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">(from ${esc(s.submittedBy)})</span></div>
               <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
                 <input class="bb-input" id="suggestion-price-${s.id}" type="number" step="0.01" min="1.01" placeholder="Odds to set" style="width:110px;padding:5px 8px;"/>
-                <button class="bb-btn" data-approve-suggestion="${s.id}" style="padding:5px 10px;font-size:17px;">Approve &amp; add</button>
-                <button class="bb-btn ghost" data-reject-suggestion="${s.id}" style="padding:5px 10px;font-size:17px;">Reject</button>
+                <button class="bb-btn" data-approve-suggestion="${s.id}" style="padding:5px 10px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Approve &amp; add</button>
+                <button class="bb-btn ghost" data-reject-suggestion="${s.id}" style="padding:5px 10px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Reject</button>
               </div>
             </div>`).join('');
         })()}
       </div>
 `;
     const PUNTERS_HTML = `\n      <h3>Pending registrations</h3>
-      ${!pending.length ? '<p style="color:#9a9a9a;font-size:18px;">Nothing waiting on approval.</p>' : `
+      ${!pending.length ? '<p style="color:#9a9a9a;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">Nothing waiting on approval.</p>' : `
       <div class="bb-card" style="padding:0;overflow:hidden;margin-bottom:1.5rem;">
         ${pending.length > 1 ? `<div style="padding:10px 14px;border-bottom:1px solid #3d3d3d;">
-          <button class="bb-btn ghost" id="approve-all-btn" style="padding:5px 10px;font-size:17px;">Approve all ${pending.length}</button>
+          <button class="bb-btn ghost" id="approve-all-btn" style="padding:5px 10px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Approve all ${pending.length}</button>
         </div>` : ''}
         ${pending.map((u,i) => {
           const carry = u.dormantCarry || 0;
           const totalOnApproval = 1000 + carry;
           return `
           <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;${i<pending.length-1?'border-bottom:1px solid #3d3d3d;':''}">
-            <span>${esc(u.username)} ${carry ? `<span style="color:#9a9a9a;font-size:17px;">(carry: ${fmt(carry)})</span>` : ''}</span>
+            <span>${esc(u.username)} ${carry ? `<span style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">(carry: ${fmt(carry)})</span>` : ''}</span>
             <span style="display:flex;gap:6px;">
-              <button class="bb-btn" data-regstatus="${esc(u.username)}|APPROVED" style="padding:5px 10px;font-size:17px;">Approve (fund ${fmt(totalOnApproval)})</button>
-              <button class="bb-btn ghost" data-regstatus="${esc(u.username)}|REJECTED" style="padding:5px 10px;font-size:17px;">Reject</button>
+              <button class="bb-btn" data-regstatus="${esc(u.username)}|APPROVED" style="padding:5px 10px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Approve (fund ${fmt(totalOnApproval)})</button>
+              <button class="bb-btn ghost" data-regstatus="${esc(u.username)}|REJECTED" style="padding:5px 10px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Reject</button>
             </span>
           </div>`;
         }).join('')}
@@ -3916,21 +3916,21 @@
                 <td>${esc(u.username)}
                   ${u.isAdmin ? ' <span class="bb-pill" style="background:#ffdd00;color:#4a3a10;">admin</span>' : ''}
                   ${u.status==='PENDING' ? ' <span class="bb-pill" style="background:#efece3;color:#9a9a9a;">pending</span>' : ''}
-                  ${u.status==='REJECTED' ? ` <span class="bb-pill" style="background:#f3ded9;color:#a3402f;">rejected</span> <span data-regstatus="${esc(u.username)}|APPROVED" style="cursor:pointer;color:#9a9a9a;font-size:16px;text-decoration:underline;">re-approve</span>` : ''}
+                  ${u.status==='REJECTED' ? ` <span class="bb-pill" style="background:#f3ded9;color:#a3402f;">rejected</span> <span data-regstatus="${esc(u.username)}|APPROVED" style="cursor:pointer;color:#9a9a9a;font-size:clamp(16px, calc(16px + 0.4vw), 19px);text-decoration:underline;">re-approve</span>` : ''}
                   ${u.status==='KICKED' ? ` <span class="bb-pill" style="background:#3a2a26;color:#c0604f;">kicked</span>` : ''}
                   ${u.status==='RESET' ? ` <span class="bb-pill" style="background:#efece3;color:#9a9a9a;">reset \u2014 awaiting re-registration</span>` : ''}
                 </td>
                 <td>${fmt(u.balance)}</td>
                 <td style="display:flex;gap:6px;align-items:center;">
                   <input class="bb-input" type="number" placeholder="+/- clams" id="adj-${esc(u.username)}" style="width:110px;padding:5px 8px;"/>
-                  <button class="bb-btn ghost" data-adjust-user="${esc(u.username)}" style="padding:5px 10px;font-size:17px;">Apply</button>
+                  <button class="bb-btn ghost" data-adjust-user="${esc(u.username)}" style="padding:5px 10px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Apply</button>
                 </td>
                 <td style="display:flex;gap:4px;flex-wrap:wrap;">
                   ${u.isAdmin || u.status==='RESET' ? '' : (u.status==='KICKED'
-                    ? `<button class="bb-btn ghost" data-regstatus="${esc(u.username)}|APPROVED" style="padding:5px 10px;font-size:17px;">Unkick</button>`
-                    : `<button class="bb-btn ghost" data-kick-user="${esc(u.username)}" style="padding:5px 10px;font-size:17px;">Kick</button>`)}
-                  ${u.isAdmin || u.status==='RESET' ? '' : `<button class="bb-btn ghost" data-reset-registration="${esc(u.username)}" style="padding:5px 10px;font-size:17px;">Reset registration</button>`}
-                  ${u.isAdmin ? '' : `<button class="bb-btn ghost" data-delete-account="${esc(u.username)}" style="padding:5px 10px;font-size:17px;color:var(--bb-danger);border-color:var(--bb-danger);">Delete</button>`}
+                    ? `<button class="bb-btn ghost" data-regstatus="${esc(u.username)}|APPROVED" style="padding:5px 10px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Unkick</button>`
+                    : `<button class="bb-btn ghost" data-kick-user="${esc(u.username)}" style="padding:5px 10px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Kick</button>`)}
+                  ${u.isAdmin || u.status==='RESET' ? '' : `<button class="bb-btn ghost" data-reset-registration="${esc(u.username)}" style="padding:5px 10px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Reset registration</button>`}
+                  ${u.isAdmin ? '' : `<button class="bb-btn ghost" data-delete-account="${esc(u.username)}" style="padding:5px 10px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:var(--bb-danger);border-color:var(--bb-danger);">Delete</button>`}
                 </td>
               </tr>`).join('')}
           </tbody>
@@ -3950,14 +3950,14 @@
         <div class="bb-card">
           ${state.feedback.map(f => `<div style="padding:8px 0;border-bottom:1px solid #333333;">
               <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;">
-                <strong style="font-size:18px;">${esc(f.username)}</strong>
+                <strong style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">${esc(f.username)}</strong>
                 <div style="display:flex;align-items:center;gap:8px;">
-                  <span style="font-size:16px;color:#9a9a9a;white-space:nowrap;">${new Date(f.timestamp).toLocaleString()}</span>
-                  <button class="bb-btn ghost" data-delete-feedback="${esc(f.id)}" style="padding:2px 8px;font-size:16px;">Remove</button>
+                  <span style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:#9a9a9a;white-space:nowrap;">${new Date(f.timestamp).toLocaleString()}</span>
+                  <button class="bb-btn ghost" data-delete-feedback="${esc(f.id)}" style="padding:2px 8px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);">Remove</button>
                 </div>
               </div>
-              <div style="font-size:18px;color:#cfcfcf;margin-top:2px;">${esc(f.category)}</div>
-              ${f.comment ? `<div style="font-size:17px;color:#9a9a9a;margin-top:4px;font-style:italic;">"${esc(f.comment)}"</div>` : ''}
+              <div style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);color:#cfcfcf;margin-top:2px;">${esc(f.category)}</div>
+              ${f.comment ? `<div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-top:4px;font-style:italic;">"${esc(f.comment)}"</div>` : ''}
             </div>`).join('')}
         </div>`;
     })();
@@ -4331,14 +4331,14 @@
     const teams = state.eclGroups[group] || [];
     const complete = teams.length === 4;
     let html = `<div class="bb-card" style="margin-bottom:14px;">
-      <div style="font-size:19px;font-weight:600;margin-bottom:8px;">Group ${group}</div>`;
+      <div style="font-size:clamp(19px, calc(19px + 0.4vw), 22px);font-weight:600;margin-bottom:8px;">Group ${group}</div>`;
     if(!complete){
-      html += `<p style="color:#9a9a9a;font-size:17px;">Not yet drawn &mdash; ${teams.length} of 4 teams assigned. Odds for this group will appear once the draw's confirmed.</p>`;
+      html += `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Not yet drawn &mdash; ${teams.length} of 4 teams assigned. Odds for this group will appear once the draw's confirmed.</p>`;
       if(teams.length){
-        html += teams.map(t => `<div style="font-size:18px;padding:3px 0;">${esc(t)}</div>`).join('');
+        html += teams.map(t => `<div style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);padding:3px 0;">${esc(t)}</div>`).join('');
       }
     } else if(!state.roundBettingOpen && state.closeScope === 'all'){
-      html += `<p style="color:#9a9a9a;font-size:17px;">\u{1F512} Betting is closed across all markets right now &mdash; hidden until it reopens.</p>`;
+      html += `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">\u{1F512} Betting is closed across all markets right now &mdash; hidden until it reopens.</p>`;
     } else {
       const category = 'ECLGROUP|'+group;
       const categoryPaused = !!state.pausedCategories[category];
@@ -4909,22 +4909,22 @@
       if(state.futuresSubTab === 'RODDY'){
         body = stripe + futuresSubTabBar() + roddyMarketTabs() + (state.futureMarketTab === 'leading_at'
           ? renderLeadingAtMarket('RODDY')
-          : `<button class="bb-btn ghost" id="surprise-me-btn" style="margin-bottom:10px;padding:6px 12px;font-size:17px;">\u{1F3B2} Surprise me</button>` + sectionRibbon() + `<div id="outcomes-list">${futuresOutcomesList('RODDY', state.futureMarketTab)}</div>`);
+          : `<button class="bb-btn ghost" id="surprise-me-btn" style="margin-bottom:10px;padding:6px 12px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">\u{1F3B2} Surprise me</button>` + sectionRibbon() + `<div id="outcomes-list">${futuresOutcomesList('RODDY', state.futureMarketTab)}</div>`);
       } else if(state.futuresSubTab === 'FA CUP'){
         body = stripe + futuresSubTabBar() + cupMarketTabs('fa_cup_labels') + sectionRibbon() +
           (state.futureMarketTab === 'fixtures' ? renderCupFixtures('FA CUP') :
-            `<p style="color:#9a9a9a;font-size:17px;margin-bottom:10px;">Real Round of 64 draw from the 26/27 file: 62 entrants plus confirmed byes for Big Mac FC and Harvey Frekes. No matches played yet, so the whole bracket is simulated.</p>` +
+            `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:10px;">Real Round of 64 draw from the 26/27 file: 62 entrants plus confirmed byes for Big Mac FC and Harvey Frekes. No matches played yet, so the whole bracket is simulated.</p>` +
             `<div id="outcomes-list">${cupOutcomesList('fa_cup_markets', state.futureMarketTab)}</div>`);
       } else if(state.futuresSubTab === 'ECL'){
         body = stripe + futuresSubTabBar() + cupMarketTabs('ecl_labels') + sectionRibbon() +
           (state.futureMarketTab === 'fixtures' ? renderCupFixtures('ECL') :
            state.futureMarketTab === 'groups' ? renderEclGroups() :
-            `<p style="color:#9a9a9a;font-size:17px;margin-bottom:10px;">12 confirmed qualifiers for the 26/27 ECL, group draw not yet assigned (see the Groups tab). Stage odds below assume the field regardless of group -- they'll sharpen once groups are confirmed.</p>` +
+            `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:10px;">12 confirmed qualifiers for the 26/27 ECL, group draw not yet assigned (see the Groups tab). Stage odds below assume the field regardless of group -- they'll sharpen once groups are confirmed.</p>` +
             `<div id="outcomes-list">${cupOutcomesList('ecl_markets', state.futureMarketTab)}</div>`);
       } else {
         body = stripe + futuresSubTabBar() + futuresMarketTabs() + (state.futureMarketTab === 'leading_at'
           ? renderLeadingAtMarket(state.futuresSubTab)
-          : `<button class="bb-btn ghost" id="surprise-me-btn" style="margin-bottom:10px;padding:6px 12px;font-size:17px;">\u{1F3B2} Surprise me</button>` + sectionRibbon() + `<div id="outcomes-list">${futuresOutcomesList(state.futuresSubTab, state.futureMarketTab)}</div>`);
+          : `<button class="bb-btn ghost" id="surprise-me-btn" style="margin-bottom:10px;padding:6px 12px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">\u{1F3B2} Surprise me</button>` + sectionRibbon() + `<div id="outcomes-list">${futuresOutcomesList(state.futuresSubTab, state.futureMarketTab)}</div>`);
       }
     } else {
       body = `<p style="color:#9a9a9a;">Unknown tab.</p>`;
@@ -5293,20 +5293,20 @@
   }
 
   function slipBar(){
-    if(!state.slip.length) return `<div class="bb-slip"><div class="bb-slip-inner" style="color:#9a9a9a;font-size:14px;">Tap any outcome to build a bet slip.</div></div>`;
+    if(!state.slip.length) return `<div class="bb-slip"><div class="bb-slip-inner" style="color:#9a9a9a;font-size:clamp(14px, calc(14px + 0.4vw), 17px);">Tap any outcome to build a bet slip.</div></div>`;
     const modeToggle = `
       <div style="display:flex;gap:6px;margin-bottom:6px;">
-        <div class="bb-tab ${state.betMode==='multi'?'active':''}" data-betmode="multi" style="font-size:13px;padding:4px 8px;">Multi (one combined bet)</div>
-        <div class="bb-tab ${state.betMode==='singles'?'active':''}" data-betmode="singles" style="font-size:13px;padding:4px 8px;">Singles (bet each separately)</div>
+        <div class="bb-tab ${state.betMode==='multi'?'active':''}" data-betmode="multi" style="font-size:clamp(13px, calc(13px + 0.4vw), 16px);padding:4px 8px;">Multi (one combined bet)</div>
+        <div class="bb-tab ${state.betMode==='singles'?'active':''}" data-betmode="singles" style="font-size:clamp(13px, calc(13px + 0.4vw), 16px);padding:4px 8px;">Singles (bet each separately)</div>
       </div>`;
     const header = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-        <strong style="font-size:14px;">${state.slip.length} selection${state.slip.length>1?'s':''}</strong>
+        <strong style="font-size:clamp(14px, calc(14px + 0.4vw), 17px);">${state.slip.length} selection${state.slip.length>1?'s':''}</strong>
         <span style="display:flex;gap:6px;align-items:center;">
-          <label style="display:flex;align-items:center;gap:4px;font-size:13px;color:#9a9a9a;cursor:pointer;">
+          <label style="display:flex;align-items:center;gap:4px;font-size:clamp(13px, calc(13px + 0.4vw), 16px);color:#9a9a9a;cursor:pointer;">
             <input type="checkbox" id="toggle-implied-chance" ${state.showImpliedChance?'checked':''}/> Implied %${helpTip('implied', 'The odds converted into a rough win chance \u2014 e.g. odds of 2.00 mean roughly a 50% implied chance.')}
           </label>
-          <button class="bb-btn ghost" id="copy-slip" style="padding:3px 8px;font-size:13px;">Copy slip</button>
-          <button class="bb-btn ghost" id="clear-slip" style="padding:3px 8px;font-size:13px;">Clear</button>
+          <button class="bb-btn ghost" id="copy-slip" style="padding:3px 8px;font-size:clamp(13px, calc(13px + 0.4vw), 16px);">Copy slip</button>
+          <button class="bb-btn ghost" id="clear-slip" style="padding:3px 8px;font-size:clamp(13px, calc(13px + 0.4vw), 16px);">Clear</button>
         </span>
       </div>`;
 
@@ -5316,15 +5316,15 @@
       return `<div class="bb-slip"><div class="bb-slip-inner">
         ${modeToggle}${header}
         <div style="max-height:140px;overflow-y:auto;margin-bottom:6px;">
-          ${state.slip.map(s => `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;padding:3px 0;border-bottom:1px solid #333333;">
+          ${state.slip.map(s => `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:clamp(13px, calc(13px + 0.4vw), 16px);padding:3px 0;border-bottom:1px solid #333333;">
             <span style="color:#cfcfcf;flex:1;">${esc(s.label)} <span class="bb-odds">${formatOdds(s.odds)}</span>${state.showImpliedChance?` <span style="color:#9a9a9a;">(${impliedChance(s.odds)})</span>`:''}</span>
-            <input class="bb-input" data-single-stake="${esc(s.id)}" type="number" min="1" value="${s.singleStake||50}" style="width:70px;padding:3px 5px;font-size:13px;"/>
+            <input class="bb-input" data-single-stake="${esc(s.id)}" type="number" min="1" value="${s.singleStake||50}" style="width:70px;padding:3px 5px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);"/>
             <span style="color:#9a9a9a;width:52px;text-align:right;">&rarr;${fmt(Math.round((s.singleStake||0)*s.odds))}</span>
             <span data-remove="${esc(s.id)}" style="cursor:pointer;color:#9a9a9a;padding:10px;margin:-10px;display:inline-block;">&times;</span>
           </div>`).join('')}
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:13px;color:#9a9a9a;">Total stake ${fmt(totalStake)} &rarr; potential ${fmt(totalPotential)}</span>
+          <span style="font-size:clamp(13px, calc(13px + 0.4vw), 16px);color:#9a9a9a;">Total stake ${fmt(totalStake)} &rarr; potential ${fmt(totalPotential)}</span>
           <button class="bb-btn" id="place-singles">Place ${state.slip.length} single${state.slip.length>1?'s':''}</button>
         </div>
       </div></div>`;
@@ -5337,26 +5337,26 @@
     const displayedCombined = boostApplied ? combined * BOOST_MULTIPLIER : combined;
     const displayedPotential = state.stake * displayedCombined;
     const boostToggle = boostEligible ? `
-      <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:6px;background:#4a3a10;border-radius:8px;padding:6px 8px;">
+      <label style="display:flex;align-items:center;gap:8px;font-size:clamp(13px, calc(13px + 0.4vw), 16px);margin-bottom:6px;background:#4a3a10;border-radius:8px;padding:6px 8px;">
         <input type="checkbox" id="use-boost-checkbox" ${state.useBoost?'checked':''}/>
         <span style="color:#ffdd00;">Use your Round ${state.currentRound} boosted odd \u2014 free +${Math.round((BOOST_MULTIPLIER-1)*100)}% on this multi (one per round).</span>
       </label>` : (hasFeaturedInSlip ? `
-      <div style="font-size:13px;color:#9a9a9a;margin-bottom:6px;">This slip already includes a featured (boosted) pick, so the separate multi-boost can't also be applied.</div>` : '');
+      <div style="font-size:clamp(13px, calc(13px + 0.4vw), 16px);color:#9a9a9a;margin-bottom:6px;">This slip already includes a featured (boosted) pick, so the separate multi-boost can't also be applied.</div>` : '');
     return `<div class="bb-slip"><div class="bb-slip-inner">
       ${modeToggle}${header}
       <div style="max-height:90px;overflow-y:auto;margin-bottom:6px;">
-        ${state.slip.map(s => `<div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0;border-bottom:1px solid #333333;">
+        ${state.slip.map(s => `<div style="display:flex;justify-content:space-between;font-size:clamp(13px, calc(13px + 0.4vw), 16px);padding:3px 0;border-bottom:1px solid #333333;">
           <span style="color:#cfcfcf;">${esc(s.label)}</span>
-          <span style="display:flex;gap:8px;align-items:center;"><span class="bb-odds">${formatOdds(s.odds)}</span>${state.showImpliedChance?`<span style="color:#9a9a9a;font-size:13px;">${impliedChance(s.odds)}</span>`:''}
+          <span style="display:flex;gap:8px;align-items:center;"><span class="bb-odds">${formatOdds(s.odds)}</span>${state.showImpliedChance?`<span style="color:#9a9a9a;font-size:clamp(13px, calc(13px + 0.4vw), 16px);">${impliedChance(s.odds)}</span>`:''}
           <span data-remove="${esc(s.id)}" style="cursor:pointer;color:#9a9a9a;padding:10px;margin:-10px;display:inline-block;">&times;</span></span></div>`).join('')}
       </div>
       ${boostToggle}
       <div style="display:flex;gap:8px;align-items:center;">
-        <div style="flex:1;"><span style="font-size:13px;color:#9a9a9a;">Stake (clams)</span>
+        <div style="flex:1;"><span style="font-size:clamp(13px, calc(13px + 0.4vw), 16px);color:#9a9a9a;">Stake (clams)</span>
           <input class="bb-input" id="stake-input" type="number" min="1" value="${state.stake}" style="padding:5px 8px;"/></div>
-        <div style="flex:1;"><span style="font-size:13px;color:#9a9a9a;">Combined odds</span>
-          <div style="font-weight:600;color:#ffdd00;padding:5px 0;">${displayedCombined.toFixed(2)}${boostApplied?' \u26A1':''}${state.showImpliedChance?` <span style="font-size:13px;color:#9a9a9a;font-weight:400;">(${impliedChance(displayedCombined)})</span>`:''}</div></div>
-        <div style="flex:1;"><span style="font-size:13px;color:#9a9a9a;">Potential return</span>
+        <div style="flex:1;"><span style="font-size:clamp(13px, calc(13px + 0.4vw), 16px);color:#9a9a9a;">Combined odds</span>
+          <div style="font-weight:600;color:#ffdd00;padding:5px 0;">${displayedCombined.toFixed(2)}${boostApplied?' \u26A1':''}${state.showImpliedChance?` <span style="font-size:clamp(13px, calc(13px + 0.4vw), 16px);color:#9a9a9a;font-weight:400;">(${impliedChance(displayedCombined)})</span>`:''}</div></div>
+        <div style="flex:1;"><span style="font-size:clamp(13px, calc(13px + 0.4vw), 16px);color:#9a9a9a;">Potential return</span>
           <div style="font-weight:600;padding:5px 0;">${fmt(Math.round(displayedPotential))}</div></div>
         <button class="bb-btn" id="place-bet" style="align-self:flex-end;">Place bet</button>
       </div>
@@ -5916,8 +5916,8 @@
         const daysLeft = Math.ceil((new Date(kickoffStr + 'T00:00:00Z').getTime() - Date.now()) / (1000*60*60*24));
         if(daysLeft > 0){
           roundPiece = `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;">
-              <span style="font-size:21px;">\u{1F4C5}</span>
-              <span style="font-size:18px;">Round ${state.currentRound} kicks off in ${daysLeft} day${daysLeft!==1?'s':''}</span>
+              <span style="font-size:clamp(21px, calc(21px + 0.4vw), 24px);">\u{1F4C5}</span>
+              <span style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">Round ${state.currentRound} kicks off in ${daysLeft} day${daysLeft!==1?'s':''}</span>
             </div>`;
         }
       }
@@ -5926,14 +5926,14 @@
     const pendingTotal = pending.reduce((s,b) => s + b.potentialReturn, 0);
     const pendingPiece = pending.length
       ? `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;">
-          <span style="font-size:21px;">\u23F3</span>
-          <span style="font-size:18px;">${pending.length} pending bet${pending.length!==1?'s':''} \u2014 <span style="color:#ffdd00;font-weight:600;">${fmt(pendingTotal)}</span> potential return</span>
+          <span style="font-size:clamp(21px, calc(21px + 0.4vw), 24px);">\u23F3</span>
+          <span style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">${pending.length} pending bet${pending.length!==1?'s':''} \u2014 <span style="color:#ffdd00;font-weight:600;">${fmt(pendingTotal)}</span> potential return</span>
         </div>` : '';
 
     const recentPiece = mostRecent
       ? `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;">
-          <span style="font-size:21px;">${mostRecent.status==='WON'?'\u2705':'\u274C'}</span>
-          <span style="font-size:18px;">Your last bet ${mostRecent.status==='WON'?'won':'lost'}${mostRecent.status==='WON'?` \u2014 <span style="color:#ffdd00;font-weight:600;">${fmt(mostRecent.potentialReturn)}</span>`:''}</span>
+          <span style="font-size:clamp(21px, calc(21px + 0.4vw), 24px);">${mostRecent.status==='WON'?'\u2705':'\u274C'}</span>
+          <span style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">Your last bet ${mostRecent.status==='WON'?'won':'lost'}${mostRecent.status==='WON'?` \u2014 <span style="color:#ffdd00;font-weight:600;">${fmt(mostRecent.potentialReturn)}</span>`:''}</span>
         </div>` : '';
 
     const pieces = [roundPiece, pendingPiece, recentPiece].filter(Boolean);
@@ -5957,8 +5957,8 @@
         ? "Haven't tipped this week's fixtures yet? Takes a minute, free to play."
         : "Pre-season predictions are still open \u2014 get your picks in before Round 1 kicks off.";
     return `<div class="bb-card" data-tab="TIPPING" style="margin-bottom:16px;cursor:pointer;display:flex;align-items:center;gap:10px;">
-        <span style="font-size:23px;">\u{1F3AF}</span>
-        <div><div style="font-weight:600;font-size:18px;">${esc(msg)}</div><div style="font-size:16px;color:#9a9a9a;margin-top:2px;">Tap to open Tipping \u2192</div></div>
+        <span style="font-size:clamp(23px, calc(23px + 0.4vw), 26px);">\u{1F3AF}</span>
+        <div><div style="font-weight:600;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">${esc(msg)}</div><div style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:#9a9a9a;margin-top:2px;">Tap to open Tipping \u2192</div></div>
       </div>`;
   }
 
@@ -6096,10 +6096,10 @@
       return `<div class="bb-card" style="margin-top:1rem;"><p style="color:#9a9a9a;">Nobody tipped ${esc(section.label)} this round.</p></div>`;
     }
     return `<div class="bb-card" style="margin-top:1rem;">
-        <strong style="font-size:18px;">Everyone's tips \u2014 ${esc(section.label)}</strong>
+        <strong style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">Everyone's tips \u2014 ${esc(section.label)}</strong>
         <div style="margin-top:8px;">
           ${rows.map(r => `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #333333;flex-wrap:wrap;">
-              <span style="font-size:17px;width:110px;flex-shrink:0;">${esc(r.username)}</span>
+              <span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);width:110px;flex-shrink:0;">${esc(r.username)}</span>
               <span style="display:flex;gap:6px;flex-wrap:wrap;">${r.picks.map(p => `<span title="${esc(p.team)}">${teamLogo(p.team,22)}</span>`).join('')}</span>
             </div>`).join('')}
         </div>
