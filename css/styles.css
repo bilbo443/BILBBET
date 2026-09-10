@@ -158,7 +158,7 @@ table.bb-table td{padding:8px;border-bottom:1px solid #333;vertical-align:top;co
    stands in for the tap-to-sort column headers, which get hidden along
    with the rest of the <thead> since there's no header row left to tap. */
 .bb-lb-mobile-sort{ display:none; }
-@media (max-width: 640px){
+@media (max-width: 768px){
   .bb-lb-mobile-sort{ display:block; }
   .bb-lb-table{ min-width:0 !important; }
   .bb-lb-table thead{ display:none; }
@@ -181,7 +181,7 @@ table.bb-table td{padding:8px;border-bottom:1px solid #333;vertical-align:top;co
    one fits, so the same [data-tab] click handler works for either without
    any JS screen-size detection. */
 .bb-tabs-mobile{ display:none; }
-@media (max-width: 640px){
+@media (max-width: 768px){
   .bb-tabs-row{ display:none !important; }
   .bb-tabs-mobile{ display:block; }
 }
@@ -194,7 +194,7 @@ table.bb-table td{padding:8px;border-bottom:1px solid #333;vertical-align:top;co
    two options into their own full-width rows on narrow screens gives each
    one the same breathing room as every other betting row in the app,
    with the "v" separator becoming its own centred line between them. */
-@media (max-width: 480px){
+@media (max-width: 768px){
   .bb-tip-pick-row{ flex-direction:column; align-items:stretch !important; gap:4px !important; }
   .bb-tip-vs{ text-align:center; padding:2px 0; }
 }
