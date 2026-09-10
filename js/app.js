@@ -428,6 +428,19 @@
     </span>`;
   }
   function teamLogo(name, size){ return logoBadge('team', name, size); }
+
+  // Shortens a team name to a consistent length for the Tipping picker
+  // specifically, where two full name+odds combos have to fit side by side
+  // (or stacked full-width on mobile) -- team names here range from short
+  // ("Deer Park") to quite long ("Best of a Bad Bench"), and even with
+  // wrapping enabled, letting them vary freely made the picker feel
+  // inconsistent and occasionally still crowded the odds on narrow screens.
+  // Truncating to a fixed max length keeps every row a predictable width;
+  // the full name is always still available via the title tooltip.
+  function abbrevTeam(name, maxLen=14){
+    if(name.length <= maxLen) return name;
+    return name.slice(0, maxLen-1).trimEnd() + '\u2026';
+  }
   function siteLogoBadge(size){
     size = size || 32;
     return `<span style="position:relative;display:inline-block;width:${size}px;height:${size}px;min-width:${size}px;vertical-align:middle;">
@@ -2385,15 +2398,15 @@
             </div>`;
         }
         const radio = (team, oddsInfo, side) => {
-          if(oddsInfo.suspended) return `<span style="flex:1;text-align:center;font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;opacity:0.6;">susp.</span>`;
+          if(oddsInfo.suspended) return `<span class="bb-tip-pick" style="flex:1;text-align:center;font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;opacity:0.6;">susp.</span>`;
           const checked = current && current.team === team;
-          return `<label style="flex:1;display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:6px;background:${checked?'#3a3320':'#2a2a2a'};cursor:pointer;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">
+          return `<label class="bb-tip-pick" style="flex:1;min-width:0;display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:6px;background:${checked?'#3a3320':'#2a2a2a'};cursor:pointer;font-size:clamp(17px, calc(17px + 0.4vw), 20px);" title="${esc(team)}">
               <input type="radio" name="tip-${esc(div)}-${i}" data-tip-radio="${esc(div)}|${i}|${side}|${esc(team)}|${oddsInfo.odds}" ${checked?'checked':''}/>
-              ${teamLogo(team,16)}${esc(team)} <span style="margin-left:auto;color:#ffdd00;font-weight:600;">${formatOdds(oddsInfo.odds)}</span>
+              ${teamLogo(team,16)}<span style="min-width:0;overflow-wrap:break-word;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(abbrevTeam(team))}</span> <span style="margin-left:auto;flex-shrink:0;color:#ffdd00;font-weight:600;">${formatOdds(oddsInfo.odds)}</span>
             </label>`;
         };
-        return `<div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid #333333;">
-          ${radio(teamA, aOdds, 'home')}<span style="color:#9a9a9a;font-size:clamp(16px, calc(16px + 0.4vw), 19px);">v</span>${radio(teamB, bOdds, 'away')}
+        return `<div class="bb-tip-pick-row" style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid #333333;">
+          ${radio(teamA, aOdds, 'home')}<span class="bb-tip-vs" style="color:#9a9a9a;font-size:clamp(16px, calc(16px + 0.4vw), 19px);">v</span>${radio(teamB, bOdds, 'away')}
         </div>`;
       }).join('');
       const doneStored = divisionTipsCompleted(div, round);
