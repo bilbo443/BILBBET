@@ -186,6 +186,19 @@ table.bb-table td{padding:8px;border-bottom:1px solid #333;vertical-align:top;co
   .bb-tabs-mobile{ display:block; }
 }
 
+/* Tipping page's fixture picker: two full team+odds picks normally sit
+   side-by-side (flex:1 each) in one row, which is much tighter than a
+   normal single betting row -- a long team name here has only roughly a
+   quarter of the screen to work with once the radio, logo, and odds are
+   accounted for, and was overflowing off the edge on phones. Stacking the
+   two options into their own full-width rows on narrow screens gives each
+   one the same breathing room as every other betting row in the app,
+   with the "v" separator becoming its own centred line between them. */
+@media (max-width: 480px){
+  .bb-tip-pick-row{ flex-direction:column; align-items:stretch !important; gap:4px !important; }
+  .bb-tip-vs{ text-align:center; padding:2px 0; }
+}
+
 /* Featured fixture/future cards on Home, and the .bb-outcome betting rows
    used throughout the markets: the odds column sits at a consistent
    position on the right in every row of a section (locked, not shifting
