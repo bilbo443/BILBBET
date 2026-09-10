@@ -1166,7 +1166,7 @@
 
     const fixtureCards = fixtures.length ? fixtures.map(p => `
       <div class="bb-card" style="display:flex;align-items:stretch;gap:12px;margin-bottom:8px;">
-        <div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:3px;">
+        <div class="bb-featured-label" style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:3px;">
           <div style="font-size:16px;color:#9a9a9a;">${p.isCup ? esc(p.stage) + ' \u2014 ' + esc(p.division) : esc(p.division.replace(' (D1)',''))}</div>
           <div style="font-weight:600;display:flex;align-items:center;gap:6px;">${teamLogo(p.team,18)}${esc(p.team)}</div>
           <div style="font-weight:600;display:flex;align-items:center;gap:6px;color:#9a9a9a;font-size:18px;">vs ${esc(p.opp)}</div>
@@ -1179,7 +1179,7 @@
 
     const futureCards = futures.length ? futures.map(p => `
       <div class="bb-card" style="display:flex;align-items:stretch;gap:12px;margin-bottom:8px;">
-        <div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:3px;">
+        <div class="bb-featured-label" style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:3px;">
           <div style="font-size:16px;color:#9a9a9a;">${esc(p.market)} \u2014 ${esc(String(p.division).replace(' (D1)',''))}</div>
           <div style="font-weight:600;display:flex;align-items:center;gap:6px;">${teamLogo(p.team,18)}${esc(p.team)}</div>
         </div>
