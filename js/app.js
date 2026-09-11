@@ -5325,7 +5325,7 @@
         <div style="max-height:140px;overflow-y:auto;margin-bottom:6px;">
           ${state.slip.map(s => `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:clamp(13px, calc(13px + 0.4vw), 16px);padding:3px 0;border-bottom:1px solid #333333;">
             <span style="color:#cfcfcf;flex:1;">${esc(s.label)} <span class="bb-odds">${formatOdds(s.odds)}</span>${state.showImpliedChance?` <span style="color:#9a9a9a;">(${impliedChance(s.odds)})</span>`:''}</span>
-            <input class="bb-input" data-single-stake="${esc(s.id)}" type="number" min="1" value="${s.singleStake||50}" style="width:70px;padding:3px 5px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);"/>
+            <input class="bb-input" data-single-stake="${esc(s.id)}" type="number" min="0.01" step="0.01" value="${s.singleStake||50}" style="width:70px;padding:3px 5px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);"/>
             <span style="color:#9a9a9a;width:52px;text-align:right;">&rarr;${fmt(Math.round((s.singleStake||0)*s.odds))}</span>
             <span data-remove="${esc(s.id)}" style="cursor:pointer;color:#9a9a9a;padding:10px;margin:-10px;display:inline-block;">&times;</span>
           </div>`).join('')}
@@ -5360,7 +5360,7 @@
       ${boostToggle}
       <div style="display:flex;gap:8px;align-items:center;">
         <div style="flex:1;"><span style="font-size:clamp(13px, calc(13px + 0.4vw), 16px);color:#9a9a9a;">Stake (clams)</span>
-          <input class="bb-input" id="stake-input" type="number" min="1" value="${state.stake}" style="padding:5px 8px;"/></div>
+          <input class="bb-input" id="stake-input" type="number" min="0.01" step="0.01" value="${state.stake}" style="padding:5px 8px;"/></div>
         <div style="flex:1;"><span style="font-size:clamp(13px, calc(13px + 0.4vw), 16px);color:#9a9a9a;">Combined odds</span>
           <div style="font-weight:600;color:#ffdd00;padding:5px 0;">${displayedCombined.toFixed(2)}${boostApplied?' \u26A1':''}${state.showImpliedChance?` <span style="font-size:clamp(13px, calc(13px + 0.4vw), 16px);color:#9a9a9a;font-weight:400;">(${impliedChance(displayedCombined)})</span>`:''}</div></div>
         <div style="flex:1;"><span style="font-size:clamp(13px, calc(13px + 0.4vw), 16px);color:#9a9a9a;">Potential return</span>
@@ -6693,7 +6693,7 @@
     });
     document.querySelectorAll('[data-single-stake]').forEach(el => el.oninput = e => {
       const item = state.slip.find(s=>s.id===el.dataset.singleStake);
-      if(item) item.singleStake = Math.max(1, parseInt(e.target.value,10)||1);
+      if(item) item.singleStake = Math.max(0.01, parseFloat(e.target.value)||0.01);
     });
     const clearBtn = $('#clear-slip'); if(clearBtn) clearBtn.onclick = () => { state.slip=[]; render(); };
     const impliedToggle = $('#toggle-implied-chance'); if(impliedToggle) impliedToggle.onchange = e => { state.showImpliedChance = e.target.checked; render(); };
@@ -6792,7 +6792,7 @@
     });
     const copySlipBtn = $('#copy-slip'); if(copySlipBtn) copySlipBtn.onclick = copySlipToClipboard;
     document.querySelectorAll('[data-remove]').forEach(el => el.onclick = e => { e.stopPropagation(); state.slip = state.slip.filter(s=>s.id!==el.dataset.remove); render(); });
-    const stakeInput = $('#stake-input'); if(stakeInput) stakeInput.oninput = e => { state.stake = Math.max(1, parseInt(e.target.value,10)||1); };
+    const stakeInput = $('#stake-input'); if(stakeInput) stakeInput.oninput = e => { state.stake = Math.max(0.01, parseFloat(e.target.value)||0.01); };
     const placeBtn = $('#place-bet'); if(placeBtn) placeBtn.onclick = placeBet;
     const placeSinglesBtn = $('#place-singles'); if(placeSinglesBtn) placeSinglesBtn.onclick = placeBetsAsSingles;
     document.querySelectorAll('[data-adjust-user]').forEach(el => el.onclick = () => {
@@ -6997,7 +6997,7 @@
       return;
     }
     const stakeInput = document.getElementById('stake-input');
-    const stake = Math.max(1, parseInt(stakeInput.value,10)||1);
+    const stake = Math.max(0.01, parseFloat(stakeInput.value)||0.01);
     if(!state.slip.length){ alert('Add at least one selection first.'); return; }
     if(stake > state.user.balance){ alert("You don't have that many clams."); return; }
     if(stake >= state.user.balance * 0.5){
@@ -7076,8 +7076,8 @@
       return;
     }
     if(!state.slip.length){ alert('Add at least one selection first.'); return; }
-    if(state.slip.some(s => !s.singleStake || s.singleStake < 1)){ alert('Every selection needs a stake before placing as singles.'); return; }
-    const stakes = state.slip.map(s => Math.max(1, s.singleStake));
+    if(state.slip.some(s => !s.singleStake || s.singleStake < 0.01)){ alert('Every selection needs a stake before placing as singles.'); return; }
+    const stakes = state.slip.map(s => Math.max(0.01, s.singleStake));
     const totalStake = stakes.reduce((a,b)=>a+b,0);
     if(totalStake > state.user.balance){ alert("You don't have enough clams to cover all of those singles."); return; }
     if(totalStake >= state.user.balance * 0.5){
@@ -7105,7 +7105,7 @@
       }
       if(state.user && state.user.username === myUsername) state.user = u; // only reflect the new balance if this is still the same session that placed the bets
       for(const item of slipSnapshot){
-        const stake = Math.max(1, item.singleStake||0);
+        const stake = Math.max(0.01, item.singleStake||0);
         const bet = { id: uid(), username: u.username, selections: [item], stake, combinedOdds: item.odds,
                       featuredPickRound: isFeaturedPick(item.id) ? state.currentRound : null,
                       potentialReturn: Math.round(stake*item.odds), timestamp: Date.now(), status: 'PENDING' };
