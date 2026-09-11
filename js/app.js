@@ -381,6 +381,11 @@
   // when there's genuine half-credit to show (3.5).
   function fmtCorrect(n){ return Number.isInteger(n) ? String(n) : n.toFixed(1); }
   function fmt(n){ return Number(n||0).toLocaleString(undefined,{maximumFractionDigits:2}); }
+  // Payouts round to the nearest hundredth of a clam now that stakes can be
+  // fractional (down to 0.01) -- rounding to a whole clam made sense back
+  // when stakes were whole numbers, but now silently discards real fractions
+  // of a clam a punter is actually owed (or short-changes a settled bet).
+  function round2(n){ return Math.round((n||0) * 100) / 100; }
 
   // ---------- Logo provision: teams, divisions, competitions ----------
   // Drop image files into these paths (relative to index.html) and they'll be
@@ -5282,7 +5287,7 @@
     state.slip.forEach(s => lines.push('- ' + s.label + ' (' + formatOdds(s.odds) + ')'));
     if(state.betMode === 'multi' && state.slip.length){
       lines.push('Combined odds: ' + combinedOdds().toFixed(2));
-      lines.push('Stake: ' + state.stake + ' clams \u2192 potential ' + Math.round(state.stake*combinedOdds()) + ' clams');
+      lines.push('Stake: ' + state.stake + ' clams \u2192 potential ' + round2(state.stake*combinedOdds()) + ' clams');
     }
     return lines.join('\n');
   }
@@ -5319,19 +5324,19 @@
 
     if(state.betMode === 'singles'){
       const totalStake = state.slip.reduce((s,x)=>s+(x.singleStake||0),0);
-      const totalPotential = state.slip.reduce((s,x)=>s+Math.round((x.singleStake||0)*x.odds),0);
+      const totalPotential = state.slip.reduce((s,x)=>s+round2((x.singleStake||0)*x.odds),0);
       return `<div class="bb-slip"><div class="bb-slip-inner">
         ${modeToggle}${header}
         <div style="max-height:140px;overflow-y:auto;margin-bottom:6px;">
           ${state.slip.map(s => `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:clamp(13px, calc(13px + 0.4vw), 16px);padding:3px 0;border-bottom:1px solid #333333;">
             <span style="color:#cfcfcf;flex:1;">${esc(s.label)} <span class="bb-odds">${formatOdds(s.odds)}</span>${state.showImpliedChance?` <span style="color:#9a9a9a;">(${impliedChance(s.odds)})</span>`:''}</span>
             <input class="bb-input" data-single-stake="${esc(s.id)}" type="number" min="0.01" step="0.01" value="${s.singleStake||50}" style="width:70px;padding:3px 5px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);"/>
-            <span style="color:#9a9a9a;width:52px;text-align:right;">&rarr;${fmt(Math.round((s.singleStake||0)*s.odds))}</span>
+            <span data-single-potential="${esc(s.id)}" style="color:#9a9a9a;width:52px;text-align:right;">&rarr;${fmt(round2((s.singleStake||0)*s.odds))}</span>
             <span data-remove="${esc(s.id)}" style="cursor:pointer;color:#9a9a9a;padding:10px;margin:-10px;display:inline-block;">&times;</span>
           </div>`).join('')}
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:clamp(13px, calc(13px + 0.4vw), 16px);color:#9a9a9a;">Total stake ${fmt(totalStake)} &rarr; potential ${fmt(totalPotential)}</span>
+          <span id="singles-total-line" style="font-size:clamp(13px, calc(13px + 0.4vw), 16px);color:#9a9a9a;">Total stake ${fmt(totalStake)} &rarr; potential ${fmt(totalPotential)}</span>
           <button class="bb-btn" id="place-singles">Place ${state.slip.length} single${state.slip.length>1?'s':''}</button>
         </div>
       </div></div>`;
@@ -5364,7 +5369,7 @@
         <div style="flex:1;"><span style="font-size:clamp(13px, calc(13px + 0.4vw), 16px);color:#9a9a9a;">Combined odds</span>
           <div style="font-weight:600;color:#ffdd00;padding:5px 0;">${displayedCombined.toFixed(2)}${boostApplied?' \u26A1':''}${state.showImpliedChance?` <span style="font-size:clamp(13px, calc(13px + 0.4vw), 16px);color:#9a9a9a;font-weight:400;">(${impliedChance(displayedCombined)})</span>`:''}</div></div>
         <div style="flex:1;"><span style="font-size:clamp(13px, calc(13px + 0.4vw), 16px);color:#9a9a9a;">Potential return</span>
-          <div style="font-weight:600;padding:5px 0;">${fmt(Math.round(displayedPotential))}</div></div>
+          <div id="potential-return-value" style="font-weight:600;padding:5px 0;">${fmt(round2(displayedPotential))}</div></div>
         <button class="bb-btn" id="place-bet" style="align-self:flex-end;">Place bet</button>
       </div>
     </div></div>`;
@@ -6694,6 +6699,18 @@
     document.querySelectorAll('[data-single-stake]').forEach(el => el.oninput = e => {
       const item = state.slip.find(s=>s.id===el.dataset.singleStake);
       if(item) item.singleStake = Math.max(0.01, parseFloat(e.target.value)||0.01);
+      // Targeted DOM update instead of a full render(): this is a text
+      // input mid-keystroke, and re-rendering the whole page would rebuild
+      // the input and drop focus/cursor position. Only the two derived
+      // numbers actually need to change here.
+      const rowPotential = $(`[data-single-potential="${el.dataset.singleStake}"]`);
+      if(item && rowPotential) rowPotential.textContent = '\u2192' + fmt(round2((item.singleStake||0) * item.odds));
+      const totalLine = $('#singles-total-line');
+      if(totalLine){
+        const totalStake = state.slip.reduce((s,x)=>s+(x.singleStake||0),0);
+        const totalPotential = state.slip.reduce((s,x)=>s+round2((x.singleStake||0)*x.odds),0);
+        totalLine.textContent = `Total stake ${fmt(totalStake)} \u2192 potential ${fmt(totalPotential)}`;
+      }
     });
     const clearBtn = $('#clear-slip'); if(clearBtn) clearBtn.onclick = () => { state.slip=[]; render(); };
     const impliedToggle = $('#toggle-implied-chance'); if(impliedToggle) impliedToggle.onchange = e => { state.showImpliedChance = e.target.checked; render(); };
@@ -6792,7 +6809,22 @@
     });
     const copySlipBtn = $('#copy-slip'); if(copySlipBtn) copySlipBtn.onclick = copySlipToClipboard;
     document.querySelectorAll('[data-remove]').forEach(el => el.onclick = e => { e.stopPropagation(); state.slip = state.slip.filter(s=>s.id!==el.dataset.remove); render(); });
-    const stakeInput = $('#stake-input'); if(stakeInput) stakeInput.oninput = e => { state.stake = Math.max(0.01, parseFloat(e.target.value)||0.01); };
+    const stakeInput = $('#stake-input'); if(stakeInput) stakeInput.oninput = e => {
+      state.stake = Math.max(0.01, parseFloat(e.target.value)||0.01);
+      // Same reasoning as the singles stake handler above -- update just
+      // the potential-return figure directly rather than calling render(),
+      // which would rebuild the input mid-keystroke and drop focus.
+      // Combined odds itself doesn't depend on the stake, so it's left
+      // alone; only the potential return (stake * combined odds) changes.
+      const potentialEl = $('#potential-return-value');
+      if(potentialEl){
+        const combined = combinedOdds();
+        const hasFeaturedInSlip = state.slip.some(s => isFeaturedPick(s.id));
+        const boostEligible = state.user && !hasFeaturedInSlip && state.slip.length >= 3 && (!state.user.boostUsedRound || state.user.boostUsedRound !== state.currentRound);
+        const displayedCombined = (boostEligible && state.useBoost) ? combined * BOOST_MULTIPLIER : combined;
+        potentialEl.textContent = fmt(round2(state.stake * displayedCombined));
+      }
+    };
     const placeBtn = $('#place-bet'); if(placeBtn) placeBtn.onclick = placeBet;
     const placeSinglesBtn = $('#place-singles'); if(placeSinglesBtn) placeSinglesBtn.onclick = placeBetsAsSingles;
     document.querySelectorAll('[data-adjust-user]').forEach(el => el.onclick = () => {
@@ -7053,7 +7085,7 @@
       const bet = { id: uid(), username: u.username, selections: slipSnapshot, stake, combinedOdds: combined, boosted: boostApplied,
                     featuredPickRound: hasFeatured ? state.currentRound : null,
                     boostRound: boostApplied ? state.currentRound : null,
-                    potentialReturn: Math.round(stake*combined), timestamp: Date.now(), status: 'PENDING' };
+                    potentialReturn: round2(stake*combined), timestamp: Date.now(), status: 'PENDING' };
       await sset('bilbbet2_bet:'+bet.id, bet);
       await addToIndex('bilbbet2_bets_index_' + u.username.toLowerCase(), bet.id);
       await addToIndex('bilbbet2_all_bets_index', bet.id);
@@ -7108,7 +7140,7 @@
         const stake = Math.max(0.01, item.singleStake||0);
         const bet = { id: uid(), username: u.username, selections: [item], stake, combinedOdds: item.odds,
                       featuredPickRound: isFeaturedPick(item.id) ? state.currentRound : null,
-                      potentialReturn: Math.round(stake*item.odds), timestamp: Date.now(), status: 'PENDING' };
+                      potentialReturn: round2(stake*item.odds), timestamp: Date.now(), status: 'PENDING' };
         await sset('bilbbet2_bet:'+bet.id, bet);
         await addToIndex('bilbbet2_bets_index_' + u.username.toLowerCase(), bet.id);
         await addToIndex('bilbbet2_all_bets_index', bet.id);
