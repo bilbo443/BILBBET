@@ -361,6 +361,7 @@
     eclGroups: { A: [], B: [], C: [] },
     eclGroupAdminPick: '',
     roundBettingOpen: true,
+    manualBettingControl: false,
     h2hRealScheduleConfirmed: false,
     closeScope: 'h2h', // 'h2h' or 'all' -- which markets the current closure covers
     pausedCategories: {},
@@ -3782,6 +3783,13 @@
           <button class="bb-btn" id="reopen-betting-btn" ${state.roundBettingOpen?'disabled':''} style="padding:8px 14px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Reopen betting</button>
         </div>
         <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin:10px 0 6px;">"H2H only" affects this round's H2H, leading-at, and win/lose-the-round markets, leaving season-long futures bettable. "Entire betting markets" also locks division/Roddy/cup futures until reopened. Either way, the affected round's H2H fixture list is hidden (not just unclickable) while closed.</p>
+        <div style="border-top:1px solid var(--bb-border);margin-top:12px;padding-top:12px;">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+            <input type="checkbox" id="manual-betting-control-checkbox" ${state.manualBettingControl?'checked':''}/>
+            <span style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">Manual betting control</span>
+          </label>
+          <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin:6px 0 0;">Off (default): advancing to a new round always force-reopens betting, regardless of how last round was left. On: that automatic reopen is skipped -- betting only opens when you click "Reopen betting" yourself, even after the round ticks over.</p>
+        </div>
       </div>
       <h3>H2H official schedule</h3>
       <div class="bb-card" style="margin-bottom:1.5rem;">
@@ -4325,9 +4333,12 @@
     await sset('bilbbet2_current_round_override', round);
     state.currentRoundOverride = round;
     state.currentRound = round;
-    if(advanced){
-      // moving to a new round starts that round's betting fresh, regardless
-      // of how the previous round was left
+    if(advanced && !state.manualBettingControl){
+      // Moving to a new round starts that round's betting fresh, regardless
+      // of how the previous round was left -- unless manualBettingControl
+      // is on, in which case the admin has explicitly asked to make this
+      // decision themselves every time, rather than have it made for them
+      // just because the round ticked over.
       state.roundBettingOpen = true;
       await sset('bilbbet2_round_betting_open', true);
     }
@@ -7064,6 +7075,12 @@
     const closeScopeH2h = $('#close-scope-h2h'); if(closeScopeH2h) closeScopeH2h.onchange = () => { state.closeScope = 'h2h'; render(); };
     const closeScopeAll = $('#close-scope-all'); if(closeScopeAll) closeScopeAll.onchange = () => { state.closeScope = 'all'; render(); };
     const reopenBettingBtn = $('#reopen-betting-btn'); if(reopenBettingBtn) reopenBettingBtn.onclick = reopenBetting;
+    const manualBettingControlCheckbox = $('#manual-betting-control-checkbox');
+    if(manualBettingControlCheckbox) manualBettingControlCheckbox.onchange = async e => {
+      state.manualBettingControl = e.target.checked;
+      await sset('bilbbet2_manual_betting_control', state.manualBettingControl);
+      render();
+    };
     const toggleH2hScheduleBtn = $('#toggle-h2h-schedule-confirmed-btn');
     if(toggleH2hScheduleBtn) toggleH2hScheduleBtn.onclick = async () => {
       state.h2hRealScheduleConfirmed = !state.h2hRealScheduleConfirmed;
@@ -7457,6 +7474,8 @@
 
   const savedBettingOpen = await sget('bilbbet2_round_betting_open');
   if(savedBettingOpen !== null){ state.roundBettingOpen = savedBettingOpen; }
+  const savedManualBettingControl = await sget('bilbbet2_manual_betting_control');
+  if(savedManualBettingControl !== null){ state.manualBettingControl = savedManualBettingControl; }
   const savedH2hScheduleConfirmed = await sget('bilbbet2_h2h_schedule_confirmed');
   if(savedH2hScheduleConfirmed !== null){ state.h2hRealScheduleConfirmed = savedH2hScheduleConfirmed; }
   const savedCloseScope = await sget('bilbbet2_close_scope');
