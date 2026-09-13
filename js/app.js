@@ -360,6 +360,7 @@
     eclGroups: { A: [], B: [], C: [] },
     eclGroupAdminPick: '',
     roundBettingOpen: true,
+    h2hRealScheduleConfirmed: false,
     closeScope: 'h2h', // 'h2h' or 'all' -- which markets the current closure covers
     pausedCategories: {},
     oddsRefreshRequested: false,
@@ -796,6 +797,56 @@
       aRange, bRange, line, aCoversPct:aCovers/nSims*100, bCoversPct:bCovers/nSims*100, edge };
   }
   const ODDS_FLOOR = 1.005, ODDS_CAP = 1001, SUSPEND_BELOW = 1.0025;
+  // "Beat the league median" -- a standing, permanent weekly market (not
+  // just an interim stand-in): prices a team against a synthetic "average
+  // team" for their own division. divSampler[div] already exists as
+  // exactly that: the pooled, unweighted distribution of every team's
+  // historical scores in the division, used elsewhere as the fallback
+  // baseline for teams with little of their own history. Settles on
+  // whether the team's actual score that round beat the round's actual
+  // calculated median (see ensureMrMedianScore) -- a genuinely different
+  // proposition from computeWinAnyOpponentMarket below, which settles on
+  // whether the team won their real match outright.
+  function computeVsLeagueMedianMarket(team, round, nSims){
+    nSims = nSims || 20000;
+    const div = findTeamDivision(team);
+    const a = sampleTeam(team, nSims);
+    const b = divSampler[div] ? divSampler[div](nSims) : sampleTeam(team, nSims);
+    let aWin=0,bWin=0,draw=0;
+    for(let i=0;i<nSims;i++){ if(a[i]>b[i]) aWin++; else if(b[i]>a[i]) bWin++; else draw++; }
+    return { team, round, div, aWinPct:aWin/nSims*100, bWinPct:bWin/nSims*100, drawPct:draw/nSims*100 };
+  }
+  const winAnyOpponentCache = {};
+  // Interim market while the real H2H schedule isn't locked in yet (see
+  // state.h2hRealScheduleConfirmed): the platform doesn't generate real
+  // fixtures until its own lockout, so rather than guess a single specific
+  // opponent, this averages the team's win probability across every other
+  // team in their division -- a genuine "chance of a win against whoever
+  // they end up facing", not a coin-flip and not tied to one synthetic
+  // blended opponent. Unlike computeVsLeagueMedianMarket above, this
+  // settles on the team's actual real result for the round: pays out only
+  // if they end the round with a genuine win, nothing for a draw or loss.
+  // Reduced per-pairing sims (vs the usual 20000) since this runs one
+  // pairwise simulation per OTHER team in the division and then averages
+  // them -- accuracy per pairing matters less once it's being blended
+  // across many opponents anyway, and this keeps the whole list responsive
+  // to compute for every team in a round.
+  function computeWinAnyOpponentMarket(team, round, nSimsPerOpponent){
+    const cacheKey = team + '|' + round;
+    if(winAnyOpponentCache[cacheKey]) return winAnyOpponentCache[cacheKey];
+    nSimsPerOpponent = nSimsPerOpponent || 4000;
+    const div = findTeamDivision(team);
+    const opponents = (H2H_DIVISIONS[div] || []).filter(t => t !== team);
+    let winPctSum = 0;
+    for(const opp of opponents){
+      const m = opp === 'MR MEDIAN' ? { aWinPct: 50 } : computeH2HMarket(team, opp, round, nSimsPerOpponent);
+      winPctSum += m.aWinPct;
+    }
+    const avgWinPct = opponents.length ? winPctSum / opponents.length : 50;
+    const result = { team, round, div, winPct: avgWinPct };
+    winAnyOpponentCache[cacheKey] = result;
+    return result;
+  }
   function toOdds(pct){
     const p = pct/100;
     if(p<=0) return { odds: ODDS_CAP, suspended:false };
@@ -2785,18 +2836,67 @@
     return kindBar + rewardNote + sectionTabs + controls + yourStanding + table;
   }
 
+  // Standing, permanent section appended below the round's main H2H
+  // content (interim market, real fixtures, or the no-fixtures message) --
+  // see computeVsLeagueMedianMarket for why this stays available every
+  // round regardless of whether the real schedule is confirmed yet.
+  function renderBeatMedianSection(div, round){
+    const teams = H2H_DIVISIONS[div] || [];
+    return `<h4 style="color:#9a9a9a;margin:16px 0 6px;">Beat the league median</h4>
+      <div class="bb-card" style="padding:0;overflow:hidden;">` +
+      teams.map((team, i) => {
+        const m = computeVsLeagueMedianMarket(team, round);
+        const pickId = `H2H_MEDIAN|${team}|R${round}`;
+        return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;${i<teams.length-1?'border-bottom:1px solid #3d3d3d;':''}">
+          <div style="display:flex;align-items:center;gap:6px;font-weight:600;">${teamLogo(team,18)}${esc(team)}</div>
+          <div style="width:110px;flex-shrink:0;">${priceOnlyButton(pickId, 'R'+round+': '+team+' to beat the league median', toOdds(m.aWinPct))}</div>
+        </div>`;
+      }).join('') +
+      `</div>`;
+  }
+
   function renderFixtureList(div){
     if(state.h2hFixtureMarket){
       return `<button class="bb-btn ghost" id="back-to-fixtures" style="margin-bottom:10px;">&larr; Back to Round ${state.h2hRound} fixtures</button>` + renderH2HMarket(state.h2hFixtureMarket);
-    }
-    if(hasNoFixtures(div, state.h2hRound)){
-      const reason = isPlayoffRound(div, state.h2hRound) ? ' \u2014 this is a playoff week, see the Playoffs tab.' : '.';
-      return `<div class="bb-card" style="text-align:center;padding:2rem 1rem;color:#9a9a9a;">No scheduled H2H fixtures${reason}</div>`;
     }
     if(!state.roundBettingOpen && state.h2hRound === state.currentRound){
       return `<div class="bb-card" style="text-align:center;padding:2rem 1rem;color:#9a9a9a;">
         \u{1F512} Betting for Round ${state.currentRound} is closed &mdash; scores and odds are hidden until it reopens.
       </div>`;
+    }
+    // Interim mode: the fantasy platform doesn't generate the real H2H
+    // schedule until its own lockout is in place, which lands after this
+    // needs to be bettable. Rather than take real bets against a schedule
+    // that might not match what actually gets locked in, real fixture
+    // betting stays switched off (admin flips h2hRealScheduleConfirmed
+    // once the official schedule is confirmed) and this shows a "to win"
+    // market per team instead -- an average of their win chance against
+    // every possible opponent in the division (see
+    // computeWinAnyOpponentMarket), not tied to any specific, possibly-
+    // wrong, opponent pairing. Settles on the team's real result once the
+    // round is actually played: pays out only on a genuine win, nothing
+    // for a draw or loss. Custom Matchup is unaffected by this and stays
+    // open the whole time, since the punter picks the opponent themselves.
+    if(!state.h2hRealScheduleConfirmed){
+      const teams = H2H_DIVISIONS[div] || [];
+      return `<div class="bb-card" style="background:#3a2f10;border:1px solid #5a4a20;margin-bottom:12px;">
+          <p style="margin:0;color:#e0c060;font-size:clamp(16px, calc(16px + 0.4vw), 19px);">&#9888; The official Round ${state.h2hRound} schedule isn't locked in yet, so head-to-head fixtures aren't open for betting against a specific opponent. In the meantime, back a team to win their round outright instead &mdash; or use Custom Matchup above if you want to price a specific pairing yourself.</p>
+        </div>` +
+        `<div class="bb-card" style="padding:0;overflow:hidden;">` +
+        teams.map((team, i) => {
+          const m = computeWinAnyOpponentMarket(team, state.h2hRound);
+          const pickId = `H2H_WIN|${team}|R${state.h2hRound}`;
+          return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;${i<teams.length-1?'border-bottom:1px solid #3d3d3d;':''}">
+            <div style="display:flex;align-items:center;gap:6px;font-weight:600;">${teamLogo(team,18)}${esc(team)}</div>
+            <div style="width:110px;flex-shrink:0;">${priceOnlyButton(pickId, 'R'+state.h2hRound+': '+team+' to win (any opponent, pays on an actual win only)', toOdds(m.winPct))}</div>
+          </div>`;
+        }).join('') +
+        `</div>` +
+        renderBeatMedianSection(div, state.h2hRound);
+    }
+    if(hasNoFixtures(div, state.h2hRound)){
+      const reason = isPlayoffRound(div, state.h2hRound) ? ' \u2014 this is a playoff week, see the Playoffs tab.' : '.';
+      return `<div class="bb-card" style="text-align:center;padding:2rem 1rem;color:#9a9a9a;">No scheduled H2H fixtures${reason}</div>` + renderBeatMedianSection(div, state.h2hRound);
     }
     const markets = getFixtureMarkets(div, state.h2hRound);
     return '<div class="bb-card" style="padding:0;overflow:hidden;">' +
@@ -2817,7 +2917,8 @@
         </div>`;
       }).join('') +
       '</div>' +
-      '<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-top:10px;">Fixture list is a projected double round-robin, not an official 26/27 schedule \u2014 swap in the real one once fixtures are confirmed. Tap either team\'s price to back the moneyline directly, or open the full market for the draw and handicap.</p>';
+      '<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-top:10px;">Odds are projected from real strength data, not a guarantee \u2014 tap either team\'s price to back the moneyline directly, or open the full market for the draw and handicap.</p>' +
+      renderBeatMedianSection(div, state.h2hRound);
   }
 
   function renderH2HTab(){
@@ -3679,6 +3780,17 @@
           <button class="bb-btn" id="reopen-betting-btn" ${state.roundBettingOpen?'disabled':''} style="padding:8px 14px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Reopen betting</button>
         </div>
         <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin:10px 0 6px;">"H2H only" affects this round's H2H, leading-at, and win/lose-the-round markets, leaving season-long futures bettable. "Entire betting markets" also locks division/Roddy/cup futures until reopened. Either way, the affected round's H2H fixture list is hidden (not just unclickable) while closed.</p>
+      </div>
+      <h3>H2H official schedule</h3>
+      <div class="bb-card" style="margin-bottom:1.5rem;">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
+          <span class="bb-pill" style="background:${state.h2hRealScheduleConfirmed?'#1e3a2a':'#3a2a26'};color:${state.h2hRealScheduleConfirmed?'#7fbf8f':'#c0604f'};">${state.h2hRealScheduleConfirmed?'CONFIRMED':'NOT YET CONFIRMED'}</span>
+          <span style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">Real H2H fixtures are ${state.h2hRealScheduleConfirmed?'confirmed and open for betting.':'not confirmed yet \u2014 the fixture-list tab shows the interim "to win" market instead. "Beat the league median" stays available either way.'}</span>
+        </div>
+        <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin:0 0 10px;">
+          The fantasy platform only generates real H2H fixtures once its own lockout is in place, which lands after this needs to be bettable. Leave this off until the real schedule is actually confirmed each round -- flipping it on shows real head-to-head fixtures for betting instead of the interim market. Custom Matchup is unaffected either way.
+        </p>
+        <button class="bb-btn ${state.h2hRealScheduleConfirmed?'ghost':''}" id="toggle-h2h-schedule-confirmed-btn" style="padding:8px 14px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">${state.h2hRealScheduleConfirmed?'Revert to interim market':'Mark real schedule as confirmed'}</button>
       </div>
       <h3>Odds refresh</h3>
       <div class="bb-card" style="margin-bottom:1.5rem;">
@@ -6908,6 +7020,12 @@
     const closeScopeH2h = $('#close-scope-h2h'); if(closeScopeH2h) closeScopeH2h.onchange = () => { state.closeScope = 'h2h'; render(); };
     const closeScopeAll = $('#close-scope-all'); if(closeScopeAll) closeScopeAll.onchange = () => { state.closeScope = 'all'; render(); };
     const reopenBettingBtn = $('#reopen-betting-btn'); if(reopenBettingBtn) reopenBettingBtn.onclick = reopenBetting;
+    const toggleH2hScheduleBtn = $('#toggle-h2h-schedule-confirmed-btn');
+    if(toggleH2hScheduleBtn) toggleH2hScheduleBtn.onclick = async () => {
+      state.h2hRealScheduleConfirmed = !state.h2hRealScheduleConfirmed;
+      await sset('bilbbet2_h2h_schedule_confirmed', state.h2hRealScheduleConfirmed);
+      render();
+    };
     const requestRefreshBtn = $('#request-odds-refresh-btn'); if(requestRefreshBtn) requestRefreshBtn.onclick = requestOddsRefresh;
     const clearRefreshBtn = $('#clear-odds-refresh-btn'); if(clearRefreshBtn) clearRefreshBtn.onclick = clearOddsRefreshRequest;
     for(const comp of ['FA CUP','ECL']){
@@ -7295,6 +7413,8 @@
 
   const savedBettingOpen = await sget('bilbbet2_round_betting_open');
   if(savedBettingOpen !== null){ state.roundBettingOpen = savedBettingOpen; }
+  const savedH2hScheduleConfirmed = await sget('bilbbet2_h2h_schedule_confirmed');
+  if(savedH2hScheduleConfirmed !== null){ state.h2hRealScheduleConfirmed = savedH2hScheduleConfirmed; }
   const savedCloseScope = await sget('bilbbet2_close_scope');
   if(savedCloseScope !== null){ state.closeScope = savedCloseScope; }
   const savedPausedPicks = await sget('bilbbet2_paused_categories');
