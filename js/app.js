@@ -4,6 +4,7 @@
   // opens the install modal, and the browser only lets you call .prompt()
   // once per captured event -- so it just sits ready until the user asks.
   let deferredInstallPrompt = null;
+  let roundCountdownIntervalId = null; // see renderRoundCountdown() / its wiring in attachHandlers()
   let pwaAlreadyInstalled = false;
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
@@ -1288,6 +1289,7 @@
     }
 
     return `
+      ${renderRoundCountdown()}
       ${renderHomeDigest()}
       <div class="bb-card" style="background:linear-gradient(135deg,#2a2410,#1a1a1a);border-color:#4a3a10;margin-bottom:16px;text-align:center;padding:1.25rem;">
         <div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);letter-spacing:0.08em;color:#ffdd00;text-transform:uppercase;font-weight:700;">This week's boosted odds</div>
@@ -6023,6 +6025,44 @@
   // piece only shows when the listed kickoff date is genuinely still in
   // the future (real dates from round_dates.json, not fabricated), since
   // a negative/past countdown would look broken rather than informative.
+  // Lock time is 7:45pm in the visitor's own local time, on the round's
+  // kickoff date -- round_dates.json only stores a date, not a time, so
+  // this is an explicit, uniform time-of-day applied on top of it rather
+  // than anything derived from real data. Constructed from the date parts
+  // directly (not by appending a time string to kickoffStr and letting the
+  // Date constructor parse it) so it's unambiguously local time, not UTC.
+  function nextLockTimestamp(){
+    const kickoffStr = ROUND_DATES[String(state.currentRound)];
+    if(!kickoffStr) return null;
+    const [y,m,d] = kickoffStr.split('-').map(Number);
+    return new Date(y, m-1, d, 19, 45, 0, 0).getTime();
+  }
+  function formatCountdown(ms){
+    if(ms <= 0) return 'Locked';
+    const totalSeconds = Math.floor(ms/1000);
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    if(days > 0) return `${days}d ${hours}h ${minutes}m`;
+    if(hours > 0) return `${hours}h ${minutes}m ${seconds}s`;
+    return `${minutes}m ${seconds}s`;
+  }
+  // Visible to everyone, logged in or not -- unlike the personal digest
+  // below, this doesn't depend on any per-user data. The actual ticking
+  // happens via a small setInterval wired up in attachHandlers(), updating
+  // #round-countdown-value's text directly rather than calling the full
+  // render() every second, which would be wasteful and would interrupt
+  // anything else on the page (e.g. a focused input) once a second.
+  function renderRoundCountdown(){
+    if(isRoundBlocked(state.currentRound)) return '';
+    const target = nextLockTimestamp();
+    if(target === null || target <= Date.now()) return '';
+    return `<div class="bb-card" style="text-align:center;padding:12px;margin-bottom:16px;">
+        <span style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">\u{1F4C5} Round ${state.currentRound} locks in <strong id="round-countdown-value" style="color:#ffdd00;">${esc(formatCountdown(target - Date.now()))}</strong></span>
+      </div>`;
+  }
+
   function renderHomeDigest(){
     if(!state.user) return '';
     if(state.myBets === null){
@@ -6033,19 +6073,7 @@
     const resolved = state.myBets.filter(b => b.status === 'WON' || b.status === 'LOST').sort((a,b) => b.timestamp - a.timestamp);
     const mostRecent = resolved[0];
 
-    let roundPiece = '';
-    if(!isRoundBlocked(state.currentRound)){
-      const kickoffStr = ROUND_DATES[String(state.currentRound)];
-      if(kickoffStr){
-        const daysLeft = Math.ceil((new Date(kickoffStr + 'T00:00:00Z').getTime() - Date.now()) / (1000*60*60*24));
-        if(daysLeft > 0){
-          roundPiece = `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;">
-              <span style="font-size:clamp(21px, calc(21px + 0.4vw), 24px);">\u{1F4C5}</span>
-              <span style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">Round ${state.currentRound} kicks off in ${daysLeft} day${daysLeft!==1?'s':''}</span>
-            </div>`;
-        }
-      }
-    }
+    let roundPiece = ''; // the live countdown card now covers this -- see renderRoundCountdown()
 
     const pendingTotal = pending.reduce((s,b) => s + b.potentialReturn, 0);
     const pendingPiece = pending.length
@@ -6699,6 +6727,22 @@
     document.querySelectorAll('[data-marketkey]').forEach(el => el.onclick = () => { state.futureMarketTab = el.dataset.marketkey; state.cupFixtureMarket = null; render(); });
     const mobileNavToggle = $('#mobile-nav-toggle');
     if(mobileNavToggle) mobileNavToggle.onclick = () => { state.mobileNavOpen = !state.mobileNavOpen; render(); };
+
+    // Round-lock countdown: clear any previous tick first regardless of
+    // whether the element exists on this render -- every render() call
+    // rebuilds the DOM, so without this, navigating away from Home (or
+    // just re-rendering while on it) would leak a duplicate interval that
+    // keeps trying to update an element that no longer exists.
+    if(roundCountdownIntervalId){ clearInterval(roundCountdownIntervalId); roundCountdownIntervalId = null; }
+    const countdownEl = $('#round-countdown-value');
+    if(countdownEl){
+      roundCountdownIntervalId = setInterval(() => {
+        const target = nextLockTimestamp();
+        const el = $('#round-countdown-value'); // re-fetched each tick in case a render() happened between ticks
+        if(!el || target === null){ clearInterval(roundCountdownIntervalId); roundCountdownIntervalId = null; return; }
+        el.textContent = formatCountdown(target - Date.now());
+      }, 1000);
+    }
     const teamAEl = $('#team-a');
     if(teamAEl){
       teamAEl.oninput = e => { state.teamA = e.target.value; };
