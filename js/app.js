@@ -146,11 +146,16 @@
   const RODDY_LEADING_AT = DATA.leading_at.roddy_leading_at;
   const H2H_HISTORY = DATA.h2h_history;
   const H2H_DIVISIONS = DATA.h2h_divisions;
-  // Eliza committee election hub -- placeholder scaffolding pending real
-  // candidate names, dates, and voting-period details (see renderElectionHub
-  // below). 12 placeholder candidates contesting 7 seats; swap this array
-  // for the real nominee list once nominations close.
-  const ELECTION_CANDIDATES = Array.from({length:12}, (_,i) => 'Candidate ' + (i+1));
+  // Eliza committee election hub -- see renderElectionHub below. Candidates
+  // are real Eliza teams, so their logos/names double as the ballot names
+  // once nominations close. 7 confirmed, 3 more expected (not yet locked
+  // in) -- update this list as nominations change.
+  const ELECTION_CANDIDATES = [
+    'Alaskan Bull Worms', 'Give Us Wang', 'Top Kuolity', 'Kallo FC', 'Sauce FC',
+    'Stairway to Evans', 'Dinkin CRFC',
+    // expected but not yet confirmed:
+    'DW Bout It FC', 'Spooners FC', 'Jarvis Zebras',
+  ];
   const ELECTION_SEATS = 7;
   const H2H_SHIFT = DATA.h2h_shift;
   const H2H_CUP_SHIFT = DATA.h2h_cup_shift || {};
@@ -1236,15 +1241,13 @@
     render();
   }
 
-  // Election hub: a scaffold built ahead of the real details (candidate
-  // names, nomination/voting dates, actual polling) so the structure is
-  // ready to drop real data into rather than building from scratch once it
-  // arrives. All three markets price off a flat, even placeholder chance
-  // (no real information yet to weight one candidate over another) run
-  // through the same toOdds() used everywhere else, so the odds shape
-  // (margin, floor/cap, suspension) matches every other market in the app.
-  // Every pick is marked suspended for now -- this is a template to review,
-  // not something that should be live-bettable on placeholder numbers.
+  // Election hub: candidate names are real (see ELECTION_CANDIDATES above),
+  // but nominations haven't closed and the odds below are still a flat,
+  // even placeholder chance (no real information yet to weight one
+  // candidate over another) run through the same toOdds() used everywhere
+  // else, so the odds shape (margin, floor/cap, suspension) matches every
+  // other market in the app. Every pick stays suspended until nominations
+  // close and real odds replace these.
   function renderElectionHub(){
     const n = ELECTION_CANDIDATES.length;
     const electedChance = (ELECTION_SEATS / n) * 100;
@@ -1252,22 +1255,22 @@
     const suspendedOdds = pct => { const o = toOdds(pct); return { odds: o.odds, suspended: true }; };
 
     const electedRows = ELECTION_CANDIDATES.map((name, i) => `
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;${i<n-1?'border-bottom:1px solid #3d3d3d;':''}">
-        <div style="font-weight:600;">${esc(name)}</div>
-        <div style="width:110px;flex-shrink:0;">${priceOnlyButton('ELECTION_SEAT|'+name, name+' to be elected to the committee', suspendedOdds(electedChance))}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 16px;${i<n-1?'border-bottom:1px solid #3d3d3d;':''}">
+        <div style="display:flex;align-items:center;gap:6px;font-weight:600;">${teamLogo(name,18)}${esc(name)}</div>
+        <div style="width:90px;flex-shrink:0;">${priceOnlyButton('ELECTION_SEAT|'+name, name+' to be elected to the committee', suspendedOdds(electedChance))}</div>
       </div>`).join('');
 
     const winnerRows = ELECTION_CANDIDATES.map((name, i) => `
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;${i<n-1?'border-bottom:1px solid #3d3d3d;':''}">
-        <div style="font-weight:600;">${esc(name)}</div>
-        <div style="width:110px;flex-shrink:0;">${priceOnlyButton('ELECTION_TOP_VOTES|'+name, name+' to receive the most votes overall', suspendedOdds(winnerChance))}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 16px;${i<n-1?'border-bottom:1px solid #3d3d3d;':''}">
+        <div style="display:flex;align-items:center;gap:6px;font-weight:600;">${teamLogo(name,18)}${esc(name)}</div>
+        <div style="width:90px;flex-shrink:0;">${priceOnlyButton('ELECTION_TOP_VOTES|'+name, name+' to receive the most votes overall', suspendedOdds(winnerChance))}</div>
       </div>`).join('');
 
     return `
       <div class="bb-card" style="background:linear-gradient(135deg,#1a2438,#1a1a1a);border-color:#2a3a5a;margin-bottom:16px;text-align:center;padding:1.25rem;">
         <div style="font-size:clamp(19px, calc(19px + 0.4vw), 22px);letter-spacing:0.05em;color:#7fa8e0;text-transform:uppercase;font-weight:700;">Eliza Committee Election</div>
         <div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-top:4px;">${ELECTION_SEATS} seats &middot; ${n} candidates &middot; every Eliza participant can tick up to ${ELECTION_SEATS} choices on their ballot</div>
-        <div style="font-size:clamp(15px, calc(15px + 0.4vw), 18px);color:#c0604f;margin-top:8px;">Template only \u2014 placeholder candidates and odds, not yet open for betting.</div>
+        <div style="font-size:clamp(15px, calc(15px + 0.4vw), 18px);color:#c0604f;margin-top:8px;">Nominations haven't closed yet \u2014 3 of the candidates above are still expected, not confirmed, and odds are placeholder. Not yet open for betting.</div>
       </div>
       <h3>To be elected (any of the ${ELECTION_SEATS} seats)</h3>
       <div class="bb-card" style="padding:0;overflow:hidden;margin-bottom:16px;">${electedRows}</div>
