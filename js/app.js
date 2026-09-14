@@ -157,6 +157,40 @@
     'DW Bout It FC', 'Spooners FC', 'Jarvis Zebras',
   ];
   const ELECTION_SEATS = 7;
+  // Election scoring model -- see conversation for full background. Ranks
+  // are 1 = most active on that platform, in the order given; Messenger
+  // gets 1.5x weight vs Discord's 1x, reflecting Messenger's greater
+  // cultural influence in Eliza (per how these two communities were
+  // described) even though Discord carries more of the newer competitive
+  // player base. Incumbents get a flat bonus for established credibility.
+  const ELECTION_MESSENGER_RANK = ['Jarvis Zebras','Dinkin CRFC','Stairway to Evans','Alaskan Bull Worms','Sauce FC','DW Bout It FC','Give Us Wang','Kallo FC','Spooners FC','Top Kuolity'];
+  const ELECTION_DISCORD_RANK = ['Kallo FC','Give Us Wang','Alaskan Bull Worms','Stairway to Evans','Sauce FC','Top Kuolity','Jarvis Zebras','Dinkin CRFC','DW Bout It FC','Spooners FC'];
+  const ELECTION_INCUMBENTS = new Set(['Jarvis Zebras','Dinkin CRFC','Spooners FC','Alaskan Bull Worms','Kallo FC','DW Bout It FC','Give Us Wang','Stairway to Evans']);
+  // Deliberately hand-picked, not derived from anything -- a pure
+  // activity+incumbency formula reads too smooth/predictable for a real
+  // election, and the admin explicitly wants a mix of expected outcomes
+  // and the odd blowout/upset rather than fully rational odds. >1 = extra
+  // buzz beyond their activity alone suggests; <1 = a favourite who
+  // undersells their online activity. Adjust freely -- this is flavour,
+  // not a formula, and has no real-world basis.
+  const ELECTION_FLAVOR = { 'Sauce FC': 1.4, 'Top Kuolity': 1.7, 'DW Bout It FC': 0.65, 'Give Us Wang': 0.8, 'Spooners FC': 1.3 };
+  // Expected turnout ~20 (breakdown discussed: ~3-5 Messenger-only, ~8-12
+  // active on both platforms, ~6-10 Discord-only), capped around 25 at
+  // most -- used as the Over/Under line for the turnout market below.
+  const ELECTION_TURNOUT_LINE = 20;
+  function computeElectionScores(){
+    const n = ELECTION_CANDIDATES.length;
+    const rankScore = (list, name) => { const idx = list.indexOf(name); return idx === -1 ? 1 : (n - idx); };
+    const scores = {};
+    for(const name of ELECTION_CANDIDATES){
+      const msg = rankScore(ELECTION_MESSENGER_RANK, name);
+      const disc = rankScore(ELECTION_DISCORD_RANK, name);
+      const incumbentBonus = ELECTION_INCUMBENTS.has(name) ? 3 : 0;
+      const flavor = ELECTION_FLAVOR[name] || 1;
+      scores[name] = (msg*1.5 + disc*1 + incumbentBonus) * flavor;
+    }
+    return scores;
+  }
   const H2H_SHIFT = DATA.h2h_shift;
   const H2H_CUP_SHIFT = DATA.h2h_cup_shift || {};
   const REAL_RESULTS = DATA.real_results || {};
@@ -1242,28 +1276,32 @@
   }
 
   // Election hub: candidate names are real (see ELECTION_CANDIDATES above),
-  // but nominations haven't closed and the odds below are still a flat,
-  // even placeholder chance (no real information yet to weight one
-  // candidate over another) run through the same toOdds() used everywhere
-  // else, so the odds shape (margin, floor/cap, suspension) matches every
-  // other market in the app. Every pick stays suspended until nominations
-  // close and real odds replace these.
+  // but nominations haven't closed yet. Odds come from computeElectionScores()
+  // -- a hand-tuned model (activity + incumbency + deliberate flavour, see
+  // that function) rather than real polling, since none exists yet. Run
+  // through the same toOdds() used everywhere else, so the odds shape
+  // (margin, floor/cap, suspension) matches every other market in the app.
+  // Every pick stays suspended until nominations close and this gets
+  // replaced with odds based on real information.
   function renderElectionHub(){
     const n = ELECTION_CANDIDATES.length;
-    const electedChance = (ELECTION_SEATS / n) * 100;
-    const winnerChance = (1 / n) * 100;
+    const scores = computeElectionScores();
+    const totalScore = Object.values(scores).reduce((a,b)=>a+b, 0);
+    const avgScore = totalScore / n;
+    const winnerChance = name => scores[name] / totalScore * 100;
+    const electedChance = name => Math.max(8, Math.min(94, (ELECTION_SEATS/n*100) * (scores[name]/avgScore)));
     const suspendedOdds = pct => { const o = toOdds(pct); return { odds: o.odds, suspended: true }; };
 
     const electedRows = ELECTION_CANDIDATES.map((name, i) => `
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 16px;${i<n-1?'border-bottom:1px solid #3d3d3d;':''}">
         <div style="display:flex;align-items:center;gap:6px;font-weight:600;">${teamLogo(name,18)}${esc(name)}</div>
-        <div style="width:90px;flex-shrink:0;">${priceOnlyButton('ELECTION_SEAT|'+name, name+' to be elected to the committee', suspendedOdds(electedChance))}</div>
+        <div style="width:90px;flex-shrink:0;">${priceOnlyButton('ELECTION_SEAT|'+name, name+' to be elected to the committee', suspendedOdds(electedChance(name)))}</div>
       </div>`).join('');
 
     const winnerRows = ELECTION_CANDIDATES.map((name, i) => `
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 16px;${i<n-1?'border-bottom:1px solid #3d3d3d;':''}">
         <div style="display:flex;align-items:center;gap:6px;font-weight:600;">${teamLogo(name,18)}${esc(name)}</div>
-        <div style="width:90px;flex-shrink:0;">${priceOnlyButton('ELECTION_TOP_VOTES|'+name, name+' to receive the most votes overall', suspendedOdds(winnerChance))}</div>
+        <div style="width:90px;flex-shrink:0;">${priceOnlyButton('ELECTION_TOP_VOTES|'+name, name+' to receive the most votes overall', suspendedOdds(winnerChance(name)))}</div>
       </div>`).join('');
 
     return `
@@ -1279,12 +1317,23 @@
       <h3>Turnout</h3>
       <div class="bb-card" style="padding:0;overflow:hidden;margin-bottom:16px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid #3d3d3d;">
-          <div style="font-weight:600;">Over 50% turnout</div>
-          <div style="width:110px;flex-shrink:0;">${priceOnlyButton('ELECTION_TURNOUT|over', 'Turnout over 50%', suspendedOdds(50))}</div>
+          <div style="font-weight:600;">Over ${ELECTION_TURNOUT_LINE} voters</div>
+          <div style="width:110px;flex-shrink:0;">${priceOnlyButton('ELECTION_TURNOUT|over', 'Turnout over '+ELECTION_TURNOUT_LINE+' voters', suspendedOdds(50))}</div>
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;">
-          <div style="font-weight:600;">Under 50% turnout</div>
-          <div style="width:110px;flex-shrink:0;">${priceOnlyButton('ELECTION_TURNOUT|under', 'Turnout under 50%', suspendedOdds(50))}</div>
+          <div style="font-weight:600;">Under ${ELECTION_TURNOUT_LINE} voters</div>
+          <div style="width:110px;flex-shrink:0;">${priceOnlyButton('ELECTION_TURNOUT|under', 'Turnout under '+ELECTION_TURNOUT_LINE+' voters', suspendedOdds(50))}</div>
+        </div>
+      </div>
+      <h3>Commissioner</h3>
+      <div class="bb-card" style="padding:0;overflow:hidden;margin-bottom:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid #3d3d3d;">
+          <div style="font-weight:600;">Board appoints a commissioner</div>
+          <div style="width:110px;flex-shrink:0;">${priceOnlyButton('ELECTION_COMMISSIONER|yes', 'Board appoints a commissioner: Yes', suspendedOdds(65))}</div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;">
+          <div style="font-weight:600;">Board doesn't appoint one</div>
+          <div style="width:110px;flex-shrink:0;">${priceOnlyButton('ELECTION_COMMISSIONER|no', 'Board appoints a commissioner: No', suspendedOdds(35))}</div>
         </div>
       </div>`;
   }
