@@ -152,9 +152,7 @@
   // in) -- update this list as nominations change.
   const ELECTION_CANDIDATES = [
     'Alaskan Bull Worms', 'Give Us Wang', 'Top Kuolity', 'Kallo FC', 'Sauce FC',
-    'Stairway to Evans', 'Dinkin CRFC',
-    // expected but not yet confirmed:
-    'DW Bout It FC', 'Jarvis Zebras',
+    'Stairway to Evans', 'Dinkin CRFC', 'DW Bout It FC', 'Jarvis Zebras',
     'Justiceformoon',
   ];
   const ELECTION_SEATS = 7;
@@ -1323,14 +1321,14 @@
     render();
   }
 
-  // Election hub: candidate names are real (see ELECTION_CANDIDATES above),
-  // but nominations haven't closed yet. Odds come from computeElectionScores()
-  // -- a hand-tuned model (activity + incumbency + deliberate flavour, see
-  // that function) rather than real polling, since none exists yet. Run
-  // through the same toOdds() used everywhere else, so the odds shape
-  // (margin, floor/cap, suspension) matches every other market in the app.
-  // Every pick stays suspended until nominations close and this gets
-  // replaced with odds based on real information.
+  // Election hub: candidate names are real (see ELECTION_CANDIDATES above).
+  // Odds come from computeElectionScores() -- a hand-tuned model (activity
+  // + incumbency + deliberate flavour, see that function) rather than real
+  // polling, since none exists. Run through the same toOdds() used
+  // everywhere else, so the odds shape (margin, floor/cap, suspension)
+  // matches every other market in the app. Voting is now live, so these
+  // are real, bettable prices -- update the rank/incumbent/flavour data
+  // above as the picture becomes clearer, rather than hand-editing odds.
   function renderElectionHub(){
     const n = ELECTION_CANDIDATES.length;
     const scores = computeElectionScores();
@@ -1338,32 +1336,32 @@
     const avgScore = totalScore / n;
     const winnerChance = name => scores[name] / totalScore * 100;
     const electedChance = name => Math.max(8, Math.min(94, (ELECTION_SEATS/n*100) * (scores[name]/avgScore)));
-    const suspendedOdds = pct => { const o = toOdds(pct); return { odds: o.odds, suspended: true }; };
+    const liveOdds = pct => toOdds(pct);
 
     const electedRows = ELECTION_CANDIDATES.map((name, i) => `
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 16px;${i<n-1?'border-bottom:1px solid #3d3d3d;':''}">
         <div style="display:flex;align-items:center;gap:6px;font-weight:600;">${teamLogo(name,18)}${esc(name)}</div>
-        <div style="width:90px;flex-shrink:0;">${priceOnlyButton('ELECTION_SEAT|'+name, name+' to be elected to the committee', suspendedOdds(electedChance(name)))}</div>
+        <div style="width:90px;flex-shrink:0;">${priceOnlyButton('ELECTION_SEAT|'+name, name+' to be elected to the committee', liveOdds(electedChance(name)))}</div>
       </div>`).join('');
 
     const winnerRows = ELECTION_CANDIDATES.map((name, i) => `
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 16px;${i<n-1?'border-bottom:1px solid #3d3d3d;':''}">
         <div style="display:flex;align-items:center;gap:6px;font-weight:600;">${teamLogo(name,18)}${esc(name)}</div>
-        <div style="width:90px;flex-shrink:0;">${priceOnlyButton('ELECTION_TOP_VOTES|'+name, name+' to receive the most votes overall', suspendedOdds(winnerChance(name)))}</div>
+        <div style="width:90px;flex-shrink:0;">${priceOnlyButton('ELECTION_TOP_VOTES|'+name, name+' to receive the most votes overall', liveOdds(winnerChance(name)))}</div>
       </div>`).join('');
 
     const commissionerChances = computeCommissionerChances(electedChance);
     const commissionerRows = ELECTION_CANDIDATES.map((name, i) => `
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 16px;${i<n-1?'border-bottom:1px solid #3d3d3d;':''}">
         <div style="display:flex;align-items:center;gap:6px;font-weight:600;">${teamLogo(name,18)}${esc(name)}</div>
-        <div style="width:90px;flex-shrink:0;">${priceOnlyButton('ELECTION_COMMISSIONER_WHO|'+name, name+' to be the commissioner', suspendedOdds(commissionerChances[name]))}</div>
+        <div style="width:90px;flex-shrink:0;">${priceOnlyButton('ELECTION_COMMISSIONER_WHO|'+name, name+' to be the commissioner', liveOdds(commissionerChances[name]))}</div>
       </div>`).join('');
 
     return `
       <div class="bb-card" style="background:linear-gradient(135deg,#1a2438,#1a1a1a);border-color:#2a3a5a;margin-bottom:16px;text-align:center;padding:1.25rem;">
         <div style="font-size:clamp(19px, calc(19px + 0.4vw), 22px);letter-spacing:0.05em;color:#7fa8e0;text-transform:uppercase;font-weight:700;">Eliza Committee Election</div>
         <div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-top:4px;">${ELECTION_SEATS} seats &middot; ${n} candidates &middot; every Eliza participant can tick up to ${ELECTION_SEATS} choices on their ballot</div>
-        <div style="font-size:clamp(15px, calc(15px + 0.4vw), 18px);color:#c0604f;margin-top:8px;">Nominations haven't closed yet \u2014 3 of the candidates above are still expected, not confirmed, and odds are placeholder. Not yet open for betting.</div>
+        <div style="font-size:clamp(15px, calc(15px + 0.4vw), 18px);color:var(--bb-ok);margin-top:8px;">Voting is live \u2014 odds may move as the picture becomes clearer, and settle once results are announced.</div>
       </div>
       <h3>To be elected (any of the ${ELECTION_SEATS} seats)</h3>
       <div class="bb-card" style="padding:0;overflow:hidden;margin-bottom:16px;">${electedRows}</div>
@@ -1373,22 +1371,22 @@
       <div class="bb-card" style="padding:0;overflow:hidden;margin-bottom:16px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid #3d3d3d;">
           <div style="font-weight:600;">Over ${ELECTION_TURNOUT_LINE} voters</div>
-          <div style="width:110px;flex-shrink:0;">${priceOnlyButton('ELECTION_TURNOUT|over', 'Turnout over '+ELECTION_TURNOUT_LINE+' voters', suspendedOdds(50))}</div>
+          <div style="width:110px;flex-shrink:0;">${priceOnlyButton('ELECTION_TURNOUT|over', 'Turnout over '+ELECTION_TURNOUT_LINE+' voters', liveOdds(50))}</div>
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;">
           <div style="font-weight:600;">Under ${ELECTION_TURNOUT_LINE} voters</div>
-          <div style="width:110px;flex-shrink:0;">${priceOnlyButton('ELECTION_TURNOUT|under', 'Turnout under '+ELECTION_TURNOUT_LINE+' voters', suspendedOdds(50))}</div>
+          <div style="width:110px;flex-shrink:0;">${priceOnlyButton('ELECTION_TURNOUT|under', 'Turnout under '+ELECTION_TURNOUT_LINE+' voters', liveOdds(50))}</div>
         </div>
       </div>
       <h3>Commissioner</h3>
       <div class="bb-card" style="padding:0;overflow:hidden;margin-bottom:16px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid #3d3d3d;">
           <div style="font-weight:600;">Board appoints a commissioner</div>
-          <div style="width:110px;flex-shrink:0;">${priceOnlyButton('ELECTION_COMMISSIONER|yes', 'Board appoints a commissioner: Yes', suspendedOdds(65))}</div>
+          <div style="width:110px;flex-shrink:0;">${priceOnlyButton('ELECTION_COMMISSIONER|yes', 'Board appoints a commissioner: Yes', liveOdds(65))}</div>
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;">
           <div style="font-weight:600;">Board doesn't appoint one</div>
-          <div style="width:110px;flex-shrink:0;">${priceOnlyButton('ELECTION_COMMISSIONER|no', 'Board appoints a commissioner: No', suspendedOdds(35))}</div>
+          <div style="width:110px;flex-shrink:0;">${priceOnlyButton('ELECTION_COMMISSIONER|no', 'Board appoints a commissioner: No', liveOdds(35))}</div>
         </div>
       </div>
       <h3>Commissioner &mdash; who?</h3>
