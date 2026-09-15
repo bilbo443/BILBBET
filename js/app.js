@@ -3697,12 +3697,19 @@
       {key:'season', label:'Season Specials'},
       {key:'novelty', label:'Novelty &amp; Suggestions'},
     ];
+    // Round/Season specials both expose team and division info (leading/
+    // trailing a round, charity/philanthropy dropdowns) -- hidden behind
+    // the same curtain as Futures/H2H/Tipping until divisions are public.
+    // Novelty stays available since it's admin one-offs and community
+    // suggestions, not tied to any division makeup.
+    const visible = curtainDown() ? TABS.filter(t => t.key === 'novelty') : TABS;
     return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">' +
-      TABS.map(t => `<div class="bb-tab ${state.specialsSubTab===t.key?'active':''}" data-specialssubtab="${t.key}" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;">${t.label}</div>`).join('') +
+      visible.map(t => `<div class="bb-tab ${state.specialsSubTab===t.key?'active':''}" data-specialssubtab="${t.key}" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;">${t.label}</div>`).join('') +
       '</div>';
   }
 
   function renderSpecialsTab(){
+    if(curtainDown() && state.specialsSubTab !== 'novelty') state.specialsSubTab = 'novelty';
     if(state.novelty === null) return '<p style="color:#9a9a9a;">Loading&hellip;</p>';
     let html = '<h3 style="margin-top:0;">Specials</h3>' + specialsSubTabBar();
 
@@ -3721,6 +3728,9 @@
     }
 
     // state.specialsSubTab === 'novelty'
+    if(curtainDown()){
+      html += `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:10px;">Round and Season Specials are hidden until the Eliza division makeups are announced &mdash; both rely on knowing who's in which division.</p>`;
+    }
     const open = state.novelty.filter(n => n.status === 'OPEN');
     const settled = state.novelty.filter(n => n.status !== 'OPEN').sort((a,b)=>b.createdAt-a.createdAt);
     if(!open.length && !settled.length){
@@ -5195,7 +5205,13 @@
     const adminUsernames = new Set(allUsers.filter(u => u.isAdmin).map(u => u.username.toLowerCase()));
     const betIds = await getIndex('bilbbet2_all_bets_index');
     const allBets = (await Promise.all(betIds.map(id => sget('bilbbet2_bet:'+id)))).filter(Boolean);
-    const bets = allBets.filter(b => !adminUsernames.has(b.username.toLowerCase()));
+    // Voided bets never actually happened (stake refunded), so they're
+    // excluded here across every stat below -- previously only topWins/
+    // topLosses filtered by status (WON/LOST respectively), while
+    // topStakes and topMultis drew from every bet regardless of status,
+    // so a voided bet (e.g. a test/admin cleanup) could still show up in
+    // those two leaderboards indefinitely.
+    const bets = allBets.filter(b => !adminUsernames.has(b.username.toLowerCase()) && b.status !== 'VOID');
 
     const top = (arr, key, n=5) => arr.slice().sort((a,b)=>b[key]-a[key]).slice(0,n);
 
