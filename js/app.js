@@ -154,7 +154,8 @@
     'Alaskan Bull Worms', 'Give Us Wang', 'Top Kuolity', 'Kallo FC', 'Sauce FC',
     'Stairway to Evans', 'Dinkin CRFC',
     // expected but not yet confirmed:
-    'DW Bout It FC', 'Spooners FC', 'Jarvis Zebras',
+    'DW Bout It FC', 'Jarvis Zebras',
+    'Justiceformoon',
   ];
   const ELECTION_SEATS = 7;
   // Election scoring model -- see conversation for full background. Ranks
@@ -163,9 +164,12 @@
   // cultural influence in Eliza (per how these two communities were
   // described) even though Discord carries more of the newer competitive
   // player base. Incumbents get a flat bonus for established credibility.
-  const ELECTION_MESSENGER_RANK = ['Jarvis Zebras','Dinkin CRFC','Stairway to Evans','Alaskan Bull Worms','Sauce FC','DW Bout It FC','Give Us Wang','Kallo FC','Spooners FC','Top Kuolity'];
-  const ELECTION_DISCORD_RANK = ['Kallo FC','Give Us Wang','Alaskan Bull Worms','Stairway to Evans','Sauce FC','Top Kuolity','Jarvis Zebras','Dinkin CRFC','DW Bout It FC','Spooners FC'];
-  const ELECTION_INCUMBENTS = new Set(['Jarvis Zebras','Dinkin CRFC','Spooners FC','Alaskan Bull Worms','Kallo FC','DW Bout It FC','Give Us Wang','Stairway to Evans']);
+  // Spooners FC was an incumbent but didn't nominate -- removed from every
+  // list below rather than just ELECTION_CANDIDATES, since they'd
+  // otherwise still be factored into everyone else's relative rank.
+  const ELECTION_MESSENGER_RANK = ['Jarvis Zebras','Dinkin CRFC','Stairway to Evans','Alaskan Bull Worms','Sauce FC','DW Bout It FC','Justiceformoon','Give Us Wang','Kallo FC','Top Kuolity'];
+  const ELECTION_DISCORD_RANK = ['Kallo FC','Give Us Wang','Alaskan Bull Worms','Stairway to Evans','Sauce FC','Top Kuolity','Justiceformoon','Jarvis Zebras','Dinkin CRFC','DW Bout It FC'];
+  const ELECTION_INCUMBENTS = new Set(['Jarvis Zebras','Dinkin CRFC','Alaskan Bull Worms','Kallo FC','DW Bout It FC','Give Us Wang','Stairway to Evans']);
   // Deliberately hand-picked, not derived from anything -- a pure
   // activity+incumbency formula reads too smooth/predictable for a real
   // election, and the admin explicitly wants a mix of expected outcomes
@@ -174,7 +178,7 @@
   // undersells their online activity. Adjust freely -- this is flavour,
   // not a formula, and has no real-world basis.
   const ELECTION_FLAVOR = {
-    'Sauce FC': 1.4, 'Top Kuolity': 2.0, 'DW Bout It FC': 0.65, 'Give Us Wang': 0.8, 'Spooners FC': 1.3,
+    'Sauce FC': 1.4, 'Top Kuolity': 2.0, 'DW Bout It FC': 0.65, 'Give Us Wang': 0.8,
     // Kallo: the actual favourite despite middling activity+incumbency
     // alone -- boosted to reflect that read directly. Jarvis & Bull Worms:
     // widely assumed to be safe/automatic, but that assumption may not
