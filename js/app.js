@@ -370,7 +370,18 @@
 
   const FUTURE_DIVS = Object.keys(FUTURES.divisions);
   const BASE_TABS = ['HOME', 'FUTURES', 'H2H', 'TIPPING', 'SPECIALS', 'STATS', 'MY BETS'];
-  function currentTabs(){ return state.user && state.user.isAdmin ? [...BASE_TABS, 'ADMIN'] : BASE_TABS; }
+  // Hidden from the public site entirely until the Eliza organisation has
+  // publicly announced the division makeups -- these tabs all expose team
+  // groupings, fixtures, or division names. Admin flips
+  // state.divisionsAnnounced once it's public. Admins still see everything
+  // (they need it to prepare), so this gate is deliberately only applied
+  // to the non-admin view.
+  const CURTAINED_TABS = ['FUTURES', 'H2H', 'TIPPING'];
+  function curtainDown(){ return !state.divisionsAnnounced && !(state.user && state.user.isAdmin); }
+  function currentTabs(){
+    const base = curtainDown() ? BASE_TABS.filter(t => !CURTAINED_TABS.includes(t)) : BASE_TABS;
+    return state.user && state.user.isAdmin ? [...base, 'ADMIN'] : base;
+  }
 
   // Embed mode: a stripped-down, read-only view of just the Home tab, for
   // embedding on other sites (e.g. the Eliza Cup site's own page) via
@@ -437,6 +448,8 @@
     eclGroups: { A: [], B: [], C: [] },
     eclGroupAdminPick: '',
     roundBettingOpen: true,
+    divisionsAnnounced: false,
+    r1FixtureImportText: '', r1FixtureOverride: null,
     manualBettingControl: false,
     h2hRealScheduleConfirmed: false,
     closeScope: 'h2h', // 'h2h' or 'all' -- which markets the current closure covers
@@ -1439,6 +1452,7 @@
 
     return `
       ${renderElectionHub()}
+      ${curtainDown() ? '' : `
       ${renderRoundCountdown()}
       ${renderHomeDigest()}
       <div class="bb-card" style="background:linear-gradient(135deg,#2a2410,#1a1a1a);border-color:#4a3a10;margin-bottom:16px;text-align:center;padding:1.25rem;">
@@ -1455,6 +1469,7 @@
       ${bestValueCard}
       <h3>Best winning bet last round</h3>
       ${bestBetCard}
+      `}
     `;
   }
 
@@ -1579,8 +1594,34 @@
   // same signal that already gates pre-season predictions and Round 1
   // itself, so this disappears automatically the moment the season
   // actually launches rather than needing a separate manual toggle.
+  // Parses pasted/CSV fixture text into {teamA, teamB} pairs. Accepts a
+  // comma, tab, or the word "vs"/"v" as the separator so a CSV export and a
+  // hand-typed list both work. Skips blank lines and an optional header row.
+  // Unparseable lines are reported rather than silently dropped, so a
+  // malformed paste can't quietly import a half-complete round.
+  function parseFixtureImport(text){
+    const fixtures = [], errors = [];
+    const lines = String(text).split(/\r?\n/);
+    lines.forEach((raw, idx) => {
+      const line = raw.trim();
+      if(!line) return;
+      const parts = line.split(/\s*,\s*|\t+|\s+vs?\.?\s+/i).map(s => s.trim()).filter(Boolean);
+      if(parts.length < 2){ errors.push('line ' + (idx+1) + ': "' + line + '" \u2014 couldn\'t find two teams'); return; }
+      const teamA = parts[0], teamB = parts[1];
+      if(/^(home|team\s*a|hometeam)$/i.test(teamA) && /^(away|team\s*b|awayteam)$/i.test(teamB)) return; // header row
+      if(teamA.toLowerCase() === teamB.toLowerCase()){ errors.push('line ' + (idx+1) + ': "' + line + '" \u2014 same team on both sides'); return; }
+      fixtures.push({ teamA: teamA, teamB: teamB });
+    });
+    return { fixtures: fixtures, errors: errors };
+  }
+
   function renderTestingPhaseDisclaimer(){
     if(isRoundBlocked(1)) return '';
+    if(curtainDown()){
+      return `<div style="background:#2a2410;color:#e0d090;padding:10px 14px;text-align:center;font-size:clamp(18px, calc(18px + 0.4vw), 21px);border-bottom:2px solid #4a3a10;">
+        \u26A0\uFE0F Bets placed on the election markets are live and will count. Head-to-head, tipping and futures markets stay closed until the Eliza division makeups are announced closer to the season.
+      </div>`;
+    }
     return `<div style="background:#2a2410;color:#e0d090;padding:10px 14px;text-align:center;font-size:clamp(18px, calc(18px + 0.4vw), 21px);border-bottom:2px solid #4a3a10;">
       \u26A0\uFE0F Testing phase &mdash; odds shown right now aren't final and may change before the season launches. Only bets placed once team rosters are confirmed will count, unless stated otherwise.
     </div>`;
@@ -2312,7 +2353,14 @@
   function getFixtureMarkets(div, round){
     const key = div + '|' + round;
     if(!fixtureMarketCache[key]){
-      fixtureMarketCache[key] = getTippableFixtures(div, round).map(([a,b]) => {
+      // An imported Round 1 Eliza Cup fixture list (admin panel) takes
+      // precedence over the projected schedule for that specific slot.
+      const useOverride = round === 1 && div.indexOf('ELIZA') !== -1 &&
+        state.r1FixtureOverride && state.r1FixtureOverride.length;
+      const pairs = useOverride
+        ? state.r1FixtureOverride.map(f => [f.teamA, f.teamB])
+        : getTippableFixtures(div, round);
+      fixtureMarketCache[key] = pairs.map(([a,b]) => {
         // 'MR MEDIAN' isn't a real team -- has no coefficient/strength data
         // for the real simulation to run against, so this is a plain,
         // symmetric 50/50 market instead (still passes through the same
@@ -3940,6 +3988,25 @@
           <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin:6px 0 0;">Off (default): advancing to a new round always force-reopens betting, regardless of how last round was left. On: that automatic reopen is skipped -- betting only opens when you click "Reopen betting" yourself, even after the round ticks over.</p>
         </div>
       </div>
+      <h3>Division makeups &amp; fixtures</h3>
+      <div class="bb-card" style="margin-bottom:1.5rem;">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
+          <span class="bb-pill" style="background:${state.divisionsAnnounced?'#1e3a2a':'#3a2a26'};color:${state.divisionsAnnounced?'#7fbf8f':'#c0604f'};">${state.divisionsAnnounced?'ANNOUNCED':'CURTAIN DOWN'}</span>
+          <span style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">${state.divisionsAnnounced?'Divisions are public \u2014 H2H, Tipping and Futures are visible to everyone.':'H2H, Tipping and Futures are hidden from non-admins (you still see them).'}</span>
+        </div>
+        <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin:0 0 10px;">Leave this down until the Eliza organisation has publicly announced the division makeups. While down, non-admins see only the election markets, Specials, Stats and My Bets \u2014 the featured fixtures/futures, boosted odds, tipping nudge and point projection are all hidden from the home page too.</p>
+        <button class="bb-btn ${state.divisionsAnnounced?'ghost':''}" id="toggle-divisions-announced-btn" style="padding:8px 14px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">${state.divisionsAnnounced?'Put the curtain back down':'Divisions are public \u2014 raise the curtain'}</button>
+      </div>
+      <h3>Import Round 1 fixtures (Eliza Cup)</h3>
+      <div class="bb-card" style="margin-bottom:1.5rem;">
+        <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin:0 0 8px;">One fixture per line, home team and away team separated by a comma (or "vs"). Saved as a runtime override \u2014 no redeploy needed \u2014 and used for Round 1 Eliza Cup in place of the projected schedule. Paste the CSV export straight in once the sheet's filled out; a header line naming the columns is ignored.</p>
+        <textarea class="bb-input" id="r1-fixture-import" rows="8" placeholder="Harvey Frekes, Jarvis Zebras&#10;Give Us Wang vs Kallo FC&#10;..." style="width:100%;font-family:monospace;margin-bottom:8px;">${esc(state.r1FixtureImportText||'')}</textarea>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <button class="bb-btn" id="import-r1-fixtures-btn" style="padding:8px 14px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Import fixtures</button>
+          <button class="bb-btn ghost" id="clear-r1-fixtures-btn" style="padding:8px 14px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Clear override</button>
+          <span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">${(state.r1FixtureOverride && state.r1FixtureOverride.length) ? state.r1FixtureOverride.length + ' fixture(s) currently imported' : 'No override \u2014 using projected schedule'}</span>
+        </div>
+      </div>
       <h3>H2H official schedule</h3>
       <div class="bb-card" style="margin-bottom:1.5rem;">
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
@@ -5174,7 +5241,11 @@
   }
 
   function renderMain(){
-    if(state.activeTab === 'ADMIN' && !(state.user && state.user.isAdmin)) state.activeTab = 'H2H';
+    if(state.activeTab === 'ADMIN' && !(state.user && state.user.isAdmin)) state.activeTab = 'HOME';
+    // Backstop for the curtain (see CURTAINED_TABS): the tabs themselves are
+    // already filtered out of the nav, but this catches any other route in
+    // -- a stale activeTab, an admin logging out while on a hidden tab, etc.
+    if(curtainDown() && CURTAINED_TABS.includes(state.activeTab)) state.activeTab = 'HOME';
     let body = '';
     if(state.activeTab === 'HOME'){
       body = renderHomeTab();
@@ -7236,6 +7307,38 @@
       await sset('bilbbet2_h2h_schedule_confirmed', state.h2hRealScheduleConfirmed);
       render();
     };
+    const toggleDivisionsBtn = $('#toggle-divisions-announced-btn');
+    if(toggleDivisionsBtn) toggleDivisionsBtn.onclick = async () => {
+      state.divisionsAnnounced = !state.divisionsAnnounced;
+      await sset('bilbbet2_divisions_announced', state.divisionsAnnounced);
+      render();
+    };
+    const r1ImportBox = $('#r1-fixture-import');
+    if(r1ImportBox) r1ImportBox.oninput = e => { state.r1FixtureImportText = e.target.value; }; // no render() -- would drop focus mid-typing
+    const importR1Btn = $('#import-r1-fixtures-btn');
+    if(importR1Btn) importR1Btn.onclick = async () => {
+      const parsed = parseFixtureImport(state.r1FixtureImportText || '');
+      if(!parsed.fixtures.length){
+        alert(parsed.errors.length ? 'Nothing imported:\n\n' + parsed.errors.join('\n') : 'Nothing to import \u2014 paste some fixtures first.');
+        return;
+      }
+      const summary = parsed.fixtures.map(f => f.teamA + ' vs ' + f.teamB).join('\n');
+      const warn = parsed.errors.length ? '\n\nSkipped lines:\n' + parsed.errors.join('\n') : '';
+      if(!confirm('Import these ' + parsed.fixtures.length + ' Round 1 fixture(s)?\n\n' + summary + warn)) return;
+      state.r1FixtureOverride = parsed.fixtures;
+      await sset('bilbbet2_r1_fixture_override', parsed.fixtures);
+      for(const k of Object.keys(fixtureMarketCache)) delete fixtureMarketCache[k]; // recompute with the new pairs
+      state.r1FixtureImportText = '';
+      render();
+    };
+    const clearR1Btn = $('#clear-r1-fixtures-btn');
+    if(clearR1Btn) clearR1Btn.onclick = async () => {
+      if(!confirm('Clear the imported Round 1 fixtures and fall back to the projected schedule?')) return;
+      state.r1FixtureOverride = null;
+      await sset('bilbbet2_r1_fixture_override', null);
+      for(const k of Object.keys(fixtureMarketCache)) delete fixtureMarketCache[k]; // fall back to the projected schedule
+      render();
+    };
     const requestRefreshBtn = $('#request-odds-refresh-btn'); if(requestRefreshBtn) requestRefreshBtn.onclick = requestOddsRefresh;
     const clearRefreshBtn = $('#clear-odds-refresh-btn'); if(clearRefreshBtn) clearRefreshBtn.onclick = clearOddsRefreshRequest;
     for(const comp of ['FA CUP','ECL']){
@@ -7623,6 +7726,13 @@
 
   const savedBettingOpen = await sget('bilbbet2_round_betting_open');
   if(savedBettingOpen !== null){ state.roundBettingOpen = savedBettingOpen; }
+  const savedDivisionsAnnounced = await sget('bilbbet2_divisions_announced');
+  if(savedDivisionsAnnounced !== null){ state.divisionsAnnounced = savedDivisionsAnnounced; }
+  const savedR1Fixtures = await sget('bilbbet2_r1_fixture_override');
+  if(savedR1Fixtures !== null){ state.r1FixtureOverride = savedR1Fixtures; }
+  // Guard: if the curtain is down, make sure we never land on a hidden tab
+  // (e.g. a persisted activeTab from before the curtain went up).
+  if(!state.divisionsAnnounced && CURTAINED_TABS.includes(state.activeTab)){ state.activeTab = 'HOME'; }
   const savedManualBettingControl = await sget('bilbbet2_manual_betting_control');
   if(savedManualBettingControl !== null){ state.manualBettingControl = savedManualBettingControl; }
   const savedH2hScheduleConfirmed = await sget('bilbbet2_h2h_schedule_confirmed');
