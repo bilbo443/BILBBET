@@ -178,6 +178,26 @@
   // active on both platforms, ~6-10 Discord-only), capped around 25 at
   // most -- used as the Over/Under line for the turnout market below.
   const ELECTION_TURNOUT_LINE = 20;
+  // Commissioner desire weight: independent of a candidate's chance of
+  // actually being elected to the board -- this is about who ends up
+  // picked as commissioner once seated. Bull Worms: don't personally want
+  // it again, but there's a strong expectation they'll end up with it
+  // anyway. Jarvis: actively wants it, but the board/community pushing
+  // back means that ambition doesn't fully convert to the job. Everyone
+  // else: no known interest, left at a small residual dark-horse weight
+  // rather than zero. Purely a judgment call, not derived from anything.
+  const ELECTION_COMMISSIONER_DESIRE = { 'Alaskan Bull Worms': 10, 'Jarvis Zebras': 6 };
+  const ELECTION_COMMISSIONER_YES_TOTAL = 65; // matches the Yes side of the plain Yes/No market below
+  function computeCommissionerChances(electedChanceFn){
+    const weights = {};
+    for(const name of ELECTION_CANDIDATES){
+      weights[name] = (electedChanceFn(name)/100) * (ELECTION_COMMISSIONER_DESIRE[name] || 0.5);
+    }
+    const sum = Object.values(weights).reduce((a,b)=>a+b, 0);
+    const chances = {};
+    for(const name of ELECTION_CANDIDATES) chances[name] = weights[name]/sum * ELECTION_COMMISSIONER_YES_TOTAL;
+    return chances;
+  }
   function computeElectionScores(){
     const n = ELECTION_CANDIDATES.length;
     const rankScore = (list, name) => { const idx = list.indexOf(name); return idx === -1 ? 1 : (n - idx); };
@@ -1304,6 +1324,13 @@
         <div style="width:90px;flex-shrink:0;">${priceOnlyButton('ELECTION_TOP_VOTES|'+name, name+' to receive the most votes overall', suspendedOdds(winnerChance(name)))}</div>
       </div>`).join('');
 
+    const commissionerChances = computeCommissionerChances(electedChance);
+    const commissionerRows = ELECTION_CANDIDATES.map((name, i) => `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 16px;${i<n-1?'border-bottom:1px solid #3d3d3d;':''}">
+        <div style="display:flex;align-items:center;gap:6px;font-weight:600;">${teamLogo(name,18)}${esc(name)}</div>
+        <div style="width:90px;flex-shrink:0;">${priceOnlyButton('ELECTION_COMMISSIONER_WHO|'+name, name+' to be the commissioner', suspendedOdds(commissionerChances[name]))}</div>
+      </div>`).join('');
+
     return `
       <div class="bb-card" style="background:linear-gradient(135deg,#1a2438,#1a1a1a);border-color:#2a3a5a;margin-bottom:16px;text-align:center;padding:1.25rem;">
         <div style="font-size:clamp(19px, calc(19px + 0.4vw), 22px);letter-spacing:0.05em;color:#7fa8e0;text-transform:uppercase;font-weight:700;">Eliza Committee Election</div>
@@ -1335,7 +1362,9 @@
           <div style="font-weight:600;">Board doesn't appoint one</div>
           <div style="width:110px;flex-shrink:0;">${priceOnlyButton('ELECTION_COMMISSIONER|no', 'Board appoints a commissioner: No', suspendedOdds(35))}</div>
         </div>
-      </div>`;
+      </div>
+      <h3>Commissioner &mdash; who?</h3>
+      <div class="bb-card" style="padding:0;overflow:hidden;margin-bottom:16px;">${commissionerRows}</div>`;
   }
 
   function renderHomeTab(){
