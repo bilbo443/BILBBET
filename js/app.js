@@ -173,7 +173,18 @@
   // buzz beyond their activity alone suggests; <1 = a favourite who
   // undersells their online activity. Adjust freely -- this is flavour,
   // not a formula, and has no real-world basis.
-  const ELECTION_FLAVOR = { 'Sauce FC': 1.4, 'Top Kuolity': 1.7, 'DW Bout It FC': 0.65, 'Give Us Wang': 0.8, 'Spooners FC': 1.3 };
+  const ELECTION_FLAVOR = {
+    'Sauce FC': 1.4, 'Top Kuolity': 2.0, 'DW Bout It FC': 0.65, 'Give Us Wang': 0.8, 'Spooners FC': 1.3,
+    // Kallo: the actual favourite despite middling activity+incumbency
+    // alone -- boosted to reflect that read directly. Jarvis & Bull Worms:
+    // widely assumed to be safe/automatic, but that assumption may not
+    // convert to actual votes -- deflated below what their activity and
+    // incumbency alone would suggest. Top Kuolity's 2.0 above reflects the
+    // same idea as Kallo's boost from a different angle: broadly liked but
+    // nobody's first choice, which this ballot's approval-style format
+    // (tick up to 7, no ranking) rewards rather than penalises.
+    'Jarvis Zebras': 0.75, 'Alaskan Bull Worms': 0.8, 'Kallo FC': 1.5,
+  };
   // Expected turnout ~20 (breakdown discussed: ~3-5 Messenger-only, ~8-12
   // active on both platforms, ~6-10 Discord-only), capped around 25 at
   // most -- used as the Over/Under line for the turnout market below.
