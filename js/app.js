@@ -526,7 +526,19 @@
       <img src="${esc(path)}" alt="" style="position:absolute;top:0;left:0;width:100%;height:100%;border-radius:50%;object-fit:contain;" onerror="this.style.display='none';" onload="this.previousElementSibling.style.background='#1b1b1b';this.previousElementSibling.textContent='';"/>
     </span>`;
   }
-  function teamLogo(name, size){ return logoBadge('team', name, size); }
+  function teamLogo(name, size){ return logoBadge('team', resolveLogoName(name), size); }
+  // Visual-only logo alias -- some names (currently: election candidates
+  // without a real Eliza roster spot, like "Justiceformoon" and "DW Bout
+  // It FC") don't have their own logo file, so this borrows a real team's
+  // logo purely for display. Does NOT affect strength/coefficient lookups,
+  // odds, or anything else that uses the name as an identity -- teamLogo()
+  // is the only thing that consults this. Fill in with real team names
+  // once you've picked which ones to borrow.
+  const TEAM_LOGO_ALIAS = {
+    // 'Justiceformoon': 'Some Real Team Name',
+    // 'DW Bout It FC': 'Some Real Team Name',
+  };
+  function resolveLogoName(name){ return TEAM_LOGO_ALIAS[name] || name; }
 
   // Shortens a team name to a consistent length for the Tipping picker
   // specifically, where two full name+odds combos have to fit side by side
