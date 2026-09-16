@@ -1984,7 +1984,7 @@
         <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 4px;border-bottom:5px solid var(--bb-accent);margin-bottom:1rem;">
           ${brand}
           <div style="display:flex;align-items:center;gap:10px;">
-            <button class="bb-btn ghost" id="open-team-search-btn" style="padding:6px 12px;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">Find a team</button>
+            ${curtainDown() ? '' : '<button class="bb-btn ghost" id="open-team-search-btn" style="padding:6px 12px;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">Find a team</button>'}
             <button class="bb-btn" id="open-login-btn" style="padding:7px 14px;">Log in</button>
           </div>
         </div>`;
@@ -1993,7 +1993,7 @@
       <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 4px;border-bottom:5px solid var(--bb-accent);margin-bottom:1rem;flex-wrap:wrap;gap:8px;">
         ${brand}
         <div style="display:flex;align-items:center;gap:14px;font-size:clamp(19px, calc(19px + 0.4vw), 22px);">
-          <button class="bb-btn ghost" id="open-team-search-btn" style="padding:6px 12px;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">Find a team</button>
+          ${curtainDown() ? '' : '<button class="bb-btn ghost" id="open-team-search-btn" style="padding:6px 12px;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">Find a team</button>'}
           <span>${fmt(state.user.balance)} clams</span>
           <span style="color:#9a9a9a;">${esc(state.user.username)}${(state.user.isAdmin && adminNeedsAttention()) ? ' <span title="Needs attention" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);">\u{1F6A9}</span>' : ''}</span>
           <button class="bb-btn ghost" id="logout-btn" style="padding:6px 12px;">Log out</button>
@@ -5359,6 +5359,19 @@
       }
     } else {
       body = `<p style="color:#9a9a9a;">Unknown tab.</p>`;
+    }
+    // Team Profile and the team directory both expose division names,
+    // standings, promotion/relegation and cup odds, and match results --
+    // exactly what the curtain (CURTAINED_TABS) is meant to hide, but this
+    // is rendered independently of the tab system entirely, so the tab
+    // filtering alone doesn't stop it. Gating it here, at render time,
+    // means it's structurally impossible to reach while curtained
+    // regardless of how many buttons/links can set these flags -- no need
+    // to separately hide every entry point for this to actually be closed.
+    if(curtainDown() && (state.viewingTeamProfile || state.teamDirectoryOpen || state.teamSearchOpen)){
+      state.viewingTeamProfile = null;
+      state.teamDirectoryOpen = false;
+      state.teamSearchOpen = false;
     }
     const mainContent = state.viewingTeamProfile ? renderTeamProfile(state.viewingTeamProfile)
       : state.teamDirectoryOpen ? renderTeamDirectory()
