@@ -152,8 +152,8 @@
   // in) -- update this list as nominations change.
   const ELECTION_CANDIDATES = [
     'Alaskan Bull Worms', 'Give Us Wang', 'Top Kuolity', 'Kallo FC', 'Sauce FC',
-    'Stairway to Evans', 'Dinkin CRFC', 'DW Bout It FC', 'Jarvis Zebras',
-    'Justiceformoon',
+    'Stairway to Evans', 'Dinkin CRFC', 'DW About It FC', 'Jarvis Zebras',
+    'Justiceformoon FC',
   ];
   const ELECTION_SEATS = 7;
   // Election scoring model -- see conversation for full background. Ranks
@@ -165,9 +165,9 @@
   // Spooners FC was an incumbent but didn't nominate -- removed from every
   // list below rather than just ELECTION_CANDIDATES, since they'd
   // otherwise still be factored into everyone else's relative rank.
-  const ELECTION_MESSENGER_RANK = ['Jarvis Zebras','Dinkin CRFC','Stairway to Evans','Alaskan Bull Worms','Sauce FC','DW Bout It FC','Justiceformoon','Give Us Wang','Kallo FC','Top Kuolity'];
-  const ELECTION_DISCORD_RANK = ['Kallo FC','Give Us Wang','Alaskan Bull Worms','Stairway to Evans','Sauce FC','Top Kuolity','Justiceformoon','Jarvis Zebras','Dinkin CRFC','DW Bout It FC'];
-  const ELECTION_INCUMBENTS = new Set(['Jarvis Zebras','Dinkin CRFC','Alaskan Bull Worms','Kallo FC','DW Bout It FC','Give Us Wang','Stairway to Evans']);
+  const ELECTION_MESSENGER_RANK = ['Jarvis Zebras','Dinkin CRFC','Stairway to Evans','Alaskan Bull Worms','Sauce FC','DW About It FC','Justiceformoon FC','Give Us Wang','Kallo FC','Top Kuolity'];
+  const ELECTION_DISCORD_RANK = ['Kallo FC','Give Us Wang','Alaskan Bull Worms','Stairway to Evans','Sauce FC','Top Kuolity','Justiceformoon FC','Jarvis Zebras','Dinkin CRFC','DW About It FC'];
+  const ELECTION_INCUMBENTS = new Set(['Jarvis Zebras','Dinkin CRFC','Alaskan Bull Worms','Kallo FC','DW About It FC','Give Us Wang','Stairway to Evans']);
   // Deliberately hand-picked, not derived from anything -- a pure
   // activity+incumbency formula reads too smooth/predictable for a real
   // election, and the admin explicitly wants a mix of expected outcomes
@@ -176,7 +176,7 @@
   // undersells their online activity. Adjust freely -- this is flavour,
   // not a formula, and has no real-world basis.
   const ELECTION_FLAVOR = {
-    'Sauce FC': 1.4, 'Top Kuolity': 2.0, 'DW Bout It FC': 0.65, 'Give Us Wang': 0.8,
+    'Sauce FC': 1.4, 'Top Kuolity': 2.0, 'DW About It FC': 0.65, 'Give Us Wang': 0.8,
     // Kallo: the actual favourite despite middling activity+incumbency
     // alone -- boosted to reflect that read directly. Jarvis & Bull Worms:
     // widely assumed to be safe/automatic, but that assumption may not
@@ -527,17 +527,15 @@
     </span>`;
   }
   function teamLogo(name, size){ return logoBadge('team', resolveLogoName(name), size); }
-  // Visual-only logo alias -- some names (currently: election candidates
-  // without a real Eliza roster spot, like "Justiceformoon" and "DW Bout
-  // It FC") don't have their own logo file, so this borrows a real team's
-  // logo purely for display. Does NOT affect strength/coefficient lookups,
-  // odds, or anything else that uses the name as an identity -- teamLogo()
-  // is the only thing that consults this. Fill in with real team names
-  // once you've picked which ones to borrow.
-  const TEAM_LOGO_ALIAS = {
-    // 'Justiceformoon': 'Some Real Team Name',
-    // 'DW Bout It FC': 'Some Real Team Name',
-  };
+  // Visual-only logo alias, kept as a general-purpose escape hatch -- e.g.
+  // if a genuinely new name shows up with no matching real team at all.
+  // Turned out unnecessary for the election candidates: "DW Bout It FC"
+  // and "Justiceformoon" were just spelling/formatting slips on the real
+  // team names (DW ABOUT IT FC, JUSTICEFORMOON FC), fixed directly in
+  // ELECTION_CANDIDATES et al. rather than aliased. Does NOT affect
+  // strength/coefficient lookups, odds, or anything else that uses the
+  // name as an identity -- teamLogo() is the only thing that consults this.
+  const TEAM_LOGO_ALIAS = {};
   function resolveLogoName(name){ return TEAM_LOGO_ALIAS[name] || name; }
 
   // Shortens a team name to a consistent length for the Tipping picker
