@@ -445,6 +445,7 @@
     playoffSubTab: 'DIVISION 2',
     playoffAdminEntry: { 'DIVISION 2': {teamA:'',teamB:'',stage:'Qualifying Final'}, 'DIVISION 3': {teamA:'',teamB:'',stage:'Qualifying Final'} },
     adminSubTab: 'season',
+    adminBetsFilterUser: '', adminBetsFilterStatus: 'ALL', adminBetsFilterType: 'ALL',
     betSubmissionInProgress: false,
     homeBestValueWinner: null, homeBestBet: null, featuredFixturesData: null,
     eclGroups: { A: [], B: [], C: [] },
@@ -4147,10 +4148,41 @@
         })()}
       </div>
       <h3>All registered bets</h3>
-      ${!bets.length ? '<p style="color:#9a9a9a;">No bets placed by anyone yet.</p>' : `
+      ${!bets.length ? '<p style="color:#9a9a9a;">No bets placed by anyone yet.</p>' : (() => {
+        // Filters combine with AND -- a username search plus a status
+        // filter narrows to bets matching both, not either.
+        const filterUser = (state.adminBetsFilterUser || '').trim().toLowerCase();
+        const filterStatus = state.adminBetsFilterStatus || 'ALL';
+        const filterType = state.adminBetsFilterType || 'ALL';
+        const filteredBets = bets.filter(b => {
+          if(filterUser && !b.username.toLowerCase().includes(filterUser)) return false;
+          if(filterStatus !== 'ALL' && (b.status||'PENDING') !== filterStatus) return false;
+          if(filterType === 'SINGLE' && b.selections.length !== 1) return false;
+          if(filterType === 'MULTI' && b.selections.length <= 1) return false;
+          return true;
+        });
+        const filterBar = `
+          <div class=\"bb-card\" style=\"margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;\">
+            <div style=\"flex:2;min-width:160px;\"><span style=\"font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:#9a9a9a;display:block;margin-bottom:4px;\">Search player</span>
+              <input class=\"bb-input\" id=\"admin-bets-filter-user\" placeholder=\"Username contains...\" value=\"${esc(state.adminBetsFilterUser||'')}\"/></div>
+            <div style=\"flex:1;min-width:130px;\"><span style=\"font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:#9a9a9a;display:block;margin-bottom:4px;\">Status</span>
+              <select class=\"bb-select\" id=\"admin-bets-filter-status\">
+                ${['ALL','PENDING','WON','LOST','VOID'].map(s => `<option value=\"${s}\" ${filterStatus===s?'selected':''}>${s==='ALL'?'All statuses':s}</option>`).join('')}
+              </select></div>
+            <div style=\"flex:1;min-width:130px;\"><span style=\"font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:#9a9a9a;display:block;margin-bottom:4px;\">Bet type</span>
+              <select class=\"bb-select\" id=\"admin-bets-filter-type\">
+                ${[['ALL','All bets'],['SINGLE','Singles only'],['MULTI','Multis only']].map(([v,l]) => `<option value=\"${v}\" ${filterType===v?'selected':''}>${l}</option>`).join('')}
+              </select></div>
+            ${(filterUser || filterStatus!=='ALL' || filterType!=='ALL') ? `<button class=\"bb-btn ghost\" id=\"admin-bets-filter-clear\" style=\"padding:9px 14px;\">Clear filters</button>` : ''}
+            <span style=\"font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:#9a9a9a;align-self:center;\">${filteredBets.length} of ${bets.length} bet${bets.length!==1?'s':''}</span>
+          </div>`;
+        if(!filteredBets.length){
+          return filterBar + '<p style=\"color:#9a9a9a;\">No bets match the current filters.</p>';
+        }
+        return filterBar + `
       <button class="bb-btn ghost" id="export-bets-csv" style="margin-bottom:10px;padding:6px 12px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Export to CSV</button>
       ${(() => {
-        const readyCount = bets.filter(b => (b.status||'PENDING')==='PENDING' &&
+        const readyCount = filteredBets.filter(b => (b.status||'PENDING')==='PENDING' &&
           b.selections.some((s,i) => (b.selections.length===1 || !s.result) && computeSuggestedResult(s.id))).length;
         return readyCount ? `<p style="color:#ffdd00;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:8px;">\u26a1 ${readyCount} bet(s) below have a real result available and are ready to review -- highlighted first.</p>` : '';
       })()}
@@ -4158,7 +4190,7 @@
         <table class="bb-table">
           <thead><tr><th>Placed</th><th>User</th><th>Selections</th><th>Stake</th><th>Odds</th><th>Potential return</th><th>Status</th><th>Override</th></tr></thead>
           <tbody>
-            ${bets.slice().sort((a,b) => {
+            ${filteredBets.slice().sort((a,b) => {
               const aReady = (a.status||'PENDING')==='PENDING' && a.selections.some((s,i) => (a.selections.length===1 || !s.result) && computeSuggestedResult(s.id));
               const bReady = (b.status||'PENDING')==='PENDING' && b.selections.some((s,i) => (b.selections.length===1 || !s.result) && computeSuggestedResult(s.id));
               if(aReady !== bReady) return aReady ? -1 : 1;
@@ -4196,7 +4228,8 @@
             }).join('')}
           </tbody>
         </table>
-      </div>`}
+      </div>`;
+      })()}
       <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-top:10px;">
         Marking a bet Won credits its full potential return to that punter's balance; marking it Lost (or resetting to Pending
         after a mistaken override) reverses that credit automatically, so balances always stay consistent with the bet's current status.
@@ -4855,7 +4888,20 @@
   }
 
   function exportBetsToCSV(){
-    const bets = state.adminBets || [];
+    // Exports whatever the current filter selection shows (see the filter
+    // bar above "All registered bets"), not every bet ever placed -- an
+    // admin filtering down to one player or one status is almost always
+    // about to want exactly that slice, not the full table.
+    const filterUser = (state.adminBetsFilterUser || '').trim().toLowerCase();
+    const filterStatus = state.adminBetsFilterStatus || 'ALL';
+    const filterType = state.adminBetsFilterType || 'ALL';
+    const bets = (state.adminBets || []).filter(b => {
+      if(filterUser && !b.username.toLowerCase().includes(filterUser)) return false;
+      if(filterStatus !== 'ALL' && (b.status||'PENDING') !== filterStatus) return false;
+      if(filterType === 'SINGLE' && b.selections.length !== 1) return false;
+      if(filterType === 'MULTI' && b.selections.length <= 1) return false;
+      return true;
+    });
     const rows = [['Placed','User','Selections','Stake','Combined Odds','Potential Return','Status']];
     bets.forEach(b => {
       const selText = b.selections.map(s => s.label+' ('+formatOdds(s.odds)+')').join(' | ');
@@ -7255,6 +7301,17 @@
     });
     const approveAllBtn = $('#approve-all-btn'); if(approveAllBtn) approveAllBtn.onclick = approveAllPending;
     const exportCsvBtn = $('#export-bets-csv'); if(exportCsvBtn) exportCsvBtn.onclick = exportBetsToCSV;
+    const adminBetsFilterUser = $('#admin-bets-filter-user');
+    if(adminBetsFilterUser) adminBetsFilterUser.oninput = e => { state.adminBetsFilterUser = e.target.value; render(); };
+    const adminBetsFilterStatus = $('#admin-bets-filter-status');
+    if(adminBetsFilterStatus) adminBetsFilterStatus.onchange = e => { state.adminBetsFilterStatus = e.target.value; render(); };
+    const adminBetsFilterType = $('#admin-bets-filter-type');
+    if(adminBetsFilterType) adminBetsFilterType.onchange = e => { state.adminBetsFilterType = e.target.value; render(); };
+    const adminBetsFilterClear = $('#admin-bets-filter-clear');
+    if(adminBetsFilterClear) adminBetsFilterClear.onclick = () => {
+      state.adminBetsFilterUser = ''; state.adminBetsFilterStatus = 'ALL'; state.adminBetsFilterType = 'ALL';
+      render();
+    };
     const surpriseMeBtn = $('#surprise-me-btn'); if(surpriseMeBtn) surpriseMeBtn.onclick = surpriseMe;
     document.querySelectorAll('[data-kick-user]').forEach(el => el.onclick = () => {
       const username = el.dataset.kickUser;
