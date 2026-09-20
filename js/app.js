@@ -491,6 +491,7 @@
     eclGroups: { A: [], B: [], C: [] },
     eclGroupAdminPick: '',
     roundBettingOpen: true,
+    electionBettingOpen: true,
     divisionsAnnounced: false,
     r1FixtureImportText: '', r1FixtureOverride: null,
     manualBettingControl: false,
@@ -1398,7 +1399,12 @@
     const avgScore = totalScore / n;
     const winnerChance = name => scores[name] / totalScore * 100;
     const electedChance = name => Math.max(8, Math.min(94, (ELECTION_SEATS/n*100) * (scores[name]/avgScore)));
-    const liveOdds = pct => toOdds(pct);
+    // "Election betting" closes only the now-resolved board-election
+    // markets (elected/most-votes/turnout) -- Commissioner picks
+    // deliberately keep using plain toOdds() directly further down,
+    // unaffected by this flag, since that vote hasn't happened yet and
+    // stays open regardless of the board result being in.
+    const liveOdds = pct => state.electionBettingOpen ? toOdds(pct) : { odds: toOdds(pct).odds, suspended: true };
 
     const electedRows = ELECTION_CANDIDATES.map((name, i) => `
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 16px;${i<n-1?'border-bottom:1px solid #3d3d3d;':''}">
@@ -1416,14 +1422,14 @@
     const commissionerRows = ELECTION_CANDIDATES.map((name, i) => `
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 16px;${i<n-1?'border-bottom:1px solid #3d3d3d;':''}">
         <div style="display:flex;align-items:center;gap:6px;font-weight:600;">${teamLogo(name,18)}${esc(name)}</div>
-        <div style="width:90px;flex-shrink:0;">${priceOnlyButton('ELECTION_COMMISSIONER_WHO|'+name, name+' to be the commissioner', liveOdds(commissionerChances[name]))}</div>
+        <div style="width:90px;flex-shrink:0;">${priceOnlyButton('ELECTION_COMMISSIONER_WHO|'+name, name+' to be the commissioner', toOdds(commissionerChances[name]))}</div>
       </div>`).join('');
 
     return `
       <div class="bb-card" style="background:linear-gradient(135deg,#1a2438,#1a1a1a);border-color:#2a3a5a;margin-bottom:16px;text-align:center;padding:1.25rem;">
         <div style="font-size:clamp(19px, calc(19px + 0.4vw), 22px);letter-spacing:0.05em;color:#7fa8e0;text-transform:uppercase;font-weight:700;">Eliza Committee Election</div>
         <div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-top:4px;">${ELECTION_SEATS} seats &middot; ${n} candidates &middot; every Eliza participant can tick up to ${ELECTION_SEATS} choices on their ballot</div>
-        <div style="font-size:clamp(15px, calc(15px + 0.4vw), 18px);color:var(--bb-ok);margin-top:8px;">Voting is live \u2014 odds may move as the picture becomes clearer, and settle once results are announced.</div>
+        <div style="font-size:clamp(15px, calc(15px + 0.4vw), 18px);color:${state.electionBettingOpen?'var(--bb-ok)':'#c0604f'};margin-top:8px;">${state.electionBettingOpen?'Voting is live \u2014 odds may move as the picture becomes clearer, and settle once results are announced.':'Betting is closed on the board election results \u2014 the Commissioner markets remain, and will close in turn once that\'s decided.'}</div>
       </div>
       <h3>To be elected (any of the ${ELECTION_SEATS} seats)</h3>
       <div class="bb-card" style="padding:0;overflow:hidden;margin-bottom:16px;">${electedRows}</div>
@@ -1444,11 +1450,11 @@
       <div class="bb-card" style="padding:0;overflow:hidden;margin-bottom:16px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid #3d3d3d;">
           <div style="font-weight:600;">Board appoints a commissioner</div>
-          <div style="width:110px;flex-shrink:0;">${priceOnlyButton('ELECTION_COMMISSIONER|yes', 'Board appoints a commissioner: Yes', liveOdds(65))}</div>
+          <div style="width:110px;flex-shrink:0;">${priceOnlyButton('ELECTION_COMMISSIONER|yes', 'Board appoints a commissioner: Yes', toOdds(65))}</div>
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;">
           <div style="font-weight:600;">Board doesn't appoint one</div>
-          <div style="width:110px;flex-shrink:0;">${priceOnlyButton('ELECTION_COMMISSIONER|no', 'Board appoints a commissioner: No', liveOdds(35))}</div>
+          <div style="width:110px;flex-shrink:0;">${priceOnlyButton('ELECTION_COMMISSIONER|no', 'Board appoints a commissioner: No', toOdds(35))}</div>
         </div>
       </div>
       <h3>Commissioner &mdash; who?</h3>
@@ -4091,6 +4097,17 @@
           The fantasy platform only generates real H2H fixtures once its own lockout is in place, which lands after this needs to be bettable. Leave this off until the real schedule is actually confirmed each round -- flipping it on shows real head-to-head fixtures for betting instead of the interim market. Custom Matchup is unaffected either way.
         </p>
         <button class="bb-btn ${state.h2hRealScheduleConfirmed?'ghost':''}" id="toggle-h2h-schedule-confirmed-btn" style="padding:8px 14px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">${state.h2hRealScheduleConfirmed?'Revert to interim market':'Mark real schedule as confirmed'}</button>
+      </div>
+      <h3>Election betting</h3>
+      <div class="bb-card" style="margin-bottom:1.5rem;">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
+          <span class="bb-pill" style="background:${state.electionBettingOpen?'#1e3a2a':'#3a2a26'};color:${state.electionBettingOpen?'#7fbf8f':'#c0604f'};">${state.electionBettingOpen?'OPEN':'CLOSED'}</span>
+          <span style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">Board election markets (to be elected, most votes overall, turnout) are ${state.electionBettingOpen?'open for new bets.':'closed \u2014 odds still show, but every pick is suspended.'} Commissioner markets are unaffected by this and always stay open.</span>
+        </div>
+        <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin:0 0 10px;">
+          Separate from the round-betting open/close toggle above \u2014 these are unrelated markets, so closing one never affects the other. Commissioner markets have no toggle of their own here since that vote hasn't happened yet; close those the same way once it has, or ask for that to be wired in.
+        </p>
+        <button class="bb-btn ${state.electionBettingOpen?'':'ghost'}" id="toggle-election-betting-btn" style="padding:8px 14px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">${state.electionBettingOpen?'Close election betting':'Reopen election betting'}</button>
       </div>
       <h3>Odds refresh</h3>
       <div class="bb-card" style="margin-bottom:1.5rem;">
@@ -7456,6 +7473,12 @@
       await sset('bilbbet2_h2h_schedule_confirmed', state.h2hRealScheduleConfirmed);
       render();
     };
+    const toggleElectionBettingBtn = $('#toggle-election-betting-btn');
+    if(toggleElectionBettingBtn) toggleElectionBettingBtn.onclick = async () => {
+      state.electionBettingOpen = !state.electionBettingOpen;
+      await sset('bilbbet2_election_betting_open', state.electionBettingOpen);
+      render();
+    };
     const toggleDivisionsBtn = $('#toggle-divisions-announced-btn');
     if(toggleDivisionsBtn) toggleDivisionsBtn.onclick = async () => {
       state.divisionsAnnounced = !state.divisionsAnnounced;
@@ -7878,6 +7901,8 @@
 
   const savedBettingOpen = await sget('bilbbet2_round_betting_open');
   if(savedBettingOpen !== null){ state.roundBettingOpen = savedBettingOpen; }
+  const savedElectionBettingOpen = await sget('bilbbet2_election_betting_open');
+  if(savedElectionBettingOpen !== null){ state.electionBettingOpen = savedElectionBettingOpen; }
   const savedDivisionsAnnounced = await sget('bilbbet2_divisions_announced');
   if(savedDivisionsAnnounced !== null){ state.divisionsAnnounced = savedDivisionsAnnounced; }
   const savedR1Fixtures = await sget('bilbbet2_r1_fixture_override');
