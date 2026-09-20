@@ -297,8 +297,48 @@
   // anything else return null -- no suggestion, stays fully manual -- not
   // because they're impossible to resolve automatically, just not yet
   // built out.
+  // Actual final board election results (17 voters; top 7 by votes seated
+  // on the board) -- once known, this lets the existing "ready to review"
+  // grading assistance (see computeSuggestedResult below) auto-suggest
+  // WON/LOST for every election bet instead of the admin having to check
+  // each one by hand. Commissioner picks are deliberately left out of
+  // ELECTION_RESULTS below (not out of this comment) since that vote
+  // hasn't happened yet -- computeSuggestedResult falls through to null
+  // (no suggestion) for those pick types until it's added here.
+  const ELECTION_VOTE_COUNTS = {
+    'Kallo FC': 17, 'Give Us Wang': 15, 'Sauce FC': 15, 'Alaskan Bull Worms': 14,
+    'Top Kuolity': 11, 'Stairway to Evans': 11, 'DW About It FC': 10,
+    'Jarvis Zebras': 9, 'Justiceformoon FC': 9, 'Dinkin CRFC': 8,
+  };
+  const ELECTION_TURNOUT_ACTUAL = 17;
   function computeSuggestedResult(pickId){
     const parts = pickId.split('|');
+    if(parts[0] === 'ELECTION_SEAT'){
+      const name = parts[1];
+      if(!(name in ELECTION_VOTE_COUNTS)) return null;
+      const seated = Object.entries(ELECTION_VOTE_COUNTS).sort((a,b) => b[1]-a[1]).slice(0, ELECTION_SEATS).map(([n]) => n);
+      return seated.includes(name) ? 'WON' : 'LOST';
+    }
+    if(parts[0] === 'ELECTION_TOP_VOTES'){
+      const name = parts[1];
+      if(!(name in ELECTION_VOTE_COUNTS)) return null;
+      const maxVotes = Math.max(...Object.values(ELECTION_VOTE_COUNTS));
+      const topScorers = Object.entries(ELECTION_VOTE_COUNTS).filter(([,v]) => v === maxVotes).map(([n]) => n);
+      // A genuine tie at the top has no single "most votes overall" winner
+      // -- same reasoning as computeSuggestedResult returning null for a
+      // real drawn H2H score below, needs a human call on how ties pay out
+      // rather than guessing.
+      if(topScorers.length > 1) return null;
+      return name === topScorers[0] ? 'WON' : 'LOST';
+    }
+    if(parts[0] === 'ELECTION_TURNOUT'){
+      const side = parts[1]; // 'over' or 'under'
+      if(ELECTION_TURNOUT_ACTUAL === ELECTION_TURNOUT_LINE) return null; // push -- needs a human call, not guessed
+      const overWon = ELECTION_TURNOUT_ACTUAL > ELECTION_TURNOUT_LINE;
+      if(side === 'over') return overWon ? 'WON' : 'LOST';
+      if(side === 'under') return overWon ? 'LOST' : 'WON';
+      return null;
+    }
     if(parts[0] !== 'H2H') return null;
     const side = parts[1]; // 'res-a' or 'res-b'
     const round = parseInt(parts[2].replace('R',''), 10);
