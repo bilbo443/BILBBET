@@ -486,6 +486,7 @@
     playoffAdminEntry: { 'DIVISION 2': {teamA:'',teamB:'',stage:'Qualifying Final'}, 'DIVISION 3': {teamA:'',teamB:'',stage:'Qualifying Final'} },
     adminSubTab: 'season',
     adminBetsFilterUser: '', adminBetsFilterStatus: 'ALL', adminBetsFilterType: 'ALL',
+    adminBetsSortBy: null, adminBetsSortDir: 'desc',
     betSubmissionInProgress: false,
     homeBestValueWinner: null, homeBestBet: null, featuredFixturesData: null,
     eclGroups: { A: [], B: [], C: [] },
@@ -4256,9 +4257,32 @@
       })()}
       <div class="bb-card" style="padding:0;overflow-x:auto;">
         <table class="bb-table">
-          <thead><tr><th>Placed</th><th>User</th><th>Selections</th><th>Stake</th><th>Odds</th><th>Potential return</th><th>Status</th><th>Override</th></tr></thead>
+          <thead><tr>${[
+            ['placed','Placed'], ['user','User'], ['selections','Selections'], ['stake','Stake'],
+            ['odds','Odds'], ['potential','Potential return'], ['status','Status'],
+          ].map(([key,label]) => {
+            const active = state.adminBetsSortBy === key;
+            const arrow = active ? (state.adminBetsSortDir==='asc' ? ' \u2191' : ' \u2193') : '';
+            return `<th data-admin-bets-sort="${key}" style="cursor:pointer;user-select:none;white-space:nowrap;${active?'color:var(--bb-accent);':''}">${label}${arrow}</th>`;
+          }).join('')}<th>Override</th></tr></thead>
           <tbody>
             ${filteredBets.slice().sort((a,b) => {
+              if(state.adminBetsSortBy){
+                const dir = state.adminBetsSortDir === 'asc' ? 1 : -1;
+                const key = state.adminBetsSortBy;
+                let av, bv;
+                if(key === 'placed'){ av = a.timestamp; bv = b.timestamp; }
+                else if(key === 'user'){ av = a.username.toLowerCase(); bv = b.username.toLowerCase(); }
+                else if(key === 'selections'){ av = a.selections.length; bv = b.selections.length; }
+                else if(key === 'stake'){ av = a.stake; bv = b.stake; }
+                else if(key === 'odds'){ av = a.combinedOdds; bv = b.combinedOdds; }
+                else if(key === 'potential'){ av = a.potentialReturn; bv = b.potentialReturn; }
+                else if(key === 'status'){ av = (a.status||'PENDING'); bv = (b.status||'PENDING'); }
+                if(av < bv) return -1*dir; if(av > bv) return 1*dir; return 0;
+              }
+              // Default order (no column explicitly chosen): bets with a
+              // real result ready to review bubble to the top, otherwise
+              // newest first -- same behaviour this table always had.
               const aReady = (a.status||'PENDING')==='PENDING' && a.selections.some((s,i) => (a.selections.length===1 || !s.result) && computeSuggestedResult(s.id));
               const bReady = (b.status||'PENDING')==='PENDING' && b.selections.some((s,i) => (b.selections.length===1 || !s.result) && computeSuggestedResult(s.id));
               if(aReady !== bReady) return aReady ? -1 : 1;
@@ -7393,6 +7417,16 @@
       state.adminBetsFilterUser = ''; state.adminBetsFilterStatus = 'ALL'; state.adminBetsFilterType = 'ALL';
       render();
     };
+    document.querySelectorAll('[data-admin-bets-sort]').forEach(el => el.onclick = () => {
+      const key = el.dataset.adminBetsSort;
+      if(state.adminBetsSortBy === key){
+        state.adminBetsSortDir = state.adminBetsSortDir === 'desc' ? 'asc' : 'desc'; // same column again -- flip direction
+      } else {
+        state.adminBetsSortBy = key;
+        state.adminBetsSortDir = 'desc'; // a newly-selected column always starts high-to-low
+      }
+      render();
+    });
     const surpriseMeBtn = $('#surprise-me-btn'); if(surpriseMeBtn) surpriseMeBtn.onclick = surpriseMe;
     document.querySelectorAll('[data-kick-user]').forEach(el => el.onclick = () => {
       const username = el.dataset.kickUser;
