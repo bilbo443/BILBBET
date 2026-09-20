@@ -724,6 +724,17 @@
     await addToIndex('bilbbet2_feedback_index', entry.id);
   }
   async function getUser(u){ return await sget('bilbbet2_user:' + u.toLowerCase()); }
+  // "Remember me" login persistence: sget/sset are backed by a single
+  // *shared* Supabase table (or its shared-storage fallback), the same
+  // store every visitor reads from -- using that for "who's logged in on
+  // this device" would leak one browser's session into everyone else's.
+  // Genuine browser-local localStorage is the right tool here, and isn't
+  // used anywhere else in this app. Wrapped defensively since localStorage
+  // can throw (private browsing, disabled storage, non-browser preview).
+  const REMEMBERED_USERNAME_KEY = 'bilbbet2_remembered_username';
+  function rememberUsername(username){ try{ localStorage.setItem(REMEMBERED_USERNAME_KEY, username); }catch(e){} }
+  function forgetRememberedUsername(){ try{ localStorage.removeItem(REMEMBERED_USERNAME_KEY); }catch(e){} }
+  function getRememberedUsername(){ try{ return localStorage.getItem(REMEMBERED_USERNAME_KEY); }catch(e){ return null; } }
   // Serializes any read-modify-write sequence on the SAME user's record,
   // regardless of which function initiates it. Found via testing: a punter
   // placing a bet (reads balance, deducts stake, writes) racing against an
@@ -6990,7 +7001,7 @@
     const toggleTxHistory = $('[data-toggle-tx-history]');
     if(toggleTxHistory) toggleTxHistory.onclick = () => { state.txHistoryExpanded = !state.txHistoryExpanded; render(); };
     const logoutBtn = $('#logout-btn');
-    if(logoutBtn) logoutBtn.onclick = () => { state = {...state, screen:'main', user:null, username:'', pin:'', adminLoginMode:false, registeringMode:false, tosAgreed:false, error:'', info:'', loginModalOpen:false, slip:[], betMode:'multi', activeTab:'HOME', h2hMarket:null, h2hFixtureMarket:null, myBets:null, adminPunters:null, adminBets:null, novelty:null, statsData:null, tippingData:null, tippingPending:{}, tippingRound:null, tippingAllPicks:null, tippingLeaderboard:null, tipReminderStatus:null, tippingRewardChecked:null, tippingRewardBanner:null, preseasonData:null, preseasonPending:{}, preseasonAllPicks:null, preseasonLeaderboard:null, homeTippingNudge:null, txHistory:null, trashTalkBanner:null}; render(); };
+    if(logoutBtn) logoutBtn.onclick = () => { forgetRememberedUsername(); state = {...state, screen:'main', user:null, username:'', pin:'', adminLoginMode:false, registeringMode:false, tosAgreed:false, error:'', info:'', loginModalOpen:false, slip:[], betMode:'multi', activeTab:'HOME', h2hMarket:null, h2hFixtureMarket:null, myBets:null, adminPunters:null, adminBets:null, novelty:null, statsData:null, tippingData:null, tippingPending:{}, tippingRound:null, tippingAllPicks:null, tippingLeaderboard:null, tipReminderStatus:null, tippingRewardChecked:null, tippingRewardBanner:null, preseasonData:null, preseasonPending:{}, preseasonAllPicks:null, preseasonLeaderboard:null, homeTippingNudge:null, txHistory:null, trashTalkBanner:null}; render(); };
     const openLoginBtn = $('#open-login-btn'); if(openLoginBtn) openLoginBtn.onclick = () => { state.loginModalOpen = true; state.adminLoginMode=false; state.error=''; state.info=''; render(); };
     const openTeamSearchBtn = $('#open-team-search-btn'); if(openTeamSearchBtn) openTeamSearchBtn.onclick = () => { state.teamDirectoryOpen = true; state.viewingTeamProfile = null; render(); };
     const closeTeamSearchBtn = $('#close-team-search'); if(closeTeamSearchBtn) closeTeamSearchBtn.onclick = () => { state.teamSearchOpen = false; state.teamSearchQuery=''; render(); };
@@ -7702,6 +7713,7 @@
         await addToIndex('bilbbet2_users_index', 'admin');
       }
       state.user = adminUser; state.error=''; state.username=''; state.pin=''; state.adminLoginMode=false; state.screen='main'; state.loginModalOpen=false;
+      rememberUsername(adminUser.username);
       state.activeTab='HOME'; state.adminPunters=null; state.adminBets=null; state.novelty=null; state.statsData=null; state.myBets=null; state.tippingData=null; state.tippingPending={}; state.tippingRound=null; state.tippingAllPicks=null; state.tippingLeaderboard=null; state.tipReminderStatus=null; state.tippingRewardChecked=null; state.tippingRewardBanner=null; state.preseasonData=null; state.preseasonPending={}; state.preseasonAllPicks=null; state.preseasonLeaderboard=null; state.homeTippingNudge=null; state.txHistory=null;
       render();
       loadAdminData();  // background load so the attention flag is accurate from the start, not just after visiting Admin
@@ -7720,6 +7732,7 @@
     if(status === 'REJECTED'){ state.error='Your registration was rejected. Contact the admin if you think that\u2019s a mistake.'; state.username=''; state.pin=''; render(); return; }
     if(status === 'KICKED'){ state.error='Your account has been removed by Bilbbet management. Contact the admin if you think that\u2019s a mistake.'; state.username=''; state.pin=''; render(); return; }
     state.user = u; state.error=''; state.username=''; state.pin=''; state.screen='main'; state.loginModalOpen=false;
+    rememberUsername(u.username);
     state.activeTab='HOME'; state.adminPunters=null; state.adminBets=null; state.novelty=null; state.statsData=null; state.myBets=null; state.tippingData=null; state.tippingPending={}; state.tippingRound=null; state.tippingAllPicks=null; state.tippingLeaderboard=null; state.tipReminderStatus=null; state.tippingRewardChecked=null; state.tippingRewardBanner=null; state.preseasonData=null; state.preseasonPending={}; state.preseasonAllPicks=null; state.preseasonLeaderboard=null; state.homeTippingNudge=null; state.txHistory=null;
     // A punter's genuine first successful login, distinct from the pending-
     // approval wait -- shown once, ever, per account.
@@ -7776,6 +7789,7 @@
     state.registeringMode = false; state.tosAgreed = false;
     if(isFirstEver){
       state.user = u; state.error=''; state.username=''; state.pin=''; state.screen='main'; state.loginModalOpen=false;
+    rememberUsername(u.username);
       state.activeTab='HOME'; state.adminPunters=null; state.adminBets=null; state.novelty=null; state.statsData=null; state.myBets=null; state.tippingData=null; state.tippingPending={}; state.tippingRound=null; state.tippingAllPicks=null; state.tippingLeaderboard=null; state.tipReminderStatus=null; state.tippingRewardChecked=null; state.tippingRewardBanner=null; state.preseasonData=null; state.preseasonPending={}; state.preseasonAllPicks=null; state.preseasonLeaderboard=null; state.homeTippingNudge=null; state.txHistory=null;
     } else {
       state.username=''; state.pin=''; state.error='';
@@ -7853,6 +7867,24 @@
   }
   const savedOddsRefreshRequested = await sget('bilbbet2_odds_refresh_requested');
   if(savedOddsRefreshRequested !== null){ state.oddsRefreshRequested = savedOddsRefreshRequested; }
+
+  // Auto-login from a remembered username (see rememberUsername/
+  // getRememberedUsername above) -- re-validates against the account's
+  // *current* status rather than trusting the browser blindly, since it
+  // could have been kicked/reset/rejected since the last visit. No PIN
+  // re-entry needed, same tradeoff as any standard "remember me": whoever
+  // has this browser is treated as this punter until they log out.
+  const rememberedUsername = getRememberedUsername();
+  if(rememberedUsername && !state.user){
+    const u = await getUser(rememberedUsername);
+    const status = u && (u.status || 'APPROVED');
+    if(u && !['RESET','PENDING','REJECTED','KICKED'].includes(status)){
+      state.user = u;
+      state.activeTab = (state.activeTab === 'ADMIN' && !u.isAdmin) ? 'HOME' : state.activeTab;
+    } else {
+      forgetRememberedUsername(); // stale/no-longer-valid -- don't keep trying every load
+    }
+  }
 
   render();
   loadHomeStats(); // not awaited -- the initial render shows a loading state, this fills it in once ready
