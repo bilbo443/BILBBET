@@ -339,6 +339,16 @@
       if(side === 'under') return overWon ? 'LOST' : 'WON';
       return null;
     }
+    // The board decided not to appoint a commissioner at all -- "No" wins
+    // outright, "Yes" loses, and every individual "who" pick loses since
+    // nobody got the job.
+    if(parts[0] === 'ELECTION_COMMISSIONER'){
+      const side = parts[1]; // 'yes' or 'no'
+      if(side === 'yes') return 'LOST';
+      if(side === 'no') return 'WON';
+      return null;
+    }
+    if(parts[0] === 'ELECTION_COMMISSIONER_WHO') return 'LOST';
     if(parts[0] !== 'H2H') return null;
     const side = parts[1]; // 'res-a' or 'res-b'
     const round = parseInt(parts[2].replace('R',''), 10);
@@ -1423,14 +1433,14 @@
     const commissionerRows = ELECTION_CANDIDATES.map((name, i) => `
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 16px;${i<n-1?'border-bottom:1px solid #3d3d3d;':''}">
         <div style="display:flex;align-items:center;gap:6px;font-weight:600;">${teamLogo(name,18)}${esc(name)}</div>
-        <div style="width:90px;flex-shrink:0;">${priceOnlyButton('ELECTION_COMMISSIONER_WHO|'+name, name+' to be the commissioner', toOdds(commissionerChances[name]))}</div>
+        <div style="width:90px;flex-shrink:0;">${priceOnlyButton('ELECTION_COMMISSIONER_WHO|'+name, name+' to be the commissioner', liveOdds(commissionerChances[name]))}</div>
       </div>`).join('');
 
     return `
       <div class="bb-card" style="background:linear-gradient(135deg,#1a2438,#1a1a1a);border-color:#2a3a5a;margin-bottom:16px;text-align:center;padding:1.25rem;">
         <div style="font-size:clamp(19px, calc(19px + 0.4vw), 22px);letter-spacing:0.05em;color:#7fa8e0;text-transform:uppercase;font-weight:700;">Eliza Committee Election</div>
         <div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-top:4px;">${ELECTION_SEATS} seats &middot; ${n} candidates &middot; every Eliza participant can tick up to ${ELECTION_SEATS} choices on their ballot</div>
-        <div style="font-size:clamp(15px, calc(15px + 0.4vw), 18px);color:${state.electionBettingOpen?'var(--bb-ok)':'#c0604f'};margin-top:8px;">${state.electionBettingOpen?'Voting is live \u2014 odds may move as the picture becomes clearer, and settle once results are announced.':'Betting is closed on the board election results \u2014 the Commissioner markets remain, and will close in turn once that\'s decided.'}</div>
+        <div style="font-size:clamp(15px, calc(15px + 0.4vw), 18px);color:${state.electionBettingOpen?'var(--bb-ok)':'#c0604f'};margin-top:8px;">${state.electionBettingOpen?'Voting is live \u2014 odds may move as the picture becomes clearer, and settle once results are announced.':'The election is finished \u2014 board seated, no commissioner appointed. Betting is closed on every election market.'}</div>
       </div>
       <h3>To be elected (any of the ${ELECTION_SEATS} seats)</h3>
       <div class="bb-card" style="padding:0;overflow:hidden;margin-bottom:16px;">${electedRows}</div>
@@ -1451,11 +1461,11 @@
       <div class="bb-card" style="padding:0;overflow:hidden;margin-bottom:16px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid #3d3d3d;">
           <div style="font-weight:600;">Board appoints a commissioner</div>
-          <div style="width:110px;flex-shrink:0;">${priceOnlyButton('ELECTION_COMMISSIONER|yes', 'Board appoints a commissioner: Yes', toOdds(65))}</div>
+          <div style="width:110px;flex-shrink:0;">${priceOnlyButton('ELECTION_COMMISSIONER|yes', 'Board appoints a commissioner: Yes', liveOdds(65))}</div>
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;">
           <div style="font-weight:600;">Board doesn't appoint one</div>
-          <div style="width:110px;flex-shrink:0;">${priceOnlyButton('ELECTION_COMMISSIONER|no', 'Board appoints a commissioner: No', toOdds(35))}</div>
+          <div style="width:110px;flex-shrink:0;">${priceOnlyButton('ELECTION_COMMISSIONER|no', 'Board appoints a commissioner: No', liveOdds(35))}</div>
         </div>
       </div>
       <h3>Commissioner &mdash; who?</h3>
@@ -4103,10 +4113,10 @@
       <div class="bb-card" style="margin-bottom:1.5rem;">
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
           <span class="bb-pill" style="background:${state.electionBettingOpen?'#1e3a2a':'#3a2a26'};color:${state.electionBettingOpen?'#7fbf8f':'#c0604f'};">${state.electionBettingOpen?'OPEN':'CLOSED'}</span>
-          <span style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">Board election markets (to be elected, most votes overall, turnout) are ${state.electionBettingOpen?'open for new bets.':'closed \u2014 odds still show, but every pick is suspended.'} Commissioner markets are unaffected by this and always stay open.</span>
+          <span style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">All election markets (to be elected, most votes overall, turnout, and both Commissioner markets) are ${state.electionBettingOpen?'open for new bets.':'closed \u2014 odds still show, but every pick is suspended.'}</span>
         </div>
         <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin:0 0 10px;">
-          Separate from the round-betting open/close toggle above \u2014 these are unrelated markets, so closing one never affects the other. Commissioner markets have no toggle of their own here since that vote hasn't happened yet; close those the same way once it has, or ask for that to be wired in.
+          Separate from the round-betting open/close toggle above \u2014 these are unrelated markets, so closing one never affects the other.
         </p>
         <button class="bb-btn ${state.electionBettingOpen?'':'ghost'}" id="toggle-election-betting-btn" style="padding:8px 14px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">${state.electionBettingOpen?'Close election betting':'Reopen election betting'}</button>
       </div>
