@@ -1077,6 +1077,39 @@
   // near-hopeless punt -- so every pick is framed as a positive "to win"
   // outcome, never "to lose". Capped at 10 total across everything.
   const FEATURED_BOOST_MULTIPLIER = 1.25; // the promotional boost on every Home-tab featured pick
+  // Mr Median Special: one random team per round from each of the given
+  // divisions gets a featured shot at "beat the league median" (see
+  // computeVsLeagueMedianMarket), boosted the same way as every other
+  // Home-tab featured pick. Division 3A/3B excluded for now -- too many new
+  // entrants this round distorts the odds too much to feature fairly.
+  // "Random" here means deterministic per round/division (a stable hash of
+  // the two, not Math.random()), so the same team stays featured all round
+  // rather than changing on every page load, and naturally reshuffles once
+  // the round advances.
+  // Only Eliza Cup (Div 1) for now -- Division 2A/2B rosters aren't
+  // finalised yet (Best of a Bad Bench's replacement still pending), and
+  // Division 3A/3B are excluded for the season regardless (see above).
+  // Add 'DIVISION 2A' and 'DIVISION 2B' to this list once their makeup is
+  // locked in -- everything else here already reads from H2H_DIVISIONS,
+  // so that's the only change needed.
+  const MR_MEDIAN_SPECIAL_DIVISIONS = ['ELIZA CUP (D1)'];
+  function hashStr(s){ let h=0; for(let i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))|0;} return Math.abs(h); }
+  function mrMedianSpecialTeam(div, round){
+    const teams = H2H_DIVISIONS[div] || [];
+    if(!teams.length) return null;
+    return teams[hashStr(div + '|R' + round) % teams.length];
+  }
+  function computeMrMedianSpecials(round){
+    return MR_MEDIAN_SPECIAL_DIVISIONS.map(div => {
+      const team = mrMedianSpecialTeam(div, round);
+      if(!team) return null;
+      const m = computeVsLeagueMedianMarket(team, round);
+      const base = toOdds(m.aWinPct);
+      if(base.suspended) return null;
+      const boostedOdds = Math.round(base.odds * FEATURED_BOOST_MULTIPLIER * 100) / 100;
+      return { div, team, baseOdds: base.odds, odds: boostedOdds };
+    }).filter(Boolean);
+  }
   function pickValueSide(m, roundTag, division, extra){
     const aIsDog = m.aWinPct < m.bWinPct;
     const dogPct = aIsDog ? m.aWinPct : m.bWinPct;
@@ -1532,7 +1565,6 @@
     }
 
     return `
-      ${renderElectionHub()}
       ${curtainDown() ? '' : `
       ${renderRoundCountdown()}
       ${renderHomeDigest()}
@@ -1546,6 +1578,22 @@
       ${fixtureCards}
       <h3>Featured futures</h3>
       ${futureCards}
+      <h3>Mr Median Special</h3>
+      ${(() => {
+        const specials = computeMrMedianSpecials(state.currentRound);
+        if(!specials.length) return `<div class="bb-card" style="text-align:center;padding:1.5rem;color:#9a9a9a;">No Mr Median Special this round.</div>`;
+        return specials.map(s => `
+          <div class="bb-card bb-featured-card" style="display:flex;align-items:stretch;gap:12px;margin-bottom:8px;">
+            <div class="bb-featured-label" style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:3px;">
+              <div style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:#9a9a9a;">${esc(s.div.replace(' (D1)',''))} \u2014 beat the league median</div>
+              <div style="font-weight:600;display:flex;align-items:center;gap:6px;">${teamLogo(s.team,18)}${esc(s.team)}</div>
+            </div>
+            <div style="width:88px;flex-shrink:0;display:flex;flex-direction:column;justify-content:center;gap:2px;">
+              <div style="font-size:15px;color:#6a6a6a;text-decoration:line-through;text-align:center;">${s.baseOdds.toFixed(2)}</div>
+              ${priceOnlyButton('H2H_MEDIAN|'+s.team+'|R'+state.currentRound, 'R'+state.currentRound+': '+s.team+' to beat the league median (Special, boosted)', {odds:s.odds, suspended:false})}
+            </div>
+          </div>`).join('');
+      })()}
       <h3>Best value that actually won last round</h3>
       ${bestValueCard}
       <h3>Best winning bet last round</h3>
