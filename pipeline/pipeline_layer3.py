@@ -149,14 +149,19 @@ def run_pipeline(url, roster_path, round_dates_path, draft_dir,
         try:
             fetch_sheet_csv(alltime_url, alltime_csv_path)
         except Exception as e:
-            step(f"Roster check FAILED to fetch -- continuing with the existing roster unchanged: {e}")
+            step(f'Roster check FAILED to fetch -- stopping: {e}')
+            result = {'status': 'roster_check_failed', 'error': str(e), 'log': log}
+            write_run_report(draft_dir, run_id, result)
+            return result
         else:
             data_dir = os.path.dirname(roster_path) or '.'
             try:
                 changed, summary = sync_roster_if_changed(alltime_csv_path, data_dir, draft_dir)
             except Exception as e:
-                step(f"Roster sync FAILED -- continuing with the existing roster unchanged, "
-                     f"this needs a human look: {e}")
+                step(f"Roster sync FAILED -- stopping before publishing odds: {e}")
+                result = {'status': 'roster_sync_failed', 'error': str(e), 'log': log}
+                write_run_report(draft_dir, run_id, result)
+                return result
             else:
                 if changed:
                     step("Roster change detected -- using the freshly-synced files for this run")
