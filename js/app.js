@@ -1,3 +1,4 @@
+
 (async function(){
   // Captured here (top-level, outside the render cycle) because the
   // beforeinstallprompt event can fire at any time before the user ever
@@ -79,6 +80,11 @@
       // an empty object is the legitimate pre-season state -- nothing to validate yet
       if(vals.length && !vals.every(isArray)) return 'should be {team: [scores]}, but found something else';
     }
+    if(name === 'roster_rules'){
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(data.freeze_date || '')) return 'needs a freeze_date (YYYY-MM-DD)';
+      const r = data.fa_cup_preliminary_calendar_round;
+      if(r !== null && (!Number.isInteger(r) || r < 1 || r > 26)) return 'preliminary round must be null or a league round 1-26';
+    }
     if(name === 'aleague_round_projection'){
       const vals = Object.values(data);
       if(vals.length !== 26) return 'should have exactly 26 rounds, found ' + vals.length;
@@ -88,7 +94,7 @@
     return null;
   }
   async function loadAllData(){
-    const files = ['futures','h2h_history','h2h_divisions','h2h_shift','h2h_cup_shift','h2h_variance_widen','h2h_schedule','leading_at','special_markets','h2h_record','cup_calendar','carry_balances','round_dates','div23_schedule_exceptions','real_results','aleague_round_projection'];
+    const files = ['futures','h2h_history','h2h_divisions','h2h_shift','h2h_cup_shift','h2h_variance_widen','h2h_schedule','leading_at','special_markets','h2h_record','cup_calendar','carry_balances','round_dates','div23_schedule_exceptions','real_results','aleague_round_projection','roster_rules'];
     const failures = [];
     const results = await Promise.all(files.map(async name => {
       const path = './data/' + name + '.json';
@@ -128,6 +134,11 @@
       throw new Error('Failed to load: ' + failures.join('; '));
     }
     files.forEach((name, i) => { DATA[name] = results[i]; });
+    for(const [div, teams] of Object.entries(DATA.h2h_divisions)){
+      const priced = DATA.futures.divisions?.[div]?.win_div_pct || [];
+      if(teams.some(t => !priced.some(row => row.team === t)))
+        throw new Error('futures.json is missing current '+div+' teams; regenerate odds before publishing this roster');
+    }
   }
 
   try {
@@ -146,6 +157,9 @@
   const RODDY_LEADING_AT = DATA.leading_at.roddy_leading_at;
   const H2H_HISTORY = DATA.h2h_history;
   const H2H_DIVISIONS = DATA.h2h_divisions;
+  const ROSTER_RULES = DATA.roster_rules;
+  const DIV3_CONFERENCES = ['DIVISION 3A','DIVISION 3B','DIVISION 3C'].filter(d => (H2H_DIVISIONS[d]||[]).length);
+  const TOTAL_TEAMS = Object.values(H2H_DIVISIONS).reduce((n, teams) => n + teams.length, 0);
   // Eliza committee election hub -- see renderElectionHub below. Candidates
   // are real Eliza teams, so their logos/names double as the ballot names
   // once nominations close. 7 confirmed, 3 more expected (not yet locked
@@ -251,10 +265,14 @@
       const ov = overrides[round];
       return ov ? { stage: ov, overridden: true } : null;
     }
-    const stage = (CUP_CALENDAR[CUP_CALENDAR_KEY[comp]] || {})[round];
+    const extra = comp === 'FA CUP' && TOTAL_TEAMS > 62 &&
+      ROSTER_RULES.fa_cup_preliminary_calendar_round === Number(round);
+    const stage = extra ? 'Preliminary Round' : (CUP_CALENDAR[CUP_CALENDAR_KEY[comp]] || {})[round];
     return stage ? { stage, overridden: false } : null;
   }
   function getCalendarDefault(comp, round){
+    if(comp === 'FA CUP' && TOTAL_TEAMS > 62 &&
+       ROSTER_RULES.fa_cup_preliminary_calendar_round === Number(round)) return 'Preliminary Round';
     return (CUP_CALENDAR[CUP_CALENDAR_KEY[comp]] || {})[round] || null;
   }
   const CARRY_BALANCES = DATA.carry_balances; // {teamName: {carry, historicalRecord}}
@@ -556,10 +574,10 @@
   // Divisions/competitions reuse the same colours as their tab ribbons, for
   // visual consistency; anything not in this list (i.e. every team) gets a
   // deterministic colour derived from its own name instead, so the same team
-  // always gets the same colour without needing a lookup table for all 62.
+  // always gets the same colour without needing a lookup table for the whole roster.
   const KNOWN_ENTITY_COLORS = {
     'ELIZA CUP (D1)': '#28427c', 'DIVISION 2A': '#bc3532', 'DIVISION 2B': '#990000',
-    'DIVISION 3A': '#6aa84f', 'DIVISION 3B': '#274e13', 'FA CUP': '#0a2f85', 'ECL': '#111111', 'RODDY': '#ffdd00',
+    'DIVISION 3A': '#6aa84f', 'DIVISION 3B': '#274e13', 'DIVISION 3C': '#3c8565', 'FA CUP': '#0a2f85', 'ECL': '#111111', 'RODDY': '#ffdd00',
   };
   function logoColor(name){
     if(KNOWN_ENTITY_COLORS[name]) return KNOWN_ENTITY_COLORS[name];
@@ -2123,6 +2141,7 @@
     if(tabName === 'DIVISION 2B') return 'div-2b';
     if(tabName === 'DIVISION 3A') return 'div-3a';
     if(tabName === 'DIVISION 3B') return 'div-3b';
+    if(tabName === 'DIVISION 3C') return 'div-3c';
     if(tabName === 'FA CUP') return 'div-facup';
     if(tabName === 'ECL') return 'div-ecl';
     if(tabName === 'RODDY') return 'div-roddy';
@@ -2177,7 +2196,7 @@
     return desktopRow + mobileNav;
   }
 
-  const DIV3_TABS = ['DIVISION 3A', 'DIVISION 3B'];
+  const DIV3_TABS = DIV3_CONFERENCES;
   function futuresMarketTabs(){
     return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">' +
       Object.entries(FUTURES.market_labels).filter(([key]) =>
@@ -2535,9 +2554,9 @@
   // (checkPerfectSection, computeTippingTotals, resolution, etc.) treats
   // it exactly like a real opponent, with zero changes needed anywhere
   // else in the scoring pipeline.
-  const MR_MEDIAN_TIERS = { DIV2: ['DIVISION 2A','DIVISION 2B'], DIV3: ['DIVISION 3A','DIVISION 3B'] };
+  const MR_MEDIAN_TIERS = { DIV2: ['DIVISION 2A','DIVISION 2B'], DIV3: DIV3_CONFERENCES };
   function isMrMedianWeek(div, round){
-    return round === 1 && (div === 'DIVISION 2A' || div === 'DIVISION 2B' || div === 'DIVISION 3A' || div === 'DIVISION 3B');
+    return round === 1 && (MR_MEDIAN_TIERS.DIV2.includes(div) || DIV3_CONFERENCES.includes(div));
   }
   // Only computes (and only overwrites REAL_RESULTS) once every team in
   // the combined tier actually has a score in for that round -- an
@@ -2575,20 +2594,19 @@
   // weekly tipping leaderboard entirely. Winner slots are single-team
   // picks; relegation/promotion slots are multi-team, since several teams
   // go down or up together. Promotion pools span both conferences of a
-  // division (2A+2B share one pool of 4, 3A+3B share one pool of 6) since
+  // division (2A+2B share four places, all current Div 3 conferences share six) since
   // that's how promotion actually works; relegation is per-conference,
   // since each conference relegates its own bottom teams independently.
   const PRESEASON_SLOTS = [
     { key: 'winner|ELIZA CUP (D1)', label: 'Eliza Cup winner', divs: ['ELIZA CUP (D1)'], marketKey: 'win_div_pct', count: 1 },
     { key: 'winner|DIVISION 2A', label: 'Division 2A winner', divs: ['DIVISION 2A'], marketKey: 'win_div_pct', count: 1 },
     { key: 'winner|DIVISION 2B', label: 'Division 2B winner', divs: ['DIVISION 2B'], marketKey: 'win_div_pct', count: 1 },
-    { key: 'winner|DIVISION 3A', label: 'Division 3A winner', divs: ['DIVISION 3A'], marketKey: 'win_div_pct', count: 1 },
-    { key: 'winner|DIVISION 3B', label: 'Division 3B winner', divs: ['DIVISION 3B'], marketKey: 'win_div_pct', count: 1 },
+    ...DIV3_CONFERENCES.map(d => ({ key: 'winner|'+d, label: d.replace('DIVISION','Division')+' winner', divs: [d], marketKey: 'win_div_pct', count: 1 })),
     { key: 'relegated|ELIZA CUP (D1)', label: 'Eliza Cup relegation', divs: ['ELIZA CUP (D1)'], marketKey: 'relegation_pct', count: 4 },
     { key: 'relegated|DIVISION 2A', label: 'Division 2A relegation', divs: ['DIVISION 2A'], marketKey: 'relegation_pct', count: 3 },
     { key: 'relegated|DIVISION 2B', label: 'Division 2B relegation', divs: ['DIVISION 2B'], marketKey: 'relegation_pct', count: 3 },
     { key: 'promoted|DIVISION 2', label: 'Division 2 promotion (2A + 2B)', divs: ['DIVISION 2A','DIVISION 2B'], marketKey: 'promotion_pct', count: 4 },
-    { key: 'promoted|DIVISION 3', label: 'Division 3 promotion (3A + 3B)', divs: ['DIVISION 3A','DIVISION 3B'], marketKey: 'promotion_pct', count: 6 },
+    { key: 'promoted|DIVISION 3', label: 'Division 3 promotion ('+DIV3_CONFERENCES.map(d => d.slice(-1)).join('+')+')', divs: DIV3_CONFERENCES, marketKey: 'promotion_pct', count: 6 },
     { key: 'winner|RODDY', label: 'Roddy winner', source: 'roddy', marketKey: 'roddy_win_pct', count: 1 },
     { key: 'winner|FA CUP', label: 'FA Cup winner', source: 'fa_cup_markets', marketKey: 'win_pct', count: 1 },
     { key: 'winner|ECL', label: 'ECL winner', source: 'ecl_markets', marketKey: 'win_pct', count: 1 },
@@ -2607,14 +2625,14 @@
   const TIPPING_SECTIONS = [
     { key: 'ELIZA', label: 'Eliza', divs: ['ELIZA CUP (D1)'] },
     { key: 'DIV2', label: 'Div 2 (A+B)', divs: ['DIVISION 2A', 'DIVISION 2B'] },
-    { key: 'DIV3', label: 'Div 3 (A+B)', divs: ['DIVISION 3A', 'DIVISION 3B'] },
+    { key: 'DIV3', label: 'Div 3 ('+DIV3_CONFERENCES.map(d => d.slice(-1)).join('+')+')', divs: DIV3_CONFERENCES },
     { key: 'ECL', label: 'ECL', divs: ['ECL'] },
     { key: 'FACUP', label: 'FA Cup', divs: ['FA CUP'] },
   ];
   const TIPPING_DIVS = TIPPING_SECTIONS.flatMap(s => s.divs);
   // Perfect-round reward: 50 clams, real balance, EACH -- not a leaderboard
   // placement, so multiple people can independently earn this in the same
-  // week. League sections (Eliza, Div2 A+B combined, Div3 A+B combined)
+  // week. League sections (Eliza, Div2 A+B combined, all current Div3 conferences combined)
   // qualify every week. FA Cup and ECL qualify only for their early-stage
   // rounds specifically (FA Cup: Round of 64/32/16; ECL: match days 1-3),
   // not once the knockout stages (quarter-final onward) begin.
@@ -3018,7 +3036,7 @@
   function renderPrizesTab(){
     const description = `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:14px;">Every reward below pays real clams, straight into your balance the moment it's earned \u2014 check My Bets \u2192 Balance history for the full record. A dead heat splits the amount between everyone tied, rounded UP, so a 3-way tie for 10 clams pays 4 each, not 3.33.</p>` +
       prizeCard('Perfect round', `${TIP_REWARD_AMOUNT} clams each`,
-        `Confirm every fixture in a section and get all of them right that week. Not a leaderboard placement \u2014 anyone who does it earns it independently, even several people in the same week. Applies to Eliza Cup, Div 2 (2A+2B combined), and Div 3 (3A+3B combined) every week except their playoff rounds. For FA Cup, only Round of 64/32/16 qualify; for ECL, only Matchdays 1-3 \u2014 the knockout stages onward don't count.`,
+        `Confirm every fixture in a section and get all of them right that week. Not a leaderboard placement \u2014 anyone who does it earns it independently, even several people in the same week. Applies to Eliza Cup, Div 2 (2A+2B combined), and Div 3 (all current conferences combined) every week except their playoff rounds. For FA Cup, only Round of 64/32/16 qualify; for ECL, only Matchdays 1-3 \u2014 the knockout stages onward don't count.`,
         `Example: you tip all 7 Eliza Cup fixtures one week and every one comes in \u2014 ${TIP_REWARD_AMOUNT} clams, regardless of anyone else's results.`) +
       prizeCard('Weekly leaderboard \u2014 per section', `${WEEKLY_SECTION_REWARD_AMOUNT} clams each side`,
         `Top the odds table OR the correct-picks table for one section (Eliza, Div 2, or Div 3) that week. Both are separately, stackably rewarded \u2014 topping both pays both. Needs at least ${WEEKLY_MIN_CORRECT_PCT*100}% of your tips correct that week to qualify, so one lucky high-odds tip on an otherwise poor week can't win it.`,
@@ -3502,7 +3520,7 @@
     const query = (state.teamDirectoryQuery || '').trim().toLowerCase();
     const all = allTeamsAlphabetical();
     const filtered = query ? all.filter(t => t.toLowerCase().includes(query)) : all;
-    // Grouped by first letter, since a flat 62-team list is a long scroll
+    // Grouped by first letter, since the team list grows with the roster
     // otherwise -- letter headers give a quick visual anchor.
     const groups = {};
     filtered.forEach(t => {
@@ -5494,7 +5512,7 @@
       } else if(state.futuresSubTab === 'FA CUP'){
         body = stripe + futuresSubTabBar() + cupMarketTabs('fa_cup_labels') + sectionRibbon() +
           (state.futureMarketTab === 'fixtures' ? renderCupFixtures('FA CUP') :
-            `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:10px;">Real Round of 64 draw from the 26/27 file: 62 entrants plus confirmed byes for Big Mac FC and Harvey Frekes. No matches played yet, so the whole bracket is simulated.</p>` +
+            `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:10px;">${TOTAL_TEAMS} current entrants. ${TOTAL_TEAMS > 62 ? 'An additional preliminary round is required; check the cup calendar and fixtures before betting.' : 'Round of 64 is the first scheduled cup stage.'} Futures must be regenerated after roster changes.</p>` +
             `<div id="outcomes-list">${cupOutcomesList('fa_cup_markets', state.futureMarketTab)}</div>`);
       } else if(state.futuresSubTab === 'ECL'){
         body = stripe + futuresSubTabBar() + cupMarketTabs('ecl_labels') + sectionRibbon() +
@@ -5552,17 +5570,19 @@
       if(p.type === 'fut'){
         places = placesCountFor(p.div, p.marketKey);
         if(places === null) continue;
-        // Roddy is cross-divisional -- not one of the 5 regular divisions
-        // in H2H_DIVISIONS, so it needs its own confirmed total (62, the
-        // full roster across every division) rather than silently getting
-        // skipped for having an unknown size.
-        totalTeams = p.div === 'RODDY' ? 62 : (H2H_DIVISIONS[p.div] || []).length;
+        // Promotion places are shared across every active conference.
+        const promoPool = promotionPoolKey(p.div);
+        totalTeams = p.div === 'RODDY' ? TOTAL_TEAMS :
+          p.marketKey === 'promotion_pct' ? Object.entries(H2H_DIVISIONS)
+            .filter(([name]) => promotionPoolKey(name) === promoPool)
+            .reduce((count, [,teams]) => count + teams.length, 0) :
+          (H2H_DIVISIONS[p.div] || []).length;
         if(!totalTeams) continue;
         poolKey = (p.marketKey === 'promotion_pct' ? promotionPoolKey(p.div) : p.div) + '|' + p.marketKey;
       } else if(p.type === 'facup'){
         places = FA_CUP_PLACES[p.marketKey];
         if(places === undefined) continue;
-        totalTeams = FA_CUP_TOTAL_ENTRANTS;
+        totalTeams = TOTAL_TEAMS;
         poolKey = 'FACUP|' + p.marketKey;
       } else if(p.type === 'ecl'){
         places = ECL_PLACES[p.marketKey];
@@ -5630,14 +5650,15 @@
   }
   // FA Cup's bracket places, verified directly against the pipeline's
   // simulation code (build_fa_cup_bracket / simulate_fa_cup_bracket) --
-  // Round of 64 entry, standard knockout halving down to the Final.
+  // The preliminary round changes the number of entrants, but these
+  // later-stage place counts remain 32/16/8/4/2.
   // ECL deliberately excluded from this and from the odds adjustment
   // below: no real simulation exists for it yet (its bracket data is a
   // known placeholder, not something with a confirmed entrant count) --
   // guessing a number here would risk mispricing real multis rather than
   // just leaving ECL uncorrected until that's actually confirmed.
   const FA_CUP_PLACES = { reach_r32_pct: 32, reach_r16_pct: 16, reach_qf_pct: 8, reach_sf_pct: 4, reach_final_pct: 2 };
-  const FA_CUP_TOTAL_ENTRANTS = 64;
+
   // ECL now has real, confirmed simulation logic (simulate_ecl_market) --
   // a fixed 12-team field (9 Eliza Cup + 3 Division 2), 3-matchday league
   // phase, top 8 advance to a seeded knockout bracket. No longer excluded
@@ -6645,7 +6666,7 @@
   // machinery the rest of the platform already relies on, rather than a
   // parallel, tipping-specific slip implementation. divs is always an
   // array so the same function covers a single-division section (Eliza,
-  // ECL, FA Cup) and a combined one (Div 2 A+B, Div 3 A+B) identically --
+  // ECL, FA Cup) and a combined one (Div 2 A+B, Div 3 conferences) identically --
   // and, for the "entire field" option, every section at once.
   function makeMultiFromTips(divs, stake){
     if(!state.user || !state.tippingData) return; // defensive -- shouldn't be reachable via the UI (the button only renders once tips are confirmed, which itself requires login), but don't crash or silently proceed if it somehow is
