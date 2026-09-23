@@ -1,0 +1,49 @@
+name: Preseason roster watch
+on:
+  schedule:
+    - cron: '0 5 * * 2' # Tuesday UTC; script stops scheduled runs after freeze date
+  workflow_dispatch:
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  roster:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install pandas numpy requests
+      - name: Compare live registry and prepare draft files
+        env:
+          ALLTIME_URL: ${{ vars.ALLTIME_URL }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          test -n "$ALLTIME_URL" || { echo 'Set repository variable ALLTIME_URL'; exit 1; }
+          MANUAL=""
+          if [ "$EVENT_NAME" = 'workflow_dispatch' ]; then MANUAL="--manual"; fi
+          python pipeline/roster_watch.py --alltime-url "$ALLTIME_URL" --data-dir data --draft-dir draft $MANUAL
+          echo "changed=$(cat draft/roster-watch-changed.txt 2>/dev/null || echo false)" >> "$GITHUB_ENV"
+      - name: Open draft roster PR
+        if: env.changed == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          title: "Roster update for review - ${{ github.run_id }}"
+          body-path: draft/roster-pr-body.md
+          branch: roster-watch/${{ github.run_id }}
+          add-paths: |
+            draft/admin_teams.json
+            draft/h2h_divisions.json
+            draft/h2h_schedule.json
+            draft/team_market_coeffs.json
+            draft/roddy_history.json
+            draft/h2h_shift.json
+            draft/h2h_cup_shift.json
+            draft/h2h_variance_widen.json
+            draft/carry_balances.json
+            draft/futures.json
+            draft/fa_cup_draw.json
+            draft/h2h_record.json
+            draft/real_results.json
+          commit-message: "Draft roster refresh"
