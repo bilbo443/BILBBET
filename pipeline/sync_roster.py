@@ -78,6 +78,8 @@ silently leaving them stale or silently slowing every check down.
 """
 import json
 import os
+from roster_format import validate_roster
+from cup_markets import regenerate_roddy_and_cup
 
 from simulation_adapter import round_robin_schedule, simulate_division_futures, N_SIM
 from diff_report import pct_to_odds
@@ -87,6 +89,7 @@ DIVISION_TIER_TO_LIVE_NAME = {
     'ELIZA CUP': 'ELIZA CUP (D1)',
     'DIVISION 2A': 'DIVISION 2A', 'DIVISION 2B': 'DIVISION 2B',
     'DIVISION 3A': 'DIVISION 3A', 'DIVISION 3B': 'DIVISION 3B',
+    'DIVISION 3C': 'DIVISION 3C',
 }
 
 
@@ -96,12 +99,17 @@ def load_current_roster(admin_teams):
     Takes an already-loaded admin_teams list (not a path), so callers can
     pass either the live version or a freshly-fetched draft version."""
     roster = {v: [] for v in DIVISION_TIER_TO_LIVE_NAME.values()}
+    ids = [t.get('id') for t in admin_teams]
+    if len(ids) != len(set(ids)) or any(i is None for i in ids):
+        raise ValueError('Registry contains duplicate or missing team IDs')
     for t in admin_teams:
         status = t.get('status')
-        if not isinstance(status, str) or status not in DIVISION_TIER_TO_LIVE_NAME:
+        if status in (None, '', 'INACTIVE'):
             continue
+        if not isinstance(status, str) or status not in DIVISION_TIER_TO_LIVE_NAME:
+            raise ValueError(f"Unknown active division status {status!r} for {t.get('name')!r}")
         roster[DIVISION_TIER_TO_LIVE_NAME[status]].append(t['name'].strip())
-    return roster
+    return {div: teams for div, teams in roster.items() if teams or div != 'DIVISION 3C'}
 
 
 def diff_admin_teams(old_teams, new_teams):
@@ -330,11 +338,14 @@ def sync_carry_balances(new_roster, admin_teams, data_dir, draft_dir):
 
 def sync_futures_divisions(new_roster, team_coeffs, scale, history, data_dir, draft_dir, n_sim=N_SIM, seed=1):
     futures = json.load(open(os.path.join(data_dir, 'futures.json')))
+    futures['divisions'] = {div: futures['divisions'].get(div, {}) for div in new_roster}
+    for div, markets in futures['divisions'].items():
+        markets.pop('relegation_pct' if div.startswith('DIVISION 3') else 'bottom3_pct', None)
     div_keys_count = lambda div: {
         'win_div_pct': 1, 'top3_pct': 3,
         'top_half_pct': len(new_roster[div]) // 2, 'bottom_half_pct': len(new_roster[div]) // 2,
         'wooden_spoon_pct': 1,
-        **({'bottom3_pct': 3} if div in ('DIVISION 3A', 'DIVISION 3B') else {'relegation_pct': 4 if div.startswith('ELIZA') else 3}),
+        **({'bottom3_pct': 3} if div.startswith('DIVISION 3') else {'relegation_pct': 4 if div.startswith('ELIZA') else 3}),
     }
 
     def floor_and_renormalize(entries, target_total, floor_pct=0.5, max_passes=10):
@@ -367,7 +378,20 @@ def sync_futures_divisions(new_roster, team_coeffs, scale, history, data_dir, dr
             market_rows.sort(key=lambda r: r['odds'])
             futures['divisions'].setdefault(div, {})[key] = market_rows
 
+    # All current conference promotion rows must be refreshed together.
+    for div, entries in by_div.items():
+        if div.startswith(('DIVISION 2', 'DIVISION 3')):
+            futures['divisions'].setdefault(div, {})['promotion_pct'] = [
+                {'team': r['team'], 'odds': pct_to_odds(r['promotion_pct']) or 1001,
+                 'suspended': pct_to_odds(r['promotion_pct']) is None} for r in entries]
+    all_teams = {t for teams in new_roster.values() for t in teams}
+    missing_ecl = set(futures.get('ecl_field', [])) - all_teams
+    if missing_ecl:
+        raise ValueError(f'ECL field contains departed teams: {sorted(missing_ecl)}')
+    futures['roddy'], futures['fa_cup_markets'], draw = regenerate_roddy_and_cup(
+        new_roster, team_coeffs, scale, history, n_sim=n_sim, seed=seed)
     json.dump(futures, open(os.path.join(draft_dir, 'futures.json'), 'w'))
+    json.dump(draw, open(os.path.join(draft_dir, 'fa_cup_draw.json'), 'w'))
     return futures
 
 
@@ -449,11 +473,18 @@ def sync_roster(admin_teams, data_dir='.', draft_dir='.'):
     regenerates every dependent file from data_dir into draft_dir."""
     os.makedirs(draft_dir, exist_ok=True)
     new_roster = load_current_roster(admin_teams)
+    rules_path = os.path.join(data_dir, 'roster_rules.json')
+    rules = json.load(open(rules_path))
+    validate_roster(new_roster, rules['freeze_date'],
+                    two_max=rules['division3_two_conference_max'],
+                    three_min=rules['division3_three_conference_min'],
+                    three_max=rules['division3_three_conference_max'])
     sync_h2h_divisions(new_roster, data_dir, draft_dir)
     sync_h2h_schedule(new_roster, admin_teams, data_dir, draft_dir)
     tmc, history = sync_coefficients_and_pools(new_roster, admin_teams, data_dir, draft_dir)
     sync_carry_balances(new_roster, admin_teams, data_dir, draft_dir)
-    sync_futures_divisions(new_roster, tmc['team_coeffs'], tmc['scale'], history, data_dir, draft_dir)
+    sync_futures_divisions(new_roster, tmc['team_coeffs'], tmc['scale'], history, data_dir, draft_dir,
+                           seed=rules['fa_cup_draw_seed'])
     sync_h2h_record(admin_teams, data_dir, draft_dir)
     sync_real_results(admin_teams, data_dir, draft_dir)
     json.dump(admin_teams, open(os.path.join(draft_dir, 'admin_teams.json'), 'w'))
@@ -475,5 +506,10 @@ def sync_roster_if_changed(alltime_csv_path, data_dir, draft_dir):
     if summary is None:
         return False, None
 
-    sync_roster(fresh_teams, data_dir=data_dir, draft_dir=draft_dir)
-    return True, f"{summary}\n\n(Source sheet's most recent season column: {season_label})"
+    roster = sync_roster(fresh_teams, data_dir=data_dir, draft_dir=draft_dir)
+    count = sum(len(teams) for teams in roster.values())
+    div3 = ', '.join(f'{d}: {len(roster[d])}' for d in ('DIVISION 3A', 'DIVISION 3B', 'DIVISION 3C') if d in roster)
+    note = (f'Current field: {count} entrants; Division 3: {div3}. '
+            + ('Preliminary FA Cup round required; set its calendar date and review the draw. ' if count > 62 else '')
+            + ('Three-conference promotion bracket needs organiser confirmation.' if roster.get('DIVISION 3C') else ''))
+    return True, f"{summary}\n\n{note}\n\n(Source sheet's most recent season column: {season_label})"
