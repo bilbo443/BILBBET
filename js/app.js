@@ -508,7 +508,7 @@
     mobileNavOpen: false,
     contactUsModalOpen: false, feedbackCategory: '', feedbackOtherText: '', feedbackSubmitted: false,
     formModalOpen: false, formModalTeam: null,
-    tippingSubTab: 'PICKS', tippingSection: 'ELIZA', tippingRound: null, tippingViewRound: null, tippingData: null, tippingPending: {}, tippingAllPicks: null,
+    tippingSubTab: 'PICKS', tippingSection: 'ELIZA', tippingRound: null, tippingViewRound: null, tippingData: null, tippingPending: {}, tippingAllPicks: null, round1LegacyTips: false,
     tippingRewardChecked: null, tippingRewardBanner: null, tipReminderStatus: null,
     perfectRoundStatus: {}, // cache keyed by `${username}|${round}|${sectionKey}` -- true only, never explicitly false/missed (see loadPerfectRoundStatus)
     preseasonData: null, preseasonPending: {}, preseasonLeaderboard: null, preseasonResults: null, preseasonAllPicks: null, openHelpTip: null, homeTippingNudge: null, txHistory: null, txHistoryExpanded: false, recentWinners: null, trashTalkBanner: null,
@@ -2515,16 +2515,16 @@
   }
 
   const fixtureMarketCache = {};
-  function getFixtureMarkets(div, round){
-    const key = div + '|' + round;
+  function getFixtureMarkets(div, round, forTipping){
+    const key = div + '|' + round + (forTipping ? '|tipping' : '');
     if(!fixtureMarketCache[key]){
       // An imported Round 1 Eliza Cup fixture list (admin panel) takes
       // precedence over the projected schedule for that specific slot.
-      const useOverride = round === 1 && div.indexOf('ELIZA') !== -1 &&
+      const useOverride = !forTipping && round === 1 && div.indexOf('ELIZA') !== -1 &&
         state.r1FixtureOverride && state.r1FixtureOverride.length;
       const pairs = useOverride
         ? state.r1FixtureOverride.map(f => [f.teamA, f.teamB])
-        : getTippableFixtures(div, round);
+        : (!forTipping && round === 1 && div === 'ELIZA CUP (D1)' ? [] : getTippableFixtures(div, round));
       fixtureMarketCache[key] = pairs.map(([a,b]) => {
         // 'MR MEDIAN' isn't a real team -- has no coefficient/strength data
         // for the real simulation to run against, so this is a plain,
@@ -2532,7 +2532,7 @@
         // toOdds conversion and margin as every other market, so the
         // displayed price looks and behaves consistently with everything
         // else, just reflecting a genuinely even proposition).
-        if(b === 'MR MEDIAN') return { teamA: a, teamB: b, aWinPct: 50, bWinPct: 50 };
+        if(b.startsWith('MR MEDIAN ')) return { teamA: a, teamB: b, aWinPct: 50, bWinPct: 50 };
         return computeH2HMarket(a, b, round);
       });
     }
@@ -2561,34 +2561,59 @@
   // cup fixtures (admin-set per round, stored with their own round number
   // rather than schedule-indexed) into the same [teamA, teamB] shape, so
   // every other tipping function can treat both sources identically.
-  // Mr Median: a for-fun, week-1-only alternative for Div 2/3, whose real
-  // round 1 has no division fixtures at all (see hasNoFixtures). Instead
+  // Mr Median: a for-fun, week-1-only tipping alternative while Eliza's
+  // draw is provisional and Div 2/3 have no regular division fixtures. Instead
   // of picking a head-to-head winner, a punter picks whether each team's
   // own score beats the combined tier's (both conferences together)
-  // median score that week. Implemented as an ordinary [team, 'MR MEDIAN']
-  // fixture pair -- once the median is computed and written into
-  // REAL_RESULTS as a synthetic team, every existing scoring function
+  // median score that week. Each tier gets its own synthetic opponent
+  // and score, so completing one tier cannot settle another tier's tips.
+  // Once that score is available, every existing scoring function
   // (checkPerfectSection, computeTippingTotals, resolution, etc.) treats
   // it exactly like a real opponent, with zero changes needed anywhere
   // else in the scoring pipeline.
-  const MR_MEDIAN_TIERS = { DIV2: ['DIVISION 2A','DIVISION 2B'], DIV3: DIV3_CONFERENCES };
+  const MR_MEDIAN_TIERS = { ELIZA: ['ELIZA CUP (D1)'], DIV2: ['DIVISION 2A','DIVISION 2B'], DIV3: DIV3_CONFERENCES };
+  function mrMedianTier(div){
+    if(div === 'ELIZA CUP (D1)') return 'ELIZA';
+    return div === 'DIVISION 2A' || div === 'DIVISION 2B' ? 'DIV2' : 'DIV3';
+  }
+  function mrMedianTeamCount(tier){
+    return MR_MEDIAN_TIERS[tier].reduce((count, div) => count + (H2H_DIVISIONS[div] || []).length, 0);
+  }
+  function mrMedianPickCap(tier){ return Math.floor(mrMedianTeamCount(tier) / 2); }
+  function mrMedianOpponent(div){ return 'MR MEDIAN ' + mrMedianTier(div); }
+  function mrMedianRewardTarget(div, round){
+    const tier = mrMedianTier(div);
+    const opponent = mrMedianOpponent(div);
+    const median = REAL_RESULTS[opponent]?.[round-1];
+    if(median == null) return null;
+    const teams = MR_MEDIAN_TIERS[tier].flatMap(d => H2H_DIVISIONS[d] || []);
+    const scores = teams.map(team => REAL_RESULTS[team]?.[round-1]);
+    if(scores.some(score => score == null)) return null;
+    // Equal-to-median results cannot be tipped as wins; ties can leave
+    // fewer winners than half the field, so keep the reward achievable.
+    return scores.filter(score => score > median).length || null;
+  }
   function isMrMedianWeek(div, round){
-    return round === 1 && (MR_MEDIAN_TIERS.DIV2.includes(div) || DIV3_CONFERENCES.includes(div));
+    return round === 1 && Object.values(MR_MEDIAN_TIERS).some(divs => divs.includes(div));
   }
   // Only computes (and only overwrites REAL_RESULTS) once every team in
   // the combined tier actually has a score in for that round -- an
   // incomplete median would be actively misleading, not just premature.
   function ensureMrMedianScore(div, round){
-    const tierKey = (div === 'DIVISION 2A' || div === 'DIVISION 2B') ? 'DIV2' : 'DIV3';
+    const tierKey = mrMedianTier(div);
     const divs = MR_MEDIAN_TIERS[tierKey];
     const teams = divs.flatMap(d => H2H_DIVISIONS[d] || []);
     const scores = teams.map(t => REAL_RESULTS[t] && REAL_RESULTS[t][round-1]).filter(s => s != null);
-    if(scores.length < teams.length) return; // not everyone's score is in yet
+    const opponent = mrMedianOpponent(div);
+    if(scores.length < teams.length){
+      if(REAL_RESULTS[opponent]) REAL_RESULTS[opponent][round-1] = null;
+      return; // not everyone's score is in yet
+    }
     scores.sort((a,b) => a-b);
     const mid = Math.floor(scores.length / 2);
     const median = scores.length % 2 === 0 ? (scores[mid-1] + scores[mid]) / 2 : scores[mid];
-    if(!REAL_RESULTS['MR MEDIAN']) REAL_RESULTS['MR MEDIAN'] = new Array(26).fill(null);
-    REAL_RESULTS['MR MEDIAN'][round-1] = median;
+    if(!REAL_RESULTS[opponent]) REAL_RESULTS[opponent] = new Array(26).fill(null);
+    REAL_RESULTS[opponent][round-1] = median;
   }
 
   function getTippableFixtures(key, round){
@@ -2597,7 +2622,7 @@
     }
     if(isMrMedianWeek(key, round)){
       ensureMrMedianScore(key, round); // computes and injects the tier's median score into REAL_RESULTS, if not already done and all scores are in
-      return (H2H_DIVISIONS[key] || []).map(team => [team, 'MR MEDIAN']);
+      return (H2H_DIVISIONS[key] || []).map(team => [team, mrMedianOpponent(key)]);
     }
     if(hasNoFixtures(key, round)) return [];
     return (H2H_SCHEDULE[key] && H2H_SCHEDULE[key][round-1]) || [];
@@ -2692,7 +2717,8 @@
         <div class="bb-tab ${state.tippingSubTab==='PRIZES'?'active':''}" data-tippingtab="PRIZES" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;">Prizes</div>
       </div>`;
     const intro = `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:10px;">Free to play, but topping it pays real clams \u2014 see the Prizes tab for the full breakdown. Correct tips score two ways: a straight tally, and what a 1-clam bet on that tip would have paid (upsets are worth more). A drawn fixture pays half credit either way \u2014 half the tally, half the odds \u2014 and never counts against a perfect round. Nothing saves until you hit Confirm, and you can come back and change your tips right up until this round locks.</p>` +
-      (FIXTURES_ARE_PLACEHOLDER ? `<div class="bb-card" style="background:#3a3320;margin-bottom:10px;padding:10px 12px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#e0d090;">\u26A0\uFE0F The weekly schedule shown here is a placeholder, not yet the real season draw \u2014 specific matchups may still change once the real draw is confirmed. Everything you tip still counts as normal; this notice will come down once the schedule is final.</div>` : '');
+      (FIXTURES_ARE_PLACEHOLDER && round !== 1 ? `<div class="bb-card" style="background:#3a3320;margin-bottom:10px;padding:10px 12px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#e0d090;">\u26A0\uFE0F The weekly schedule shown here is a placeholder, not yet the real season draw \u2014 specific matchups may still change once the real draw is confirmed. Everything you tip still counts as normal; this notice will come down once the schedule is final.</div>` : '') +
+      (round === 1 && state.round1LegacyTips ? `<div class="bb-card" style="background:#3a3320;margin-bottom:10px;padding:10px 12px;color:#e0d090;">Your earlier Round 1 fixture tips are saved separately. They do not count for Mr Median. Please select and confirm your Round 1 tips again.</div>` : '');
 
     if(state.tippingSubTab === 'PRESEASON'){
       return subTabs + renderPreseasonTab();
@@ -2745,9 +2771,12 @@
       renderSectionItem
     );
     const activeSection = TIPPING_SECTIONS.find(s => s.key === state.tippingSection) || TIPPING_SECTIONS[0];
-    const mrMedianNote = activeSection.divs.some(d => isMrMedianWeek(d, round))
+    const medianTier = activeSection.divs.find(d => isMrMedianWeek(d, round));
+    const medianCap = medianTier ? mrMedianPickCap(mrMedianTier(medianTier)) : 0;
+    const medianCount = medianTier ? mrMedianTeamCount(mrMedianTier(medianTier)) : 0;
+    const mrMedianNote = medianTier
       ? `<div class="bb-card" style="margin-bottom:1rem;padding:12px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);line-height:1.6;color:#cfcfcf;">
-          <strong style="color:#eee;">What's "Mr Median"?</strong> This tier's Round 1 has no real head-to-head fixtures yet, so instead you're predicting against the tier's own median \u2014 the middle score across all 24 teams in the combined tier (both conferences together) once the round's played. Tick the box next to any team you believe will score <em>above</em> that median \u2014 up to 12 ticks total. There's no way to predict a team loses; just leave it unticked if you don't fancy them. Get at least 12 right and it's treated exactly like a perfect round anywhere else.
+          <strong style="color:#eee;">What's "Mr Median"?</strong> Round 1 tips use this tier's median while Eliza's draw is provisional and Div 2/3 have no regular fixtures. The median is the middle score across all ${medianCount} teams${activeSection.divs.length > 1 ? ' in the combined tier' : ''} once everyone's score is in. Tick teams you expect to score <em>above</em> it, up to ${medianCap} picks. Correctly picking every team above the median earns the perfect-round reward; a tie at the median can reduce that number.
         </div>`
       : '';
 
@@ -2792,13 +2821,13 @@
 
     const sections = divsWithFixtures.map(div => {
       const fixtures = getTippableFixtures(div, round);
-      const markets = getFixtureMarkets(div, round);
+      const markets = getFixtureMarkets(div, round, true);
       const rows = fixtures.map(([teamA, teamB], i) => {
         const m = markets[i];
         const aOdds = toOdds(m.aWinPct), bOdds = toOdds(m.bWinPct);
         const key = div+'|'+i;
         const current = state.tippingPending[key];
-        if(teamB === 'MR MEDIAN'){
+        if(teamB.startsWith('MR MEDIAN ')){
           // Mr Median: a single "will this team beat the median" checkbox,
           // not a two-sided pick -- there's deliberately no way to predict
           // a team LOSES to the median, only whether you believe it wins.
@@ -3062,8 +3091,8 @@
         `Same three categories, across the whole combined competition (every division plus FA Cup and ECL). Gated by its own separate admin flag, so it can stay open even after individual sections have closed.`,
         `Example: the combined season is flagged closed and you lead all three categories \u2014 ${SEASONAL_OVERALL_REWARD_AMOUNT*3} clams.`) +
       prizeCard('Mr Median', 'Same as a normal week',
-        `Div 2 and Div 3's Round 1 has no real fixtures yet, so instead of picking a winner, you're predicting against the tier's own median \u2014 the middle score across all 24 combined-tier teams once the round's played. Tick up to ${MR_MEDIAN_PICK_CAP} teams you believe will score above that median. There's no picking a team to lose; you simply leave it unticked. Scored exactly like any other week: get at least 12 of your ticked teams right and it counts as a perfect round (${TIP_REWARD_AMOUNT} clams); it also counts toward that week's leaderboard prizes the same as any other round.`,
-        `Example: you tick 12 teams, all 12 beat the median \u2014 ${TIP_REWARD_AMOUNT} clams, same as a perfect round anywhere else.`) +
+        `Round 1 uses a separate median for Eliza, Div 2 and Div 3 instead of provisional Eliza pairings or nonexistent Div 2/3 fixtures. Tick teams you believe will beat their tier's median: up to ${mrMedianPickCap('ELIZA')} in Eliza, ${mrMedianPickCap('DIV2')} in Div 2 and ${mrMedianPickCap('DIV3')} in Div 3. Correctly picking every team above the median earns the perfect-round reward (${TIP_REWARD_AMOUNT} clams); ties at the median can reduce that number. These tips count toward the weekly leaderboard too.`,
+        `Example: you tick ${mrMedianPickCap('DIV3')} Div 3 teams, all beat that tier's median \u2014 ${TIP_REWARD_AMOUNT} clams.`) +
       prizeCard('Pre-season pick', `${PRESEASON_PICK_REWARD_AMOUNT} clams each`,
         `${PRESEASON_PICK_REWARD_AMOUNT} clams for every single pre-season prediction that comes in correct \u2014 not a leaderboard placement, so a correct division-winner pick, a correct relegation pick, and a correct promotion pick all pay independently and separately. Multi-team slots (relegation, promotion) only pay once that slot is fully, officially resolved.`,
         `Example: you correctly predict the Eliza Cup winner AND one of the four relegated teams \u2014 ${PRESEASON_PICK_REWARD_AMOUNT*2} clams (${PRESEASON_PICK_REWARD_AMOUNT} each), even though the other three relegation spots are still unknown.`) +
@@ -6059,7 +6088,13 @@
   // real betting system is the "make a multi" action once every fixture
   // in a chosen division is tipped, which pushes those exact picks into
   // the real slip for the punter to optionally place as an actual bet.
-  function tipStorageKey(username, round){ return 'bilbbet2_tips_' + username.toLowerCase() + '_R' + round; }
+  // The old Round 1 record used provisional fixtures. Keep it intact as an
+  // archive; a separate record prevents its index-based picks from being
+  // silently reinterpreted as Mr Median selections or scored as such.
+  function tipStorageKey(username, round){
+    const base = 'bilbbet2_tips_' + username.toLowerCase() + '_R' + round;
+    return round === 1 ? base + '_median_' + seasonKeyPart() : base;
+  }
   function preseasonStorageKey(username){ return 'bilbbet2_preseason_' + username.toLowerCase(); }
 
   async function loadPreseasonData(){
@@ -6118,7 +6153,9 @@
     state.tippingRound = round;
     const myUsername = state.user.username; // captured once -- state.user could change while the fetch below is in flight
     const data = await sget(tipStorageKey(myUsername, round));
+    const legacy = round === 1 && !data ? await sget('bilbbet2_tips_' + myUsername.toLowerCase() + '_R1') : null;
     if(!state.user || state.user.username !== myUsername) return; // a different user is logged in now -- this result no longer applies to anyone
+    state.round1LegacyTips = !!(legacy && legacy.picks && Object.keys(legacy.picks).length);
     state.tippingData = data || { round, picks: {} };
     state.tippingPending = { ...state.tippingData.picks }; // a working copy -- edits here don't touch the stored record until Confirm
     render();
@@ -6133,10 +6170,9 @@
     render();
   }
 
-  const MR_MEDIAN_PICK_CAP = 12;
-  // Check/uncheck, not a two-sided pick -- and capped at 12 across the
-  // COMBINED tier (both conferences together, matching how "beat the
-  // median" was scoped from the start), not 12 per conference.
+  // Check/uncheck, not a two-sided pick. The cap is half the current tier,
+  // shared across all its conferences; the old fixed 12 was impossible to
+  // achieve in Division 3 after its field shrank to 18 teams.
   function toggleMrMedianPick(div, fixtureIdx, team, odds){
     if(!state.user || !state.tippingData) return;
     const key = div + '|' + fixtureIdx;
@@ -6147,11 +6183,12 @@
       render();
       return;
     }
-    const tierKey = (div === 'DIVISION 2A' || div === 'DIVISION 2B') ? 'DIV2' : 'DIV3';
+    const tierKey = mrMedianTier(div);
     const tierDivs = MR_MEDIAN_TIERS[tierKey];
     const currentCount = Object.keys(state.tippingPending).filter(k => tierDivs.includes(k.split('|')[0])).length;
-    if(currentCount >= MR_MEDIAN_PICK_CAP){
-      alert(`You can only pick up to ${MR_MEDIAN_PICK_CAP} teams to beat the median.`);
+    const cap = mrMedianPickCap(tierKey);
+    if(currentCount >= cap){
+      alert(`You can only pick up to ${cap} teams to beat the median in this tier.`);
       render(); // snaps the checkbox back to unchecked -- the browser already visually toggled it before this handler ran
       return;
     }
@@ -6231,7 +6268,6 @@
     return eligibleStages.includes(fixtures[0].stage);
   }
 
-  const MR_MEDIAN_PERFECT_WEEK_THRESHOLD = 12;
   async function checkPerfectSection(username, round, section){
     const data = await sget(tipStorageKey(username, round));
     if(!data || !data.picks) return false;
@@ -6254,11 +6290,12 @@
         if(pick.team === winner) resolvedAndCorrect++;
       }
     }
-    // Mr Median week: deliberately "pick 12 of the 24 available", not
-    // "confirm everything" -- so perfect here means at least 12 correct,
-    // not literally every one of the 24 teams tipped and right.
-    if(section.divs.some(d => isMrMedianWeek(d, round))){
-      return resolvedAndCorrect >= MR_MEDIAN_PERFECT_WEEK_THRESHOLD;
+    // A strict-above-median result can have at most half the field as
+    // winners; use the current tier's size for the achievable reward target.
+    const medianDiv = section.divs.find(d => isMrMedianWeek(d, round));
+    if(medianDiv){
+      const target = mrMedianRewardTarget(medianDiv, round);
+      return target !== null && resolvedAndCorrect >= target;
     }
     // Requires every fixture to be BOTH confirmed and correctly resolved --
     // any unconfirmed or unresolved fixture keeps resolvedAndCorrect below
@@ -6693,7 +6730,7 @@
         const pick = state.tippingData.picks[div+'|'+i];
         if(!pick) continue;
         const [teamA, teamB] = fixtures[i];
-        if(teamB === 'MR MEDIAN'){ skipped++; continue; } // tipping-only mechanic, not a real fixture -- never becomes a real bet
+        if(teamB.startsWith('MR MEDIAN ')){ skipped++; continue; } // tipping-only mechanic, not a real fixture -- never becomes a real bet
         const side = pick.team === teamA ? 'a' : 'b';
         const id = 'H2H|res-'+side+'|R'+round+'|'+teamA+'|'+teamB;
         if(state.slip.some(s=>s.id===id)){ skipped++; continue; }
@@ -7175,7 +7212,7 @@
     const toggleTxHistory = $('[data-toggle-tx-history]');
     if(toggleTxHistory) toggleTxHistory.onclick = () => { state.txHistoryExpanded = !state.txHistoryExpanded; render(); };
     const logoutBtn = $('#logout-btn');
-    if(logoutBtn) logoutBtn.onclick = () => { forgetRememberedUsername(); state = {...state, screen:'main', user:null, username:'', pin:'', adminLoginMode:false, registeringMode:false, tosAgreed:false, error:'', info:'', loginModalOpen:false, slip:[], betMode:'multi', activeTab:'HOME', h2hMarket:null, h2hFixtureMarket:null, myBets:null, adminPunters:null, adminBets:null, novelty:null, statsData:null, tippingData:null, tippingPending:{}, tippingRound:null, tippingAllPicks:null, tippingLeaderboard:null, tipReminderStatus:null, tippingRewardChecked:null, tippingRewardBanner:null, preseasonData:null, preseasonPending:{}, preseasonAllPicks:null, preseasonLeaderboard:null, homeTippingNudge:null, txHistory:null, trashTalkBanner:null}; render(); };
+    if(logoutBtn) logoutBtn.onclick = () => { forgetRememberedUsername(); state = {...state, screen:'main', user:null, username:'', pin:'', adminLoginMode:false, registeringMode:false, tosAgreed:false, error:'', info:'', loginModalOpen:false, slip:[], betMode:'multi', activeTab:'HOME', h2hMarket:null, h2hFixtureMarket:null, myBets:null, adminPunters:null, adminBets:null, novelty:null, statsData:null, tippingData:null, tippingPending:{}, tippingRound:null, tippingAllPicks:null, round1LegacyTips:false, tippingLeaderboard:null, tipReminderStatus:null, tippingRewardChecked:null, tippingRewardBanner:null, preseasonData:null, preseasonPending:{}, preseasonAllPicks:null, preseasonLeaderboard:null, homeTippingNudge:null, txHistory:null, trashTalkBanner:null}; render(); };
     const openLoginBtn = $('#open-login-btn'); if(openLoginBtn) openLoginBtn.onclick = () => { state.loginModalOpen = true; state.adminLoginMode=false; state.error=''; state.info=''; render(); };
     const openTeamSearchBtn = $('#open-team-search-btn'); if(openTeamSearchBtn) openTeamSearchBtn.onclick = () => { state.teamDirectoryOpen = true; state.viewingTeamProfile = null; render(); };
     const closeTeamSearchBtn = $('#close-team-search'); if(closeTeamSearchBtn) closeTeamSearchBtn.onclick = () => { state.teamSearchOpen = false; state.teamSearchQuery=''; render(); };

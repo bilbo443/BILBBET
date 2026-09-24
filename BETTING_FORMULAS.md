@@ -415,7 +415,7 @@ that the newer frontend has been deployed or retested against live results.
   football simulations. `computeSuggestedResult` includes fixed board vote
   counts (17 voters), turnout and a No commissioner result. A tie for most
   votes or turnout exactly on the line yields no automatic suggestion.
-  - **Round 1 Mr Median tipping:** Eliza uses its own median instead of
+- **Round 1 Mr Median tipping:** Eliza uses its own median instead of
   provisional fixture pairings. Div 2A/2B and the current Div 3 conferences
   each share their own tier median. Each tier's score waits for all its real
   team scores; synthetic scores cannot settle another tier's tips. The pick

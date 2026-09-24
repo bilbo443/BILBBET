@@ -16,6 +16,8 @@ Until promotion rules are confirmed, the existing Division 2/3 promotion betting
 
 The FA Cup needs one additional round when the current roster exceeds 62 teams. Its preliminary round date and actual draw must be confirmed separately before publication.
 
+Round 1 tipping uses separate Mr Median contests for Eliza, Division 2 and Division 3. The Eliza tipping page does not use provisional fixture pairings even when a draw is imported close to kickoff; that import remains available for real H2H markets. Each tier waits for all its own scores and allows at most half its teams to be tipped above the median. The perfect-round target is the number of teams that actually finish strictly above the tier median. Earlier Round 1 fixture tips are retained separately and need to be submitted again in the new format.
+
 ## Publication checks
 
 1. Run the roster watcher and resolve active status and division discrepancies before the 9 October freeze.

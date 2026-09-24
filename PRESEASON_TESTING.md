@@ -600,9 +600,12 @@ Keep the original Phase 4 and Phase 5 checkboxes open until actually run.
       voters and no commissioner, while `state.electionBettingOpen` defaults
       to `true`; confirm the stored admin state closes resolved markets.
       Review ties and the exact turnout line manually.
-- [ ] Test Round 1 Div 2/3 Mr Median picks: separate combined-tier median,
-      incomplete scores, 12-pick limit, perfect-week scoring and no ordinary
-      bets against the synthetic opponent.
+- [ ] Test Round 1 Eliza, Div 2 and Div 3 Mr Median tips with 14, 24 and 18
+      teams respectively: separate tier scores, incomplete results, caps of
+      7/12/9, median ties and attainable perfect-week rewards. Verify that
+      old fixture tips remain archived and cannot count toward the new format.
+      Confirm the Eliza fixture import still serves real H2H markets without
+      changing Round 1 tipping, and synthetic opponents never enter a bet slip.
 - [ ] Test weekly beat-median and unknown-opponent markets through real
       schedule confirmation and settlement, including drawn Average Team
       matches and the requirement for all conference scores to arrive.
