@@ -332,7 +332,12 @@ def sync_carry_balances(new_roster, admin_teams, data_dir, draft_dir):
             old_carry_by_id[tid] = rec
 
     all_teams = [t for teams in new_roster.values() for t in teams]
-    new_carry = {}
+    # Keep departed teams' betting records for historical settlement and a
+    # possible return; they are excluded from the active roster elsewhere.
+    active_ids = {id_by_current_name[t.upper()] for t in all_teams}
+    new_carry = {name: rec for name, rec in old_carry.items()
+                 if (id_by_current_name.get(name.upper()) or
+                     id_by_old_name.get(name.upper())) not in active_ids}
     for t in all_teams:
         tid = id_by_current_name.get(t.upper())
         if tid and tid in old_carry_by_id:
