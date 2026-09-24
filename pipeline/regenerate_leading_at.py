@@ -32,7 +32,7 @@ import sys
 sys.path.insert(0, '/mnt/user-data/outputs/pipeline')
 from simulation_adapter import (
     simulate_division_futures, early_season_shrinkage, shrink_values_toward_pool,
-    make_sampler, round_robin_schedule, TOTAL_ROUNDS,
+    make_sampler, season_schedule, TOTAL_ROUNDS,
 )
 from test_run_scenario import build_scenario_extracted_results
 import numpy as np
@@ -87,7 +87,7 @@ def regenerate_division_leading_at(div, team_coeffs, scale, history, divs, round
 
 
 def regenerate_roddy_leading_at(all_teams, divs, team_coeffs, scale, history, rounds, n_sim=15000):
-    division_schedules = {d: round_robin_schedule(teams) for d, teams in divs.items()}
+    division_schedules = {d: season_schedule(d, teams) for d, teams in divs.items()}
     out = {}
     for round_num in rounds:
         rounds_completed = round_num  # same fix as the division function -- see its comment
