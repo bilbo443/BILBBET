@@ -5,5 +5,10 @@
   "division3_three_conference_min": 12,
   "division3_three_conference_max": 20,
   "fa_cup_draw_seed": 11,
-  "fa_cup_preliminary_calendar_round": null
+  "fa_cup_preliminary_calendar_round": null,
+  "division3_finals_teams_by_minimum_size": {
+    "12": 6,
+    "16": 8
+  },
+  "promotion_rules_confirmed": false
 }
