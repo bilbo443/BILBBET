@@ -81,7 +81,7 @@ import os
 from roster_format import validate_roster
 from cup_markets import regenerate_roddy_and_cup
 
-from simulation_adapter import round_robin_schedule, simulate_division_futures, N_SIM
+from simulation_adapter import season_schedule, simulate_division_futures, N_SIM
 from diff_report import pct_to_odds
 from build_admin_teams import build_admin_teams
 
@@ -199,16 +199,25 @@ def sync_h2h_schedule(new_roster, admin_teams, data_dir, draft_dir):
         old_teams_in_div = set()
         for rnd in old_schedule.get(div, []):
             for a, b in rnd:
-                old_teams_in_div.add(a); old_teams_in_div.add(b)
+                old_teams_in_div.update(t for t in (a, b) if t != 'AVERAGE TEAM')
         old_ids = {id_by_name.get(t.upper()) for t in old_teams_in_div}
         new_ids = {id_by_name.get(t.upper()) for t in teams}
-        if old_ids == new_ids and None not in new_ids:
+        expected_weeks = range(2, 24) if div.startswith(('DIVISION 2', 'DIVISION 3')) else range(1, 27)
+        valid_shape = len(old_schedule.get(div, [])) == 26 and all(
+            (bool(old_schedule[div][week - 1]) == (week in expected_weeks))
+            for week in range(1, 27)
+        )
+        valid_shape = valid_shape and all(
+            sum('AVERAGE TEAM' in pair for pair in old_schedule[div][week-1]) == len(teams) % 2
+            for week in expected_weeks
+        )
+        if old_ids == new_ids and None not in new_ids and valid_shape:
             def relabel(name):
                 tid = id_by_name.get(name.upper())
                 return name_by_id.get(tid, name)
             new_schedule[div] = [[[relabel(a), relabel(b)] for a, b in rnd] for rnd in old_schedule[div]]
         else:
-            new_schedule[div] = round_robin_schedule(teams)
+            new_schedule[div] = season_schedule(div, teams)
     json.dump(new_schedule, open(os.path.join(draft_dir, 'h2h_schedule.json'), 'w'))
     return new_schedule
 
@@ -378,12 +387,14 @@ def sync_futures_divisions(new_roster, team_coeffs, scale, history, data_dir, dr
             market_rows.sort(key=lambda r: r['odds'])
             futures['divisions'].setdefault(div, {})[key] = market_rows
 
-    # All current conference promotion rows must be refreshed together.
-    for div, entries in by_div.items():
+    # Promotion depends on conference-specific finals and automatic places.
+    # Preserve selections for settlement, but never publish obsolete pooled odds.
+    for div, teams in new_roster.items():
         if div.startswith(('DIVISION 2', 'DIVISION 3')):
+            existing = {r['team']: r for r in futures['divisions'].get(div, {}).get('promotion_pct', [])}
             futures['divisions'].setdefault(div, {})['promotion_pct'] = [
-                {'team': r['team'], 'odds': pct_to_odds(r['promotion_pct']) or 1001,
-                 'suspended': pct_to_odds(r['promotion_pct']) is None} for r in entries]
+                {**existing.get(team, {'team': team, 'odds': 1001}), 'suspended': True}
+                for team in teams]
     all_teams = {t for teams in new_roster.values() for t in teams}
     missing_ecl = set(futures.get('ecl_field', [])) - all_teams
     if missing_ecl:
@@ -511,5 +522,5 @@ def sync_roster_if_changed(alltime_csv_path, data_dir, draft_dir):
     div3 = ', '.join(f'{d}: {len(roster[d])}' for d in ('DIVISION 3A', 'DIVISION 3B', 'DIVISION 3C') if d in roster)
     note = (f'Current field: {count} entrants; Division 3: {div3}. '
             + ('Preliminary FA Cup round required; set its calendar date and review the draw. ' if count > 62 else '')
-            + ('Three-conference promotion bracket needs organiser confirmation.' if roster.get('DIVISION 3C') else ''))
+            + 'Conference finals and promotion allocation require organiser confirmation; promotion odds remain suspended.')
     return True, f"{summary}\n\n{note}\n\n(Source sheet's most recent season column: {season_label})"
