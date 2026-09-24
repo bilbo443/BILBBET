@@ -160,6 +160,9 @@ Blocking issues. Don't move to Phase 2 until these are resolved.
       `special_markets.json` compares conceded points per match relative
       to each team's conference mean and spread. Reprice after any roster
       or schedule change; the sweep cannot reprice it.
+      The sweep now also checks every whole-league Charity, Philanthropy,
+      FA Cup, Roddy and Roddy leading-at market for missing, departed or
+      duplicate teams.
 
 - [x] **Gate weekly highest/lowest scorer specials to eligible teams.**
       `computeRoundExtremes()` now prices teams in published fixtures for

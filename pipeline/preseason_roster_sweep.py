@@ -220,6 +220,41 @@ def check_conference_prices(path, roster, label):
     return issues
 
 
+def check_whole_league_prices(path, roster, label, section):
+    """Every whole-league market must contain each current team exactly once."""
+    try:
+        with open(path) as stream:
+            data = json.load(stream)
+    except (OSError, ValueError) as exc:
+        return [f'{label}: could not read {path}: {exc}']
+    markets = data if section is None else data.get(section)
+    if not isinstance(markets, dict) or not markets:
+        return [f'{label}: {section or "market"} is missing']
+    expected = {normalize_name(t): t for teams in roster.values() for t in teams}
+    by_difference = {}
+    for market, rows in markets.items():
+        if not isinstance(rows, list):
+            by_difference.setdefault(('not a list',), []).append(market)
+            continue
+        actual = [row.get('team') for row in rows if isinstance(row, dict)]
+        names = {normalize_name(t): t for t in actual if isinstance(t, str)}
+        extra = tuple(sorted(names[t] for t in names.keys() - expected.keys()))
+        missing = tuple(sorted(expected[t] for t in expected.keys() - names.keys()))
+        invalid = len(rows) - len(names)
+        if extra or missing or invalid:
+            by_difference.setdefault((extra, missing, invalid), []).append(market)
+    issues = []
+    for difference, markets_affected in by_difference.items():
+        if difference == ('not a list',):
+            issues.append(f'{label}: {section or "market"} has non-list markets: {markets_affected}')
+        else:
+            extra, missing, invalid = difference
+            issues.append(f'{label}: {section or "market"} / {", ".join(markets_affected)}: '
+                          f'extra={list(extra)}, missing={list(missing)}, '
+                          f'duplicate/invalid rows={invalid}')
+    return issues
+
+
 def run_sweep(sheet_url, roster_path, schedule_path, coeffs_path, history_path,
               futures_path, shift_path, cup_shift_path, widen_path, hist_path,
               round_dates_path, header_row=1, today=None, alltime_url=None,
@@ -312,6 +347,14 @@ def run_sweep(sheet_url, roster_path, schedule_path, coeffs_path, history_path,
     for filename in ('futures.json', 'leading_at.json'):
         path = futures_path if filename == 'futures.json' else Path(roster_path).with_name(filename)
         all_issues.extend(check_conference_prices(path, live_roster, filename))
+
+    for path, label, section in (
+        (futures_path, 'futures.json', 'roddy'),
+        (futures_path, 'futures.json', 'fa_cup_markets'),
+        (Path(roster_path).with_name('leading_at.json'), 'leading_at.json', 'roddy_leading_at'),
+        (Path(roster_path).with_name('special_markets.json'), 'special_markets.json', None),
+    ):
+        all_issues.extend(check_whole_league_prices(path, live_roster, label, section))
 
     return {
         'status': 'clean' if not all_issues else 'issues_found',
