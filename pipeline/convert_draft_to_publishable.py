@@ -111,6 +111,12 @@ def convert_draft_to_publishable(draft_path, live_futures_path, out_path):
         for key, market_rows in markets.items():
             publishable['divisions'][div][key] = market_rows
 
+    # Older published promotion rows reflect a cross-conference finals model.
+    for div, markets in publishable.get('divisions', {}).items():
+        if div.startswith(('DIVISION 2', 'DIVISION 3')):
+            for row in markets.get('promotion_pct', []):
+                row['suspended'] = True
+
     json.dump(publishable, open(out_path, 'w'), indent=2)
 
     summary = []
