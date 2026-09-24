@@ -415,10 +415,15 @@ that the newer frontend has been deployed or retested against live results.
   football simulations. `computeSuggestedResult` includes fixed board vote
   counts (17 voters), turnout and a No commissioner result. A tie for most
   votes or turnout exactly on the line yields no automatic suggestion.
-- **Round 1 Mr Median tipping:** Div 2A/2B and Div 3A/3B use separate
-  combined-tier medians, each calculated only when all tier scores exist.
-  Picks are limited to 12 teams. This synthetic tipping opponent is skipped
-  by the real bet settlement path.
+  - **Round 1 Mr Median tipping:** Eliza uses its own median instead of
+  provisional fixture pairings. Div 2A/2B and the current Div 3 conferences
+  each share their own tier median. Each tier's score waits for all its real
+  team scores; synthetic scores cannot settle another tier's tips. The pick
+  cap is half the current tier (7 Eliza, 12 Div 2, 9 Div 3 at 56 teams).
+  A perfect-week reward requires correctly selecting every team strictly
+  above the median; ties at the median reduce the number of possible winners.
+  Synthetic tipping fixtures never become real H2H bets. Earlier Round 1
+  fixture tips stay archived separately and require new confirmation.
 
 The odds cap, floor and suspension rules in the existing sections still
 apply where the new markets call `toOdds`.
