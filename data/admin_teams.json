@@ -69,7 +69,7 @@
     "player": "FRANKS MATE",
     "year_entered": "2025/26",
     "prev_names": NaN,
-    "status": "DIVISION 2A"
+    "status": "DIVISION 2B"
   },
   {
     "id": "022",
@@ -85,7 +85,7 @@
     "player": "BLAKE",
     "year_entered": "2023/24",
     "prev_names": "GORYGLORY",
-    "status": "DIVISION 2A"
+    "status": "DIVISION 2B"
   },
   {
     "id": "056",
@@ -181,7 +181,7 @@
     "player": "ANTHONY",
     "year_entered": "2025/26",
     "prev_names": NaN,
-    "status": "DIVISION 3B"
+    "status": "DIVISION 2B"
   },
   {
     "id": "001",
@@ -229,7 +229,7 @@
     "player": "RYAN",
     "year_entered": "2025/26",
     "prev_names": "KALTAKOFTHECLONES",
-    "status": "DIVISION 3A"
+    "status": "DIVISION 2B"
   },
   {
     "id": "040",
@@ -293,7 +293,7 @@
     "player": "DANIEL",
     "year_entered": "2023/24",
     "prev_names": "EL VAGABUNDO, THE GUS BUS, EL TACO DE STEEL",
-    "status": "DIVISION 2B"
+    "status": "DIVISION 2A"
   },
   {
     "id": "043",
@@ -333,7 +333,7 @@
     "player": "RAFFAELE",
     "year_entered": "2024/25",
     "prev_names": "JERRYTHERANDOM",
-    "status": "DIVISION 2B"
+    "status": "INACTIVE"
   },
   {
     "id": "045",
@@ -621,7 +621,7 @@
     "player": "TOBY",
     "year_entered": "2023/24",
     "prev_names": NaN,
-    "status": "DIVISION 2B"
+    "status": "INACTIVE"
   },
   {
     "id": "073",
@@ -685,7 +685,7 @@
     "player": "X2",
     "year_entered": "2024/25",
     "prev_names": NaN,
-    "status": "DIVISION 3B"
+    "status": "DIVISION 2B"
   },
   {
     "id": "009",
@@ -693,7 +693,7 @@
     "player": "JAYDEN",
     "year_entered": "2016/17 (?)",
     "prev_names": "TALIBANTER FC",
-    "status": "DIVISION 2B"
+    "status": "INACTIVE"
   },
   {
     "id": "034",
@@ -701,7 +701,7 @@
     "player": "RYAN",
     "year_entered": "2022/23",
     "prev_names": "COST US 3 POINTS FC, WADDINGHAALAND",
-    "status": "DIVISION 2B"
+    "status": "INACTIVE"
   },
   {
     "id": "088",
@@ -709,6 +709,6 @@
     "player": "BRANDON",
     "year_entered": "2025/26",
     "prev_names": "ZOUMA KICKS TIM PAYNE",
-    "status": "DIVISION 3A"
+    "status": "DIVISION 2A"
   }
 ]
