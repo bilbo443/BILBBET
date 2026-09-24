@@ -11,17 +11,14 @@ list -- no special tooling needed, just a spreadsheet export.
 Thoroughly validated before ever producing output, since a transcription
 error here would silently corrupt every H2H betting market and every
 week's tipping fixtures:
-  - every division name matches one of the 5 expected divisions exactly
+  - every division name matches the current roster exactly
   - every team name matches the CURRENT roster exactly (catches typos
     and renamed/relegated/promoted teams that don't belong in this
     division anymore)
-  - every division has exactly 26 rounds, numbered 1-26, no gaps or
-    duplicates
-  - within each round, every team in that division appears in EXACTLY
-    one fixture -- no team missing, no team double-booked, no team
-    paired against itself
-  - the total fixture count per division matches exactly what a full
-    double round-robin requires (team_count / 2 fixtures per round)
+  - Division 1 has fixtures in MW1-26; Division 2/3 in MW2-23
+  - every active round pairs every real team; odd-sized groups also
+    schedule one fixture against AVERAGE TEAM
+  - no team is double-booked or paired against itself
 
 Any validation failure aborts before writing anything -- a partially
 correct schedule is worse than the current placeholder, since it would
@@ -43,6 +40,10 @@ import sys
 from collections import defaultdict
 
 EXPECTED_ROUNDS = 26
+
+
+def active_rounds(div):
+    return set(range(2, 24)) if div.startswith(('DIVISION 2', 'DIVISION 3')) else set(range(1, 27))
 
 
 def load_current_divisions(divisions_path):
@@ -72,14 +73,18 @@ def build_schedule(csv_path, divisions_path):
             if div not in divisions:
                 errors.append(f"Row {i}: division '{div}' doesn't match any current division ({list(divisions.keys())})")
                 continue
-            if a not in divisions[div]:
+            average_allowed = len(divisions[div]) % 2 == 1
+            if a not in divisions[div] and not (average_allowed and a == 'AVERAGE TEAM'):
                 errors.append(f"Row {i}: team '{a}' is not in {div}'s current roster")
-            if b not in divisions[div]:
+            if b not in divisions[div] and not (average_allowed and b == 'AVERAGE TEAM'):
                 errors.append(f"Row {i}: team '{b}' is not in {div}'s current roster")
             if a == b:
                 errors.append(f"Row {i}: team '{a}' can't play itself")
             if not (1 <= rnd <= EXPECTED_ROUNDS):
                 errors.append(f"Row {i}: round {rnd} is out of range (expected 1-{EXPECTED_ROUNDS})")
+                continue
+            if rnd not in active_rounds(div):
+                errors.append(f"Row {i}: {div} has no regular-season fixture in round {rnd}")
                 continue
 
             fixtures[div][rnd].append((a, b))
@@ -90,14 +95,14 @@ def build_schedule(csv_path, divisions_path):
     # Structural validation: every division/round accounted for correctly
     for div, teams in divisions.items():
         team_set = set(teams)
-        expected_per_round = len(teams) // 2
+        expected_per_round = (len(teams) + 1) // 2
 
         if div not in fixtures:
             errors.append(f"{div}: no fixtures found in the CSV at all")
             continue
 
         rounds_present = set(fixtures[div].keys())
-        expected_rounds = set(range(1, EXPECTED_ROUNDS + 1))
+        expected_rounds = active_rounds(div)
         missing_rounds = expected_rounds - rounds_present
         extra_rounds = rounds_present - expected_rounds
         if missing_rounds:
@@ -119,6 +124,8 @@ def build_schedule(csv_path, divisions_path):
             missing_teams = team_set - teams_seen_set
             if missing_teams:
                 errors.append(f"{div} round {rnd}: team(s) not scheduled this round: {sorted(missing_teams)}")
+            if len(teams) % 2 == 1 and teams_seen.count('AVERAGE TEAM') != 1:
+                errors.append(f"{div} round {rnd}: expected exactly one AVERAGE TEAM fixture")
 
     if errors:
         return None, errors
