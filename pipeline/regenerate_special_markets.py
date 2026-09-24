@@ -25,7 +25,7 @@ import sys
 sys.path.insert(0, '/mnt/user-data/outputs/pipeline')
 from simulation_adapter import (
     compute_adjusted_shifts, early_season_shrinkage, shrink_values_toward_pool,
-    make_sampler, round_robin_schedule, TOTAL_ROUNDS,
+    make_sampler, season_schedule, TOTAL_ROUNDS,
 )
 
 MARGIN = 1.05
@@ -52,7 +52,7 @@ def simulate_charity_philanthropy(divs, team_coeffs, scale, history, rounds_comp
     np.random.seed(seed)
     shrink = early_season_shrinkage(rounds_completed)
     all_teams = [t for teams in divs.values() for t in teams]
-    division_schedules = {d: round_robin_schedule(teams) for d, teams in divs.items()}
+    division_schedules = {d: season_schedule(d, teams) for d, teams in divs.items()}
 
     div_pool = {}
     for d, teams in divs.items():
@@ -79,6 +79,9 @@ def simulate_charity_philanthropy(divs, team_coeffs, scale, history, rounds_comp
         conceded = {t: 0 for t in all_teams}
         for d, teams in divs.items():
             team_round_scores = {t: samplers[t](TOTAL_ROUNDS) for t in teams}
+            if len(teams) % 2:
+                team_round_scores['AVERAGE TEAM'] = np.mean(
+                    [team_round_scores[t] for t in teams], axis=0)
             # Bug caught before running this: round_robin_schedule returns
             # one list of pairs PER ROUND (26 rounds total), not a flat
             # pair list -- enumerate is required to correctly align each
@@ -90,8 +93,8 @@ def simulate_charity_philanthropy(divs, team_coeffs, scale, history, rounds_comp
             for rnd_idx, pairs in enumerate(division_schedules[d]):
                 for a, b in pairs:
                     sa, sb = team_round_scores[a][rnd_idx], team_round_scores[b][rnd_idx]
-                    conceded[a] += sb
-                    conceded[b] += sa
+                    if a in conceded: conceded[a] += sb
+                    if b in conceded: conceded[b] += sa
         fewest = min(all_teams, key=lambda t: conceded[t])
         most = max(all_teams, key=lambda t: conceded[t])
         fewest_conceded_wins[fewest] += 1
