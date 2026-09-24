@@ -153,18 +153,12 @@ Blocking issues. Don't move to Phase 2 until these are resolved.
       rather than naming the actual team and mismatch — fixed to match
       the polish of the other failure messages.
 
-- [ ] **Decide: `leading_at.json` / `special_markets.json` corruption.**
-      Same real bug as the Division 3A/3B schedule issue, but never fixed in
-      these two files — live, user-facing junk (`"NEW PLAYER 1/2"`,
-      `"TBD PROMOTED TEAM A/B"`) is currently sitting in production. This was
-      deliberately deferred until you were comfortable committing to launch.
-      Given how much *more* of the site is now real and live (team
-      profiles, the rebuilt leaderboard, account management), this is
-      worth revisiting soon rather than continuing to defer — the surface
-      area where this junk could become visible to a real punter has
-      grown materially tonight. **Owner: you** (decide whether to relabel
-      now with an odds-accuracy caveat, or hold for a proper regeneration)
-      **+ Claude** (does the work once you decide).
+- [ ] **Check market prices after every roster change.**
+      The pre-season sweep now verifies each `futures.json` and
+      `leading_at.json` market against its published conference roster.
+      Div 2A/2B leading-at odds for rounds 2-23 were repriced in September.
+      `special_markets.json` still needs a separate fairness review across
+      divisions with different fixture counts; the sweep cannot reprice it.
 
 - [x] **`carry_balances.json` missing entries — resolved, turned out not to
       need a fix.** Found a fifth, related issue while re-checking this

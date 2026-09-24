@@ -167,6 +167,38 @@ def check_dependent_file(path, extractor, real_roster, label):
     return issues
 
 
+def check_conference_prices(path, roster, label):
+    """Catch stale prices even when the global set of teams is correct."""
+    try:
+        with open(path) as stream:
+            data = json.load(stream)
+    except (OSError, ValueError) as exc:
+        return [f'{label}: could not read {path}: {exc}']
+    key = 'leading_at' if label == 'leading_at.json' else 'divisions'
+    divisions = data.get(key, {})
+    issues = []
+    for division, teams in roster.items():
+        markets = divisions.get(division)
+        if not isinstance(markets, dict) or not markets:
+            issues.append(f'{label}: missing markets for {division}')
+            continue
+        expected = {normalize_name(team) for team in teams}
+        for market, rows in markets.items():
+            if not isinstance(rows, list):
+                issues.append(f'{label}: {division} / {market} is not a team list')
+                continue
+            names = [row.get('team') for row in rows if isinstance(row, dict)]
+            actual = {normalize_name(team) for team in names if isinstance(team, str)}
+            if actual != expected or len(names) != len(actual):
+                issues.append(f'{label}: {division} / {market}: '
+                              f'extra={sorted(actual - expected)}, '
+                              f'missing={sorted(expected - actual)}, '
+                              f'duplicate/invalid rows={len(rows) - len(actual)}')
+    for division in divisions.keys() - roster.keys():
+        issues.append(f'{label}: obsolete conference {division}')
+    return issues
+
+
 def run_sweep(sheet_url, roster_path, schedule_path, coeffs_path, history_path,
               futures_path, shift_path, cup_shift_path, widen_path, hist_path,
               round_dates_path, header_row=1, today=None, alltime_url=None,
@@ -246,6 +278,10 @@ def run_sweep(sheet_url, roster_path, schedule_path, coeffs_path, history_path,
     for path, extractor, label in checks:
         all_issues.extend([f"[{label}] {i}" for i in
                            check_dependent_file(path, extractor, authoritative_roster, label)])
+
+    for filename in ('futures.json', 'leading_at.json'):
+        path = futures_path if filename == 'futures.json' else Path(roster_path).with_name(filename)
+        all_issues.extend(check_conference_prices(path, live_roster, filename))
 
     return {
         'status': 'clean' if not all_issues else 'issues_found',
