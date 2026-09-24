@@ -1,16 +1,25 @@
-League structure and fixture rules (2026–27)
+# League structure and fixture rules (2026–27)
+
 The live roster remains provisional until 9 October 2026. Reconcile every weekly roster change against `data/h2h_divisions.json`, `data/admin_teams.json`, and all roster-dependent markets before publishing. The freeze date and Division 3 size bounds are in `data/roster_rules.json`; update them for later seasons.
-Competition	Regular season	Finals
-Division 1 (Eliza Cup)	Matchweeks 1–26	None
-Division 2A and 2B	Matchweeks 2–23	Conference finals in matchweeks 24–26
-Division 3A, 3B, and, when formed, 3C	Matchweeks 2–23	Conference finals in matchweeks 24–26
+
+| Competition | Regular season | Finals |
+| --- | --- | --- |
+| Division 1 (Eliza Cup) | Matchweeks 1–26 | None |
+| Division 2A and 2B | Matchweeks 2–23 | Conference finals in matchweeks 24–26 |
+| Division 3A, 3B, and, when formed, 3C | Matchweeks 2–23 | Conference finals in matchweeks 24–26 |
+
 Each Division 2 or 3 conference holds its own finals fixtures; no cross-conference finals are scheduled. Admin enters each actual finals pairing, stage and matchweek in the Playoffs section. Regular-season schedules have 26 slots, with empty lists for matchweeks 1 and 24–26 in Divisions 2 and 3. Division 3 does not require balanced home-and-away pairings: 22 regular-season matchweeks cannot guarantee a full double round robin at every permitted size. In an odd-sized conference, the otherwise unmatched real team plays AVERAGE TEAM each round. Its score is the arithmetic mean of every real team in that conference for that matchweek; it does not occupy a roster or table place. Settlement waits until every conference score for that week is available.
+
 Division 3A/B can each grow to 16 teams before a three-conference Division 3A/B/C structure is formed. Once three conferences are used, their permitted sizes are 12–20 each. The final roster and its conference assignment are not known until the freeze. At 12 teams, six teams participate in each Division 3 conference's finals; at 16 or more, the current expectation is eight. Finals size for 13–15 teams, seed ordering, and the precise bracket still require confirmation. A team already promoted can participate in finals; if it wins an additional promotion place, that place passes to the next eligible team on its conference table. The number of automatic and finals promotion places also requires confirmation.
+
 Until promotion rules are confirmed, the existing Division 2/3 promotion betting markets are suspended and new preseason promotion predictions are disabled. Existing predictions and placed bets are retained for review and eventual settlement. Division winners and other regular-season markets continue to use the regular-season table.
+
 The FA Cup needs one additional round when the current roster exceeds 62 teams. Its preliminary round date and actual draw must be confirmed separately before publication.
-Publication checks
-Run the roster watcher and resolve active status and division discrepancies before the 9 October freeze.
-Confirm the official regular-season fixtures; use `pipeline/build_h2h_schedule.py` to import the published CSV. Finals belong in the Playoffs admin interface, not that CSV.
-Recompute schedules and roster-dependent odds after roster changes; do not reuse earlier fixtures or prices for teams that moved conferences.
-Confirm conference finals format, promotion allocation and the table fallback before restoring promotion markets or preseason picks.
-Verify the FA Cup extra round and date if the roster exceeds 62.
+
+## Publication checks
+
+1. Run the roster watcher and resolve active status and division discrepancies before the 9 October freeze.
+2. Confirm the official regular-season fixtures; use `pipeline/build_h2h_schedule.py` to import the published CSV. Finals belong in the Playoffs admin interface, not that CSV.
+3. Recompute schedules and roster-dependent odds after roster changes; do not reuse earlier fixtures or prices for teams that moved conferences.
+4. Confirm conference finals format, promotion allocation and the table fallback before restoring promotion markets or preseason picks.
+5. Verify the FA Cup extra round and date if the roster exceeds 62.
