@@ -186,38 +186,21 @@ def make_sampler(values, shift):
 
 def round_robin_schedule(teams, total_rounds=TOTAL_ROUNDS):
     t = list(teams); n = len(t)
-    if n % 2 == 1: t.append(None); n += 1
+    if n % 2 == 1: t.append('AVERAGE TEAM'); n += 1
     half, arr, schedule = n // 2, t[:], []
     for _ in range(n - 1):
-        pairs = [(arr[i], arr[n-1-i]) for i in range(half) if arr[i] is not None and arr[n-1-i] is not None]
+        pairs = [(arr[i], arr[n-1-i]) for i in range(half)]
         schedule.append(pairs)
         arr = [arr[0]] + [arr[-1]] + arr[1:-1]
     double = schedule + schedule
     return [double[i % len(double)] for i in range(total_rounds)]
 
 
-def simulate_three_conference_playoffs(a, b, c, samplers):
-    """Three brackets; one playoff winner each, plus conference champions.
-
-    Seed lists are finishers 2-5 in each conference. A/B, B/C and C/A
-    brackets exchange their preliminary-final winners in a 3-way rotation.
-    """
-    def play(x, y):
-        return x if samplers[x](1)[0] > samplers[y](1)[0] else y
-
-    a1, a2, a3, a4 = a
-    b1, b2, b3, b4 = b
-    c1, c2, c3, c4 = c
-    brackets = [((a1, b2), (a4, b3)), ((b1, c2), (b4, c3)),
-                ((c1, a2), (c4, a3))]
-    qf_winners, pf_winners = [], []
-    for (x, y), (u, v) in brackets:
-        qf = play(x, y)
-        qf_winners.append(qf)
-        pf_winners.append(play(y if qf == x else x, play(u, v)))
-    return (play(qf_winners[0], pf_winners[2]),
-            play(qf_winners[1], pf_winners[0]),
-            play(qf_winners[2], pf_winners[1]))
+def season_schedule(div, teams):
+    """Return the 26 matchweeks; Division 2/3 play league fixtures in MW2–23."""
+    if div.startswith(('DIVISION 2', 'DIVISION 3')):
+        return [[]] + round_robin_schedule(teams, 22) + [[], [], []]
+    return round_robin_schedule(teams, TOTAL_ROUNDS)
 
 
 def simulate_division_futures(new_divs, team_coeffs, scale, history, extracted_results, n_sim=N_SIM, seed=7):
@@ -244,62 +227,33 @@ def simulate_division_futures(new_divs, team_coeffs, scale, history, extracted_r
                 own_values = shrink_values_toward_pool(own_values, div_pool[div], shrink)
             samplers[t] = make_sampler(own_values, shift)
 
-    division_schedules = {div: round_robin_schedule(teams) for div, teams in new_divs.items()}
+    division_schedules = {div: season_schedule(div, teams) for div, teams in new_divs.items()}
     rank_counts = {div: {t: np.zeros(len(teams), dtype=int) for t in teams} for div, teams in new_divs.items()}
 
-    # Promotion is a cross-conference pooled market, not a within-division
-    # threshold -- 2A and 2B's top finishers compete against EACH OTHER for
-    # a shared, limited number of promotion slots (same for 3A/3B), so it
-    # has to be computed from the SAME simulated season as everything else,
-    # not a separate calculation layered on top. Confirmed directly from
-    # the app's own promotionPoolKey() and its use in multi-bet
-    # conflict-blocking, which only makes sense against a merged-standings
-    # simulation. This was a known, unresolved gap in this automated
-    # pipeline specifically since much earlier in this project -- the
-    # manual regenerate_futures.py script already had it; this function
-    # never did. Fixed here by running every division within the same
-    # simulated season per iteration (rather than looping each division to
-    # completion in isolation), so the combined ranking below reflects one
-    # coherent simulated season, not results from unrelated iterations.
-    promo_pools = {}
-    if 'DIVISION 2A' in new_divs and 'DIVISION 2B' in new_divs:
-        promo_pools['DIVISION 2'] = new_divs['DIVISION 2A'] + new_divs['DIVISION 2B']
-    if 'DIVISION 3A' in new_divs and 'DIVISION 3B' in new_divs:
-        promo_pools['DIVISION 3'] = [t for div in ('DIVISION 3A', 'DIVISION 3B', 'DIVISION 3C') for t in new_divs.get(div, [])]
-    PROMO_N = {'DIVISION 2': 4, 'DIVISION 3': 6}
-    promo_counts = {pool: {t: 0 for t in teams} for pool, teams in promo_pools.items()}
-
+    # Promotion awaits a confirmed conference finals bracket and allocation.
     for _ in range(n_sim):
-        sim_pts, sim_sfor, conference_rankings = {}, {}, {}
         for div, teams in new_divs.items():
             pts = {t: 0 for t in teams}
             sfor = {t: 0.0 for t in teams}
             team_round_scores = {t: samplers[t](TOTAL_ROUNDS) for t in teams}
             for rnd_idx, pairs in enumerate(division_schedules[div]):
+                if any('AVERAGE TEAM' in pair for pair in pairs):
+                    team_round_scores['AVERAGE TEAM'] = np.mean(
+                        [team_round_scores[t] for t in teams], axis=0)
                 for a, b in pairs:
                     sa, sb = team_round_scores[a][rnd_idx], team_round_scores[b][rnd_idx]
-                    sfor[a] += sa; sfor[b] += sb
-                    if sa > sb: pts[a] += 3
-                    elif sb > sa: pts[b] += 3
-                    else: pts[a] += 1; pts[b] += 1
+                    if a in sfor: sfor[a] += sa
+                    if b in sfor: sfor[b] += sb
+                    if sa > sb:
+                        if a in pts: pts[a] += 3
+                    elif sb > sa:
+                        if b in pts: pts[b] += 3
+                    else:
+                        if a in pts: pts[a] += 1
+                        if b in pts: pts[b] += 1
             ranking = sorted(teams, key=lambda t: (-pts[t], -sfor[t]))
             for pos, t in enumerate(ranking):
                 rank_counts[div][t][pos] += 1
-            sim_pts.update(pts); sim_sfor.update(sfor)
-            conference_rankings[div] = ranking
-
-        for pool, teams in promo_pools.items():
-            if pool == 'DIVISION 3' and new_divs.get('DIVISION 3C'):
-                ranked = [conference_rankings['DIVISION 3' + suffix] for suffix in 'ABC']
-                for conf in ranked:
-                    promo_counts[pool][conf[0]] += 1
-                for champion in simulate_three_conference_playoffs(
-                        *[conf[1:5] for conf in ranked], samplers):
-                    promo_counts[pool][champion] += 1
-            else:
-                combined_ranking = sorted(teams, key=lambda t: (-sim_pts[t], -sim_sfor[t]))
-                for t in combined_ranking[:PROMO_N[pool]]:
-                    promo_counts[pool][t] += 1
 
     rows = []
     for div, teams_dict in rank_counts.items():
@@ -307,7 +261,6 @@ def simulate_division_futures(new_divs, team_coeffs, scale, history, extracted_r
         half = size // 2
         is_eliza = div.startswith('ELIZA')
         is_div3 = div.startswith('DIVISION 3')
-        pool_key = 'DIVISION 3' if is_div3 else 'DIVISION 2'
         for team, counts in teams_dict.items():
             row = {
                 'division': div, 'team': team,
@@ -317,8 +270,6 @@ def simulate_division_futures(new_divs, team_coeffs, scale, history, extracted_r
                 'bottom_half_pct': round(100 * counts[size-half:].sum() / n_sim, 2),
                 'wooden_spoon_pct': round(100 * counts[-1] / n_sim, 2),
             }
-            if not is_eliza:
-                row['promotion_pct'] = round(100 * promo_counts.get(pool_key, {}).get(team, 0) / n_sim, 2)
             if is_eliza or not is_div3:
                 relegation_n = 4 if is_eliza else 3
                 row['relegation_pct'] = round(100 * counts[size - relegation_n:].sum() / n_sim, 2)
