@@ -604,7 +604,8 @@ Keep the original Phase 4 and Phase 5 checkboxes open until actually run.
       incomplete scores, 12-pick limit, perfect-week scoring and no ordinary
       bets against the synthetic opponent.
 - [ ] Test weekly beat-median and unknown-opponent markets through real
-      schedule confirmation and settlement, including draws and byes.
+      schedule confirmation and settlement, including drawn Average Team
+      matches and the requirement for all conference scores to arrive.
 - [ ] Check fixture paste/import error handling, round countdown/timezone,
       remembered usernames and logout, app installation, and network-offline
       shell behaviour on actual devices. The service worker fetch handler
@@ -612,3 +613,12 @@ Keep the original Phase 4 and Phase 5 checkboxes open until actually run.
 - [ ] Recheck the button and navigation audit against the newer `app.js`.
       The older audit's counts and completion statements refer to the
       earlier frontend snapshot.
+
+## 2026-09-23 fixture and finals correction
+
+- [ ] Verify Division 1 fixtures in matchweeks 1–26 and no Division 1 finals.
+- [ ] Verify Division 2/3 regular-season fixtures only in matchweeks 2–23, with one AVERAGE TEAM fixture in each odd-sized conference round and no requirement for balanced home-and-away games.
+- [ ] Test 12, 13, 16 and 20 team conference schedules; check that conference finals in matchweeks 24–26 are entered and displayed for their actual matchweek, including Division 3C when it exists.
+- [ ] Confirm the finals bracket, 13–15 team participation, automatic promotion allocation and next eligible table finisher rule before reopening promotion betting or preseason promotion predictions.
+- [ ] Compare the 58 teams in current `h2h_divisions.json` with the 62 active records in `admin_teams.json`; resolve four omitted active teams and moved conference assignments before publication.
+- [ ] Replace provisional regular-season fixtures with the official draw, then regenerate dependent markets. Confirm the FA Cup extra round if the roster crosses 62.
