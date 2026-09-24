@@ -190,6 +190,7 @@ def average_with_spread(per_seed_values):
 
 
 def main():
+    raise SystemExit('Legacy cross-conference promotion model retired; use simulation_adapter.py and keep promotion markets suspended until finals rules are confirmed.')
     new_divs = json.load(open('new_divs.json'))
     history = json.load(open('roddy_history.json'))
     tmc = json.load(open('team_market_coeffs_v3.json'))
