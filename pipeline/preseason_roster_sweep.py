@@ -136,6 +136,27 @@ def compare_provisional_results_sheet(sheet_roster, live_roster):
     return issues
 
 
+def compare_registry_entries(sheet_rows, saved_rows):
+    """Flag identity changes in an older-season sheet, never admissions."""
+    sheet = {str(row['id']): row for row in sheet_rows}
+    saved = {str(row['id']): row for row in saved_rows}
+    issues = []
+    if len(sheet) != len(sheet_rows) or len(saved) != len(saved_rows):
+        issues.append('Duplicate team ID in published sheet or saved registry.')
+    for team_id in sorted(sheet.keys() - saved.keys()):
+        row = sheet[team_id]
+        issues.append(f"New registry record {team_id} ({row['name']}) is absent from "
+                      'data/admin_teams.json -- waitlist candidate only; no admission or conference inferred.')
+    for team_id in sorted(saved.keys() - sheet.keys()):
+        issues.append(f"Saved registry record {team_id} ({saved[team_id]['name']}) is "
+                      'absent from the published sheet -- check with the sheet author.')
+    for team_id in sorted(sheet.keys() & saved.keys()):
+        if sheet[team_id]['name'] != saved[team_id]['name']:
+            issues.append(f"Registry ID {team_id} changed name from {saved[team_id]['name']} "
+                          f"to {sheet[team_id]['name']} -- confirm before renaming live files.")
+    return issues
+
+
 def check_dependent_file(path, extractor, real_roster, label):
     """Generic check: does this file's team set match the real, current
     roster? Catches stale placeholders and departed teams. AVERAGE TEAM is
@@ -234,7 +255,16 @@ def run_sweep(sheet_url, roster_path, schedule_path, coeffs_path, history_path,
                 sheet.write_text(fetch_sheet_csv(alltime_url))
                 official, season = build_admin_teams(sheet, out_path=str(Path(tmp) / 'admin.json'))
             if season != expected:
-                all_issues.append(f'[source] Latest All Time Data division column is {season}; expected {expected}. Cannot verify current-season pullouts.')
+                all_issues.append(f'[source] Latest All Time Data division column is {season}; expected {expected}. '
+                                  'Using the saved registry to check published assignments; current-season '
+                                  'admissions and departures still need organiser confirmation.')
+                with open(Path(roster_path).with_name('admin_teams.json')) as stream:
+                    saved = json.load(stream)
+                all_issues.extend(f'[registry candidate] {issue}'
+                                  for issue in compare_registry_entries(official, saved))
+                snapshot_roster = load_current_roster(saved)
+                all_issues.extend(f'[saved registry] {issue}'
+                                  for issue in compare_rosters(snapshot_roster, live_roster))
             else:
                 official_roster = load_current_roster(official)
                 all_issues.extend(f'[current-season registry] {issue}'
