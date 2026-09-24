@@ -1652,20 +1652,28 @@
   function computeRoundExtremes(round, nSims){
     if(roundExtremeCache[round]) return roundExtremeCache[round];
     nSims = nSims || 8000;
+    const scheduled = new Set();
+    for(const rounds of Object.values(H2H_SCHEDULE)){
+      for(const [a,b] of (rounds[round-1] || [])){
+        if(a !== AVERAGE_TEAM) scheduled.add(a);
+        if(b !== AVERAGE_TEAM) scheduled.add(b);
+      }
+    }
+    const teams = ALL_TEAMS.filter(t => scheduled.has(t));
     const winCounts = {}, loseCounts = {};
-    ALL_TEAMS.forEach(t => { winCounts[t] = 0; loseCounts[t] = 0; });
+    teams.forEach(t => { winCounts[t] = 0; loseCounts[t] = 0; });
     const samples = {};
-    ALL_TEAMS.forEach(t => { samples[t] = sampleTeam(t, nSims); });
+    teams.forEach(t => { samples[t] = sampleTeam(t, nSims); });
     for(let i=0;i<nSims;i++){
       let best=-Infinity, bestTeam=null, worst=Infinity, worstTeam=null;
-      for(const t of ALL_TEAMS){
+      for(const t of teams){
         const s = samples[t][i];
         if(s>best){ best=s; bestTeam=t; }
         if(s<worst){ worst=s; worstTeam=t; }
       }
-      winCounts[bestTeam]++; loseCounts[worstTeam]++;
+      if(bestTeam){ winCounts[bestTeam]++; loseCounts[worstTeam]++; }
     }
-    const toRows = counts => ALL_TEAMS.map(t => {
+    const toRows = counts => teams.map(t => {
       const info = toOdds(100*counts[t]/nSims);
       return { team: t, odds: info.odds, suspended: info.suspended };
     }).sort((a,b) => (a.odds===null)-(b.odds===null) || (a.odds||0)-(b.odds||0));
@@ -3491,8 +3499,8 @@
       }
     }
     html += `<h4 style="color:#9a9a9a;margin:14px 0 6px;">Season specials</h4>`;
-    html += row('SPECIALFIX|charity|'+team, 'Most Charity', SPECIAL_MARKETS.charity.find(x=>x.team===team));
-    html += row('SPECIALFIX|philanthropy|'+team, 'Most Philanthropy', SPECIAL_MARKETS.philanthropy.find(x=>x.team===team));
+    html += row('SPECIALFIX|charity_relative|'+team, 'Most Charity (relative to conference)', SPECIAL_MARKETS.charity.find(x=>x.team===team));
+    html += row('SPECIALFIX|philanthropy_relative|'+team, 'Most Philanthropy (relative to conference)', SPECIAL_MARKETS.philanthropy.find(x=>x.team===team));
     html += `<h4 style="color:#9a9a9a;margin:14px 0 6px;">Round ${state.currentRound}</h4>`;
     const extremes = computeRoundExtremes(state.currentRound);
     html += row('SPECIALFIX|win_round|R'+state.currentRound+'|'+team, 'To win Round '+state.currentRound, extremes.win.find(x=>x.team===team));
@@ -3910,9 +3918,10 @@
     }
 
     if(state.specialsSubTab === 'season'){
+      html += `<p style="color:#9a9a9a;margin-bottom:10px;">Charity rewards the team furthest below its conference's usual conceded points per regular match; Philanthropy rewards the team furthest above. Each conference's scoring spread is taken into account.</p>`;
       html += `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:10px;">These cover the whole season -- set once, resolved at the end of Round 26.</p>`;
-      html += fixedSpecialDropdown('SPECIALFIX|charity', 'Most Charity (least points conceded all season)', SPECIAL_MARKETS.charity, state.specialsSelection.charity, 'special-charity');
-      html += fixedSpecialDropdown('SPECIALFIX|philanthropy', 'Most Philanthropy (most points conceded all season)', SPECIAL_MARKETS.philanthropy, state.specialsSelection.philanthropy, 'special-philanthropy');
+      html += fixedSpecialDropdown('SPECIALFIX|charity_relative', 'Most Charity (lowest conceded rate relative to conference)', SPECIAL_MARKETS.charity, state.specialsSelection.charity, 'special-charity');
+      html += fixedSpecialDropdown('SPECIALFIX|philanthropy_relative', 'Most Philanthropy (highest conceded rate relative to conference)', SPECIAL_MARKETS.philanthropy, state.specialsSelection.philanthropy, 'special-philanthropy');
       return html;
     }
 

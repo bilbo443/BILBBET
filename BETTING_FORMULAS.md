@@ -384,11 +384,15 @@ verified the same way FA Cup's are.
 
 ## A note on what this report doesn't cover
 
-Per the request, the special betting categories (weekly winner, charity,
-philanthropy, novelty suggestions) aren't detailed here -- those are
-simpler, single-outcome markets without a simulation methodology behind
-them, distinct in kind from everything above. Happy to add a section for
-them if that changes.
+Charity and Philanthropy are whole-league markets simulated in
+`pipeline/regenerate_special_markets.py`. Divide each team's total
+opponent points conceded by its regular matches played (26 in Div 1,
+22 in Div 2/3, including AVERAGE TEAM fixtures). Subtract the conference
+mean conceded rate and divide by its standard deviation. The lowest
+standardized value wins Charity and the highest wins Philanthropy;
+simulated ties split win credit. Reprice after roster or schedule changes.
+New pick IDs contain `charity_relative` or `philanthropy_relative`.
+Existing bets with the old IDs retain their original raw-total rule.
 
 ---
 

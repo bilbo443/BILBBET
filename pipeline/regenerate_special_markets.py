@@ -1,28 +1,14 @@
-"""
-Proper regeneration of special_markets.json (charity and philanthropy).
+"""Price Charity and Philanthropy relative to each conference.
 
-Methodology confirmed directly from the app's own UI labels, not guessed:
-  "Most Charity (least points conceded all season)"
-  "Most Philanthropy (most points conceded all season)"
--- and cross-checked against app.js's own computeDivisionStandings(),
-which tracks the identical statistic as scoreAgainst (the sum of each
-opponent's score across every one of a team's matches). Charity/
-philanthropy are whole-league markets (one flat 62-team list, confirmed
-by the file's own structure), so this simulates every division's real
-schedule together in each iteration -- not per-division independently --
-since a team's points-conceded total depends on who they actually play,
-the same reason the Roddy market needed a whole-league simulation rather
-than treating each team's score as an independent draw.
-
-Pre-season baseline (rounds_completed=0, maximum shrinkage) -- there is
-no per-round structure in this file the way leading_at.json has one, and
-the currently-deployed futures.json is itself a pre-season snapshot, so
-this matches that same point in the season for consistency.
+Use conceded points per regular match, then compare each team to the
+mean and standard deviation of its own conference. The regular schedule
+includes AVERAGE TEAM fixtures but excludes Div 2/3 finals.
 """
 import json
 import numpy as np
 import sys
-sys.path.insert(0, '/mnt/user-data/outputs/pipeline')
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 from simulation_adapter import (
     compute_adjusted_shifts, early_season_shrinkage, shrink_values_toward_pool,
     make_sampler, season_schedule, TOTAL_ROUNDS,
@@ -77,6 +63,7 @@ def simulate_charity_philanthropy(divs, team_coeffs, scale, history, rounds_comp
 
     for _ in range(n_sim):
         conceded = {t: 0 for t in all_teams}
+        played = {t: 0 for t in all_teams}
         for d, teams in divs.items():
             team_round_scores = {t: samplers[t](TOTAL_ROUNDS) for t in teams}
             if len(teams) % 2:
@@ -93,12 +80,28 @@ def simulate_charity_philanthropy(divs, team_coeffs, scale, history, rounds_comp
             for rnd_idx, pairs in enumerate(division_schedules[d]):
                 for a, b in pairs:
                     sa, sb = team_round_scores[a][rnd_idx], team_round_scores[b][rnd_idx]
-                    if a in conceded: conceded[a] += sb
-                    if b in conceded: conceded[b] += sa
-        fewest = min(all_teams, key=lambda t: conceded[t])
-        most = max(all_teams, key=lambda t: conceded[t])
-        fewest_conceded_wins[fewest] += 1
-        most_conceded_wins[most] += 1
+                    if a in conceded:
+                        conceded[a] += sb
+                        played[a] += 1
+                    if b in conceded:
+                        conceded[b] += sa
+                        played[b] += 1
+        if any(not played[t] for t in all_teams):
+            raise ValueError('A team has no regular fixtures')
+        rate = {t: conceded[t] / played[t] for t in all_teams}
+        relative = {}
+        for division, teams in divs.items():
+            mean = sum(rate[t] for t in teams) / len(teams)
+            spread = (sum((rate[t] - mean) ** 2 for t in teams) / len(teams)) ** 0.5
+            for t in teams:
+                relative[t] = (rate[t] - mean) / spread if spread else 0.0
+        fewest = min(relative.values())
+        most = max(relative.values())
+        low = [t for t in all_teams if abs(relative[t] - fewest) < 1e-9]
+        high = [t for t in all_teams if abs(relative[t] - most) < 1e-9]
+        for t in low: fewest_conceded_wins[t] += 1 / len(low)
+        for t in high: most_conceded_wins[t] += 1 / len(high)
+
 
     def to_market(wins_dict):
         entries = []
@@ -113,17 +116,17 @@ def simulate_charity_philanthropy(divs, team_coeffs, scale, history, rounds_comp
 
 
 def main():
-    divs = json.load(open('/mnt/user-data/outputs/bilbbet-repo/data/h2h_divisions.json'))
-    tmc = json.load(open('/mnt/user-data/outputs/bilbbet-repo/data/team_market_coeffs.json'))
-    history = json.load(open('/mnt/user-data/outputs/bilbbet-repo/data/roddy_history.json'))
+    divs = json.load(open('data/h2h_divisions.json'))
+    tmc = json.load(open('data/team_market_coeffs.json'))
+    history = json.load(open('data/roddy_history.json'))
 
     print("Simulating charity (fewest conceded) and philanthropy (most conceded)...")
     charity, philanthropy = simulate_charity_philanthropy(
         divs, tmc['team_coeffs'], tmc['scale'], history, rounds_completed=0, n_sim=15000)
 
     out = {'charity': charity, 'philanthropy': philanthropy}
-    json.dump(out, open('/mnt/user-data/outputs/bilbbet-repo/data/special_markets_regenerated.json', 'w'), indent=2)
-    print("Wrote special_markets_regenerated.json")
+    json.dump(out, open('data/special_markets.json', 'w'), indent=2)
+    print("Wrote special_markets.json")
 
 
 if __name__ == '__main__':

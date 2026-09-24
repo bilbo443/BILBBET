@@ -157,8 +157,14 @@ Blocking issues. Don't move to Phase 2 until these are resolved.
       The pre-season sweep now verifies each `futures.json` and
       `leading_at.json` market against its published conference roster.
       Div 2A/2B leading-at odds for rounds 2-23 were repriced in September.
-      `special_markets.json` still needs a separate fairness review across
-      divisions with different fixture counts; the sweep cannot reprice it.
+      `special_markets.json` compares conceded points per match relative
+      to each team's conference mean and spread. Reprice after any roster
+      or schedule change; the sweep cannot reprice it.
+
+- [x] **Gate weekly highest/lowest scorer specials to eligible teams.**
+      `computeRoundExtremes()` now prices teams in published fixtures for
+      that matchweek. Div 2/3 have no MW1 fixture; MW24-26 finalists join
+      the field when their platform fixtures are published to the schedule.
 
 - [x] **`carry_balances.json` missing entries — resolved, turned out not to
       need a fix.** Found a fifth, related issue while re-checking this
