@@ -1,13 +1,8 @@
 name: Pre-season Roster Sweep
 
-# Runs every Tuesday. Deliberately not scoped to a specific date range in
-# the cron itself -- the script decides whether there's anything to do by
-# checking round_dates.json: it's a genuine no-op once Round 1 has already
-# kicked off, so this can just run year-round without needing a human to
-# remember to enable/disable it each season. The "Tuesday night before
-# the season starts" case this was built for is automatically included --
-# it's just one Tuesday among the several this will run on during any
-# given pre-season window.
+# Checks each Tuesday before kickoff. An October daily trigger runs a final
+# full sweep only on the day before Round 1 in round_dates.json; other
+# October days stop before installing dependencies or fetching the sheet.
 #
 # This is diagnostic-only: it never writes to data/, never opens a PR, and
 # never auto-corrects anything it finds. A clean run produces nothing
@@ -17,6 +12,7 @@ name: Pre-season Roster Sweep
 on:
   schedule:
     - cron: '0 5 * * 2'  # ~3pm Tuesday AEST / ~4pm Tuesday AEDT -- adjust to your own timezone
+    - cron: '0 5 * 10 *' # daily October date gate; one final full sweep
   workflow_dispatch:
     inputs:
       sheet_url:
@@ -38,30 +34,60 @@ jobs:
       - name: Check out repo
         uses: actions/checkout@v4
 
+      - name: Check whether a sweep is due
+        id: due
+        env:
+          SCHEDULE: ${{ github.event.schedule }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from datetime import date, timedelta
+          with open('data/round_dates.json') as stream:
+              start = date.fromisoformat(json.load(stream)['1'])
+          today = date.today()
+          schedule = os.environ.get('SCHEDULE')
+          final_trigger = schedule == '0 5 * 10 *'
+          eve = start - timedelta(days=1)
+          due = today == eve if final_trigger else (today < start and today != eve if schedule else True)
+          print(f"{'Final' if final_trigger else 'Regular'} sweep {'due' if due else 'skipped'}; season starts {start}.")
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write(f"run_check={str(due).lower()}\n")
+          PY
+
       - name: Set up Python
+        if: steps.due.outputs.run_check == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install pandas requests
+        if: steps.due.outputs.run_check == 'true'
+        run: pip install pandas numpy requests
 
       - name: Run the sweep
+        if: steps.due.outputs.run_check == 'true'
         id: sweep
         env:
           RESOLVED_SHEET_URL: ${{ inputs.sheet_url || vars.SHEET_URL }}
+          RESOLVED_ALLTIME_URL: ${{ vars.ALLTIME_URL }}
+          SCHEDULE: ${{ github.event.schedule }}
         run: |
           if [ -z "$RESOLVED_SHEET_URL" ]; then
-            echo "No sheet URL available -- set the SHEET_URL repository variable, or supply one when running this manually."
-            exit 1
+            echo '## Roster sweep could not complete' > sweep-report.md
+            echo 'SHEET_URL is missing. Set the published results-sheet URL and rerun this check before kickoff.' >> sweep-report.md
+            echo "exit_code=1" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
           TODAY_ARG=""
           if [ -n "${{ inputs.today }}" ]; then
             TODAY_ARG="--today ${{ inputs.today }}"
           fi
+          EVE_ARG=""
+          if [ "$SCHEDULE" = '0 5 * 10 *' ]; then EVE_ARG="--only-on-eve"; fi
           set +e
-          python pipeline/preseason_roster_sweep.py \
+          python data/preseason_roster_sweep.py \
             --sheet-url "$RESOLVED_SHEET_URL" \
+            --alltime-url "$RESOLVED_ALLTIME_URL" \
             --roster-path data/h2h_divisions.json \
             --schedule-path data/h2h_schedule.json \
             --coeffs-path data/team_market_coeffs.json \
@@ -73,6 +99,7 @@ jobs:
             --h2h-history-path data/h2h_history.json \
             --round-dates-path data/round_dates.json \
             --report-path sweep-report.md \
+            $EVE_ARG \
             $TODAY_ARG
           echo "exit_code=$?" >> "$GITHUB_OUTPUT"
           set -e
@@ -83,7 +110,7 @@ jobs:
         # this workflow needs to act on, not a script crash.
 
       - name: Open an issue if anything was flagged
-        if: steps.sweep.outputs.exit_code == '1'
+        if: steps.due.outputs.run_check == 'true' && steps.sweep.outputs.exit_code == '1'
         run: |
           gh issue create \
             --title "Pre-season roster sweep -- issues found ($(date +%Y-%m-%d))" \
