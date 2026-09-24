@@ -108,6 +108,34 @@ def compare_rosters(real_roster, live_roster):
     return issues
 
 
+def compare_provisional_results_sheet(sheet_roster, live_roster):
+    """Report useful clues without treating DIV 3 - TBC as an assignment."""
+    sheet = {normalize_name(t): (t, div) for div, teams in sheet_roster.items() for t in teams}
+    live = {normalize_name(t): (t, div) for div, teams in live_roster.items() for t in teams}
+    issues = []
+    missing_from_sheet = sorted(t for key, (t, _) in live.items() if key not in sheet)
+    if missing_from_sheet:
+        issues.append(f"{len(missing_from_sheet)} published-roster team(s) absent from the provisional "
+                      f"results sheet: {missing_from_sheet}. Confirm status in the current-season registry.")
+    unassigned = sorted(t for key, (t, div) in sheet.items()
+                        if key not in live and div == 'DIV 3 - TBC')
+    if unassigned:
+        issues.append(f"{len(unassigned)} Division 3 name(s) in the provisional results sheet "
+                      f"but not the published roster: {unassigned}. These are candidates, not "
+                      "confirmed admissions or conference placements.")
+    for key, (team, div) in sheet.items():
+        if key not in live:
+            if div != 'DIV 3 - TBC':
+                issues.append(f"'{team}' appears only in the results sheet ({div}); "
+                              "confirm in the current-season registry before admitting them.")
+            continue
+        live_div = live[key][1]
+        if div != live_div and not (div == 'DIV 3 - TBC' and live_div.startswith('DIVISION 3')):
+            issues.append(f"'{team}' is {live_div} in the published roster but {div} in the results "
+                          "sheet; verify the tier before publication.")
+    return issues
+
+
 def check_dependent_file(path, extractor, real_roster, label):
     """Generic check: does this file's team set match the real, current
     roster? Catches stale placeholders and departed teams. AVERAGE TEAM is
@@ -154,11 +182,12 @@ def run_sweep(sheet_url, roster_path, schedule_path, coeffs_path, history_path,
                                                  f"this is a pre-season check, nothing to do now."}
 
     csv_text = fetch_sheet_csv(sheet_url)
-    real_roster = real_roster_from_sheet(csv_text, header_row=header_row)
+    provisional_roster = real_roster_from_sheet(csv_text, header_row=header_row)
     live_roster = json.load(open(roster_path))
 
-    all_issues = []
-    all_issues.extend([f"[roster] {i}" for i in compare_rosters(real_roster, live_roster)])
+    all_issues = [f"[provisional results sheet] {i}" for i in
+                  compare_provisional_results_sheet(provisional_roster, live_roster)]
+    authoritative_roster = live_roster
 
     # The current-season registry is the authority for late pullouts and
     # waitlist admissions; a results-sheet row alone cannot establish that.
@@ -178,6 +207,7 @@ def run_sweep(sheet_url, roster_path, schedule_path, coeffs_path, history_path,
                 official_roster = load_current_roster(official)
                 all_issues.extend(f'[current-season registry] {issue}'
                                   for issue in compare_rosters(official_roster, live_roster))
+                authoritative_roster = official_roster
         except Exception as exc:
             all_issues.append(f'[source] Could not read current-season roster: {exc}')
 
@@ -214,12 +244,13 @@ def run_sweep(sheet_url, roster_path, schedule_path, coeffs_path, history_path,
         (futures_path, futures_teams, 'futures.json'),
     ]
     for path, extractor, label in checks:
-        all_issues.extend([f"[{label}] {i}" for i in check_dependent_file(path, extractor, real_roster, label)])
+        all_issues.extend([f"[{label}] {i}" for i in
+                           check_dependent_file(path, extractor, authoritative_roster, label)])
 
     return {
         'status': 'clean' if not all_issues else 'issues_found',
         'issues': all_issues,
-        'real_roster_team_count': sum(len(v) for v in real_roster.values()),
+        'real_roster_team_count': sum(len(v) for v in authoritative_roster.values()),
     }
 
 
