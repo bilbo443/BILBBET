@@ -509,7 +509,15 @@ def sync_roster_if_changed(alltime_csv_path, data_dir, draft_dir):
     draft_dir) if something genuinely changed. Returns (changed: bool,
     summary: str|None) -- summary is the PR-body text describing exactly
     what changed, for human review."""
+    rules = json.load(open(os.path.join(data_dir, 'roster_rules.json')))
+    expected_season = rules['season'][2:4] + '/' + rules['season'][-2:]
     fresh_teams, season_label = build_admin_teams(alltime_csv_path, out_path=os.path.join(draft_dir, '_fresh_admin_teams.json'))
+    if season_label != expected_season:
+        raise ValueError(
+            f"Roster sheet's newest division column is {season_label}, but this season requires "
+            f"{expected_season} DIVISION. Wait for the new-season sheet before importing its "
+            "conference assignments or waitlist admissions."
+        )
     old_path = os.path.join(data_dir, 'admin_teams.json')
     old_teams = json.load(open(old_path)) if os.path.exists(old_path) else []
 
