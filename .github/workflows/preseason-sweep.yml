@@ -85,7 +85,7 @@ jobs:
           EVE_ARG=""
           if [ "$SCHEDULE" = '0 5 * 10 *' ]; then EVE_ARG="--only-on-eve"; fi
           set +e
-          python data/preseason_roster_sweep.py \
+          python pipeline/preseason_roster_sweep.py \
             --sheet-url "$RESOLVED_SHEET_URL" \
             --alltime-url "$RESOLVED_ALLTIME_URL" \
             --roster-path data/h2h_divisions.json \
@@ -100,9 +100,16 @@ jobs:
             --round-dates-path data/round_dates.json \
             --report-path sweep-report.md \
             $EVE_ARG \
-            $TODAY_ARG
-          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+            $TODAY_ARG > sweep-output.log 2>&1
+          sweep_status=$?
           set -e
+          cat sweep-output.log
+          if [ "$sweep_status" -ne 0 ] && [ ! -s sweep-report.md ]; then
+            echo '## Roster sweep could not complete' > sweep-report.md
+            echo '' >> sweep-report.md
+            echo 'The sweep stopped before it could write its normal report. Inspect the Run the sweep step in this GitHub Actions run for the error.' >> sweep-report.md
+          fi
+          echo "exit_code=$sweep_status" >> "$GITHUB_OUTPUT"
         # exit code 0: clean or skipped (season already started) -- either
         # way, nothing to surface. exit code 1: genuine issues found.
         # Captured explicitly rather than letting a non-zero exit fail the
@@ -110,7 +117,7 @@ jobs:
         # this workflow needs to act on, not a script crash.
 
       - name: Open an issue if anything was flagged
-        if: steps.due.outputs.run_check == 'true' && steps.sweep.outputs.exit_code == '1'
+        if: steps.due.outputs.run_check == 'true' && steps.sweep.outputs.exit_code != '0'
         run: |
           gh issue create \
             --title "Pre-season roster sweep -- issues found ($(date +%Y-%m-%d))" \
