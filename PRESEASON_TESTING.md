@@ -623,5 +623,6 @@ Keep the original Phase 4 and Phase 5 checkboxes open until actually run.
 - [ ] Verify Division 2/3 regular-season fixtures only in matchweeks 2–23, with one AVERAGE TEAM fixture in each odd-sized conference round and no requirement for balanced home-and-away games.
 - [ ] Test 12, 13, 16 and 20 team conference schedules; check that conference finals in matchweeks 24–26 are entered and displayed for their actual matchweek, including Division 3C when it exists.
 - [ ] Confirm the finals bracket, 13–15 team participation, automatic promotion allocation and next eligible table finisher rule before reopening promotion betting or preseason promotion predictions.
-- [ ] Compare the 58 teams in current `h2h_divisions.json` with the 62 active records in `admin_teams.json`; resolve four omitted active teams and moved conference assignments before publication.
+- [ ] Check the 56 published teams against the new-season `26/27 DIVISION` column in the All Time Data registry before the October 9 freeze. The saved `admin_teams.json` snapshot is valid JSON with `null` for missing optional fields; it does not replace checking the current registry for late departures and admissions.
+- [x] Run the roster sweep daily in October through the October 9 freeze, with a separate final sweep the day before the October 16 opening matchweek. Weekly Tuesday sweeps remain active before kickoff.
 - [ ] Replace provisional regular-season fixtures with the official draw, then regenerate dependent markets. Confirm the FA Cup extra round if the roster crosses 62.

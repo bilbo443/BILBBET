@@ -1,18 +1,18 @@
 name: Pre-season Roster Sweep
 
-# Checks each Tuesday before kickoff. An October daily trigger runs a final
-# full sweep only on the day before Round 1 in round_dates.json; other
-# October days stop before installing dependencies or fetching the sheet.
+# Checks each Tuesday before kickoff. The October trigger runs daily through
+# the October 9 roster freeze, then once more on the day before Round 1;
+# other October days stop before installing dependencies or fetching the sheet.
 #
 # This is diagnostic-only: it never writes to data/, never opens a PR, and
 # never auto-corrects anything it finds. A clean run produces nothing
-# visible at all. An issues-found run opens a GitHub Issue with the report
+# visible at all. An issues-found run opens or updates a GitHub Issue with the report
 # -- a human decides what (if anything) needs fixing from there, the same
 # "never guess, always ask" rule as every other check in this pipeline.
 on:
   schedule:
     - cron: '0 5 * * 2'  # ~3pm Tuesday AEST / ~4pm Tuesday AEDT -- adjust to your own timezone
-    - cron: '0 5 * 10 *' # daily October date gate; one final full sweep
+    - cron: '0 5 * 10 *' # daily through roster freeze, plus final eve sweep
   workflow_dispatch:
     inputs:
       sheet_url:
@@ -44,12 +44,14 @@ jobs:
           from datetime import date, timedelta
           with open('data/round_dates.json') as stream:
               start = date.fromisoformat(json.load(stream)['1'])
+          with open('data/roster_rules.json') as stream:
+              freeze = date.fromisoformat(json.load(stream)['freeze_date'])
           today = date.today()
           schedule = os.environ.get('SCHEDULE')
-          final_trigger = schedule == '0 5 * 10 *'
+          daily_trigger = schedule == '0 5 * 10 *'
           eve = start - timedelta(days=1)
-          due = today == eve if final_trigger else (today < start and today != eve if schedule else True)
-          print(f"{'Final' if final_trigger else 'Regular'} sweep {'due' if due else 'skipped'}; season starts {start}.")
+          due = (today < start and (today <= freeze or today == eve)) if daily_trigger else (today < start and today != eve if schedule else True)
+          print(f"{'October' if daily_trigger else 'Regular'} sweep {'due' if due else 'skipped'}; roster freeze {freeze}, season starts {start}.")
           with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
               output.write(f"run_check={str(due).lower()}\n")
           PY
@@ -83,7 +85,10 @@ jobs:
             TODAY_ARG="--today ${{ inputs.today }}"
           fi
           EVE_ARG=""
-          if [ "$SCHEDULE" = '0 5 * 10 *' ]; then EVE_ARG="--only-on-eve"; fi
+          if [ "$SCHEDULE" = '0 5 * 10 *' ]; then
+            EVE_DATE=$(python -c "import json; from datetime import date, timedelta; print(date.fromisoformat(json.load(open('data/round_dates.json'))['1']) - timedelta(days=1))")
+            if [ "$(date -u +%F)" = "$EVE_DATE" ]; then EVE_ARG="--only-on-eve"; fi
+          fi
           set +e
           python pipeline/preseason_roster_sweep.py \
             --sheet-url "$RESOLVED_SHEET_URL" \
@@ -119,8 +124,12 @@ jobs:
       - name: Open an issue if anything was flagged
         if: steps.due.outputs.run_check == 'true' && steps.sweep.outputs.exit_code != '0'
         run: |
-          gh issue create \
-            --title "Pre-season roster sweep -- issues found ($(date +%Y-%m-%d))" \
-            --body-file sweep-report.md
+          existing=$(gh issue list --state open --limit 100 --json number,title --jq '.[] | select(.title | startswith("Pre-season roster sweep -- issues found")) | .number' | head -1)
+          title="Pre-season roster sweep -- issues found ($(date +%Y-%m-%d))"
+          if [ -n "$existing" ]; then
+            gh issue edit "$existing" --title "$title" --body-file sweep-report.md
+          else
+            gh issue create --title "$title" --body-file sweep-report.md
+          fi
         env:
           GH_TOKEN: ${{ github.token }}

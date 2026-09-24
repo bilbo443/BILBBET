@@ -503,7 +503,8 @@ def sync_roster(admin_teams, data_dir='.', draft_dir='.'):
                            seed=rules['fa_cup_draw_seed'])
     sync_h2h_record(admin_teams, data_dir, draft_dir)
     sync_real_results(admin_teams, data_dir, draft_dir)
-    json.dump(admin_teams, open(os.path.join(draft_dir, 'admin_teams.json'), 'w'))
+    with open(os.path.join(draft_dir, 'admin_teams.json'), 'w') as stream:
+        json.dump(admin_teams, stream, allow_nan=False)
     return new_roster
 
 

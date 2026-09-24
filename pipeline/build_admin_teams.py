@@ -105,5 +105,6 @@ def build_admin_teams(csv_path, out_path='admin_teams.json'):
             'status': str(row[status_col]).strip() if pd.notna(row[status_col]) else None,
         })
 
-    json.dump(teams, open(out_path, 'w'))
+    with open(out_path, 'w') as stream:
+        json.dump(teams, stream, allow_nan=False)
     return teams, season_label
