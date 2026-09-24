@@ -159,6 +159,12 @@
   const H2H_DIVISIONS = DATA.h2h_divisions;
   const ROSTER_RULES = DATA.roster_rules;
   const DIV3_CONFERENCES = ['DIVISION 3A','DIVISION 3B','DIVISION 3C'].filter(d => (H2H_DIVISIONS[d]||[]).length);
+  // Existing promotion prices use the superseded cross-conference bracket.
+  for(const [div, markets] of Object.entries(FUTURES.divisions || {})){
+    if(div.startsWith('DIVISION 2') || div.startsWith('DIVISION 3')){
+      for(const row of markets.promotion_pct || []) row.suspended = true;
+    }
+  }
   const TOTAL_TEAMS = Object.values(H2H_DIVISIONS).reduce((n, teams) => n + teams.length, 0);
   // Eliza committee election hub -- see renderElectionHub below. Candidates
   // are real Eliza teams, so their logos/names double as the ballot names
@@ -241,6 +247,14 @@
   const H2H_SHIFT = DATA.h2h_shift;
   const H2H_CUP_SHIFT = DATA.h2h_cup_shift || {};
   const REAL_RESULTS = DATA.real_results || {};
+  const AVERAGE_TEAM = 'AVERAGE TEAM';
+  function fixtureScore(team, opponent, round){
+    if(team !== AVERAGE_TEAM) return REAL_RESULTS[team]?.[round-1] ?? null;
+    const div = findTeamDivision(opponent);
+    const scores = (H2H_DIVISIONS[div] || []).map(t => REAL_RESULTS[t]?.[round-1]);
+    if(!scores.length || scores.some(s => s == null)) return null;
+    return scores.reduce((sum, score) => sum + score, 0) / scores.length;
+  }
   const H2H_VARIANCE_WIDEN = DATA.h2h_variance_widen || {};
   const H2H_SCHEDULE = DATA.h2h_schedule;
   const SPECIAL_MARKETS = DATA.special_markets;
@@ -379,9 +393,8 @@
     // that protection existed.
     const div = FUTURE_DIVS.find(d => (H2H_SCHEDULE[d] || []).some(pairs => pairs.some(([a,b]) => (a===teamA&&b===teamB)||(a===teamB&&b===teamA))));
     if(div && hasNoFixtures(div, round)) return null;
-    const scoresA = REAL_RESULTS[teamA], scoresB = REAL_RESULTS[teamB];
-    if(!scoresA || !scoresB) return null;
-    const scoreA = scoresA[round-1], scoreB = scoresB[round-1];
+    const scoreA = fixtureScore(teamA, teamB, round);
+    const scoreB = fixtureScore(teamB, teamA, round);
     if(scoreA == null || scoreB == null) return null; // that round hasn't actually been played yet
     if(scoreA === scoreB) return null; // a genuine draw -- no clear "to win" suggestion, needs a human call
     const aWon = scoreA > scoreB;
@@ -508,10 +521,10 @@
     cupFixtureMarket: null,
     cupAdminEntry: { 'FA CUP': {teamA:'', teamB:''}, 'ECL': {teamA:'', teamB:''} },
     cupCalendarOverrides: { 'FA CUP': {}, 'ECL': {} },  // round -> stage name string, or false to force "not a cup round"
-    playoffFixtures: { 'DIVISION 2': [], 'DIVISION 3': [] },
+    playoffFixtures: {},
     playoffFixtureMarket: null,
-    playoffSubTab: 'DIVISION 2',
-    playoffAdminEntry: { 'DIVISION 2': {teamA:'',teamB:'',stage:'Qualifying Final'}, 'DIVISION 3': {teamA:'',teamB:'',stage:'Qualifying Final'} },
+    playoffSubTab: 'DIVISION 2A',
+    playoffAdminEntry: {},
     adminSubTab: 'season',
     adminBetsFilterUser: '', adminBetsFilterStatus: 'ALL', adminBetsFilterType: 'ALL',
     adminBetsSortBy: null, adminBetsSortDir: 'desc',
@@ -959,8 +972,15 @@
 
   function computeH2HMarket(teamA, teamB, round, nSims){
     nSims = nSims || 20000;
-    let a = sampleTeam(teamA,nSims), b = sampleTeam(teamB,nSims);
-    const edge = h2hEdgeBonus(teamA, teamB);
+    const averageSamples = realTeam => {
+      const teams = H2H_DIVISIONS[findTeamDivision(realTeam)] || [];
+      const draws = teams.map(t => sampleTeam(t, nSims));
+      return Array.from({length:nSims}, (_,i) => draws.reduce((sum,row) => sum+row[i],0)/draws.length);
+    };
+    let a = teamA === AVERAGE_TEAM ? averageSamples(teamB) : sampleTeam(teamA,nSims);
+    let b = teamB === AVERAGE_TEAM ? averageSamples(teamA) : sampleTeam(teamB,nSims);
+    const edge = teamA === AVERAGE_TEAM || teamB === AVERAGE_TEAM
+      ? {applied:false} : h2hEdgeBonus(teamA, teamB);
     if(edge.applied){
       if(edge.aBonus) a = a.map(x => Math.round(x + edge.aBonus));
       if(edge.bBonus) b = b.map(x => Math.round(x + edge.bBonus));
@@ -1226,9 +1246,10 @@
         if(pick) selected.push(pick);
       }
     }
-    for(const div of ['DIVISION 2', 'DIVISION 3']){
+    for(const div of PLAYOFF_DIVS){
       if(!isPlayoffRound(div, round)) continue;
       for(const f of (state.playoffFixtures[div] || [])){
+        if(f.round !== round) continue;
         if(selected.length >= MAX_TOTAL) break;
         const m = computeH2HMarket(f.teamA, f.teamB, round, 4000);
         const pick = pickValueSide(m, roundTag, div, { stage: f.stage, isCup: true });
@@ -1314,11 +1335,12 @@
     for(const div of FUTURE_DIVS){
       const pairs = (H2H_SCHEDULE[div] && H2H_SCHEDULE[div][round - 1]) || [];
       for(const [teamA, teamB] of pairs){
-        const scoreA = REAL_RESULTS[teamA] && REAL_RESULTS[teamA][round - 1];
-        const scoreB = REAL_RESULTS[teamB] && REAL_RESULTS[teamB][round - 1];
+        const scoreA = fixtureScore(teamA, teamB, round);
+        const scoreB = fixtureScore(teamB, teamA, round);
         if(scoreA == null || scoreB == null || scoreA === scoreB) continue;
         const teamAWon = scoreA > scoreB;
         const winner = teamAWon ? teamA : teamB, loser = teamAWon ? teamB : teamA;
+        if(winner === AVERAGE_TEAM) continue;
         const m = computeH2HMarket(teamA, teamB, round, 4000);
         const winnerPct = teamAWon ? m.aWinPct : m.bWinPct;
         const oddsInfo = toOdds(winnerPct);
@@ -2285,15 +2307,9 @@
       `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-top:10px;">Odds here use the same head-to-head model as the division matches -- cup-specific pricing (rewarding spike ability for the FA Cup, tough-opposition form for the ECL) isn't wired in yet.</p>`;
   }
 
-  const PLAYOFF_DIVS = ['DIVISION 2', 'DIVISION 3'];
-  // Matches the confirmed finals format: week 1 has a Qualifying Final (major
-  // semi -- winner gets a bye to the Promotion Final) run alongside an
-  // Elimination Final (minor semi -- loser is out); week 2 is the
-  // Preliminary Final (major-semi loser vs minor-semi winner); week 3 is
-  // the Promotion Final itself. Two different stages share the same round
-  // (both week-1 games), so this can't be auto-derived from the round
-  // number the way cup stages are -- the admin picks it explicitly.
-  const PLAYOFF_STAGES = ['Qualifying Final', 'Elimination Final', 'Preliminary Final', 'Promotion Final'];
+  const PLAYOFF_DIVS = ['DIVISION 2A','DIVISION 2B',...DIV3_CONFERENCES]
+    .filter(d => (H2H_DIVISIONS[d]||[]).length);
+  const PLAYOFF_STAGES = ['Finals fixture', 'Qualifying Final', 'Elimination Final', 'Preliminary Final', 'Promotion Final'];
 
   function playoffSubTabBar(){
     return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">' +
@@ -2308,7 +2324,8 @@
         (state.playoffFixtureMarketStage ? `<p style="color:#ffdd00;font-weight:600;margin-bottom:6px;">${esc(state.playoffFixtureMarketStage)}</p>` : '') +
         renderH2HMarket(state.playoffFixtureMarket);
     }
-    const fixtures = state.playoffFixtures[div] || [];
+    const fixtures = (state.playoffFixtures[div] || []).map((f,i) => ({...f,index:i}))
+      .filter(f => f.round === state.currentRound);
     const inPlayoffWindow = isPlayoffRound(div, state.currentRound);
     const windowNote = inPlayoffWindow
       ? `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:10px;">Round ${state.currentRound} is a scheduled playoff week for ${esc(div)}.</p>`
@@ -2317,7 +2334,7 @@
       return playoffSubTabBar() + windowNote + `<div class="bb-card" style="text-align:center;padding:2rem 1rem;color:#9a9a9a;">No fixtures scheduled yet.</div>`;
     }
     return playoffSubTabBar() + windowNote + '<div class="bb-card" style="padding:0;overflow:hidden;">' +
-      fixtures.map((f,i) => `<div data-playofffixture="${esc(div)}|${i}" style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;cursor:pointer;${i<fixtures.length-1?'border-bottom:1px solid #3d3d3d;':''}">
+      fixtures.map((f,i) => `<div data-playofffixture="${esc(div)}|${f.index}" style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;cursor:pointer;${i<fixtures.length-1?'border-bottom:1px solid #3d3d3d;':''}">
         <span>${f.stage ? `<span style="color:#ffdd00;font-weight:600;">${esc(f.stage)}:</span> ` : ''}${esc(f.teamA)} <span style="color:#9a9a9a;">vs</span> ${esc(f.teamB)}</span>
         <span class="bb-btn ghost" style="padding:5px 12px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">View market</span>
       </div>`).join('') + '</div>';
@@ -2591,12 +2608,8 @@
   // Pre-season predictions: a one-time, season-long prediction set that
   // locks before Round 1 kicks off (tied to isRoundBlocked(1) -- the same
   // moment Round 1's own betting locks), scored separately from the
-  // weekly tipping leaderboard entirely. Winner slots are single-team
-  // picks; relegation/promotion slots are multi-team, since several teams
-  // go down or up together. Promotion pools span both conferences of a
-  // division (2A+2B share four places, all current Div 3 conferences share six) since
-  // that's how promotion actually works; relegation is per-conference,
-  // since each conference relegates its own bottom teams independently.
+  // weekly tipping leaderboard entirely. Promotion picks resume once the
+  // conference finals and automatic promotion allocation are confirmed.
   const PRESEASON_SLOTS = [
     { key: 'winner|ELIZA CUP (D1)', label: 'Eliza Cup winner', divs: ['ELIZA CUP (D1)'], marketKey: 'win_div_pct', count: 1 },
     { key: 'winner|DIVISION 2A', label: 'Division 2A winner', divs: ['DIVISION 2A'], marketKey: 'win_div_pct', count: 1 },
@@ -2605,8 +2618,6 @@
     { key: 'relegated|ELIZA CUP (D1)', label: 'Eliza Cup relegation', divs: ['ELIZA CUP (D1)'], marketKey: 'relegation_pct', count: 4 },
     { key: 'relegated|DIVISION 2A', label: 'Division 2A relegation', divs: ['DIVISION 2A'], marketKey: 'relegation_pct', count: 3 },
     { key: 'relegated|DIVISION 2B', label: 'Division 2B relegation', divs: ['DIVISION 2B'], marketKey: 'relegation_pct', count: 3 },
-    { key: 'promoted|DIVISION 2', label: 'Division 2 promotion (2A + 2B)', divs: ['DIVISION 2A','DIVISION 2B'], marketKey: 'promotion_pct', count: 4 },
-    { key: 'promoted|DIVISION 3', label: 'Division 3 promotion ('+DIV3_CONFERENCES.map(d => d.slice(-1)).join('+')+')', divs: DIV3_CONFERENCES, marketKey: 'promotion_pct', count: 6 },
     { key: 'winner|RODDY', label: 'Roddy winner', source: 'roddy', marketKey: 'roddy_win_pct', count: 1 },
     { key: 'winner|FA CUP', label: 'FA Cup winner', source: 'fa_cup_markets', marketKey: 'win_pct', count: 1 },
     { key: 'winner|ECL', label: 'ECL winner', source: 'ecl_markets', marketKey: 'win_pct', count: 1 },
@@ -3487,16 +3498,18 @@
     for(let r = 1; r <= Math.min(lastPlayed, schedule.length); r++){
       const pairs = schedule[r-1] || [];
       for(const [a, b] of pairs){
-        if(!table[a] || !table[b]) continue; // defensive -- shouldn't happen if the schedule matches the roster
-        const sa = REAL_RESULTS[a] && REAL_RESULTS[a][r-1];
-        const sb = REAL_RESULTS[b] && REAL_RESULTS[b][r-1];
+        if(a !== AVERAGE_TEAM && !table[a] || b !== AVERAGE_TEAM && !table[b]) continue;
+        const sa = fixtureScore(a, b, r);
+        const sb = fixtureScore(b, a, r);
         if(sa == null || sb == null) continue; // result not in yet
-        table[a].played++; table[b].played++;
-        table[a].scoreFor += sa; table[a].scoreAgainst += sb;
-        table[b].scoreFor += sb; table[b].scoreAgainst += sa;
-        if(sa > sb){ table[a].won++; table[a].points += 3; table[b].lost++; }
-        else if(sb > sa){ table[b].won++; table[b].points += 3; table[a].lost++; }
-        else { table[a].drawn++; table[b].drawn++; table[a].points++; table[b].points++; }
+        if(table[a]){ table[a].played++; table[a].scoreFor += sa; table[a].scoreAgainst += sb; }
+        if(table[b]){ table[b].played++; table[b].scoreFor += sb; table[b].scoreAgainst += sa; }
+        if(sa > sb){ if(table[a]){ table[a].won++; table[a].points += 3; } if(table[b]) table[b].lost++; }
+        else if(sb > sa){ if(table[b]){ table[b].won++; table[b].points += 3; } if(table[a]) table[a].lost++; }
+        else {
+          if(table[a]){ table[a].drawn++; table[a].points++; }
+          if(table[b]){ table[b].drawn++; table[b].points++; }
+        }
       }
     }
     return Object.values(table).sort((x,y) => y.points - x.points || y.scoreFor - x.scoreFor);
@@ -3635,7 +3648,7 @@
       if(!match) continue;
       const opponent = match[0] === teamName ? match[1] : match[0];
       const yourScore = REAL_RESULTS[teamName] && REAL_RESULTS[teamName][r-1];
-      const oppScore = REAL_RESULTS[opponent] && REAL_RESULTS[opponent][r-1];
+      const oppScore = fixtureScore(opponent, teamName, r);
       if(yourScore == null || oppScore == null) continue;
       const outcome = yourScore > oppScore ? 'W' : (yourScore < oppScore ? 'L' : 'D');
       rows.push({ round: r, opponent, yourScore, oppScore, outcome });
@@ -4025,7 +4038,8 @@
     // actually shows.
     const flagSeason = !!state.oddsRefreshRequested;
     const flagFixtures = ['FA CUP','ECL'].some(comp => getCupRoundInfo(comp, state.currentRound) && !(state.cupFixtures[comp]||[]).length) ||
-      ([24,25,26].includes(state.currentRound) && PLAYOFF_DIVS.some(div => !(state.playoffFixtures[div]||[]).length));
+      ([24,25,26].includes(state.currentRound) && PLAYOFF_DIVS.some(div =>
+        !(state.playoffFixtures[div]||[]).some(f => f.round === state.currentRound)));
     const resolvableSingles = bets.filter(b => (b.status||'PENDING')==='PENDING' && b.selections.length===1 &&
       (() => { const r = getPickRound(b.selections[0].id); return r !== null && r <= state.currentRound; })());
     const readyCount = bets.filter(b => (b.status||'PENDING')==='PENDING' &&
@@ -4238,13 +4252,13 @@
             <div style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);font-weight:600;margin-bottom:6px;">${esc(div)}</div>
             ${(state.playoffFixtures[div]||[]).length ? (state.playoffFixtures[div]||[]).map((f,i) => `
               <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #2a2a2a;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">
-                <span>${f.stage ? `<span style="color:#ffdd00;font-weight:600;">${esc(f.stage)}:</span> ` : ''}${esc(f.teamA)} vs ${esc(f.teamB)}</span>
+                <span>R${esc(f.round || '?')} ${f.stage ? `<span style="color:#ffdd00;font-weight:600;">${esc(f.stage)}:</span> ` : ''}${esc(f.teamA)} vs ${esc(f.teamB)}</span>
                 <span data-remove-playofffixture="${esc(div)}|${i}" style="cursor:pointer;color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">remove</span>
               </div>`).join('') : `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">No fixtures set for this division.</p>`}
             <div style="display:flex;gap:6px;align-items:flex-end;margin-top:8px;flex-wrap:wrap;">
               <div style="min-width:160px;"><span style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:#9a9a9a;display:block;">Stage</span>
                 <select class="bb-select" data-playoff-stage="${esc(div)}" style="width:100%;">
-                  ${PLAYOFF_STAGES.map(s => `<option value="${esc(s)}" ${state.playoffAdminEntry[div].stage===s?'selected':''}>${esc(s)}</option>`).join('')}
+                  ${PLAYOFF_STAGES.map(s => `<option value="${esc(s)}" ${(state.playoffAdminEntry[div]||{}).stage===s?'selected':''}>${esc(s)}</option>`).join('')}
                 </select>
               </div>
               <div style="flex:1;min-width:140px;">${teamSearchInput('playoff-team-a-'+idSafe(div), '', 'Team A\u2026')}</div>
@@ -4717,7 +4731,7 @@
     // mid-season -- not relevant here, since every market gets rebuilt from
     // scratch for the new season anyway.
     state.cupFixtures = { 'FA CUP': [], 'ECL': [] };
-    state.playoffFixtures = { 'DIVISION 2': [], 'DIVISION 3': [] };
+    state.playoffFixtures = {};
     state.eclGroups = { A: [], B: [], C: [] };
     state.pausedCategories = {};
     state.seasonClosed = { ELIZA: false, DIV2: false, DIV3: false, ALL: false };
@@ -5399,8 +5413,8 @@
         if(hasNoFixtures(div, round)) continue;
         const markets = getFixtureMarkets(div, round);
         for(const m of markets){
-          const scoreA = REAL_RESULTS[m.teamA] && REAL_RESULTS[m.teamA][round - 1];
-          const scoreB = REAL_RESULTS[m.teamB] && REAL_RESULTS[m.teamB][round - 1];
+          const scoreA = fixtureScore(m.teamA, m.teamB, round);
+          const scoreB = fixtureScore(m.teamB, m.teamA, round);
           if(scoreA == null || scoreB == null) continue; // result not in yet
           const actualMargin = scoreA - scoreB;
           const aCovered = actualMargin > m.line; // m.line is always a .5 value, so no pushes
@@ -5414,7 +5428,7 @@
     }
 
     const eligible = Object.entries(record)
-      .filter(([, r]) => r.total >= MIN_GAMES)
+      .filter(([team, r]) => team !== AVERAGE_TEAM && r.total >= MIN_GAMES)
       .map(([team, r]) => ({ team, covered: r.covered, total: r.total, pct: 100 * r.covered / r.total }));
 
     return {
@@ -6226,8 +6240,8 @@
       const fixtures = getTippableFixtures(div, round);
       for(let i=0;i<fixtures.length;i++){
         const [teamA, teamB] = fixtures[i];
-        const scoreA = REAL_RESULTS[teamA] && REAL_RESULTS[teamA][round-1];
-        const scoreB = REAL_RESULTS[teamB] && REAL_RESULTS[teamB][round-1];
+        const scoreA = fixtureScore(teamA, teamB, round);
+        const scoreB = fixtureScore(teamB, teamA, round);
         // A draw is excluded entirely from the perfect-round tally --
         // doesn't lower the bar for a genuine "everything right" claim,
         // but doesn't block one either, regardless of what was picked.
@@ -6312,8 +6326,8 @@
     for(const div of allDivs){
       const fixtures = getTippableFixtures(div, round);
       for(const [teamA, teamB] of fixtures){
-        const scoreA = REAL_RESULTS[teamA] && REAL_RESULTS[teamA][round-1];
-        const scoreB = REAL_RESULTS[teamB] && REAL_RESULTS[teamB][round-1];
+        const scoreA = fixtureScore(teamA, teamB, round);
+        const scoreB = fixtureScore(teamB, teamA, round);
         if(scoreA == null || scoreB == null) return false;
       }
     }
@@ -6909,8 +6923,8 @@
           const fixtures = getTippableFixtures(pickDiv, r);
           if(!fixtures[idx]) continue;
           const [teamA, teamB] = fixtures[idx];
-          const scoreA = REAL_RESULTS[teamA] && REAL_RESULTS[teamA][r-1];
-          const scoreB = REAL_RESULTS[teamB] && REAL_RESULTS[teamB][r-1];
+          const scoreA = fixtureScore(teamA, teamB, r);
+          const scoreB = fixtureScore(teamB, teamA, r);
           if(scoreA == null || scoreB == null) continue; // result not in yet
           const pick = data.picks[key];
           totals[u.username].total++;
@@ -7679,10 +7693,14 @@
     document.querySelectorAll('[data-add-playofffixture]').forEach(el => el.onclick = () => {
       const div = el.dataset.addPlayofffixture;
       const entry = state.playoffAdminEntry[div];
+      if(!isPlayoffRound(div, state.currentRound)){ alert('Finals fixtures can only be entered in rounds 24–26.'); return; }
       if(!ALL_TEAMS.includes(entry.teamA) || !ALL_TEAMS.includes(entry.teamB)){ alert('Pick two real teams from the suggestions first.'); return; }
       if(entry.teamA === entry.teamB){ alert('Pick two different teams.'); return; }
-      state.playoffFixtures[div].push({ teamA: entry.teamA, teamB: entry.teamB, stage: entry.stage });
-      state.playoffAdminEntry[div] = { teamA:'', teamB:'', stage:'Qualifying Final' };
+      if(!H2H_DIVISIONS[div].includes(entry.teamA) || !H2H_DIVISIONS[div].includes(entry.teamB)){
+        alert('Both teams must belong to '+div+'.'); return;
+      }
+      state.playoffFixtures[div].push({ teamA: entry.teamA, teamB: entry.teamB, stage: entry.stage, round: state.currentRound });
+      state.playoffAdminEntry[div] = { teamA:'', teamB:'', stage:'Finals fixture' };
       savePlayoffFixtures();
     });
     document.querySelectorAll('[data-remove-playofffixture]').forEach(el => el.onclick = () => {
@@ -8007,6 +8025,10 @@
   }
   const savedPlayoffFixtures = await sget('bilbbet2_playoff_fixtures');
   if(savedPlayoffFixtures){ state.playoffFixtures = savedPlayoffFixtures; }
+  for(const div of PLAYOFF_DIVS){
+    state.playoffFixtures[div] ||= [];
+    state.playoffAdminEntry[div] ||= {teamA:'',teamB:'',stage:'Finals fixture'};
+  }
   const savedEclGroups = await sget('bilbbet2_ecl_groups');
   if(savedEclGroups){ state.eclGroups = savedEclGroups; }
   const savedCupOverrides = await sget('bilbbet2_cup_overrides');
