@@ -4075,9 +4075,10 @@
     // attention" that could drift out of sync with what the section itself
     // actually shows.
     const flagSeason = !!state.oddsRefreshRequested;
-    const flagFixtures = ['FA CUP','ECL'].some(comp => getCupRoundInfo(comp, state.currentRound) && !(state.cupFixtures[comp]||[]).length) ||
-      ([24,25,26].includes(state.currentRound) && PLAYOFF_DIVS.some(div =>
-        !(state.playoffFixtures[div]||[]).some(f => f.round === state.currentRound)));
+    // Finals brackets are entered when known. A conference may have no
+    // fixture in a particular playoff week, so its absence is not an alert.
+    const flagFixtures = ['FA CUP','ECL'].some(comp =>
+      getCupRoundInfo(comp, state.currentRound) && !(state.cupFixtures[comp]||[]).length);
     const resolvableSingles = bets.filter(b => (b.status||'PENDING')==='PENDING' && b.selections.length===1 &&
       (() => { const r = getPickRound(b.selections[0].id); return r !== null && r <= state.currentRound; })());
     const readyCount = bets.filter(b => (b.status||'PENDING')==='PENDING' &&
