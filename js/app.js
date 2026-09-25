@@ -391,8 +391,18 @@
     // already prevents such a bet from existing in the first place, but
     // this guards against a stray sheet value or an old bet from before
     // that protection existed.
-    const div = FUTURE_DIVS.find(d => (H2H_SCHEDULE[d] || []).some(pairs => pairs.some(([a,b]) => (a===teamA&&b===teamB)||(a===teamB&&b===teamA))));
-    if(div && hasNoFixtures(div, round)) return null;
+    const div = FUTURE_DIVS.find(d =>
+      (H2H_DIVISIONS[d] || []).includes(teamA) && (H2H_DIVISIONS[d] || []).includes(teamB));
+    if(div && hasNoFixtures(div, round)){
+      // Finals use separately entered Playoffs fixtures. These teams may
+      // have met during the regular season, but that older pairing must not
+      // hide their actual finals result or validate an unentered match.
+      const scheduledFinal = (state.playoffFixtures[div] || []).some(f =>
+        f.round === round &&
+        ((f.teamA === teamA && f.teamB === teamB) ||
+         (f.teamA === teamB && f.teamB === teamA)));
+      if(!scheduledFinal) return null;
+    }
     const scoreA = fixtureScore(teamA, teamB, round);
     const scoreB = fixtureScore(teamB, teamA, round);
     if(scoreA == null || scoreB == null) return null; // that round hasn't actually been played yet
