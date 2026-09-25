@@ -219,6 +219,9 @@ def check_schedule_matchweeks(path, roster):
                 continue
             is_div1 = division == 'ELIZA CUP (D1)'
             regular = is_div1 or 2 <= week <= 23
+            if not regular and week >= 24 and fixtures:
+                issues.append(f'{prefix} finals fixtures belong in the app Playoffs tab, '
+                              'not h2h_schedule.json.')
             if not regular and week == 1 and fixtures:
                 issues.append(f'{prefix} no Division 2/3 fixtures in MW1.')
             seen = set()

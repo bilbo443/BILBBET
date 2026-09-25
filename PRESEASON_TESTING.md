@@ -623,7 +623,7 @@ Keep the original Phase 4 and Phase 5 checkboxes open until actually run.
 ## 2026-09-23 fixture and finals correction
 
 - [ ] Verify Division 1 fixtures in matchweeks 1–26 and no Division 1 finals.
-- [x] Pre-season sweep validates each conference’s schedule per matchweek: all roster teams once in regular rounds, one AVERAGE TEAM fixture for odd conferences, no Division 2/3 MW1 fixtures, and no cross-conference or duplicate finalists in MW24–26. Finals may contain only qualifying teams.
+- [x] Pre-season sweep validates each conference’s regular fixtures per matchweek: all roster teams once, one AVERAGE TEAM fixture for odd conferences, and no Division 2/3 MW1 or MW24–26 schedule fixtures. Finals are entered separately in the app’s Playoffs tab, which now rejects a second fixture for the same team in a conference and matchweek.
 - [ ] Verify Division 2/3 regular-season fixtures only in matchweeks 2–23, with one AVERAGE TEAM fixture in each odd-sized conference round and no requirement for balanced home-and-away games.
 - [ ] Test 12, 13, 16 and 20 team conference schedules; check that conference finals in matchweeks 24–26 are entered and displayed for their actual matchweek, including Division 3C when it exists.
 - [ ] Confirm the finals bracket, 13–15 team participation, automatic promotion allocation and next eligible table finisher rule before reopening promotion betting or preseason promotion predictions.

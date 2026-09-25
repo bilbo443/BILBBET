@@ -7745,6 +7745,10 @@
       if(!H2H_DIVISIONS[div].includes(entry.teamA) || !H2H_DIVISIONS[div].includes(entry.teamB)){
         alert('Both teams must belong to '+div+'.'); return;
       }
+      const alreadyScheduled = (state.playoffFixtures[div] || []).some(f =>
+        f.round === state.currentRound &&
+        [f.teamA, f.teamB].some(team => team === entry.teamA || team === entry.teamB));
+      if(alreadyScheduled){ alert('One of those teams already has a finals fixture this round.'); return; }
       state.playoffFixtures[div].push({ teamA: entry.teamA, teamB: entry.teamB, stage: entry.stage, round: state.currentRound });
       state.playoffAdminEntry[div] = { teamA:'', teamB:'', stage:'Finals fixture' };
       savePlayoffFixtures();
