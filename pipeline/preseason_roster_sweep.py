@@ -188,6 +188,72 @@ def check_dependent_file(path, extractor, real_roster, label):
     return issues
 
 
+
+def check_schedule_matchweeks(path, roster):
+    """Check each conference and matchweek, including an odd league's median opponent."""
+    try:
+        with open(path) as stream:
+            schedule = json.load(stream)
+    except (OSError, ValueError) as exc:
+        return [f'[h2h_schedule.json] Cannot read fixture schedule: {exc}']
+    if not isinstance(schedule, dict):
+        return ['[h2h_schedule.json] Schedule must be a division-to-rounds object.']
+
+    issues = []
+    for division in sorted(schedule.keys() - roster.keys()):
+        issues.append(f'[h2h_schedule.json] Unexpected conference {division}.')
+    for division, team_names in roster.items():
+        rounds = schedule.get(division)
+        if not isinstance(rounds, list):
+            issues.append(f'[h2h_schedule.json] {division}: missing round list.')
+            continue
+        if len(rounds) != 26:
+            issues.append(f'[h2h_schedule.json] {division}: expected 26 matchweeks; found {len(rounds)}.')
+        expected = {normalize_name(team) for team in team_names}
+        if len(expected) != len(team_names):
+            issues.append(f'[h2h_schedule.json] {division}: duplicate roster team name.')
+        for week, fixtures in enumerate(rounds, 1):
+            prefix = f'[h2h_schedule.json] {division} MW{week}:'
+            if not isinstance(fixtures, list):
+                issues.append(f'{prefix} fixtures must be a list.')
+                continue
+            is_div1 = division == 'ELIZA CUP (D1)'
+            regular = is_div1 or 2 <= week <= 23
+            if not regular and week == 1 and fixtures:
+                issues.append(f'{prefix} no Division 2/3 fixtures in MW1.')
+            seen = set()
+            average_count = 0
+            for fixture in fixtures:
+                if not isinstance(fixture, (list, tuple)) or len(fixture) != 2 or not all(
+                    isinstance(team, str) for team in fixture
+                ):
+                    issues.append(f'{prefix} malformed fixture {fixture!r}.')
+                    continue
+                for team in fixture:
+                    if team == 'AVERAGE TEAM':
+                        average_count += 1
+                        continue
+                    name = normalize_name(team)
+                    if name not in expected:
+                        issues.append(f'{prefix} {team!r} is not in this conference.')
+                    if name in seen:
+                        issues.append(f'{prefix} {team!r} appears more than once.')
+                    seen.add(name)
+            if regular:
+                missing = expected - seen
+                if missing:
+                    issues.append(f'{prefix} {len(missing)} roster team(s) have no fixture: '
+                                  f'{sorted(missing)}.')
+                required_average = len(team_names) % 2
+                if average_count != required_average:
+                    issues.append(f'{prefix} expected {required_average} AVERAGE TEAM fixture(s); '
+                                  f'found {average_count}.')
+            elif average_count:
+                issues.append(f'{prefix} AVERAGE TEAM belongs to regular-season fixtures only.')
+    return issues
+
+
+
 def check_conference_prices(path, roster, label):
     """Catch stale prices even when the global set of teams is correct."""
     try:
@@ -343,6 +409,8 @@ def run_sweep(sheet_url, roster_path, schedule_path, coeffs_path, history_path,
     for path, extractor, label in checks:
         all_issues.extend([f"[{label}] {i}" for i in
                            check_dependent_file(path, extractor, authoritative_roster, label)])
+
+    all_issues.extend(check_schedule_matchweeks(schedule_path, live_roster))
 
     for filename in ('futures.json', 'leading_at.json'):
         path = futures_path if filename == 'futures.json' else Path(roster_path).with_name(filename)
