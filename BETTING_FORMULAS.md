@@ -439,3 +439,7 @@ Featured head-to-head offers are suppressed while `FIXTURES_ARE_PLACEHOLDER` is 
 ### Home page during the Division 1/2 release
 
 The personal bet digest is visible to logged-in users. Futures, Mr Median specials and the score projection use released divisions. Last-round highlights appear after Round 1 only: best fixture value requires a confirmed draw, and winning bets on the public home page must contain only released market selections. The full-field best-value cache remains reserved for the later full release.
+
+### Stable Mr Median featured offers
+
+The home page stores one boosted Mr Median price per season, round and settled-roster signature. Home and H2H use that same saved price for the chosen team; the offer waits for storage before accepting picks. It counts as a featured pick in slip limits and blocks a separate multi-boost. Existing placed bets retain their recorded odds.

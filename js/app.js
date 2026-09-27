@@ -553,7 +553,7 @@
     adminBetsFilterUser: '', adminBetsFilterStatus: 'ALL', adminBetsFilterType: 'ALL',
     adminBetsSortBy: null, adminBetsSortDir: 'desc',
     betSubmissionInProgress: false,
-    homeBestValueWinner: null, homeBestBet: null, featuredFixturesData: null,
+    homeBestValueWinner: null, homeBestBet: null, featuredFixturesData: null, homeMedianSpecialsData: null, homeMedianSpecialsRound: null,
     eclGroups: { A: [], B: [], C: [] },
     eclGroupAdminPick: '',
     roundBettingOpen: true,
@@ -1168,6 +1168,31 @@
       return { div, team, baseOdds: base.odds, odds: boostedOdds };
     }).filter(Boolean);
   }
+  function featuredMedianFor(div, team, round){
+    if(round !== state.currentRound || state.homeMedianSpecialsRound !== round) return null;
+    return (state.homeMedianSpecialsData || []).find(s => s.div === div && s.team === team) || null;
+  }
+  async function loadFeaturedMedianSpecials(round){
+    // Save one price per season, round and roster.
+    const signature = MR_MEDIAN_SPECIAL_DIVISIONS.map(div =>
+      div + ':' + (H2H_DIVISIONS[div] || []).join(',')).join('|');
+    const key = 'bilbbet2_featured_median_' + seasonKeyPart() + '_R' + round + '_' + hashStr(signature);
+    const expected = MR_MEDIAN_SPECIAL_DIVISIONS.map(div => [div, mrMedianSpecialTeam(div, round)]);
+    let specials = await sget(key);
+    const valid = Array.isArray(specials) && new Set(specials.map(s => s.div)).size === specials.length &&
+      specials.every(s => expected.some(([div, team]) => div === s.div && team === s.team) &&
+        Number.isFinite(s.baseOdds) && s.baseOdds > 1 && Number.isFinite(s.odds) && s.odds > 1);
+    if(!valid){
+      specials = computeMrMedianSpecials(round);
+      const wrote = await sset(key, specials);
+      if(!wrote || state.storageDegraded) specials = [];
+      else specials = await sget(key) || [];
+    }
+    if(state.currentRound !== round) return;
+    state.homeMedianSpecialsData = specials;
+    state.homeMedianSpecialsRound = round;
+    render();
+  }
   function pickValueSide(m, roundTag, division, extra){
     const aIsDog = m.aWinPct < m.bWinPct;
     const dogPct = aIsDog ? m.aWinPct : m.bWinPct;
@@ -1476,8 +1501,11 @@
       const wrote = await sset(featuredKey, featured);
       console.log('[featured-fixtures debug] wrote fresh value, sset returned:', wrote);
     }
+    if(state.currentRound !== round) return;
     state.featuredFixturesData = featured;
     render();
+    await loadFeaturedMedianSpecials(round);
+    if(state.currentRound !== round) return;
 
     if(prevRound < 1){
       state.homeBestValueWinner = null;
@@ -1665,8 +1693,9 @@
       ${futureCards}
       <h3>Mr Median Special</h3>
       ${(() => {
-        const specials = computeMrMedianSpecials(state.currentRound);
-        if(!specials.length) return `<div class="bb-card" style="text-align:center;padding:1.5rem;color:#9a9a9a;">No Mr Median Special this round.</div>`;
+        const specials = state.homeMedianSpecialsRound === state.currentRound ? state.homeMedianSpecialsData : null;
+        if(specials === null) return `<div class="bb-card" style="text-align:center;padding:1.5rem;color:#9a9a9a;">Loading Mr Median specials&hellip;</div>`;
+        if(!specials.length) return `<div class="bb-card" style="text-align:center;padding:1.5rem;color:#9a9a9a;">Mr Median specials are unavailable.</div>`;
         return specials.map(s => `
           <div class="bb-card bb-featured-card" style="display:flex;align-items:stretch;gap:12px;margin-bottom:8px;">
             <div class="bb-featured-label" style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:3px;">
@@ -3291,9 +3320,13 @@
       teams.map((team, i) => {
         const m = computeVsLeagueMedianMarket(team, round);
         const pickId = `H2H_MEDIAN|${team}|R${round}`;
+        const featuredTeam = round === state.currentRound && mrMedianSpecialTeam(div, round) === team && MR_MEDIAN_SPECIAL_DIVISIONS.includes(div);
+        const special = featuredMedianFor(div, team, round);
+        const odds = featuredTeam ? (special ? {odds:special.odds,suspended:false} : {suspended:true}) : toOdds(m.aWinPct);
+        const label = 'R'+round+': '+team+' to beat the league median' + (special ? ' (Special, boosted)' : '');
         return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;${i<teams.length-1?'border-bottom:1px solid #3d3d3d;':''}">
           <div style="display:flex;align-items:center;gap:6px;font-weight:600;">${teamLogo(team,18)}${esc(team)}</div>
-          <div style="width:110px;flex-shrink:0;">${priceOnlyButton(pickId, 'R'+round+': '+team+' to beat the league median', toOdds(m.aWinPct))}</div>
+          <div style="width:110px;flex-shrink:0;">${priceOnlyButton(pickId, label, odds)}</div>
         </div>`;
       }).join('') +
       `</div>`;
@@ -4884,6 +4917,7 @@
       await sset('bilbbet2_round_betting_open', true);
     }
     render();
+    if(advanced) loadHomeStats();
   }
 
   // Returns to automatic date-derivation, clearing whatever override is
@@ -4899,6 +4933,7 @@
     state.roundBettingOpen = true;
     await sset('bilbbet2_round_betting_open', true);
     render();
+    loadHomeStats();
   }
 
   async function closeBettingNow(scope){
@@ -5843,7 +5878,9 @@
     const fixtures = FIXTURES_ARE_PLACEHOLDER ? [] : (state.featuredFixturesData || []);
     if(fixtures.some(p => p.id === pickId)) return true;
     const futures = computeFeaturedFutures();
-    return futures.some(p => p.id === pickId);
+    if(futures.some(p => p.id === pickId)) return true;
+    const specials = state.homeMedianSpecialsRound === state.currentRound ? (state.homeMedianSpecialsData || []) : [];
+    return specials.some(s => pickId === 'H2H_MEDIAN|' + s.team + '|R' + state.currentRound);
   }
   function findConflict(newId){
     const np = parsePick(newId);
