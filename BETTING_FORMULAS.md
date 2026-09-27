@@ -405,8 +405,8 @@ that the newer frontend has been deployed or retested against live results.
   samples the team's scores and its division's pooled score distribution
   (20,000 draws by default). The actual bet resolves against the round's
   calculated median, rather than a fixture opponent. The featured boosted
-  special deterministically chooses one Eliza Cup team per round; Div 2
-  teams are explicitly excluded until their roster is final.
+  special deterministically chooses one team from each settled
+  conference in Division 1 and 2 per round; Division 3 is held.
 - **Win against any opponent:** until the real H2H schedule is confirmed,
   `computeWinAnyOpponentMarket` averages the team's simulated win chance
   against every other division member (4,000 draws per pairing by default).
@@ -431,3 +431,7 @@ that the newer frontend has been deployed or retested against live results.
 
 The odds cap, floor and suspension rules in the existing sections still
 apply where the new markets call `toOdds`.
+
+### Home offers while the fixture draw is provisional
+
+Featured head-to-head offers are suppressed while `FIXTURES_ARE_PLACEHOLDER` is true, including previously cached round offers. The home screen instead shows futures and Mr Median specials for the released Division 1 and 2 conferences. Once the official draw is confirmed, set the flag to false and use the admin featured-picks refresh to generate current fixture offers.

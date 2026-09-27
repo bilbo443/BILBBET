@@ -1148,13 +1148,9 @@
   // the two, not Math.random()), so the same team stays featured all round
   // rather than changing on every page load, and naturally reshuffles once
   // the round advances.
-  // Only Eliza Cup (Div 1) for now -- Division 2A/2B rosters aren't
-  // finalised yet (Best of a Bad Bench's replacement still pending), and
-  // Division 3A/3B are excluded for the season regardless (see above).
-  // Add 'DIVISION 2A' and 'DIVISION 2B' to this list once their makeup is
-  // locked in -- everything else here already reads from H2H_DIVISIONS,
-  // so that's the only change needed.
-  const MR_MEDIAN_SPECIAL_DIVISIONS = ['ELIZA CUP (D1)'];
+  // Division 1 and settled Division 2A/2B feature here. Division 3
+  // remains excluded until its roster and markets are ready.
+  const MR_MEDIAN_SPECIAL_DIVISIONS = ['ELIZA CUP (D1)', 'DIVISION 2A', 'DIVISION 2B'];
   function hashStr(s){ let h=0; for(let i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))|0;} return Math.abs(h); }
   function mrMedianSpecialTeam(div, round){
     const teams = H2H_DIVISIONS[div] || [];
@@ -1255,6 +1251,7 @@
   }
 
   function computeFeaturedFixtures(){
+    if(FIXTURES_ARE_PLACEHOLDER) return []; // Never offer an unconfirmed pairing.
     const round = state.currentRound;
     const roundTag = 'R' + round;
     const MAX_TOTAL = 10, MAX_PER_DIV = 2;
@@ -1292,7 +1289,7 @@
     // not just the same underlying data.
     for(const div of FUTURE_DIVS){
       if(selected.length >= MAX_TOTAL) break;
-      if(hasNoFixtures(div, round)) continue; // e.g. Division 2/3's Round 1 -- no real fixtures yet, matches what the H2H tab itself already shows
+      if(!availableDivision(div) || hasNoFixtures(div, round)) continue; // e.g. Division 2/3's Round 1 -- no real fixtures yet, matches what the H2H tab itself already shows
       const alreadyInDiv = selected.filter(s => s.division === div).length;
       let remaining = MAX_PER_DIV - alreadyInDiv;
       if(remaining <= 0) continue;
@@ -1326,6 +1323,7 @@
     if(state.currentRound >= 24) return []; // final 3 rounds of the 26-round season
     const candidates = [];
     for(const div of FUTURE_DIVS){
+      if(!availableDivision(div)) continue;
       for(const key in POSITIVE_FUTURE_MARKETS){
         for(const r of (FUTURES.divisions[div][key] || [])){
           if(r.suspended) continue;
@@ -1337,7 +1335,7 @@
         }
       }
     }
-    for(const r of (FUTURES.roddy.roddy_win_pct || [])){
+    for(const r of (partialRelease() ? [] : (FUTURES.roddy.roddy_win_pct || []))){
       if(r.suspended) continue;
       const pct = 100 / (r.odds * 1.05);
       if(pct >= 8 && pct <= 25){
@@ -1418,7 +1416,7 @@
     // that dependency entirely, since sset/upsert is already proven solid
     // everywhere else in this app.
     const fresh = computeFeaturedFixtures();
-    const wrote = await sset(featuredKey, fresh);
+    const wrote = FIXTURES_ARE_PLACEHOLDER ? true : await sset(featuredKey, fresh);
     state.featuredFixturesData = fresh;
 
     // Best-value-winner uses the identical "compute once per round, lock
@@ -1447,7 +1445,7 @@
     const prevRound = round - 1;
 
     const featuredKey = 'bilbbet2_featured_fixtures_R' + round;
-    let featured = await sget(featuredKey);
+    let featured = FIXTURES_ARE_PLACEHOLDER ? [] : await sget(featuredKey);
     // Diagnostic logging -- temporary, kept until the "featured match
     // changes on every app.js update" report is pinned down. Check the
     // browser console (F12) next time this reproduces: if "FOUND stored
@@ -1456,7 +1454,7 @@
     // "NO stored value, computing fresh" right after an app.js upload,
     // that's the actual smoking gun and narrows this down precisely.
     console.log('[featured-fixtures debug] round=' + round, featured ? 'FOUND stored value' : 'NO stored value, computing fresh');
-    if(!featured){
+    if(!featured && !FIXTURES_ARE_PLACEHOLDER){
       featured = computeFeaturedFixtures();
       const wrote = await sset(featuredKey, featured);
       console.log('[featured-fixtures debug] wrote fresh value, sset returned:', wrote);
@@ -1570,8 +1568,8 @@
   }
 
   function renderHomeTab(){
-    const fixtures = state.featuredFixturesData || [];
-    const fixturesLoading = state.featuredFixturesData === null;
+    const fixtures = FIXTURES_ARE_PLACEHOLDER ? [] : (state.featuredFixturesData || []);
+    const fixturesLoading = !FIXTURES_ARE_PLACEHOLDER && state.featuredFixturesData === null;
     const futures = computeFeaturedFutures();
 
     const fixtureCards = fixtures.length ? fixtures.map(p => `
@@ -1585,7 +1583,7 @@
           <div style="font-size:clamp(15px, calc(15px + 0.4vw), 18px);color:#6a6a6a;text-decoration:line-through;text-align:center;">${p.baseOdds.toFixed(2)}</div>
           ${priceOnlyButton(p.id, p.team + ' to win (boosted)', {odds:p.odds, suspended:false})}
         </div>
-      </div>`).join('') : `<div class="bb-card" style="text-align:center;padding:1.5rem;color:#9a9a9a;">${fixturesLoading ? 'Loading&hellip;' : "No featured fixtures this round yet \u2014 check back once the round's matches are set."}</div>`;
+      </div>`).join('') : `<div class="bb-card" style="text-align:center;padding:1.5rem;color:#9a9a9a;">${FIXTURES_ARE_PLACEHOLDER ? 'The official fixtures are still being confirmed. Featured odds are available below for futures and Mr Median.' : fixturesLoading ? 'Loading&hellip;' : "No featured fixtures this round yet \u2014 check back once the round's matches are set."}</div>`;
 
     const futureCards = futures.length ? futures.map(p => `
       <div class="bb-card bb-featured-card" style="display:flex;align-items:stretch;gap:12px;margin-bottom:8px;">
@@ -1629,9 +1627,9 @@
     }
 
     return `
-      ${curtainDown() || partialRelease() ? '' : `
+      ${curtainDown() ? '' : `
       ${renderRoundCountdown()}
-      ${renderHomeDigest()}
+      ${partialRelease() ? '' : renderHomeDigest()}
       <div class="bb-card" style="background:linear-gradient(135deg,#2a2410,#1a1a1a);border-color:#4a3a10;margin-bottom:16px;text-align:center;padding:1.25rem;">
         <div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);letter-spacing:0.08em;color:#ffdd00;text-transform:uppercase;font-weight:700;">This week's boosted odds</div>
         <div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-top:4px;">Every pick below is +${Math.round((FEATURED_BOOST_MULTIPLIER-1)*100)}% on the normal price \u2014 just for being featured.</div>
@@ -1658,10 +1656,7 @@
             </div>
           </div>`).join('');
       })()}
-      <h3>Best value that actually won last round</h3>
-      ${bestValueCard}
-      <h3>Best winning bet last round</h3>
-      ${bestBetCard}
+      ${partialRelease() ? '' : '<h3>Best value that actually won last round</h3>' + bestValueCard + '<h3>Best winning bet last round</h3>' + bestBetCard}
       `}
     `;
   }
@@ -5821,7 +5816,7 @@
   // single source of truth both the slip-limit check and the boost-
   // eligibility check below key off of.
   function isFeaturedPick(pickId){
-    const fixtures = state.featuredFixturesData || [];
+    const fixtures = FIXTURES_ARE_PLACEHOLDER ? [] : (state.featuredFixturesData || []);
     if(fixtures.some(p => p.id === pickId)) return true;
     const futures = computeFeaturedFutures();
     return futures.some(p => p.id === pickId);
