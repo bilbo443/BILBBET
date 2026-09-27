@@ -435,3 +435,7 @@ apply where the new markets call `toOdds`.
 ### Home offers while the fixture draw is provisional
 
 Featured head-to-head offers are suppressed while `FIXTURES_ARE_PLACEHOLDER` is true, including previously cached round offers. The home screen instead shows futures and Mr Median specials for the released Division 1 and 2 conferences. Once the official draw is confirmed, set the flag to false and use the admin featured-picks refresh to generate current fixture offers.
+
+### Home page during the Division 1/2 release
+
+The personal bet digest is visible to logged-in users. Futures, Mr Median specials and the score projection use released divisions. Last-round highlights appear after Round 1 only: best fixture value requires a confirmed draw, and winning bets on the public home page must contain only released market selections. The full-field best-value cache remains reserved for the later full release.

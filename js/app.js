@@ -1216,6 +1216,7 @@
     if(roundsPlayed < ALEAGUE_MIN_ROUNDS) return null;
     const allScores = [];
     for(const team in REAL_RESULTS){
+      if(!availableDivision(findTeamDivision(team))) continue;
       for(let r = 0; r < roundsPlayed; r++){
         const s = REAL_RESULTS[team][r];
         if(s != null) allScores.push(s);
@@ -1351,10 +1352,12 @@
   // whether anyone backed it -- a genuine "you'd have loved this" stat,
   // not tied to what the community actually staked.
   function computeBestValueWinner(){
+    if(FIXTURES_ARE_PLACEHOLDER) return null;
     const round = state.currentRound - 1;
     if(round < 1) return null;
     let best = null;
     for(const div of FUTURE_DIVS){
+      if(!availableDivision(div) || hasNoFixtures(div, round)) continue;
       const pairs = (H2H_SCHEDULE[div] && H2H_SCHEDULE[div][round - 1]) || [];
       for(const [teamA, teamB] of pairs){
         const scoreA = fixtureScore(teamA, teamB, round);
@@ -1440,6 +1443,20 @@
     render();
   }
 
+  // Public highlights include only released markets.
+  function homeBetIsReleased(bet){
+    if(!partialRelease()) return true;
+    return (bet.selections || []).every(s => {
+      const id = s.id || '';
+      if(id.startsWith('H2H_MEDIAN|')) return availableDivision(findTeamDivision(id.split('|')[1]));
+      const p = parsePick(id);
+      if(p.type === 'fut') return availableDivision(p.div);
+      if(p.type === 'h2h') return !FIXTURES_ARE_PLACEHOLDER &&
+        availableDivision(findTeamDivision(p.teamA)) && availableDivision(findTeamDivision(p.teamB));
+      return false;
+    });
+  }
+
   async function loadHomeStats(){
     const round = state.currentRound;
     const prevRound = round - 1;
@@ -1468,23 +1485,29 @@
       render();
       return;
     }
-    const bvwKey = 'bilbbet2_best_value_winner_R' + prevRound;
-    let bvw = await sget(bvwKey);
-    if(bvw === null){
-      // sget returning null is ambiguous between "not cached yet" and
-      // "cached, and the answer is genuinely nothing" -- store an explicit
-      // marker so a real "no winner" result doesn't get recomputed (and
-      // risk changing) on every subsequent load.
-      bvw = computeBestValueWinner() || { none: true };
-      await sset(bvwKey, bvw);
+    let bvw = null;
+    if(!FIXTURES_ARE_PLACEHOLDER){
+      if(partialRelease()){
+        // Keep the Division 1/2 result separate from the full-field cache.
+        bvw = computeBestValueWinner() || { none: true };
+      } else {
+        const bvwKey = 'bilbbet2_best_value_winner_R' + prevRound;
+        bvw = await sget(bvwKey);
+        if(bvw === null){
+          bvw = computeBestValueWinner() || { none: true };
+          await sset(bvwKey, bvw);
+        }
+      }
     }
-    state.homeBestValueWinner = bvw.none ? null : bvw;
+    state.homeBestValueWinner = bvw && !bvw.none ? bvw : null;
     render();
 
     const betIds = await getIndex('bilbbet2_all_bets_index');
     const bets = (await Promise.all(betIds.map(id => sget('bilbbet2_bet:' + id)))).filter(Boolean);
-    const wonThisRound = bets.filter(b => b.status === 'WON' &&
-      b.selections.some(s => getPickRound(s.id) === prevRound));
+    const wonThisRound = bets.filter(b => b.status === 'WON' && homeBetIsReleased(b) &&
+      b.selections.some(s => s.id && s.id.startsWith('H2H_MEDIAN|')
+        ? Number(s.id.split('|')[2]?.slice(1)) === prevRound
+        : getPickRound(s.id) === prevRound));
     wonThisRound.sort((a, b) => b.combinedOdds - a.combinedOdds);
     state.homeBestBet = wonThisRound[0] || { none: true };
     render();
@@ -1629,7 +1652,7 @@
     return `
       ${curtainDown() ? '' : `
       ${renderRoundCountdown()}
-      ${partialRelease() ? '' : renderHomeDigest()}
+      ${renderHomeDigest()}
       <div class="bb-card" style="background:linear-gradient(135deg,#2a2410,#1a1a1a);border-color:#4a3a10;margin-bottom:16px;text-align:center;padding:1.25rem;">
         <div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);letter-spacing:0.08em;color:#ffdd00;text-transform:uppercase;font-weight:700;">This week's boosted odds</div>
         <div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-top:4px;">Every pick below is +${Math.round((FEATURED_BOOST_MULTIPLIER-1)*100)}% on the normal price \u2014 just for being featured.</div>
@@ -1656,7 +1679,8 @@
             </div>
           </div>`).join('');
       })()}
-      ${partialRelease() ? '' : '<h3>Best value that actually won last round</h3>' + bestValueCard + '<h3>Best winning bet last round</h3>' + bestBetCard}
+      ${state.currentRound > 1 && !FIXTURES_ARE_PLACEHOLDER ? '<h3>Best value that actually won last round</h3>' + bestValueCard : ''}
+      ${state.currentRound > 1 ? '<h3>Best winning bet last round</h3>' + bestBetCard : ''}
       `}
     `;
   }
@@ -6649,8 +6673,8 @@
       loadMyBets(); // reuses the exact same cache My Bets itself populates
       return '';
     }
-    const pending = state.myBets.filter(b => b.status === 'PENDING');
-    const resolved = state.myBets.filter(b => b.status === 'WON' || b.status === 'LOST').sort((a,b) => b.timestamp - a.timestamp);
+    const pending = state.myBets.filter(b => b.status === 'PENDING' && homeBetIsReleased(b));
+    const resolved = state.myBets.filter(b => (b.status === 'WON' || b.status === 'LOST') && homeBetIsReleased(b)).sort((a,b) => b.timestamp - a.timestamp);
     const mostRecent = resolved[0];
 
     let roundPiece = ''; // the live countdown card now covers this -- see renderRoundCountdown()
