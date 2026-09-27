@@ -439,6 +439,12 @@
   }
 
   function isPickBlocked(id){
+    if(partialRelease() && id.startsWith('H2H|') && !state.h2hRealScheduleConfirmed) return true;
+    if(partialRelease()){
+      const parts = id.split('|');
+      if(parts.some(part => part.startsWith('DIVISION 3') ||
+        DIV3_CONFERENCES.some(div => (H2H_DIVISIONS[div] || []).includes(part)))) return true;
+    }
     const category = pickCategory(id);
     if(category && state.pausedCategories[category]) return true;
     const r = getPickRound(id);
@@ -470,7 +476,15 @@
   // (they need it to prepare), so this gate is deliberately only applied
   // to the non-admin view.
   const CURTAINED_TABS = ['FUTURES', 'H2H', 'TIPPING'];
-  function curtainDown(){ return !state.divisionsAnnounced && !(state.user && state.user.isAdmin); }
+  // Release settled leagues before Division 3 and the full cup fields settle.
+  // The old global switch still controls the later full-roster release.
+  const EARLY_DIV12_RELEASE = true;
+  const EARLY_DIVISIONS = ['ELIZA CUP (D1)', 'DIVISION 2A', 'DIVISION 2B'];
+  function partialRelease(){
+    return EARLY_DIV12_RELEASE && !(state.user && state.user.isAdmin);
+  }
+  function availableDivision(div){ return !partialRelease() || EARLY_DIVISIONS.includes(div); }
+  function curtainDown(){ return !EARLY_DIV12_RELEASE && !state.divisionsAnnounced && !(state.user && state.user.isAdmin); }
   function currentTabs(){
     const base = curtainDown() ? BASE_TABS.filter(t => !CURTAINED_TABS.includes(t)) : BASE_TABS;
     return state.user && state.user.isAdmin ? [...base, 'ADMIN'] : base;
@@ -1615,7 +1629,7 @@
     }
 
     return `
-      ${curtainDown() ? '' : `
+      ${curtainDown() || partialRelease() ? '' : `
       ${renderRoundCountdown()}
       ${renderHomeDigest()}
       <div class="bb-card" style="background:linear-gradient(135deg,#2a2410,#1a1a1a);border-color:#4a3a10;margin-bottom:16px;text-align:center;padding:1.25rem;">
@@ -1804,6 +1818,11 @@
 
   function renderTestingPhaseDisclaimer(){
     if(isRoundBlocked(1)) return '';
+    if(partialRelease()){
+      return `<div style="background:#2a2410;color:#e0d090;padding:10px 14px;text-align:center;font-size:clamp(18px, calc(18px + 0.4vw), 21px);border-bottom:2px solid #4a3a10;">
+        Division 1 and Division 2 markets and tips are open. Division 3 and whole-league markets are awaiting the settled roster. Fixture-specific H2H bets wait for the official draw.
+      </div>`;
+    }
     if(curtainDown()){
       return `<div style="background:#2a2410;color:#e0d090;padding:10px 14px;text-align:center;font-size:clamp(18px, calc(18px + 0.4vw), 21px);border-bottom:2px solid #4a3a10;">
         \u26A0\uFE0F Bets placed on the election markets are live and will count. Head-to-head, tipping and futures markets stay closed until the Eliza division makeups are announced closer to the season.
@@ -2158,7 +2177,7 @@
         <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 4px;border-bottom:5px solid var(--bb-accent);margin-bottom:1rem;">
           ${brand}
           <div style="display:flex;align-items:center;gap:10px;">
-            ${curtainDown() ? '' : '<button class="bb-btn ghost" id="open-team-search-btn" style="padding:6px 12px;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">Find a team</button>'}
+            ${curtainDown() || partialRelease() ? '' : '<button class="bb-btn ghost" id="open-team-search-btn" style="padding:6px 12px;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">Find a team</button>'}
             <button class="bb-btn" id="open-login-btn" style="padding:7px 14px;">Log in</button>
           </div>
         </div>`;
@@ -2167,7 +2186,7 @@
       <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 4px;border-bottom:5px solid var(--bb-accent);margin-bottom:1rem;flex-wrap:wrap;gap:8px;">
         ${brand}
         <div style="display:flex;align-items:center;gap:14px;font-size:clamp(19px, calc(19px + 0.4vw), 22px);">
-          ${curtainDown() ? '' : '<button class="bb-btn ghost" id="open-team-search-btn" style="padding:6px 12px;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">Find a team</button>'}
+          ${curtainDown() || partialRelease() ? '' : '<button class="bb-btn ghost" id="open-team-search-btn" style="padding:6px 12px;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">Find a team</button>'}
           <span>${fmt(state.user.balance)} clams</span>
           <span style="color:#9a9a9a;">${esc(state.user.username)}${(state.user.isAdmin && adminNeedsAttention()) ? ' <span title="Needs attention" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);">\u{1F6A9}</span>' : ''}</span>
           <button class="bb-btn ghost" id="logout-btn" style="padding:6px 12px;">Log out</button>
@@ -2524,12 +2543,12 @@
 
   function h2hSubTabBar(){
     const renderItem = t => `<div class="bb-tab ${state.h2hSubTab===t?'active':''}" data-h2hsubtab="${esc(t)}" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;display:flex;align-items:center;gap:4px;">${subTabLogo(t)}${t==='CUSTOM MATCHUP'?'Custom matchup':(t==='PLAYOFFS'?'Playoffs':t.replace(' (D1)',''))}</div>`;
-    return twoRowTabBar(FUTURE_DIVS, ['FA CUP', 'ECL', 'PLAYOFFS', 'CUSTOM MATCHUP'], renderItem);
+    return twoRowTabBar(FUTURE_DIVS.filter(availableDivision), partialRelease() ? [] : ['FA CUP', 'ECL', 'PLAYOFFS', 'CUSTOM MATCHUP'], renderItem);
   }
   const FUTURES_SUBTABS = [...FUTURE_DIVS, 'RODDY', 'FA CUP', 'ECL'];
   function futuresSubTabBar(){
     const renderItem = t => `<div class="bb-tab ${state.futuresSubTab===t?'active '+divColorClass(t):''}" data-futuressubtab="${esc(t)}" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;display:flex;align-items:center;gap:4px;">${subTabLogo(t)}${t==='RODDY'?'The Roddy':t.replace(' (D1)','')}</div>`;
-    return twoRowTabBar(FUTURE_DIVS, ['RODDY', 'FA CUP', 'ECL'], renderItem);
+    return twoRowTabBar(FUTURE_DIVS.filter(availableDivision), partialRelease() ? [] : ['RODDY', 'FA CUP', 'ECL'], renderItem);
   }
 
   const fixtureMarketCache = {};
@@ -2635,6 +2654,7 @@
   }
 
   function getTippableFixtures(key, round){
+    if(partialRelease() && !availableDivision(key)) return [];
     if(key === 'FA CUP' || key === 'ECL'){
       return (state.cupFixtures[key] || []).filter(f => f.round === round).map(f => [f.teamA, f.teamB]);
     }
@@ -2784,8 +2804,8 @@
     // navigation stays consistent either way.
     const renderSectionItem = s => `<div class="bb-tab ${state.tippingSection===s.key?'active':''}" data-tipping-section="${s.key}" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;">${esc(s.label)}</div>`;
     const sectionBar = twoRowTabBar(
-      TIPPING_SECTIONS.filter(s => ['ELIZA','DIV2','DIV3'].includes(s.key)),
-      TIPPING_SECTIONS.filter(s => ['ECL','FACUP'].includes(s.key)),
+      TIPPING_SECTIONS.filter(s => ['ELIZA','DIV2','DIV3'].includes(s.key) && (!partialRelease() || s.key !== 'DIV3')),
+      TIPPING_SECTIONS.filter(s => !partialRelease() && ['ECL','FACUP'].includes(s.key)),
       renderSectionItem
     );
     const activeSection = TIPPING_SECTIONS.find(s => s.key === state.tippingSection) || TIPPING_SECTIONS[0];
@@ -2967,7 +2987,7 @@
     }
 
     if(locked){
-      const rows = PRESEASON_SLOTS.map(slot => {
+      const rows = PRESEASON_SLOTS.filter(slot => !partialRelease() || slot.divs?.every(availableDivision)).map(slot => {
         const picks = state.preseasonData.picks[slot.key] || [];
         if(!picks.length) return null;
         return `<div style="padding:8px 0;border-bottom:1px solid #333333;">
@@ -3008,9 +3028,9 @@
         }).join('')}
       </div>`;
 
-    const winners = PRESEASON_SLOTS.filter(s => s.key.startsWith('winner|'));
-    const relegations = PRESEASON_SLOTS.filter(s => s.key.startsWith('relegated|'));
-    const promotions = PRESEASON_SLOTS.filter(s => s.key.startsWith('promoted|'));
+    const winners = PRESEASON_SLOTS.filter(s => (!partialRelease() || s.divs?.every(availableDivision)) && s.key.startsWith('winner|'));
+    const relegations = PRESEASON_SLOTS.filter(s => (!partialRelease() || s.divs?.every(availableDivision)) && s.key.startsWith('relegated|'));
+    const promotions = PRESEASON_SLOTS.filter(s => (!partialRelease() || s.divs?.every(availableDivision)) && s.key.startsWith('promoted|'));
 
     const confirmBar = `<div class="bb-card" style="position:sticky;bottom:0;display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:1rem;">
         <span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">${Object.values(state.preseasonPending).flat().length} pick${Object.values(state.preseasonPending).flat().length!==1?'s':''} selected${dirty?' \u2014 not yet saved':''}</span>
@@ -3032,7 +3052,7 @@
     return `<div class="bb-card" style="margin-bottom:1rem;border:1px solid #ffdd00;">
         <strong style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);display:block;margin-bottom:8px;color:#ffdd00;">Admin: record final results</strong>
         <p style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:#9a9a9a;margin-bottom:10px;">What actually happened, not a prediction -- this is what every punter's pre-season picks get scored against.</p>
-        ${PRESEASON_SLOTS.map(slot => {
+        ${PRESEASON_SLOTS.filter(slot => !partialRelease() || slot.divs?.every(availableDivision)).map(slot => {
           const options = preseasonSlotOptions(slot);
           const current = state.preseasonResults[slot.key] || [];
           return `<div style="margin-bottom:10px;">
@@ -3909,14 +3929,14 @@
     // the same curtain as Futures/H2H/Tipping until divisions are public.
     // Novelty stays available since it's admin one-offs and community
     // suggestions, not tied to any division makeup.
-    const visible = curtainDown() ? TABS.filter(t => t.key === 'novelty') : TABS;
+    const visible = (curtainDown() || partialRelease()) ? TABS.filter(t => t.key === 'novelty') : TABS;
     return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">' +
       visible.map(t => `<div class="bb-tab ${state.specialsSubTab===t.key?'active':''}" data-specialssubtab="${t.key}" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;">${t.label}</div>`).join('') +
       '</div>';
   }
 
   function renderSpecialsTab(){
-    if(curtainDown() && state.specialsSubTab !== 'novelty') state.specialsSubTab = 'novelty';
+    if((curtainDown() || partialRelease()) && state.specialsSubTab !== 'novelty') state.specialsSubTab = 'novelty';
     if(state.novelty === null) return '<p style="color:#9a9a9a;">Loading&hellip;</p>';
     let html = '<h3 style="margin-top:0;">Specials</h3>' + specialsSubTabBar();
 
@@ -3936,7 +3956,7 @@
     }
 
     // state.specialsSubTab === 'novelty'
-    if(curtainDown()){
+    if(curtainDown() || partialRelease()){
       html += `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:10px;">Round and Season Specials are hidden until the Eliza division makeups are announced &mdash; both rely on knowing who's in which division.</p>`;
     }
     const open = state.novelty.filter(n => n.status === 'OPEN');
@@ -4212,10 +4232,10 @@
       <div class="bb-card" style="margin-bottom:1.5rem;">
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
           <span class="bb-pill" style="background:${state.divisionsAnnounced?'#1e3a2a':'#3a2a26'};color:${state.divisionsAnnounced?'#7fbf8f':'#c0604f'};">${state.divisionsAnnounced?'ANNOUNCED':'CURTAIN DOWN'}</span>
-          <span style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">${state.divisionsAnnounced?'Divisions are public \u2014 H2H, Tipping and Futures are visible to everyone.':'H2H, Tipping and Futures are hidden from non-admins (you still see them).'}</span>
+          <span style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">${EARLY_DIV12_RELEASE?'Division 1 and 2 are public in H2H, Tipping and Futures. Division 3 and whole-league markets are held.':state.divisionsAnnounced?'Divisions are public \u2014 H2H, Tipping and Futures are visible to everyone.':'H2H, Tipping and Futures are hidden from non-admins (you still see them).'}</span>
         </div>
         <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin:0 0 10px;">Leave this down until the Eliza organisation has publicly announced the division makeups. While down, non-admins see only the election markets, Specials, Stats and My Bets \u2014 the featured fixtures/futures, boosted odds, tipping nudge and point projection are all hidden from the home page too.</p>
-        <button class="bb-btn ${state.divisionsAnnounced?'ghost':''}" id="toggle-divisions-announced-btn" style="padding:8px 14px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">${state.divisionsAnnounced?'Put the curtain back down':'Divisions are public \u2014 raise the curtain'}</button>
+        <button class="bb-btn ${state.divisionsAnnounced?'ghost':''}" id="toggle-divisions-announced-btn" style="padding:8px 14px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">${EARLY_DIV12_RELEASE?'Division 1 and 2 public (Division 3 held)':state.divisionsAnnounced?'Put the curtain back down':'Divisions are public \u2014 raise the curtain'}</button>
       </div>
       <h3>Import Round 1 fixtures (Eliza Cup)</h3>
       <div class="bb-card" style="margin-bottom:1.5rem;">
@@ -5551,6 +5571,11 @@
     // already filtered out of the nav, but this catches any other route in
     // -- a stale activeTab, an admin logging out while on a hidden tab, etc.
     if(curtainDown() && CURTAINED_TABS.includes(state.activeTab)) state.activeTab = 'HOME';
+    if(partialRelease()){
+      if(!availableDivision(state.futuresSubTab)) state.futuresSubTab = 'ELIZA CUP (D1)';
+      if(!availableDivision(state.h2hSubTab)) state.h2hSubTab = 'ELIZA CUP (D1)';
+      if(!['ELIZA','DIV2'].includes(state.tippingSection)) state.tippingSection = 'ELIZA';
+    }
     let body = '';
     if(state.activeTab === 'HOME'){
       body = renderHomeTab();
@@ -5599,7 +5624,7 @@
     // means it's structurally impossible to reach while curtained
     // regardless of how many buttons/links can set these flags -- no need
     // to separately hide every entry point for this to actually be closed.
-    if(curtainDown() && (state.viewingTeamProfile || state.teamDirectoryOpen || state.teamSearchOpen)){
+    if((curtainDown() || partialRelease()) && (state.viewingTeamProfile || state.teamDirectoryOpen || state.teamSearchOpen)){
       state.viewingTeamProfile = null;
       state.teamDirectoryOpen = false;
       state.teamSearchOpen = false;
@@ -7665,6 +7690,7 @@
     };
     const toggleDivisionsBtn = $('#toggle-divisions-announced-btn');
     if(toggleDivisionsBtn) toggleDivisionsBtn.onclick = async () => {
+      if(EARLY_DIV12_RELEASE){ alert('Division 3 stays closed during the Division 1 and 2 release.'); return; }
       state.divisionsAnnounced = !state.divisionsAnnounced;
       await sset('bilbbet2_divisions_announced', state.divisionsAnnounced);
       render();
@@ -8105,7 +8131,7 @@
   if(savedR1Fixtures !== null){ state.r1FixtureOverride = savedR1Fixtures; }
   // Guard: if the curtain is down, make sure we never land on a hidden tab
   // (e.g. a persisted activeTab from before the curtain went up).
-  if(!state.divisionsAnnounced && CURTAINED_TABS.includes(state.activeTab)){ state.activeTab = 'HOME'; }
+  if(curtainDown() && CURTAINED_TABS.includes(state.activeTab)){ state.activeTab = 'HOME'; }
   const savedManualBettingControl = await sget('bilbbet2_manual_betting_control');
   if(savedManualBettingControl !== null){ state.manualBettingControl = savedManualBettingControl; }
   const savedH2hScheduleConfirmed = await sget('bilbbet2_h2h_schedule_confirmed');

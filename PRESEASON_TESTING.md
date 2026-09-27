@@ -620,6 +620,11 @@ Keep the original Phase 4 and Phase 5 checkboxes open until actually run.
       The older audit's counts and completion statements refer to the
       earlier frontend snapshot.
 
+## Division 1 and 2 early release
+
+- [x] Open Division 1 and 2A/2B Futures, H2H and Tipping before Division 3. Keep Division 3 and whole-league sections out of those public tabs until the full roster announcement. Round locks and the official-fixture gate still apply; names can be renamed by stable roster ID later.
+- [ ] Verify the public view and test placing a Division 1/2 bet and tip on the deployed site. Verify a Division 3 bet is rejected and its tabs are absent.
+
 ## 2026-09-23 fixture and finals correction
 
 - [ ] Verify Division 1 fixtures in matchweeks 1–26 and no Division 1 finals.
