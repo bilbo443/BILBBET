@@ -461,3 +461,7 @@ The green banner also tells users that fantasy-platform team name changes may ap
 ### Shared home fixture cache during the early release
 
 Home fixture cards and featured-pick eligibility include only Division 1 and 2 while the early release is active, even if an admin populated the shared cache. Featured cup and Division 3 fixtures enter the home cache only after the full release. Refresh featured fixtures when the full release goes live.
+
+### Partner Home embed
+
+The existing `?embed=home` URL remains the partner interface. Its read-only widget starts with a welcome card and a link to the full app, keeps its countdown ticking, and hides the empty fixture section while the draw is provisional. Prices appear as non-interactive previews. Normal app Home rendering and betting controls are unchanged.

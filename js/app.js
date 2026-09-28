@@ -1692,8 +1692,7 @@
       </div>
       ${renderTippingNudgeCard()}
       ${renderPointProjection(state.currentRound)}
-      <h3 style="margin-top:0;">Featured fixtures</h3>
-      ${fixtureCards}
+      ${EMBED_MODE && FIXTURES_ARE_PLACEHOLDER ? '' : '<h3 style="margin-top:0;">Featured fixtures</h3>' + fixtureCards}
       <h3>Featured futures</h3>
       ${futureCards}
       <h3>Mr Median Special</h3>
@@ -1763,7 +1762,24 @@
   function render(){
     if(EMBED_MODE){
       document.getElementById('app').innerHTML = renderEmbedHome();
-      return; // deliberately no attachHandlers() -- embed mode is read-only, see renderEmbedHome
+      // Embeds skip attachHandlers, so start their own countdown.
+      if(roundCountdownIntervalId){
+        clearInterval(roundCountdownIntervalId);
+        roundCountdownIntervalId = null;
+      }
+      if(document.getElementById('round-countdown-value')){
+        roundCountdownIntervalId = setInterval(() => {
+          const el = document.getElementById('round-countdown-value');
+          const target = nextLockTimestamp();
+          if(!el || target === null){
+            clearInterval(roundCountdownIntervalId);
+            roundCountdownIntervalId = null;
+            return;
+          }
+          el.textContent = formatCountdown(target - Date.now());
+        }, 1000);
+      }
+      return; // read-only embed: no login, slip or navigation handlers
     }
     document.getElementById('app').innerHTML = renderMain();
     attachHandlers();
@@ -1779,13 +1795,21 @@
   // that wrapper so it's the one thing that stays clickable.
   function renderEmbedHome(){
     return `<div style="max-width:480px;margin:0 auto;padding:14px;">
+      <div style="background:linear-gradient(145deg,#213825,#171e19);border:1px solid #4b7654;border-radius:12px;padding:18px 16px;margin-bottom:14px;color:#f4f6ed;">
+        <div style="color:#bfe7ad;font-size:13px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;">Bilbbet · Round ${state.currentRound}</div>
+        <div style="font-size:clamp(22px,5vw,27px);font-weight:800;line-height:1.18;margin:8px 0;">Welcome to this week's picks</div>
+        <p style="color:#d8e4d5;font-size:16px;line-height:1.45;margin:0 0 14px;">Explore the featured odds below. The fixture draw arrives after the fantasy platform's first lockout; until then, you can back teams to win their round or beat the median.</p>
+        <a href="https://bilbo443.github.io/BILBBET/" target="_blank" rel="noopener noreferrer"
+           style="display:inline-block;background:#ffdd00;color:#1a1a1a;font-weight:800;font-size:16px;padding:10px 15px;border-radius:6px;text-decoration:none;">Open Bilbbet to make a pick &rarr;</a>
+        <div style="color:#b9cbb6;font-size:13px;margin-top:10px;">Prices here are a preview. Check the current offer in Bilbbet before placing a bet.</div>
+      </div>
       <div style="pointer-events:none;">
         ${renderHomeTab()}
       </div>
       <div style="text-align:center;margin-top:4px;">
         <a href="https://bilbo443.github.io/BILBBET/" target="_blank" rel="noopener noreferrer"
            style="display:inline-block;background:#ffdd00;color:#1a1a1a;font-weight:700;font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:9px 18px;border-radius:4px;text-decoration:none;letter-spacing:0.02em;">
-          See full odds &amp; place a bet &rarr;
+          See full odds on Bilbbet &rarr;
         </a>
       </div>
     </div>`;
@@ -2645,6 +2669,7 @@
     if(oddsInfo.suspended){
       return `<span class="bb-btn ghost" style="padding:8px 14px;font-size:clamp(18px, calc(18px + 0.4vw), 21px);opacity:0.5;cursor:default;width:100%;text-align:center;">susp.</span>`;
     }
+    if(EMBED_MODE) return `<span class="bb-btn ghost" style="display:block;padding:8px 14px;font-size:clamp(18px, calc(18px + 0.4vw), 21px);font-weight:700;width:100%;box-sizing:border-box;text-align:center;cursor:default;">${formatOdds(oddsInfo.odds)}</span>`;
     const selected = state.slip.some(s=>s.id===pickId);
     return `<button class="bb-btn ${selected?'':'ghost'}" data-pick="${esc(pickId)}" data-label="${esc(label)}" data-odds="${oddsInfo.odds}" style="padding:8px 14px;font-size:clamp(18px, calc(18px + 0.4vw), 21px);font-weight:700;width:100%;text-align:center;">${formatOdds(oddsInfo.odds)}</button>`;
   }
