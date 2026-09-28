@@ -1871,7 +1871,6 @@
       </div>`;
     }
     const drawPending = FIXTURES_ARE_PLACEHOLDER || !state.h2hRealScheduleConfirmed;
-    if(!partialRelease() && !drawPending) return '';
     const fixtureNote = drawPending
       ? 'The fantasy platform publishes the fixture draw after its first lockout. Until then, back a team to win its round against whoever it faces, or choose a Mr Median offer. Fixture-specific bets open when the official draw is confirmed.'
       : 'Official fixture-specific bets are open.';
@@ -1880,6 +1879,7 @@
       : '';
     return `<div style="background:#173326;color:#c8ebd0;padding:10px 14px;text-align:center;font-size:clamp(18px, calc(18px + 0.4vw), 21px);border-bottom:2px solid #348255;">
       ${releaseNote}${fixtureNote}
+      <div style="font-size:0.85em;margin-top:5px;">Team name changes on the fantasy platform may take time to appear here. Check the listed team before placing a bet.</div>
     </div>`;
   }
 

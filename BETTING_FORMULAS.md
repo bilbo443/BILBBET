@@ -455,3 +455,5 @@ Round 1 Mr Median tips stay available. Regular Division 1/2 matchup tips for lat
 ### Live pre-draw notices
 
 The live green banner explains that the fantasy platform provides official matchups after its first lockout. Until the draw is confirmed, the interim H2H market backs a team to win its actual round against whoever it faces; Mr Median offers remain available. The old testing-phase disclaimer is retired. The banner continues to indicate held Division 3 and whole-league markets during the early Division 1/2 release.
+
+The green banner also tells users that fantasy-platform team name changes may appear later in Bilbbet and asks them to check the listed team before placing a bet. The name note remains visible after the official draw is confirmed.
