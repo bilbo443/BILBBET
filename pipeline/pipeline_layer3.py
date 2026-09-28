@@ -198,8 +198,11 @@ def run_pipeline(url, roster_path, round_dates_path, draft_dir,
     step("Fetch succeeded and confirmed stable")
 
     step("Running Layer 2 validation gate")
+    registry_path = os.path.join(draft_dir, 'admin_teams.json')
+    if not os.path.exists(registry_path):
+        registry_path = os.path.join(os.path.dirname(roster_path), 'admin_teams.json')
     report = run_all_checks(csv_path, roster_path, round_dates_path,
-                             header_row=header_row, today=today)
+                             header_row=header_row, today=today, registry_path=registry_path)
     for check in report.checks:
         step(str(check))
 
@@ -213,7 +216,7 @@ def run_pipeline(url, roster_path, round_dates_path, draft_dir,
     with open(roster_path) as f:
         roster_divs = json.load(f)
     known_roster = [t for teams in roster_divs.values() for t in teams]
-    results = extract_results(csv_path, header_row=header_row, known_roster=known_roster)
+    results = extract_results(csv_path, header_row=header_row, known_roster=known_roster, excluded_ids=report.deferred_ids)
     extracted_path = os.path.join(draft_dir, f'extracted-{run_id}.json')
     with open(extracted_path, 'w') as f:
         json.dump(results, f, indent=2)

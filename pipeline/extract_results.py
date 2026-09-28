@@ -48,7 +48,7 @@ def _resolve_team_name(raw_name, known_roster_lookup):
     return canonical if canonical is not None else stripped
 
 
-def extract_results(csv_path, header_row=1, known_roster=None):
+def extract_results(csv_path, header_row=1, known_roster=None, excluded_ids=None):
     df = pd.read_csv(csv_path, header=header_row, low_memory=False)
     known_roster_lookup = {_normalize_name(t): t for t in known_roster} if known_roster else None
 
@@ -91,6 +91,14 @@ def extract_results(csv_path, header_row=1, known_roster=None):
 
     results = []
     for _, row in df.iterrows():
+        if excluded_ids and 'ELIZA ID' in df.columns:
+            raw_id = row['ELIZA ID']
+            if pd.notna(raw_id):
+                text_id = str(raw_id).strip()
+                if re.fullmatch(r'\d+(?:\.0)?', text_id):
+                    text_id = str(int(float(text_id))).zfill(3)
+                if text_id in excluded_ids:
+                    continue
         name = row[team_col]
         if pd.isna(name) or str(name).strip() == '':
             continue

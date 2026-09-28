@@ -643,7 +643,10 @@
   // ELECTION_CANDIDATES et al. rather than aliased. Does NOT affect
   // strength/coefficient lookups, odds, or anything else that uses the
   // name as an identity -- teamLogo() is the only thing that consults this.
-  const TEAM_LOGO_ALIAS = {};
+  const TEAM_LOGO_ALIAS = {
+    'JUAN EL MAGICO FC': 'TSATAS DIP',
+    'SONS OF VALHALLA': 'HEILAN COOS',
+  };
   function resolveLogoName(name){ return TEAM_LOGO_ALIAS[name] || name; }
 
   // Shortens a team name to a consistent length for the Tipping picker
