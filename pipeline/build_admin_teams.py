@@ -87,6 +87,8 @@ def normalize_source_status(value):
     status = str(value).strip()
     if status.upper() == "DIVISION 1":
         return "ELIZA CUP"
+    if status.upper() in ("DIV 3 - TBC", "DIVISION 3"):
+        return "DIVISION 3"
     return status
 
 

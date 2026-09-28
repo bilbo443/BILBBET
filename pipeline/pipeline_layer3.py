@@ -172,9 +172,11 @@ def run_pipeline(url, roster_path, round_dates_path, draft_dir,
                     # versions -- otherwise a same-day roster change
                     # wouldn't actually take effect until the following
                     # week's run.
-                    roster_path = os.path.join(draft_dir, 'h2h_divisions.json')
-                    coeffs_path = os.path.join(draft_dir, 'team_market_coeffs.json')
-                    history_path = os.path.join(draft_dir, 'roddy_history.json')
+                    # A pool-only update has no draft fixture files.
+                    if os.path.exists(os.path.join(draft_dir, 'h2h_divisions.json')):
+                        roster_path = os.path.join(draft_dir, 'h2h_divisions.json')
+                        coeffs_path = os.path.join(draft_dir, 'team_market_coeffs.json')
+                        history_path = os.path.join(draft_dir, 'roddy_history.json')
                 else:
                     step("No roster change detected")
     step(f"Fetching sheet from {url}")

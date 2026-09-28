@@ -509,32 +509,72 @@ def sync_roster(admin_teams, data_dir='.', draft_dir='.'):
 
 
 def sync_roster_if_changed(alltime_csv_path, data_dir, draft_dir):
-    """The automated-workflow entry point: fetches a fresh admin_teams
-    snapshot from the All Time Data sheet, compares it against the current
-    live version, and only actually runs the full sync (writing to
-    draft_dir) if something genuinely changed. Returns (changed: bool,
-    summary: str|None) -- summary is the PR-body text describing exactly
-    what changed, for human review."""
+    """Keep the sheet's unassigned Division 3 pool separate from live fixtures."""
     rules = json.load(open(os.path.join(data_dir, 'roster_rules.json')))
     expected_season = rules['season'][2:4] + '/' + rules['season'][-2:]
-    fresh_teams, season_label = build_admin_teams(alltime_csv_path, out_path=os.path.join(draft_dir, '_fresh_admin_teams.json'))
+    fresh_teams, season_label = build_admin_teams(
+        alltime_csv_path, out_path=os.path.join(draft_dir, '_fresh_admin_teams.json'))
     if season_label != expected_season:
         raise ValueError(
-            f"Roster sheet's newest division column is {season_label}, but this season requires "
-            f"{expected_season} DIVISION. Wait for the new-season sheet before importing its "
-            "conference assignments or waitlist admissions."
+            f"Roster sheet's newest division column is {season_label}, but this season "
+            f"requires {expected_season} DIVISION. Do not import an older season."
         )
     old_path = os.path.join(data_dir, 'admin_teams.json')
     old_teams = json.load(open(old_path)) if os.path.exists(old_path) else []
-
+    old_by_id = {t['id']: t for t in old_teams}
+    live = json.load(open(os.path.join(data_dir, 'h2h_divisions.json')))
+    live_by_name = {name.strip().upper(): (div, name)
+                    for div, names in live.items() for name in names}
+    exceptions = []
+    for team in fresh_teams:
+        if team.get('status') != 'DIVISION 3':
+            continue
+        previous = old_by_id.get(team['id'])
+        slot = live_by_name.get(previous['name'].strip().upper()) if previous else None
+        if slot and slot[0] in ('ELIZA CUP (D1)', 'DIVISION 2A', 'DIVISION 2B'):
+            # A stale sheet label must not remove an open higher-tier market.
+            team['status'] = previous['status']
+            exceptions.append(team['name'])
     summary = diff_admin_teams(old_teams, fresh_teams)
     if summary is None:
         return False, None
 
-    roster = sync_roster(fresh_teams, data_dir=data_dir, draft_dir=draft_dir)
-    count = sum(len(teams) for teams in roster.values())
-    div3 = ', '.join(f'{d}: {len(roster[d])}' for d in ('DIVISION 3A', 'DIVISION 3B', 'DIVISION 3C') if d in roster)
-    note = (f'Current field: {count} entrants; Division 3: {div3}. '
-            + ('Preliminary FA Cup round required; set its calendar date and review the draw. ' if count > 62 else '')
-            + 'Conference finals and promotion allocation require organiser confirmation; promotion odds remain suspended.')
-    return True, f"{summary}\n\n{note}\n\n(Source sheet's most recent season column: {season_label})"
+    operational = []
+    for team in fresh_teams:
+        if team.get('status') != 'DIVISION 3':
+            operational.append(team)
+            continue
+        previous = old_by_id.get(team['id'])
+        old_name = previous['name'] if previous else team['name']
+        old_slot = live_by_name.get(old_name.strip().upper())
+        if old_slot and old_slot[0] in ('DIVISION 3A', 'DIVISION 3B', 'DIVISION 3C'):
+            technical = dict(team)
+            technical['status'] = old_slot[0]
+            operational.append(technical)
+        # New pool members get no conference fixture or market.
+
+    old_ids_by_name = {t['name'].strip().upper(): t['id'] for t in old_teams}
+    old_active = {(old_ids_by_name.get(name.strip().upper()), div, name)
+                  for div, names in live.items() for name in names}
+    new_active = {
+        (t['id'], DIVISION_TIER_TO_LIVE_NAME[t['status']], t['name'])
+        for t in operational if t.get('status') not in (None, '', 'INACTIVE')
+    }
+    technical_change = old_active != new_active
+    if technical_change:
+        roster = sync_roster(operational, data_dir=data_dir, draft_dir=draft_dir)
+        count = sum(len(names) for names in roster.values())
+    else:
+        count = sum(len(names) for names in live.values())
+    # Store the sheet's pool statuses, even if a technical sync ran.
+    json.dump(fresh_teams, open(os.path.join(draft_dir, 'admin_teams.json'), 'w'))
+    pool = [t['name'] for t in fresh_teams if t.get('status') == 'DIVISION 3']
+    note = (
+        f"Division 3 pool: {len(pool)} unassigned team(s). No conference is "
+        "inferred from DIV 3 - TBC. Existing held conference fixtures are "
+        "retained only as technical data until the organiser assigns teams. "
+        f"Technical roster {'changed' if technical_change else 'unchanged'}; "
+        f"{count} currently configured entrants. Higher-tier sheet exceptions: "
+        f"{exceptions}. Review this PR before merging."
+    )
+    return True, f"{summary}\n\n{note}\n\n(Source season: {season_label})"
