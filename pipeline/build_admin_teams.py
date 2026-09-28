@@ -80,6 +80,16 @@ def find_current_season_division_column(columns):
     return most_recent[2], f"{most_recent[0]:02d}/{most_recent[1]:02d}"
 
 
+def normalize_source_status(value):
+    """Translate a known sheet label into the registry's division name."""
+    if pd.isna(value):
+        return None
+    status = str(value).strip()
+    if status.upper() == "DIVISION 1":
+        return "ELIZA CUP"
+    return status
+
+
 def build_admin_teams(csv_path, out_path='admin_teams.json'):
     header_row = find_header_row(csv_path)
     df = pd.read_csv(csv_path, header=header_row, low_memory=False)
@@ -102,7 +112,7 @@ def build_admin_teams(csv_path, out_path='admin_teams.json'):
             'player': str(row['PLAYER NAME']).strip() if pd.notna(row['PLAYER NAME']) else None,
             'year_entered': str(row['YEAR ENTERED']).strip() if pd.notna(row['YEAR ENTERED']) else None,
             'prev_names': str(row['PREVIOUS NAMES']).strip() if pd.notna(row['PREVIOUS NAMES']) else None,
-            'status': str(row[status_col]).strip() if pd.notna(row[status_col]) else None,
+            'status': normalize_source_status(row[status_col]),
         })
 
     with open(out_path, 'w') as stream:
