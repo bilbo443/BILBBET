@@ -457,3 +457,7 @@ Round 1 Mr Median tips stay available. Regular Division 1/2 matchup tips for lat
 The live green banner explains that the fantasy platform provides official matchups after its first lockout. Until the draw is confirmed, the interim H2H market backs a team to win its actual round against whoever it faces; Mr Median offers remain available. The old testing-phase disclaimer is retired. The banner continues to indicate held Division 3 and whole-league markets during the early Division 1/2 release.
 
 The green banner also tells users that fantasy-platform team name changes may appear later in Bilbbet and asks them to check the listed team before placing a bet. The name note remains visible after the official draw is confirmed.
+
+### Shared home fixture cache during the early release
+
+Home fixture cards and featured-pick eligibility include only Division 1 and 2 while the early release is active, even if an admin populated the shared cache. Featured cup and Division 3 fixtures enter the home cache only after the full release. Refresh featured fixtures when the full release goes live.

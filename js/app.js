@@ -1276,6 +1276,10 @@
     </div>`;
   }
 
+  function homeFixtureReleased(p){
+    // The cache is shared by Admin and public visitors.
+    return !EARLY_DIV12_RELEASE || EARLY_DIVISIONS.includes(p.division);
+  }
   function computeFeaturedFixtures(){
     if(FIXTURES_ARE_PLACEHOLDER) return []; // Never offer an unconfirmed pairing.
     const round = state.currentRound;
@@ -1285,7 +1289,7 @@
 
     // Cup/playoff/ECL fixtures scheduled this round, prioritized
     for(const comp of ['FA CUP', 'ECL']){
-      if(!getCupRoundInfo(comp, round)) continue;
+      if(EARLY_DIV12_RELEASE || !getCupRoundInfo(comp, round)) continue;
       for(const f of (state.cupFixtures[comp] || [])){
         if(selected.length >= MAX_TOTAL) break;
         const m = computeH2HMarket(f.teamA, f.teamB, round, 4000);
@@ -1294,6 +1298,7 @@
       }
     }
     for(const div of PLAYOFF_DIVS){
+      if(EARLY_DIV12_RELEASE && !EARLY_DIVISIONS.includes(div)) continue;
       if(!isPlayoffRound(div, round)) continue;
       for(const f of (state.playoffFixtures[div] || [])){
         if(f.round !== round) continue;
@@ -1315,7 +1320,7 @@
     // not just the same underlying data.
     for(const div of FUTURE_DIVS){
       if(selected.length >= MAX_TOTAL) break;
-      if(!availableDivision(div) || hasNoFixtures(div, round)) continue; // e.g. Division 2/3's Round 1 -- no real fixtures yet, matches what the H2H tab itself already shows
+      if((EARLY_DIV12_RELEASE && !EARLY_DIVISIONS.includes(div)) || hasNoFixtures(div, round)) continue; // only released divisions enter the shared home cache
       const alreadyInDiv = selected.filter(s => s.division === div).length;
       let remaining = MAX_PER_DIV - alreadyInDiv;
       if(remaining <= 0) continue;
@@ -1619,7 +1624,7 @@
   }
 
   function renderHomeTab(){
-    const fixtures = FIXTURES_ARE_PLACEHOLDER ? [] : (state.featuredFixturesData || []);
+    const fixtures = FIXTURES_ARE_PLACEHOLDER ? [] : (state.featuredFixturesData || []).filter(homeFixtureReleased);
     const fixturesLoading = !FIXTURES_ARE_PLACEHOLDER && state.featuredFixturesData === null;
     const futures = computeFeaturedFutures();
 
@@ -5883,7 +5888,7 @@
   // single source of truth both the slip-limit check and the boost-
   // eligibility check below key off of.
   function isFeaturedPick(pickId){
-    const fixtures = FIXTURES_ARE_PLACEHOLDER ? [] : (state.featuredFixturesData || []);
+    const fixtures = FIXTURES_ARE_PLACEHOLDER ? [] : (state.featuredFixturesData || []).filter(homeFixtureReleased);
     if(fixtures.some(p => p.id === pickId)) return true;
     const futures = computeFeaturedFutures();
     if(futures.some(p => p.id === pickId)) return true;
