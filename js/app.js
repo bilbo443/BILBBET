@@ -1864,20 +1864,22 @@
     return { fixtures: fixtures, errors: errors };
   }
 
-  function renderTestingPhaseDisclaimer(){
-    if(isRoundBlocked(1)) return '';
-    if(partialRelease()){
-      return `<div style="background:#2a2410;color:#e0d090;padding:10px 14px;text-align:center;font-size:clamp(18px, calc(18px + 0.4vw), 21px);border-bottom:2px solid #4a3a10;">
-        Division 1 and Division 2 markets and tips are open. Division 3 and whole-league markets are awaiting the settled roster. Fixture-specific H2H bets wait for the official draw.
-      </div>`;
-    }
+  function renderLaunchStatusBanner(){
     if(curtainDown()){
-      return `<div style="background:#2a2410;color:#e0d090;padding:10px 14px;text-align:center;font-size:clamp(18px, calc(18px + 0.4vw), 21px);border-bottom:2px solid #4a3a10;">
-        \u26A0\uFE0F Bets placed on the election markets are live and will count. Head-to-head, tipping and futures markets stay closed until the Eliza division makeups are announced closer to the season.
+      return `<div style="background:#173326;color:#c8ebd0;padding:10px 14px;text-align:center;font-size:clamp(18px, calc(18px + 0.4vw), 21px);border-bottom:2px solid #348255;">
+        Election bets are live. Other markets open when their divisions are announced.
       </div>`;
     }
-    return `<div style="background:#2a2410;color:#e0d090;padding:10px 14px;text-align:center;font-size:clamp(18px, calc(18px + 0.4vw), 21px);border-bottom:2px solid #4a3a10;">
-      \u26A0\uFE0F Testing phase &mdash; odds shown right now aren't final and may change before the season launches. Only bets placed once team rosters are confirmed will count, unless stated otherwise.
+    const drawPending = FIXTURES_ARE_PLACEHOLDER || !state.h2hRealScheduleConfirmed;
+    if(!partialRelease() && !drawPending) return '';
+    const fixtureNote = drawPending
+      ? 'The fantasy platform publishes the fixture draw after its first lockout. Until then, back a team to win its round against whoever it faces, or choose a Mr Median offer. Fixture-specific bets open when the official draw is confirmed.'
+      : 'Official fixture-specific bets are open.';
+    const releaseNote = partialRelease()
+      ? 'Division 1 and Division 2 markets and tips are live. Division 3 and whole-league markets are awaiting their settled rosters. '
+      : '';
+    return `<div style="background:#173326;color:#c8ebd0;padding:10px 14px;text-align:center;font-size:clamp(18px, calc(18px + 0.4vw), 21px);border-bottom:2px solid #348255;">
+      ${releaseNote}${fixtureNote}
     </div>`;
   }
 
@@ -2805,7 +2807,7 @@
         <div class="bb-tab ${state.tippingSubTab==='PRIZES'?'active':''}" data-tippingtab="PRIZES" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;">Prizes</div>
       </div>`;
     const intro = `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:10px;">Free to play, but topping it pays real clams \u2014 see the Prizes tab for the full breakdown. Correct tips score two ways: a straight tally, and what a 1-clam bet on that tip would have paid (upsets are worth more). A drawn fixture pays half credit either way \u2014 half the tally, half the odds \u2014 and never counts against a perfect round. Nothing saves until you hit Confirm, and you can come back and change your tips right up until this round locks.</p>` +
-      (FIXTURES_ARE_PLACEHOLDER && round !== 1 ? `<div class="bb-card" style="background:#3a3320;margin-bottom:10px;padding:10px 12px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#e0d090;">\u26A0\uFE0F The weekly schedule shown here is a placeholder, not yet the real season draw \u2014 specific matchups may still change once the real draw is confirmed. Everything you tip still counts as normal; this notice will come down once the schedule is final.</div>` : '') +
+      (FIXTURES_ARE_PLACEHOLDER && round !== 1 ? `<div class="bb-card" style="background:#173326;border:1px solid #348255;margin-bottom:10px;padding:10px 12px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#c8ebd0;">Regular division tipping opens when the official fixture draw is published after lockout. Pre-season predictions and available cup tips remain open.</div>` : '') +
       (round === 1 && state.round1LegacyTips ? `<div class="bb-card" style="background:#3a3320;margin-bottom:10px;padding:10px 12px;color:#e0d090;">Your earlier Round 1 fixture tips are saved separately. They do not count for Mr Median. Please select and confirm your Round 1 tips again.</div>` : '');
 
     if(state.tippingSubTab === 'PRESEASON'){
@@ -3362,8 +3364,8 @@
     // open the whole time, since the punter picks the opponent themselves.
     if(!state.h2hRealScheduleConfirmed || FIXTURES_ARE_PLACEHOLDER){
       const teams = H2H_DIVISIONS[div] || [];
-      return `<div class="bb-card" style="background:#3a2f10;border:1px solid #5a4a20;margin-bottom:12px;">
-          <p style="margin:0;color:#e0c060;font-size:clamp(16px, calc(16px + 0.4vw), 19px);">&#9888; The official Round ${state.h2hRound} schedule isn't locked in yet, so head-to-head fixtures aren't open for betting against a specific opponent. In the meantime, back a team to win their round outright instead &mdash; or use Custom Matchup above if you want to price a specific pairing yourself.</p>
+      return `<div class="bb-card" style="background:#173326;border:1px solid #348255;margin-bottom:12px;">
+          <p style="margin:0;color:#c8ebd0;font-size:clamp(16px, calc(16px + 0.4vw), 19px);">The fantasy platform publishes Round ${state.h2hRound} matchups after lockout. For now, these offers back a team to win its round against whoever it faces; they settle on the team's actual result. You can also pick a team to beat its division's median.</p>
         </div>` +
         `<div class="bb-card" style="padding:0;overflow:hidden;">` +
         teams.map((team, i) => {
@@ -5692,7 +5694,7 @@
     const mainContent = state.viewingTeamProfile ? renderTeamProfile(state.viewingTeamProfile)
       : state.teamDirectoryOpen ? renderTeamDirectory()
       : mainTabs() + body;
-    return `<div id="bb-page-content">${renderStorageWarning()}${renderTestingPhaseDisclaimer()}${renderTrashTalkBanner()}${header()}${renderTeamSearchPanel()}${mainContent}${renderFooter()}</div>${['ADMIN','STATS'].includes(state.activeTab) ? '' : slipBar()}${state.loginModalOpen ? renderLoginModal() : ''}${state.tosModalOpen ? renderTosModal() : ''}${state.readMeModalOpen ? renderReadMeModal() : ''}${state.tutorialModalOpen ? renderTutorialModal() : ''}${state.welcomeModalOpen ? renderWelcomeModal() : ''}${state.formModalOpen ? renderFormModal() : ''}${state.contactUsModalOpen ? renderContactUsModal() : ''}${state.installAppModalOpen ? renderInstallAppModal() : ''}${teamsDatalist()}`;
+    return `<div id="bb-page-content">${renderStorageWarning()}${renderLaunchStatusBanner()}${renderTrashTalkBanner()}${header()}${renderTeamSearchPanel()}${mainContent}${renderFooter()}</div>${['ADMIN','STATS'].includes(state.activeTab) ? '' : slipBar()}${state.loginModalOpen ? renderLoginModal() : ''}${state.tosModalOpen ? renderTosModal() : ''}${state.readMeModalOpen ? renderReadMeModal() : ''}${state.tutorialModalOpen ? renderTutorialModal() : ''}${state.welcomeModalOpen ? renderWelcomeModal() : ''}${state.formModalOpen ? renderFormModal() : ''}${state.contactUsModalOpen ? renderContactUsModal() : ''}${state.installAppModalOpen ? renderInstallAppModal() : ''}${teamsDatalist()}`;
   }
 
   function combinedOdds(){ return combinedOddsFor(state.slip); }

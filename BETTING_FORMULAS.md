@@ -451,3 +451,7 @@ While `FIXTURES_ARE_PLACEHOLDER` is true, regular fixture cards remain in interi
 ### Tipping while the draw is provisional
 
 Round 1 Mr Median tips stay available. Regular Division 1/2 matchup tips for later rounds are held while `FIXTURES_ARE_PLACEHOLDER` is true, so index-based tips cannot attach to the wrong opponent after the real draw arrives. Later-round official tips use a new season-scoped storage key, leaving any earlier provisional tips archived under the old key. Manually entered cup fixtures remain available. Publish and verify the official draw before reopening regular-round tips.
+
+### Live pre-draw notices
+
+The live green banner explains that the fantasy platform provides official matchups after its first lockout. Until the draw is confirmed, the interim H2H market backs a team to win its actual round against whoever it faces; Mr Median offers remain available. The old testing-phase disclaimer is retired. The banner continues to indicate held Division 3 and whole-league markets during the early Division 1/2 release.
