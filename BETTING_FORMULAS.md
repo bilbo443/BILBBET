@@ -443,3 +443,7 @@ The personal bet digest is visible to logged-in users. Futures, Mr Median specia
 ### Stable Mr Median featured offers
 
 The home page stores one boosted Mr Median price per season, round and settled-roster signature. Home and H2H use that same saved price for the chosen team; the offer waits for storage before accepting picks. It counts as a featured pick in slip limits and blocks a separate multi-boost. Existing placed bets retain their recorded odds.
+
+### Official H2H draw gate
+
+While `FIXTURES_ARE_PLACEHOLDER` is true, regular fixture cards remain in interim mode and public fixture-specific H2H picks are blocked, even if an old admin confirmation remains in storage. The admin confirmation button cannot activate the projected schedule. Publishing the official draw requires updating the schedule data, setting the placeholder flag to false, confirming the schedule in Admin, and refreshing featured fixtures.

@@ -439,7 +439,7 @@
   }
 
   function isPickBlocked(id){
-    if(partialRelease() && id.startsWith('H2H|') && !state.h2hRealScheduleConfirmed) return true;
+    if(partialRelease() && id.startsWith('H2H|') && (FIXTURES_ARE_PLACEHOLDER || !state.h2hRealScheduleConfirmed)) return true;
     if(partialRelease()){
       const parts = id.split('|');
       if(parts.some(part => part.startsWith('DIVISION 3') ||
@@ -3354,7 +3354,7 @@
     // round is actually played: pays out only on a genuine win, nothing
     // for a draw or loss. Custom Matchup is unaffected by this and stays
     // open the whole time, since the punter picks the opponent themselves.
-    if(!state.h2hRealScheduleConfirmed){
+    if(!state.h2hRealScheduleConfirmed || FIXTURES_ARE_PLACEHOLDER){
       const teams = H2H_DIVISIONS[div] || [];
       return `<div class="bb-card" style="background:#3a2f10;border:1px solid #5a4a20;margin-bottom:12px;">
           <p style="margin:0;color:#e0c060;font-size:clamp(16px, calc(16px + 0.4vw), 19px);">&#9888; The official Round ${state.h2hRound} schedule isn't locked in yet, so head-to-head fixtures aren't open for betting against a specific opponent. In the meantime, back a team to win their round outright instead &mdash; or use Custom Matchup above if you want to price a specific pairing yourself.</p>
@@ -4302,8 +4302,8 @@
       <h3>H2H official schedule</h3>
       <div class="bb-card" style="margin-bottom:1.5rem;">
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
-          <span class="bb-pill" style="background:${state.h2hRealScheduleConfirmed?'#1e3a2a':'#3a2a26'};color:${state.h2hRealScheduleConfirmed?'#7fbf8f':'#c0604f'};">${state.h2hRealScheduleConfirmed?'CONFIRMED':'NOT YET CONFIRMED'}</span>
-          <span style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">Real H2H fixtures are ${state.h2hRealScheduleConfirmed?'confirmed and open for betting.':'not confirmed yet \u2014 the fixture-list tab shows the interim "to win" market instead. "Beat the league median" stays available either way.'}</span>
+          <span class="bb-pill" style="background:${state.h2hRealScheduleConfirmed?'#1e3a2a':'#3a2a26'};color:${state.h2hRealScheduleConfirmed?'#7fbf8f':'#c0604f'};">${state.h2hRealScheduleConfirmed && !FIXTURES_ARE_PLACEHOLDER?'CONFIRMED':'NOT YET CONFIRMED'}</span>
+          <span style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">Real H2H fixtures are ${state.h2hRealScheduleConfirmed && !FIXTURES_ARE_PLACEHOLDER?'confirmed and open for betting.':'not confirmed yet \u2014 the fixture-list tab shows the interim "to win" market instead. "Beat the league median" stays available either way.'}</span>
         </div>
         <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin:0 0 10px;">
           The fantasy platform only generates real H2H fixtures once its own lockout is in place, which lands after this needs to be bettable. Leave this off until the real schedule is actually confirmed each round -- flipping it on shows real head-to-head fixtures for betting instead of the interim market. Custom Matchup is unaffected either way.
@@ -7734,6 +7734,10 @@
     };
     const toggleH2hScheduleBtn = $('#toggle-h2h-schedule-confirmed-btn');
     if(toggleH2hScheduleBtn) toggleH2hScheduleBtn.onclick = async () => {
+      if(FIXTURES_ARE_PLACEHOLDER && !state.h2hRealScheduleConfirmed){
+        alert('The published draw is still marked provisional in js/app.js. Confirm and publish the real fixture data first, then turn off FIXTURES_ARE_PLACEHOLDER.');
+        return;
+      }
       state.h2hRealScheduleConfirmed = !state.h2hRealScheduleConfirmed;
       await sset('bilbbet2_h2h_schedule_confirmed', state.h2hRealScheduleConfirmed);
       render();
