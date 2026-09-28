@@ -447,3 +447,7 @@ The home page stores one boosted Mr Median price per season, round and settled-r
 ### Official H2H draw gate
 
 While `FIXTURES_ARE_PLACEHOLDER` is true, regular fixture cards remain in interim mode and public fixture-specific H2H picks are blocked, even if an old admin confirmation remains in storage. The admin confirmation button cannot activate the projected schedule. Publishing the official draw requires updating the schedule data, setting the placeholder flag to false, confirming the schedule in Admin, and refreshing featured fixtures.
+
+### Tipping while the draw is provisional
+
+Round 1 Mr Median tips stay available. Regular Division 1/2 matchup tips for later rounds are held while `FIXTURES_ARE_PLACEHOLDER` is true, so index-based tips cannot attach to the wrong opponent after the real draw arrives. Later-round official tips use a new season-scoped storage key, leaving any earlier provisional tips archived under the old key. Manually entered cup fixtures remain available. Publish and verify the official draw before reopening regular-round tips.

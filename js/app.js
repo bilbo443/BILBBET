@@ -2711,6 +2711,8 @@
       return (H2H_DIVISIONS[key] || []).map(team => [team, mrMedianOpponent(key)]);
     }
     if(hasNoFixtures(key, round)) return [];
+    // Do not attach index-based tips to an unconfirmed matchup.
+    if(FIXTURES_ARE_PLACEHOLDER && round > 1) return [];
     return (H2H_SCHEDULE[key] && H2H_SCHEDULE[key][round-1]) || [];
   }
 
@@ -2898,11 +2900,15 @@
     const pendingCount = Object.keys(state.tippingPending).length;
 
     if(!divsWithFixtures.length){
+      const waitingForDraw = FIXTURES_ARE_PLACEHOLDER && round > 1 && activeSection.divs.some(d => FUTURE_DIVS.includes(d));
+      const noFixtureNotice = waitingForDraw
+        ? 'Division tips will open when the official fixture draw is published. Any earlier provisional tips must be checked and confirmed again.'
+        : 'No ' + activeSection.label + ' fixtures scheduled this round.';
       const confirmBar = `<div class="bb-card" style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:1rem;">
           <span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">${pendingCount} tip${pendingCount!==1?'s':''} selected across all sections${dirty?' \u2014 not yet saved':''}</span>
           <button class="bb-btn" id="confirm-tips-btn" ${dirty?'':'disabled'}>Confirm tips</button>
         </div>`;
-      return subTabs + intro + roundBrowser + sectionBar + mrMedianNote + confirmBar + `<div class="bb-card" style="text-align:center;padding:2rem 1rem;color:#9a9a9a;">No ${esc(activeSection.label)} fixtures scheduled this round.</div>` + renderEntireFieldOption(round);
+      return subTabs + intro + roundBrowser + sectionBar + mrMedianNote + confirmBar + `<div class="bb-card" style="text-align:center;padding:2rem 1rem;color:#9a9a9a;">${esc(noFixtureNotice)}</div>` + renderEntireFieldOption(round);
     }
 
     const sections = divsWithFixtures.map(div => {
@@ -6194,7 +6200,7 @@
   // silently reinterpreted as Mr Median selections or scored as such.
   function tipStorageKey(username, round){
     const base = 'bilbbet2_tips_' + username.toLowerCase() + '_R' + round;
-    return round === 1 ? base + '_median_' + seasonKeyPart() : base;
+    return round === 1 ? base + '_median_' + seasonKeyPart() : base + '_official_' + seasonKeyPart();
   }
   function preseasonStorageKey(username){ return 'bilbbet2_preseason_' + username.toLowerCase(); }
 
@@ -6299,6 +6305,11 @@
 
   async function confirmTips(){
     if(!state.user || !state.tippingData) return;
+    if(FIXTURES_ARE_PLACEHOLDER && state.tippingRound > 1 &&
+      Object.keys(state.tippingPending).some(k => FUTURE_DIVS.includes(k.split('|')[0]))){
+      alert('Division fixture tips are waiting for the official draw. Please confirm them once the fixtures are published.');
+      return;
+    }
     state.tippingData = { round: state.tippingData.round, picks: { ...state.tippingPending } };
     await sset(tipStorageKey(state.user.username, state.tippingRound), state.tippingData);
     render();
