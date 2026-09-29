@@ -650,3 +650,6 @@ Roster Watch whole-league field: Roddy and FA Cup calculations include all activ
 
 
 Weekly publishable conversion uses the full active registry, including unassigned Division 3 teams. Inherited Roddy and FA Cup odds remain suspended if their field differs from that registry. ECL names follow registry aliases; missing ECL entrants require review. Weekly simulation still recalculates division futures only.
+
+
+Admin Division 3 preview: all active unassigned Division 3 teams appear alphabetically under Division 3A - provisional pool, in Admin and the admin H2H view. Names and logos use the standard display helpers. This preview assigns no conferences and offers no betting selections. Confirm it is absent for ordinary users; when conferences are assigned, the pool preview disappears.

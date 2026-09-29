@@ -134,6 +134,11 @@
       throw new Error('Failed to load: ' + failures.join('; '));
     }
     files.forEach((name, i) => { DATA[name] = results[i]; });
+    // Optional admin preview data must never prevent the public app loading.
+    DATA.admin_teams = await fetch('./data/admin_teams.json', {cache:'no-store'})
+      .then(r => { if(!r.ok) throw new Error('Registry unavailable'); return r.json(); })
+      .then(rows => Array.isArray(rows) && rows.every(t => t && typeof t.name === 'string') ? rows : null)
+      .catch(() => null);
     for(const [div, teams] of Object.entries(DATA.h2h_divisions)){
       const priced = DATA.futures.divisions?.[div]?.win_div_pct || [];
       if(teams.some(t => !priced.some(row => row.team === t)))
@@ -3454,7 +3459,26 @@
       renderBeatMedianSection(div, state.h2hRound);
   }
 
+  function div3PoolPreviewTeams(){
+    return (DATA.admin_teams || []).filter(t => t.status === 'DIVISION 3')
+      .slice().sort((a,b) => a.name.localeCompare(b.name));
+  }
+  function renderDiv3PoolPreview(open=false){
+    if(!state.user || !state.user.isAdmin) return '';
+    if(!DATA.admin_teams) return '<div class="bb-card">Division 3 preview unavailable. Check the team registry.</div>';
+    const teams = div3PoolPreviewTeams();
+    if(!teams.length) return '';
+    return `<details class="bb-card" ${open?'open':''} style="margin-bottom:14px;">
+      <summary style="cursor:pointer;font-weight:600;">Division 3A — provisional pool (${teams.length} teams)</summary>
+      <p style="color:#9a9a9a;">Admin preview. All unassigned Division 3 teams are listed together while conferences are pending.</p>
+      <div style="overflow-x:auto;"><table class="bb-table" style="width:100%;">
+        <thead><tr><th>Team</th><th>Player</th><th>Conference</th></tr></thead>
+        <tbody>${teams.map(t => `<tr><td><span style="display:flex;align-items:center;gap:10px;">${teamLogo(t.name,40)}${esc(t.name)}</span></td><td>${esc(t.player || '')}</td><td>Pending</td></tr>`).join('')}</tbody>
+      </table></div></details>`;
+  }
   function renderH2HTab(){
+    if(state.user && state.user.isAdmin && state.h2hSubTab === 'DIVISION 3A' && div3PoolPreviewTeams().length)
+      return h2hSubTabBar() + renderDiv3PoolPreview(true);
     const stripe = divisionHeaderBanner(state.h2hSubTab);
     const roundBar = `<div class="bb-card" style="margin-bottom:1rem;display:flex;align-items:center;gap:10px;">
       <span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">Round</span>
@@ -4727,7 +4751,7 @@
     })();
 
     const bodyByTab = { season: SEASON_HTML, fixtures: FIXTURES_HTML, bets: BETS_HTML, specials: SPECIALS_HTML, punters: PUNTERS_HTML, feedback: FEEDBACK_HTML };
-    return tabBar + (bodyByTab[state.adminSubTab] || SEASON_HTML);
+    return renderDiv3PoolPreview() + tabBar + (bodyByTab[state.adminSubTab] || SEASON_HTML);
   }
 
   async function loadAdminData(){
