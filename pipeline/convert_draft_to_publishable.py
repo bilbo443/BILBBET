@@ -116,6 +116,8 @@ def convert_draft_to_publishable(draft_path, live_futures_path, out_path):
     # markets are copied from live futures, so reconcile their identities with
     # the roster draft and suspend a copied market if its field has changed.
     roster_path = os.path.join(os.path.dirname(out_path), 'admin_teams.json')
+    if not os.path.exists(roster_path):
+        roster_path = os.path.join(os.path.dirname(live_futures_path), 'admin_teams.json')
     if os.path.exists(roster_path):
         current = json.load(open(roster_path))
         prior_path = os.path.join(os.path.dirname(live_futures_path), 'admin_teams.json')
@@ -123,8 +125,22 @@ def convert_draft_to_publishable(draft_path, live_futures_path, out_path):
         old_by_id = {str(t['id']): t['name'] for t in prior}
         aliases = {old_by_id[str(t['id'])]: t['name'] for t in current
                    if str(t['id']) in old_by_id and old_by_id[str(t['id'])] != t['name']}
-        active = {t for teams in json.load(open(os.path.join(os.path.dirname(out_path),
-                     'h2h_divisions.json'))).values() for t in teams}
+        active = {t['name'].strip() for t in current
+                  if t.get('status') not in (None, '', 'INACTIVE')}
+        for team in current:
+            for old in str(team.get('prev_names') or '').split(','):
+                if old.strip(): aliases[old.strip()] = team['name']
+        def rename_ecl(value):
+            if isinstance(value, str): return aliases.get(value, value)
+            if isinstance(value, list): return [rename_ecl(v) for v in value]
+            if isinstance(value, dict): return {k: rename_ecl(v) for k, v in value.items()}
+            return value
+        for section in ('ecl_field', 'ecl_groups', 'ecl_markets'):
+            if section in publishable:
+                publishable[section] = rename_ecl(publishable[section])
+        missing_ecl = set(publishable.get('ecl_field', [])) - active
+        if missing_ecl:
+            raise ValueError('ECL requires organiser review: ' + str(sorted(missing_ecl)))
 
         def reconcile(rows, expected=None):
             if not isinstance(rows, list) or not all(isinstance(r, dict) and 'team' in r for r in rows):

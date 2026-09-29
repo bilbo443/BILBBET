@@ -647,3 +647,6 @@ Keep the original Phase 4 and Phase 5 checkboxes open until actually run.
 
 
 Roster Watch whole-league field: Roddy and FA Cup calculations include all active registry teams, including the unassigned Division 3 pool, up to 100 entrants. Conference fixtures remain based on the technical roster. New entrants receive neutral coefficients and pooled score history pending individual results. Above 62 entrants an additional preliminary round is generated; 68 entrants require four preliminary matches. The preliminary calendar date still requires organiser confirmation. Check the separate Weekly Odds Refresh path before publishing.
+
+
+Weekly publishable conversion uses the full active registry, including unassigned Division 3 teams. Inherited Roddy and FA Cup odds remain suspended if their field differs from that registry. ECL names follow registry aliases; missing ECL entrants require review. Weekly simulation still recalculates division futures only.
