@@ -113,6 +113,11 @@ jobs:
         # see convert_draft_to_publishable.py for why raw percentages
         # aren't safe to publish directly.
 
+      - name: Select available draft files
+        id: draft_paths
+        run: |
+          python3 -c 'import os,glob; patterns="odds-draft-*.json extracted-*.json run-report-*.json futures-publishable.json futures.json fa_cup_draw.json h2h_divisions.json h2h_schedule.json team_market_coeffs.json roddy_history.json h2h_history.json h2h_shift.json h2h_cup_shift.json h2h_variance_widen.json carry_balances.json h2h_record.json real_results.json admin_teams.json".split(); paths=sorted({p for pattern in patterns for p in glob.glob("draft/"+pattern) if os.path.isfile(p)}); assert "draft/futures-publishable.json" in paths; open(os.environ["GITHUB_OUTPUT"],"a").write("paths<<DRAFT_PATHS\n"+"\n".join(paths)+"\nDRAFT_PATHS\n")'
+
       - name: Open a PR with the draft odds
         if: success()
         uses: peter-evans/create-pull-request@v6
@@ -120,23 +125,7 @@ jobs:
           title: "Weekly odds refresh (draft) - ${{ github.run_id }}"
           body-path: draft/pr-body.md
           branch: odds-refresh/${{ github.run_id }}
-          add-paths: |
-            draft/odds-draft-*.json
-            draft/extracted-*.json
-            draft/run-report-*.json
-            draft/futures-publishable.json
-            draft/h2h_divisions.json
-            draft/h2h_schedule.json
-            draft/team_market_coeffs.json
-            draft/roddy_history.json
-            draft/h2h_history.json
-            draft/h2h_shift.json
-            draft/h2h_cup_shift.json
-            draft/h2h_variance_widen.json
-            draft/carry_balances.json
-            draft/h2h_record.json
-            draft/real_results.json
-            draft/admin_teams.json
+          add-paths: ${{ steps.draft_paths.outputs.paths }}
           # The last 10 paths above are real gap found and fixed
           # 2026-08-20: sync_roster.py writes these into draft/ whenever a
           # real roster change (new team, rename, departure) is detected,
