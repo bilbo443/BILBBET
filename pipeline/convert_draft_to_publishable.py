@@ -43,6 +43,7 @@ explicit publish action.
 """
 import json
 import argparse
+import os
 
 MARGIN = 1.05
 ODDS_FLOOR = 1.005
@@ -111,6 +112,49 @@ def convert_draft_to_publishable(draft_path, live_futures_path, out_path):
         for key, market_rows in markets.items():
             publishable['divisions'][div][key] = market_rows
 
+    # The simulation above only recalculates division markets. The remaining
+    # markets are copied from live futures, so reconcile their identities with
+    # the roster draft and suspend a copied market if its field has changed.
+    roster_path = os.path.join(os.path.dirname(out_path), 'admin_teams.json')
+    if os.path.exists(roster_path):
+        current = json.load(open(roster_path))
+        prior_path = os.path.join(os.path.dirname(live_futures_path), 'admin_teams.json')
+        prior = json.load(open(prior_path))
+        old_by_id = {str(t['id']): t['name'] for t in prior}
+        aliases = {old_by_id[str(t['id'])]: t['name'] for t in current
+                   if str(t['id']) in old_by_id and old_by_id[str(t['id'])] != t['name']}
+        active = {t for teams in json.load(open(os.path.join(os.path.dirname(out_path),
+                     'h2h_divisions.json'))).values() for t in teams}
+
+        def reconcile(rows, expected=None):
+            if not isinstance(rows, list) or not all(isinstance(r, dict) and 'team' in r for r in rows):
+                return rows
+            old_field = {r['team'] for r in rows}
+            new_rows = []
+            for row in rows:
+                name = aliases.get(row['team'], row['team'])
+                if name not in active:
+                    continue
+                row['team'] = name
+                new_rows.append(row)
+            # A changed field invalidates the inherited probabilities, even
+            # when a rename itself preserves that team's history and odds.
+            field_changed = (expected is not None and {r['team'] for r in new_rows} != expected)
+            field_changed |= bool(old_field - set(aliases) - active)
+            if field_changed:
+                for row in new_rows:
+                    row['suspended'] = True
+            return new_rows
+
+        for div, markets in publishable.get('divisions', {}).items():
+            expected = {r['team'] for r in converted_divisions.get(div, {}).get('win_div_pct', [])}
+            for key, rows in markets.items():
+                if key not in converted_divisions.get(div, {}):
+                    markets[key] = reconcile(rows, expected)
+        for section in ('roddy', 'fa_cup_markets'):
+            for key, rows in publishable.get(section, {}).items():
+                publishable[section][key] = reconcile(rows, active)
+
     # Older published promotion rows reflect a cross-conference finals model.
     for div, markets in publishable.get('divisions', {}).items():
         if div.startswith(('DIVISION 2', 'DIVISION 3')):
@@ -120,6 +164,11 @@ def convert_draft_to_publishable(draft_path, live_futures_path, out_path):
     json.dump(publishable, open(out_path, 'w'), indent=2)
 
     summary = []
+    if os.path.exists(roster_path):
+        for section in ('roddy', 'fa_cup_markets'):
+            for key, market_rows in publishable.get(section, {}).items():
+                if market_rows and all(row.get('suspended') for row in market_rows):
+                    summary.append(f"{section} / {key}: copied odds suspended because the roster field changed; regenerate before offering this market")
     for div, markets in converted_divisions.items():
         for key, market_rows in markets.items():
             n_suspended = sum(1 for e in market_rows if e['suspended'])
