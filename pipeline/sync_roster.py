@@ -350,8 +350,22 @@ def sync_carry_balances(new_roster, admin_teams, data_dir, draft_dir):
     return new_carry
 
 
-def sync_futures_divisions(new_roster, team_coeffs, scale, history, data_dir, draft_dir, n_sim=N_SIM, seed=1):
+def sync_futures_divisions(new_roster, team_coeffs, scale, history, data_dir, draft_dir, n_sim=N_SIM, seed=1, admin_teams=None):
     futures = json.load(open(os.path.join(data_dir, 'futures.json')))
+    if admin_teams is not None:
+        current = {t["id"]: t["name"] for t in admin_teams}
+        previous = json.load(open(os.path.join(data_dir, "admin_teams.json")))
+        aliases = {t["name"]: current[t["id"]] for t in previous if t["id"] in current}
+        for t in admin_teams:
+            for old in str(t.get("prev_names") or "").split(","):
+                if old.strip(): aliases[old.strip()] = t["name"]
+        def rename(value):
+            if isinstance(value, str): return aliases.get(value, value)
+            if isinstance(value, list): return [rename(v) for v in value]
+            if isinstance(value, dict): return {aliases.get(k, k): rename(v) for k, v in value.items()}
+            return value
+        futures = rename(futures)
+
     futures['divisions'] = {div: futures['divisions'].get(div, {}) for div in new_roster}
     for div, markets in futures['divisions'].items():
         markets.pop('relegation_pct' if div.startswith('DIVISION 3') else 'bottom3_pct', None)
@@ -500,7 +514,7 @@ def sync_roster(admin_teams, data_dir='.', draft_dir='.'):
     tmc, history = sync_coefficients_and_pools(new_roster, admin_teams, data_dir, draft_dir)
     sync_carry_balances(new_roster, admin_teams, data_dir, draft_dir)
     sync_futures_divisions(new_roster, tmc['team_coeffs'], tmc['scale'], history, data_dir, draft_dir,
-                           seed=rules['fa_cup_draw_seed'])
+                           seed=rules['fa_cup_draw_seed'], admin_teams=admin_teams)
     sync_h2h_record(admin_teams, data_dir, draft_dir)
     sync_real_results(admin_teams, data_dir, draft_dir)
     with open(os.path.join(draft_dir, 'admin_teams.json'), 'w') as stream:
