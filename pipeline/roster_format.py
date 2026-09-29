@@ -36,13 +36,13 @@ def validate_roster(roster, freeze_date, today=None, two_max=16, three_min=12, t
     if len(names) > 128:
         raise ValueError('More than 128 entrants needs another FA Cup round; review the format')
     return {'division3_conferences': keys, 'total_teams': len(names),
-            'provisional': day < deadline, 'fa_preliminary': len(names) > 62}
+            'provisional': day < deadline, 'fa_preliminary': len(names) > 64}
 
 
 def fa_cup_draw(all_teams, seed=11, preferred_byes=PREFERRED_FA_BYES):
-    """Fixed bracket slots for <=128 teams; extra round for 63+ entrants.
+    """Fixed bracket slots for <=128 teams; extra round for 65+ entrants.
 
-    At 63/64, one preliminary match makes the extra round real. For 65+
+    At 63/64, no preliminary round is required. For 65+
     there are N-64 preliminary matches. The preferred teams get byes when
     slots permit; remaining match entrants are drawn reproducibly from a
     sorted roster. Placeholders keep later pairings fixed across trials.
@@ -55,7 +55,7 @@ def fa_cup_draw(all_teams, seed=11, preferred_byes=PREFERRED_FA_BYES):
     preferred = [t for t in preferred_byes if t in teams]
     others = [t for t in teams if t not in preferred]
     rng.shuffle(others)
-    preliminary_count = max(1, n - 64) if n > 62 else 0
+    preliminary_count = max(0, n - 64)
     if 2 * preliminary_count > len(others):
         # At 127-128 entrants no one can be protected from the first round.
         others.extend(preferred)

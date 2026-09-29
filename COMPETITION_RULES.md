@@ -14,7 +14,7 @@ Division 3A/B can each grow to 16 teams before a three-conference Division 3A/B/
 
 Until promotion rules are confirmed, the existing Division 2/3 promotion betting markets are suspended and new preseason promotion predictions are disabled. Existing predictions and placed bets are retained for review and eventual settlement. Division winners and other regular-season markets continue to use the regular-season table.
 
-The FA Cup needs one additional round when the current roster exceeds 62 teams. Its preliminary round date and actual draw must be confirmed separately before publication.
+The FA Cup needs one additional round when the current roster exceeds 64 teams. Its preliminary round date and actual draw must be confirmed separately before publication.
 
 Round 1 tipping uses separate Mr Median contests for Eliza, Division 2 and Division 3. The Eliza tipping page does not use provisional fixture pairings even when a draw is imported close to kickoff; that import remains available for real H2H markets. Each tier waits for all its own scores and allows at most half its teams to be tipped above the median. The perfect-round target is the number of teams that actually finish strictly above the tier median. Earlier Round 1 fixture tips are retained separately and need to be submitted again in the new format.
 
@@ -24,4 +24,7 @@ Round 1 tipping uses separate Mr Median contests for Eliza, Division 2 and Divis
 2. Confirm the official regular-season fixtures; use `pipeline/build_h2h_schedule.py` to import the published CSV. Finals belong in the Playoffs admin interface, not that CSV.
 3. Recompute schedules and roster-dependent odds after roster changes; do not reuse earlier fixtures or prices for teams that moved conferences.
 4. Confirm conference finals format, promotion allocation and the table fallback before restoring promotion markets or preseason picks.
-5. Verify the FA Cup extra round and date if the roster exceeds 62.
+5. Verify the FA Cup extra round and date if the roster exceeds 64.
+
+
+FA Cup: a preliminary round is required only above 64 active entrants. When required, it is played in matchweek 2 and Round of 64 in matchweek 4. With 64 or fewer entrants, Round of 64 starts in matchweek 2. Later stage dates remain pending. Review the calendar whenever the confirmed entry count changes.

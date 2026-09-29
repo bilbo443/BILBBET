@@ -294,13 +294,13 @@
       const ov = overrides[round];
       return ov ? { stage: ov, overridden: true } : null;
     }
-    const extra = comp === 'FA CUP' && TOTAL_TEAMS > 62 &&
+    const extra = comp === 'FA CUP' && (FUTURES.fa_cup_markets?.win_pct?.length || TOTAL_TEAMS) > 64 &&
       ROSTER_RULES.fa_cup_preliminary_calendar_round === Number(round);
     const stage = extra ? 'Preliminary Round' : (CUP_CALENDAR[CUP_CALENDAR_KEY[comp]] || {})[round];
     return stage ? { stage, overridden: false } : null;
   }
   function getCalendarDefault(comp, round){
-    if(comp === 'FA CUP' && TOTAL_TEAMS > 62 &&
+    if(comp === 'FA CUP' && (FUTURES.fa_cup_markets?.win_pct?.length || TOTAL_TEAMS) > 64 &&
        ROSTER_RULES.fa_cup_preliminary_calendar_round === Number(round)) return 'Preliminary Round';
     return (CUP_CALENDAR[CUP_CALENDAR_KEY[comp]] || {})[round] || null;
   }
@@ -5710,7 +5710,7 @@
       } else if(state.futuresSubTab === 'FA CUP'){
         body = stripe + futuresSubTabBar() + cupMarketTabs('fa_cup_labels') + sectionRibbon() +
           (state.futureMarketTab === 'fixtures' ? renderCupFixtures('FA CUP') :
-            `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:10px;">${TOTAL_TEAMS} current entrants. ${TOTAL_TEAMS > 62 ? 'An additional preliminary round is required; check the cup calendar and fixtures before betting.' : 'Round of 64 is the first scheduled cup stage.'} Futures must be regenerated after roster changes.</p>` +
+            `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:10px;">${FUTURES.fa_cup_markets?.win_pct?.length || TOTAL_TEAMS} current entrants. ${(FUTURES.fa_cup_markets?.win_pct?.length || TOTAL_TEAMS) > 64 ? 'An additional preliminary round is required; check the cup calendar and fixtures before betting.' : 'Round of 64 is the first scheduled cup stage.'} Futures must be regenerated after roster changes.</p>` +
             `<div id="outcomes-list">${cupOutcomesList('fa_cup_markets', state.futureMarketTab)}</div>`);
       } else if(state.futuresSubTab === 'ECL'){
         body = stripe + futuresSubTabBar() + cupMarketTabs('ecl_labels') + sectionRibbon() +

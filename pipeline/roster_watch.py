@@ -29,7 +29,7 @@ def main():
     if changed:
         with open(os.path.join(args.draft_dir, 'roster-pr-body.md'), 'w') as f:
             f.write(summary + '\n\nReview the bracket in `draft/fa_cup_draw.json`, '
-                    'schedule the additional preliminary round if total entrants exceed 62, '
+                    'schedule the additional preliminary round if total entrants exceed 64, '
                     'and review `leading_at.json` / `special_markets.json` before publishing.\n')
     print('Roster change detected' if changed else 'No roster change detected')
 
