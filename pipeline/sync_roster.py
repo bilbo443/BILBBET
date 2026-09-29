@@ -350,7 +350,7 @@ def sync_carry_balances(new_roster, admin_teams, data_dir, draft_dir):
     return new_carry
 
 
-def sync_futures_divisions(new_roster, team_coeffs, scale, history, data_dir, draft_dir, n_sim=N_SIM, seed=1, admin_teams=None):
+def sync_futures_divisions(new_roster, team_coeffs, scale, history, data_dir, draft_dir, n_sim=N_SIM, seed=1, admin_teams=None, field_roster=None):
     futures = json.load(open(os.path.join(data_dir, 'futures.json')))
     if admin_teams is not None:
         current = {t["id"]: t["name"] for t in admin_teams}
@@ -419,7 +419,7 @@ def sync_futures_divisions(new_roster, team_coeffs, scale, history, data_dir, dr
     if missing_ecl:
         raise ValueError(f'ECL field contains departed teams: {sorted(missing_ecl)}')
     futures['roddy'], futures['fa_cup_markets'], draw = regenerate_roddy_and_cup(
-        new_roster, team_coeffs, scale, history, n_sim=n_sim, seed=seed)
+        field_roster if field_roster is not None else new_roster, team_coeffs, scale, history, n_sim=n_sim, seed=seed)
     json.dump(futures, open(os.path.join(draft_dir, 'futures.json'), 'w'))
     json.dump(draw, open(os.path.join(draft_dir, 'fa_cup_draw.json'), 'w'))
     return futures
@@ -498,7 +498,7 @@ def sync_real_results(admin_teams, data_dir, draft_dir):
     return renamed
 
 
-def sync_roster(admin_teams, data_dir='.', draft_dir='.'):
+def sync_roster(admin_teams, data_dir='.', draft_dir='.', field_admin_teams=None):
     """The core entry point given an already-loaded admin_teams list --
     regenerates every dependent file from data_dir into draft_dir."""
     os.makedirs(draft_dir, exist_ok=True)
@@ -511,10 +511,18 @@ def sync_roster(admin_teams, data_dir='.', draft_dir='.'):
                     three_max=rules['division3_three_conference_max'])
     sync_h2h_divisions(new_roster, data_dir, draft_dir)
     sync_h2h_schedule(new_roster, admin_teams, data_dir, draft_dir)
-    tmc, history = sync_coefficients_and_pools(new_roster, admin_teams, data_dir, draft_dir)
+    field_teams = field_admin_teams if field_admin_teams is not None else admin_teams
+    field_roster = load_current_roster([t for t in field_teams if t.get('status') != 'DIVISION 3'])
+    pool = [t['name'].strip() for t in field_teams if t.get('status') == 'DIVISION 3']
+    if pool:
+        field_roster['DIVISION 3'] = pool
+    names = [t for teams in field_roster.values() for t in teams]
+    if len(names) != len(set(names)) or not 2 <= len(names) <= 100:
+        raise ValueError('Whole-league field requires 2-100 distinct active teams')
+    tmc, history = sync_coefficients_and_pools(field_roster, field_teams, data_dir, draft_dir)
     sync_carry_balances(new_roster, admin_teams, data_dir, draft_dir)
     sync_futures_divisions(new_roster, tmc['team_coeffs'], tmc['scale'], history, data_dir, draft_dir,
-                           seed=rules['fa_cup_draw_seed'], admin_teams=admin_teams)
+                           seed=rules['fa_cup_draw_seed'], admin_teams=field_teams, field_roster=field_roster)
     sync_h2h_record(admin_teams, data_dir, draft_dir)
     sync_real_results(admin_teams, data_dir, draft_dir)
     with open(os.path.join(draft_dir, 'admin_teams.json'), 'w') as stream:
@@ -576,7 +584,7 @@ def sync_roster_if_changed(alltime_csv_path, data_dir, draft_dir):
     }
     technical_change = old_active != new_active
     if technical_change:
-        roster = sync_roster(operational, data_dir=data_dir, draft_dir=draft_dir)
+        roster = sync_roster(operational, data_dir=data_dir, draft_dir=draft_dir, field_admin_teams=fresh_teams)
         count = sum(len(names) for names in roster.values())
     else:
         count = sum(len(names) for names in live.values())
