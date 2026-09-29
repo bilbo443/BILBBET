@@ -153,6 +153,21 @@
   }
 
   const FUTURES = DATA.futures;
+  // The saved pick ID identifies the market even when an older bet's label is only a team.
+  function betSelectionLabel(s){
+    const p = String(s.id || '').split('|');
+    let labels, context, key, team;
+    if(p[0] === 'FUT' && p.length === 4){
+      labels = p[1] === 'RODDY' ? FUTURES.roddy_labels : FUTURES.market_labels;
+      context = p[1] === 'RODDY' ? 'Roddy' : p[1].replace(' (D1)', '');
+      key = p[2]; team = p[3];
+    } else if((p[0] === 'FACUP' || p[0] === 'ECL') && p.length === 3){
+      labels = p[0] === 'FACUP' ? FUTURES.fa_cup_labels : FUTURES.ecl_labels;
+      context = p[0] === 'FACUP' ? 'FA Cup' : 'ECL';
+      key = p[1]; team = p[2];
+    } else return s.label || s.id || 'Unknown selection';
+    return team && labels?.[key] ? `${team} — ${labels[key]} (${context})` : (s.label || s.id || 'Unknown selection');
+  }
   const LEADING_AT = DATA.leading_at.leading_at;
   const RODDY_LEADING_AT = DATA.leading_at.roddy_leading_at;
   const H2H_HISTORY = DATA.h2h_history;
@@ -3529,7 +3544,7 @@
         <div style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);font-weight:600;margin-bottom:8px;">All-time best bets</div>
         ${state.user.legacyBestBets.map((b,i) => `
           <div style="padding:6px 0;${i<state.user.legacyBestBets.length-1?'border-bottom:1px solid #2a2a2a;':''}">
-            <div style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">${b.selections.map(s=>esc(s.label)).join(', ')}</div>
+            <div style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">${b.selections.map(s=>esc(betSelectionLabel(s))).join(', ')}</div>
             <div style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:#8a8a8a;">Stake ${fmt(b.stake)} @ ${b.combinedOdds.toFixed(2)} &rarr; won ${fmt(b.potentialReturn)}${b.season?' &mdash; '+esc(b.season):''}</div>
           </div>`).join('')}
       </div>` : '';
@@ -4460,7 +4475,7 @@
           return `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-top:0;">Single-selection bets on Round ${state.currentRound} or earlier, still pending. Multi-leg bets aren't shown here -- resolve those individually in the table below once every leg's known.</p>` +
             resolvable.map(b => `
               <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #2a2a2a;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">
-                <span>${esc(b.username)} \u2014 ${esc(b.selections[0].label)} <span style="color:#8a8a8a;">(stake ${fmt(b.stake)}, odds ${formatOdds(b.selections[0].odds)})</span></span>
+                <span>${esc(b.username)} \u2014 ${esc(betSelectionLabel(b.selections[0]))} <span style="color:#8a8a8a;">(stake ${fmt(b.stake)}, odds ${formatOdds(b.selections[0].odds)})</span></span>
                 <span style="display:flex;gap:4px;">
                   <button class="bb-btn ghost" data-setstatus="${b.id}|WON" style="padding:4px 8px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);">Won</button>
                   <button class="bb-btn ghost" data-setstatus="${b.id}|LOST" style="padding:4px 8px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);">Lost</button>
@@ -4546,7 +4561,7 @@
                 <td>${fmtDate(b.timestamp)}</td>
                 <td>${esc(b.username)}</td>
                 <td>${b.selections.map((s,i)=>{
-                  const label = esc(s.label)+' <span style="color:#8a8a8a;">('+formatOdds(s.odds)+')</span>';
+                  const label = esc(betSelectionLabel(s))+' <span style="color:#8a8a8a;">('+formatOdds(s.odds)+')</span>';
                   const suggestion = !s.result ? computeSuggestedResult(s.id) : null;
                   const suggestionTag = suggestion ? ` <span style="color:#ffdd00;font-size:clamp(15px, calc(15px + 0.4vw), 18px);font-weight:600;">&#9889; suggested: ${suggestion}</span>` : '';
                   if(b.selections.length===1) return label + suggestionTag;
@@ -5250,7 +5265,7 @@
     });
     const rows = [['Placed','User','Selections','Stake','Combined Odds','Potential Return','Status']];
     bets.forEach(b => {
-      const selText = b.selections.map(s => s.label+' ('+formatOdds(s.odds)+')').join(' | ');
+      const selText = b.selections.map(s => betSelectionLabel(s)+' ('+formatOdds(s.odds)+')').join(' | ');
       rows.push([fmtDate(b.timestamp), b.username, selText, b.stake, b.combinedOdds.toFixed(2), b.potentialReturn, b.status||'PENDING']);
     });
     const csv = rows.map(r => r.map(cell => '"'+String(cell).replace(/"/g,'""')+'"').join(',')).join('\n');
