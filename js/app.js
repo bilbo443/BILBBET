@@ -4612,7 +4612,7 @@
                 <td>${fmt(b.stake)}</td>
                 <td>${b.combinedOdds.toFixed(2)}${b.boosted?' \u26A1':''}</td>
                 <td>${fmt(b.potentialReturn)}</td>
-                <td>${statusPill(b.status || 'PENDING')}${b.nearMissBonusAwarded?' <span class="bb-pill" style="background:#4a3a10;color:#ffdd00;">bonus paid</span>':''}</td>
+                <td>${statusPill(b.status || 'PENDING')}${b.nearMissBonusAwarded?' <span class="bb-pill" style="background:#4a3a10;color:#ffdd00;display:inline-flex;align-items:center;white-space:nowrap;line-height:1.4;padding:4px 10px;margin:4px 0;vertical-align:middle;">bonus paid</span>':''}</td>
                 <td style="display:flex;gap:4px;flex-wrap:wrap;">
                   <button class="bb-btn ghost" data-setstatus="${b.id}|WON" style="padding:4px 8px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);${b.selections.length===1&&computeSuggestedResult(b.selections[0].id)==='WON'?'border-color:#ffdd00;':''}">Won</button>
                   <button class="bb-btn ghost" data-setstatus="${b.id}|LOST" style="padding:4px 8px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);${b.selections.length===1&&computeSuggestedResult(b.selections[0].id)==='LOST'?'border-color:#ffdd00;':''}">Lost</button>
