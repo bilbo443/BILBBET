@@ -656,3 +656,6 @@ Admin Division 3 preview: all active unassigned Division 3 teams appear alphabet
 
 
 Pool-only arrivals, withdrawals and renames must trigger whole-league regeneration even when the technical conference roster is unchanged. Check all active entrants appear in Roddy and FA Cup markets; unassigned entrants receive no conference fixtures.
+
+
+Post-deadline diagnostic sweeps: October 10 and October 12, 2026, at approximately 09:00 Australia/Sydney. New-entry deadline remains October 9. These checks report discrepancies only; they do not admit entrants or publish roster changes. October 10 is an optional phone review; conference updates are handled on October 12. The final day-before-kickoff sweep remains scheduled. GitHub scheduled runs may be delayed.

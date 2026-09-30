@@ -2,7 +2,8 @@ name: Pre-season Roster Sweep
 
 # Checks each Tuesday before kickoff. The October trigger runs daily through
 # the October 9 roster freeze, then once more on the day before Round 1;
-# other October days stop before installing dependencies or fetching the sheet.
+# October 10 and 12 also run report-only follow-ups at 9am Sydney.
+# Other October days stop before installing dependencies or fetching the sheet.
 #
 # This is diagnostic-only: it never writes to data/, never opens a PR, and
 # never auto-corrects anything it finds. A clean run produces nothing
@@ -12,6 +13,7 @@ name: Pre-season Roster Sweep
 on:
   schedule:
     - cron: '0 5 * * 2'  # ~3pm Tuesday AEST / ~4pm Tuesday AEDT -- adjust to your own timezone
+    - cron: '0 22 9,11 10 *' # Oct 10 and 12 at 9am Sydney (AEDT)
     - cron: '0 5 * 10 *' # daily through roster freeze, plus final eve sweep
   workflow_dispatch:
     inputs:
@@ -41,16 +43,19 @@ jobs:
         run: |
           python - <<'PY'
           import json, os
-          from datetime import date, timedelta
+          from datetime import date, datetime, timedelta
+          from zoneinfo import ZoneInfo
           with open('data/round_dates.json') as stream:
               start = date.fromisoformat(json.load(stream)['1'])
           with open('data/roster_rules.json') as stream:
               freeze = date.fromisoformat(json.load(stream)['freeze_date'])
-          today = date.today()
+          today = datetime.now(ZoneInfo('Australia/Sydney')).date()
           schedule = os.environ.get('SCHEDULE')
           daily_trigger = schedule == '0 5 * 10 *'
           eve = start - timedelta(days=1)
-          due = (today < start and (today <= freeze or today == eve)) if daily_trigger else (today < start and today != eve if schedule else True)
+          follow_dates = {freeze + timedelta(days=1), freeze + timedelta(days=3)}
+          follow_trigger = schedule == '0 22 9,11 10 *'
+          due = (today in follow_dates and today < start) if follow_trigger else ((today < start and (today <= freeze or today == eve)) if daily_trigger else (today < start and today != eve if schedule else True))
           print(f"{'October' if daily_trigger else 'Regular'} sweep {'due' if due else 'skipped'}; roster freeze {freeze}, season starts {start}.")
           with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
               output.write(f"run_check={str(due).lower()}\n")
@@ -80,14 +85,14 @@ jobs:
             echo "exit_code=1" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          TODAY_ARG=""
+          TODAY_ARG="--today $(TZ=Australia/Sydney date +%F)"
           if [ -n "${{ inputs.today }}" ]; then
             TODAY_ARG="--today ${{ inputs.today }}"
           fi
           EVE_ARG=""
           if [ "$SCHEDULE" = '0 5 * 10 *' ]; then
             EVE_DATE=$(python -c "import json; from datetime import date, timedelta; print(date.fromisoformat(json.load(open('data/round_dates.json'))['1']) - timedelta(days=1))")
-            if [ "$(date -u +%F)" = "$EVE_DATE" ]; then EVE_ARG="--only-on-eve"; fi
+            if [ "$(TZ=Australia/Sydney date +%F)" = "$EVE_DATE" ]; then EVE_ARG="--only-on-eve"; fi
           fi
           set +e
           python pipeline/preseason_roster_sweep.py \
