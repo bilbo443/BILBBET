@@ -1712,7 +1712,7 @@
         <span style="font-size:clamp(25px, calc(25px + 0.4vw), 28px);">\u{1F3C6}</span>
         <div>
           <div style="font-weight:600;">${esc(bb.username)}'s bet won at ${bb.combinedOdds.toFixed(2)}</div>
-          <div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">${bb.selections.length} selection${bb.selections.length>1?'s':''} &middot; ${fmt(bb.stake)} staked &middot; returned <span style="color:#ffdd00;font-weight:600;">${fmt(bb.potentialReturn)}</span> clams</div>
+          <div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">${bb.selections.length} selection${bb.selections.length>1?'s':''} &middot; ${fmt(bb.stake)} staked &middot; returned <span style="color:#ffdd00;font-weight:600;">${fmt(displayedBetReturn(bb))}</span> clams</div>
         </div>
       </div>`;
     }
@@ -3581,7 +3581,7 @@
         ${state.user.legacyBestBets.map((b,i) => `
           <div style="padding:6px 0;${i<state.user.legacyBestBets.length-1?'border-bottom:1px solid #2a2a2a;':''}">
             <div style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">${b.selections.map(s=>esc(betSelectionLabel(s))).join(', ')}</div>
-            <div style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:#8a8a8a;">Stake ${fmt(b.stake)} @ ${b.combinedOdds.toFixed(2)} &rarr; won ${fmt(b.potentialReturn)}${b.season?' &mdash; '+esc(b.season):''}</div>
+            <div style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:#8a8a8a;">Stake ${fmt(b.stake)} @ ${b.combinedOdds.toFixed(2)} &rarr; won ${fmt(displayedBetReturn(b))}${b.season?' &mdash; '+esc(b.season):''}</div>
           </div>`).join('')}
       </div>` : '';
     if(state.myBets === null) return prefsCard + txCard + careerBox + legacyBox + '<p style="color:#9a9a9a;">Loading&hellip;</p>';
@@ -3592,7 +3592,7 @@
     const lost = bets.filter(b=>b.status==='LOST').length;
     const voided = bets.filter(b=>b.status==='VOID').length;
     const netFromSettled = bets.reduce((s,b)=>{
-      if(b.status==='WON') return s + (b.potentialReturn - b.stake);
+      if(b.status==='WON') return s + (displayedBetReturn(b) - b.stake);
       if(b.status==='LOST') return s - b.stake;
       return s;   // PENDING and VOID both net to 0 -- VOID refunds the stake, nothing gained or lost
     }, 0);
@@ -3606,7 +3606,7 @@
       </div>
       <div class="bb-card" style="padding:0;overflow-x:auto;">
         <table class="bb-table">
-          <thead><tr><th>Placed</th><th>Selections</th><th>Stake</th><th>Odds</th><th>Potential return</th><th>Status</th></tr></thead>
+          <thead><tr><th>Placed</th><th>Selections</th><th>Stake</th><th>Odds</th><th>Return / potential</th><th>Status</th></tr></thead>
           <tbody>
             ${bets.slice().sort((a,b)=>b.timestamp-a.timestamp).map(b => `
               <tr>
@@ -3614,7 +3614,7 @@
                 <td>${b.selections.map(s=>esc(s.label)+' <span style="color:#8a8a8a;">('+formatOdds(s.odds)+')</span>').join('<br/>')}</td>
                 <td>${fmt(b.stake)}</td>
                 <td>${b.combinedOdds.toFixed(2)}</td>
-                <td>${fmt(b.potentialReturn)}</td>
+                <td>${fmt(displayedBetReturn(b))}</td>
                 <td>${statusPill(b.status || 'PENDING')}</td>
               </tr>`).join('')}
           </tbody>
@@ -4562,7 +4562,7 @@
         <table class="bb-table">
           <thead><tr>${[
             ['placed','Placed'], ['user','User'], ['selections','Selections'], ['stake','Stake'],
-            ['odds','Odds'], ['potential','Potential return'], ['status','Status'],
+            ['odds','Odds'], ['potential','Return / potential'], ['status','Status'],
           ].map(([key,label]) => {
             const active = state.adminBetsSortBy === key;
             const arrow = active ? (state.adminBetsSortDir==='asc' ? ' \u2191' : ' \u2193') : '';
@@ -4579,7 +4579,7 @@
                 else if(key === 'selections'){ av = a.selections.length; bv = b.selections.length; }
                 else if(key === 'stake'){ av = a.stake; bv = b.stake; }
                 else if(key === 'odds'){ av = a.combinedOdds; bv = b.combinedOdds; }
-                else if(key === 'potential'){ av = a.potentialReturn; bv = b.potentialReturn; }
+                else if(key === 'potential'){ av = displayedBetReturn(a); bv = displayedBetReturn(b); }
                 else if(key === 'status'){ av = (a.status||'PENDING'); bv = (b.status||'PENDING'); }
                 if(av < bv) return -1*dir; if(av > bv) return 1*dir; return 0;
               }
@@ -4611,7 +4611,7 @@
                 }).join(b.selections.length===1?'<br/>':'')}</td>
                 <td>${fmt(b.stake)}</td>
                 <td>${b.combinedOdds.toFixed(2)}${b.boosted?' \u26A1':''}</td>
-                <td>${fmt(b.potentialReturn)}</td>
+                <td>${fmt(displayedBetReturn(b))}</td>
                 <td>${statusPill(b.status || 'PENDING')}${b.nearMissBonusAwarded?' <span class="bb-pill" style="background:#4a3a10;color:#ffdd00;display:inline-flex;align-items:center;white-space:nowrap;line-height:1.4;padding:4px 10px;margin:4px 0;vertical-align:middle;">bonus paid</span>':''}</td>
                 <td style="display:flex;gap:4px;flex-wrap:wrap;">
                   <button class="bb-btn ghost" data-setstatus="${b.id}|WON" style="padding:4px 8px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);${b.selections.length===1&&computeSuggestedResult(b.selections[0].id)==='WON'?'border-color:#ffdd00;':''}">Won</button>
@@ -4803,7 +4803,7 @@
     const seasonSummary = {
       totalBets: settled.length,
       winningBets: won.length,
-      winnings: won.reduce((s,b)=>s+b.potentialReturn, 0),
+      winnings: won.reduce((s,b)=>s+displayedBetReturn(b), 0),
       losingBets: lost.length,
       losses: lost.reduce((s,b)=>s+b.stake, 0),
       voidBets: voided.length,
@@ -4830,10 +4830,10 @@
     const candidates = (u.legacyBestBets || []).concat(
       won.map(b => ({
         selections: b.selections, stake: b.stake, combinedOdds: b.combinedOdds,
-        potentialReturn: b.potentialReturn, timestamp: b.timestamp, season: seasonLabel || null,
+        potentialReturn: b.potentialReturn, actualReturn: displayedBetReturn(b), status: b.status, timestamp: b.timestamp, season: seasonLabel || null,
       }))
     );
-    candidates.sort((a,b) => b.potentialReturn - a.potentialReturn);
+    candidates.sort((a,b) => displayedBetReturn(b) - displayedBetReturn(a));
     u.legacyBestBets = candidates.slice(0, 3);
 
     // Once-per-season mechanics reset with the season itself.
@@ -5299,10 +5299,10 @@
       if(filterType === 'MULTI' && b.selections.length <= 1) return false;
       return true;
     });
-    const rows = [['Placed','User','Selections','Stake','Combined Odds','Potential Return','Status']];
+    const rows = [['Placed','User','Selections','Stake','Combined Odds','Return / Potential','Status']];
     bets.forEach(b => {
       const selText = b.selections.map(s => betSelectionLabel(s)+' ('+formatOdds(s.odds)+')').join(' | ');
-      rows.push([fmtDate(b.timestamp), b.username, selText, b.stake, b.combinedOdds.toFixed(2), b.potentialReturn, b.status||'PENDING']);
+      rows.push([fmtDate(b.timestamp), b.username, selText, b.stake, b.combinedOdds.toFixed(2), displayedBetReturn(b), b.status||'PENDING']);
     });
     const csv = rows.map(r => r.map(cell => '"'+String(cell).replace(/"/g,'""')+'"').join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -5317,6 +5317,14 @@
   // PENDING/LOST: nothing (stake was already taken at placement and stays gone unless
   // voided). WON: the full potential return. VOID: just the original stake refunded,
   // as if the bet never happened.
+  function displayedBetReturn(bet){
+    if(typeof bet.actualReturn === 'number') return bet.actualReturn;
+    const status = bet.status || 'PENDING';
+    if(status === 'VOID') return bet.stake;
+    if(status === 'LOST') return 0;
+    if(!Array.isArray(bet.selections)) return bet.potentialReturn;
+    return settlementCredit('WON', bet);
+  }
   function settlementCredit(status, bet){
     if(status === 'WON'){
       const voids = bet.selections.filter(s => s.result === 'VOID');
@@ -5686,7 +5694,7 @@
       .slice(0,5)
       .map(b => ({ label: b.username+' \u2014 '+b.selections.length+'-leg multi @ '+b.combinedOdds.toFixed(2), value: b.selections.length }));
     const won = bets.filter(b => b.status === 'WON');
-    const topWins = top(won, 'potentialReturn').map(b => ({ label: b.username+' \u2014 '+b.selections.map(s=>s.label).join(' + '), value: b.potentialReturn }));
+    const topWins = won.slice().sort((a,b)=>displayedBetReturn(b)-displayedBetReturn(a)).slice(0,5).map(b => ({ label: b.username+' \u2014 '+b.selections.map(s=>s.label).join(' + '), value: displayedBetReturn(b) }));
     const lost = bets.filter(b => b.status === 'LOST');
     const topLosses = top(lost, 'stake').map(b => ({ label: b.username+' \u2014 '+b.selections.map(s=>s.label).join(' + '), value: b.stake }));
     const oddsBacked = [];
@@ -6822,7 +6830,7 @@
 
     let roundPiece = ''; // the live countdown card now covers this -- see renderRoundCountdown()
 
-    const pendingTotal = pending.reduce((s,b) => s + b.potentialReturn, 0);
+    const pendingTotal = pending.reduce((s,b) => s + displayedBetReturn(b), 0);
     const pendingPiece = pending.length
       ? `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;">
           <span style="font-size:clamp(21px, calc(21px + 0.4vw), 24px);">\u23F3</span>
@@ -6832,7 +6840,7 @@
     const recentPiece = mostRecent
       ? `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;">
           <span style="font-size:clamp(21px, calc(21px + 0.4vw), 24px);">${mostRecent.status==='WON'?'\u2705':'\u274C'}</span>
-          <span style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">Your last bet ${mostRecent.status==='WON'?'won':'lost'}${mostRecent.status==='WON'?` \u2014 <span style="color:#ffdd00;font-weight:600;">${fmt(mostRecent.potentialReturn)}</span>`:''}</span>
+          <span style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">Your last bet ${mostRecent.status==='WON'?'won':'lost'}${mostRecent.status==='WON'?` \u2014 <span style="color:#ffdd00;font-weight:600;">${fmt(displayedBetReturn(mostRecent))}</span>`:''}</span>
         </div>` : '';
 
     const pieces = [roundPiece, pendingPiece, recentPiece].filter(Boolean);
