@@ -665,3 +665,6 @@ Settlement identity audit: H2H result suggestions and weekly/preseason tip scori
 
 
 Void-adjusted return displays: My Bets, admin tables, CSV exports, win statistics and future archives use the settlement calculation. Pending bets show adjusted potential; losses show zero; void bets show stake refunds. Original accepted odds and potentialReturn remain stored. New archive records also retain actualReturn. This update does not change live balances or repair historical payments.
+
+
+Settlement safety: install supabase/settlement.sql before deploying js/app.js. Settlement now updates the account, bet and transaction log in one database transaction, including near-miss bonus corrections. Tested rollback, response-loss retries, voids and corrections in an isolated PostgreSQL runtime. Submissions refresh live lockout settings and enforce Sydney kickoff time; tipping writes require a live connection. Explicit reopening is retained. Bet placement is still a separate non-atomic workflow; broader database authentication and other simultaneous account writes need their own review.

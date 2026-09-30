@@ -474,9 +474,35 @@
   // Same blocking rule as isPickBlocked's round logic, but for checking a
   // round directly (e.g. to decide whether to show a market's full list at
   // all) rather than one specific pick.
+  function submissionClockClosed(){
+    // A deliberate reopen after this round's automatic close remains valid.
+    return scheduledCloseDue() && state.lastAutoClosedRound !== state.currentRound;
+  }
+  async function refreshSubmissionControls(){
+    if(!supabaseClient){ alert('The live connection is required to confirm entries. Please reload and try again.'); return false; }
+    const fields = {
+      bilbbet2_round_betting_open: 'roundBettingOpen', bilbbet2_close_scope: 'closeScope',
+      bilbbet2_paused_categories: 'pausedCategories', bilbbet2_last_autoclosed_round: 'lastAutoClosedRound',
+      bilbbet2_h2h_schedule_confirmed: 'h2hRealScheduleConfirmed', bilbbet2_divisions_announced: 'divisionsAnnounced',
+      bilbbet2_current_round_override: 'currentRoundOverride'
+    };
+    try {
+      const { data, error } = await supabaseClient.from('kv_store').select('key,value').in('key', Object.keys(fields));
+      if(error) throw error;
+      for(const row of data || []) state[fields[row.key]] = row.value;
+      state.currentRound = state.currentRoundOverride || deriveCurrentRoundFromDate();
+      return true;
+    } catch(e){ alert('Could not verify lockout. Nothing was submitted; please try again.'); return false; }
+  }
+  async function saveConfirmedEntry(key, value){
+    const { error } = await supabaseClient.from('kv_store').upsert({key, value});
+    if(error){ alert('Your entry was not confirmed. Please reload and try again.'); return false; }
+    return true;
+  }
+
   function isRoundBlocked(round){
     if(round < state.currentRound) return true;
-    if(state.roundBettingOpen) return false;
+    if(state.roundBettingOpen && !submissionClockClosed()) return false;
     if(round === state.currentRound) return true;
     return state.closeScope === 'all';
   }
@@ -507,7 +533,7 @@
     // (the dropdown disabling past rounds is cosmetic only, not a real
     // barrier) and bet on an outcome that's already certain.
     if(r !== null && r < state.currentRound) return true;
-    if(state.roundBettingOpen) return false;
+    if(state.roundBettingOpen && !submissionClockClosed()) return false;
     if(r !== null && r === state.currentRound) return true;
     return state.closeScope === 'all';
   }
@@ -4895,7 +4921,9 @@
   // at all.
   function deriveCurrentRoundFromDate(date){
     const d = date || new Date();
-    const todayStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const parts = new Intl.DateTimeFormat('en-CA', {timeZone: SYDNEY_TZ, year:'numeric', month:'2-digit', day:'2-digit'}).formatToParts(d);
+    const part = type => parts.find(p => p.type === type).value;
+    const todayStr = `${part('year')}-${part('month')}-${part('day')}`;
     const roundDates = DATA.round_dates || {};
     const rounds = Object.keys(roundDates).map(Number).sort((a,b) => a-b);
     if(!rounds.length) return 1; // no calendar data -- safe fallback, matches the pre-automation default
@@ -5361,51 +5389,20 @@
   // or re-rendering -- used directly by batch operations (like resolving a novelty
   // item that settles several bets at once) so they can do a single reload at the end
   // instead of one per bet.
-  async function applyBetStatus(betId, newStatus){
-    const initial = await sget('bilbbet2_bet:'+betId);
-    if(!initial) return;
-    await withUserLock(initial.username, async () => {
-      // Re-read the bet INSIDE the lock -- if another call for this same
-      // user was already in flight, prevStatus needs to reflect whatever
-      // that call actually left behind, not whatever was true before this
-      // call started waiting.
-      const bet = await sget('bilbbet2_bet:'+betId);
-      if(!bet) return;
-      const prevStatus = bet.status || 'PENDING';
-      if(prevStatus === newStatus) return;
-      const u = await getUser(bet.username);
-      if(u){
-        const delta = settlementCredit(newStatus, bet) - settlementCredit(prevStatus, bet);
-        u.balance += delta;
-        // A void means "as if this bet never happened" -- so if it had
-        // used this round's featured pick or free multi-boost, that
-        // allowance needs to come back too, not stay silently spent on a
-        // bet that never actually resolved. Only restores if THIS bet is
-        // the one that set it (checked by round, stored on the bet itself
-        // at placement time) -- guards against a stale bet from an older
-        // round accidentally clearing a genuinely-in-use current one.
-        if(newStatus === 'VOID'){
-          if(bet.featuredPickRound && u.featuredPickUsedRound === bet.featuredPickRound){
-            u.featuredPickUsedRound = null;
-          }
-          if(bet.boostRound && u.boostUsedRound === bet.boostRound){
-            u.boostUsedRound = null;
-          }
-        }
-        await saveUser(u);
-        if(delta !== 0){
-          await logTransaction(bet.username, 'BET_STATUS_CHANGE', delta, u.balance, `Bet ${newStatus.toLowerCase()} (was ${prevStatus.toLowerCase()})`);
-        }
-        if(state.user.username.toLowerCase() === bet.username.toLowerCase()) state.user = u;
-      }
-      bet.status = newStatus;
-      // keep the per-leg result in sync for single-selection bets, so the data model
-      // is consistent regardless of which path resolved the bet
-      if(bet.selections.length === 1){
-        bet.selections[0].result = newStatus === 'PENDING' ? null : newStatus;
-      }
-      await sset('bilbbet2_bet:'+betId, bet);
+  async function settleBetAtomically(betId, result, leg = null){
+    if(!supabaseClient) throw new Error('Settlement needs the live database; no balance was changed.');
+    const { data, error } = await supabaseClient.rpc('bilbbet_settle_bet', {
+      p_bet_id: betId, p_result: result, p_leg: leg
     });
+    if(error) throw new Error('Settlement was not confirmed. Reload and retry; the database prevents duplicate credit. ' + error.message);
+    if(!data?.bet || !data?.user) throw new Error('Unexpected settlement response; reload before continuing.');
+    if(state.user && state.user.username.toLowerCase() === data.user.username.toLowerCase()) state.user = data.user;
+    return data;
+  }
+
+  async function applyBetStatus(betId, newStatus){
+    try { await settleBetAtomically(betId, newStatus); }
+    catch(e){ alert(e.message); throw e; }
   }
 
   async function setBetStatus(betId, newStatus){
@@ -5434,63 +5431,8 @@
   }
 
   async function resolveSelectionResult(betId, index, result){
-    const initial = await sget('bilbbet2_bet:'+betId);
-    if(!initial) return;
-    await withUserLock(initial.username, async () => {
-      // Re-read fresh, inside the lock -- if a DIFFERENT leg on this same
-      // bet was resolved by a call that was already in flight, that
-      // change needs to still be there, not overwritten by this call
-      // working from a stale copy.
-      const bet = await sget('bilbbet2_bet:'+betId);
-      if(!bet) return;
-      const previousCredit = settlementCredit(bet.status || 'PENDING', bet);
-      bet.selections[index].result = result;
-      const prevOverall = bet.status || 'PENDING';
-      const newOverall = computeOverallStatus(bet.selections);
-      const statusChanged = newOverall !== prevOverall;
-      const payoutChanged = settlementCredit(newOverall, bet) !== previousCredit;
-      const stillQualifies = newOverall === 'LOST' && isNearMissBonus(bet.selections);
-      const bonusNeedsClawback = bet.nearMissBonusAwarded && !stillQualifies;
-      const bonusNewlyEarned = !bet.nearMissBonusAwarded && stillQualifies;
-      if(statusChanged || payoutChanged || bonusNeedsClawback || bonusNewlyEarned){
-        const u = await getUser(bet.username);
-        if(u){
-          let delta = 0;
-          const reasonParts = [];
-          if(statusChanged || payoutChanged){
-            delta += settlementCredit(newOverall, bet) - previousCredit;
-            reasonParts.push(`Bet leg resolved (now ${newOverall.toLowerCase()})`);
-            if(newOverall === 'VOID'){
-              if(bet.featuredPickRound && u.featuredPickUsedRound === bet.featuredPickRound){
-                u.featuredPickUsedRound = null;
-              }
-              if(bet.boostRound && u.boostUsedRound === bet.boostRound){
-                u.boostUsedRound = null;
-              }
-            }
-          }
-          if(bonusNeedsClawback){
-            delta -= bet.stake;
-            u.nearMissBonusUsed = false;
-            bet.nearMissBonusAwarded = false;
-            reasonParts.push('near-miss bonus clawed back');
-          } else if(bonusNewlyEarned && !u.nearMissBonusUsed){
-            delta += bet.stake;
-            u.nearMissBonusUsed = true;
-            bet.nearMissBonusAwarded = true;
-            reasonParts.push('near-miss bonus awarded');
-          }
-          u.balance += delta;
-          await saveUser(u);
-          if(delta !== 0){
-            await logTransaction(bet.username, 'BET_STATUS_CHANGE', delta, u.balance, reasonParts.join(', '));
-          }
-          if(state.user && state.user.username.toLowerCase() === bet.username.toLowerCase()) state.user = u;
-        }
-        bet.status = newOverall;
-      }
-      await sset('bilbbet2_bet:'+betId, bet);
-    });
+    try { await settleBetAtomically(betId, result, index); }
+    catch(e){ alert(e.message); throw e; }
     await loadAdminData();
   }
 
@@ -6366,6 +6308,7 @@
     // still fire this handler. Re-check here rather than trusting the UI
     // alone, matching the pattern weekly tipping's pick handlers already
     // use for the same reason.
+    if(!await refreshSubmissionControls()) return;
     if(isRoundBlocked(1)){
       alert('Pre-season picks have locked -- Round 1 has started.');
       state.preseasonData = null; // force a fresh reload so the view reflects the real, locked state
@@ -6373,7 +6316,7 @@
       return;
     }
     state.preseasonData = { picks: { ...state.preseasonPending } };
-    await sset(preseasonStorageKey(state.user.username), state.preseasonData);
+    if(!await saveConfirmedEntry(preseasonStorageKey(state.user.username), state.preseasonData)) return;
     render();
   }
 
@@ -6428,13 +6371,15 @@
 
   async function confirmTips(){
     if(!state.user || !state.tippingData) return;
+    if(!await refreshSubmissionControls()) return;
+    if(isRoundBlocked(state.tippingRound)){ alert('This round has locked. Your changes were not submitted.'); render(); return; }
     if(FIXTURES_ARE_PLACEHOLDER && state.tippingRound > 1 &&
       Object.keys(state.tippingPending).some(k => FUTURE_DIVS.includes(k.split('|')[0]))){
       alert('Division fixture tips are waiting for the official draw. Please confirm them once the fixtures are published.');
       return;
     }
     state.tippingData = { round: state.tippingData.round, picks: { ...state.tippingPending } };
-    await sset(tipStorageKey(state.user.username, state.tippingRound), state.tippingData);
+    if(!await saveConfirmedEntry(tipStorageKey(state.user.username, state.tippingRound), state.tippingData)) return;
     render();
     if(state.tippingRound === state.currentRound) checkTipReminderStatus(); // async, fire-and-forget -- clears the flag right away rather than waiting for the next login
   }
@@ -8039,6 +7984,7 @@
   async function placeBet(){
     if(!state.user){ alert('You must log in first to place a bet.'); state.loginModalOpen=true; render(); return; }
     if(state.betSubmissionInProgress){ return; } // a rapid double-click/double-submit shouldn't place two bets or lose one's data
+    if(!await refreshSubmissionControls()) return;
     if(state.slip.some(s => isPickBlocked(s.id))){
       alert('Betting closed while building this slip \u2014 remove the affected selection(s) to continue.');
       return;
@@ -8074,7 +8020,9 @@
       const combined = combinedOddsFor(slipSnapshot) * (boostApplied ? BOOST_MULTIPLIER : 1);
       const myUsername = state.user.username; // captured once -- state.user could change while the awaits below are in flight
       const u = await withUserLock(myUsername, async () => {
+        if(!await refreshSubmissionControls() || slipSnapshot.some(s => isPickBlocked(s.id))) throw new Error("Betting has closed. No stake was deducted.");
         const fresh = await getUser(myUsername);
+        if(!fresh || fresh.balance < stake) throw new Error("Your balance has changed. No stake was deducted; reload and try again.");
         // Re-checked here, inside the lock, against freshly-read data --
         // not the stale local copy from before this bet started submitting.
         // Two separate tabs for the same account could each pass a check
@@ -8110,6 +8058,8 @@
       state.stake = 50; state.useBoost = false;
       render();
       alert('Bet placed: ' + stake + ' clams to win ' + fmt(bet.potentialReturn) + ' clams' + (boostApplied ? ' (boosted!)' : '') + '. Check "My Bets" to track it.');
+    } catch(e){
+      alert(e.message || "Submission failed. Reload and check My Bets before retrying.");
     } finally {
       state.betSubmissionInProgress = false;
     }
@@ -8118,6 +8068,7 @@
   async function placeBetsAsSingles(){
     if(!state.user){ alert('You must log in first to place a bet.'); state.loginModalOpen=true; render(); return; }
     if(state.betSubmissionInProgress){ return; }
+    if(!await refreshSubmissionControls()) return;
     if(state.slip.some(s => isPickBlocked(s.id))){
       alert('Betting closed while building this slip \u2014 remove the affected selection(s) to continue.');
       return;
@@ -8136,7 +8087,9 @@
       const hasFeatured = slipSnapshot.some(s => isFeaturedPick(s.id));
       const myUsername = state.user.username; // captured once -- state.user could change while the awaits below are in flight
       const u = await withUserLock(myUsername, async () => {
+        if(!await refreshSubmissionControls() || slipSnapshot.some(s => isPickBlocked(s.id))) throw new Error("Betting has closed. No stake was deducted.");
         const fresh = await getUser(myUsername);
+        if(!fresh || fresh.balance < totalStake) throw new Error("Your balance has changed. No stake was deducted; reload and try again.");
         if(hasFeatured && fresh.featuredPickUsedRound === state.currentRound){
           return null;
         }
@@ -8165,6 +8118,8 @@
       state.stake = 50;
       render();
       alert('Placed ' + count + ' single bets totalling ' + totalStake + ' clams staked. Check "My Bets" to track them.');
+    } catch(e){
+      alert(e.message || "Submission failed. Reload and check My Bets before retrying.");
     } finally {
       state.betSubmissionInProgress = false;
     }
@@ -8335,6 +8290,7 @@
   const savedPausedPicks = await sget('bilbbet2_paused_categories');
   if(savedPausedPicks !== null){ state.pausedCategories = savedPausedPicks; }
   const savedAutoClosedRound = await sget('bilbbet2_last_autoclosed_round');
+  state.lastAutoClosedRound = savedAutoClosedRound;
   // Auto-close is a one-time check on load, not a background timer: if the
   // scheduled date for the current round has arrived and nobody's closed or
   // auto-closed it yet for this specific round, close it now. Tracking which
@@ -8345,6 +8301,7 @@
     state.roundBettingOpen = false;
     await sset('bilbbet2_round_betting_open', false);
     await sset('bilbbet2_last_autoclosed_round', state.currentRound);
+    state.lastAutoClosedRound = state.currentRound;
   }
   const savedOddsRefreshRequested = await sget('bilbbet2_odds_refresh_requested');
   if(savedOddsRefreshRequested !== null){ state.oddsRefreshRequested = savedOddsRefreshRequested; }
