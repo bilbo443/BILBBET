@@ -653,3 +653,6 @@ Weekly publishable conversion uses the full active registry, including unassigne
 
 
 Admin Division 3 preview: all active unassigned Division 3 teams appear alphabetically under Division 3A - provisional pool, in Admin and the admin H2H view. Names and logos use the standard display helpers. This preview assigns no conferences and offers no betting selections. Confirm it is absent for ordinary users; when conferences are assigned, the pool preview disappears.
+
+
+Pool-only arrivals, withdrawals and renames must trigger whole-league regeneration even when the technical conference roster is unchanged. Check all active entrants appear in Roddy and FA Cup markets; unassigned entrants receive no conference fixtures.

@@ -583,7 +583,7 @@ def sync_roster_if_changed(alltime_csv_path, data_dir, draft_dir):
         for t in operational if t.get('status') not in (None, '', 'INACTIVE')
     }
     technical_change = old_active != new_active
-    if technical_change:
+    if summary is not None:
         roster = sync_roster(operational, data_dir=data_dir, draft_dir=draft_dir, field_admin_teams=fresh_teams)
         count = sum(len(names) for names in roster.values())
     else:
