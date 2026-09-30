@@ -268,7 +268,19 @@
   const H2H_CUP_SHIFT = DATA.h2h_cup_shift || {};
   const REAL_RESULTS = DATA.real_results || {};
   const AVERAGE_TEAM = 'AVERAGE TEAM';
+  // Resolve old selection names without modifying stored bets or reward keys.
+  function resolveTeamName(name){
+    const norm = value => String(value || '').trim().toUpperCase();
+    const rows = DATA.admin_teams || [];
+    const current = rows.filter(t => norm(t.name) === norm(name));
+    if(current.length === 1) return current[0].name;
+    const aliases = rows.filter(t => String(t.prev_names || '').split(',').some(old => norm(old) === norm(name)));
+    return aliases.length === 1 ? aliases[0].name : name;
+  }
+  function sameTeam(a,b){ return resolveTeamName(a) === resolveTeamName(b); }
   function fixtureScore(team, opponent, round){
+    team = resolveTeamName(team);
+    opponent = resolveTeamName(opponent);
     if(team !== AVERAGE_TEAM) return REAL_RESULTS[team]?.[round-1] ?? null;
     const div = findTeamDivision(opponent);
     const scores = (H2H_DIVISIONS[div] || []).map(t => REAL_RESULTS[t]?.[round-1]);
@@ -404,7 +416,7 @@
     if(parts[0] !== 'H2H') return null;
     const side = parts[1]; // 'res-a' or 'res-b'
     const round = parseInt(parts[2].replace('R',''), 10);
-    const teamA = parts[3], teamB = parts[4];
+    const teamA = resolveTeamName(parts[3]), teamB = resolveTeamName(parts[4]);
     if(!teamA || !teamB || isNaN(round)) return null;
     // Defensive: a no-fixture round (e.g. Division 2/3's Round 1) should
     // never have a real result to suggest -- the bet-placement path
@@ -5306,7 +5318,13 @@
   // voided). WON: the full potential return. VOID: just the original stake refunded,
   // as if the bet never happened.
   function settlementCredit(status, bet){
-    if(status === 'WON') return bet.potentialReturn;
+    if(status === 'WON'){
+      const voids = bet.selections.filter(s => s.result === 'VOID');
+      if(voids.length === bet.selections.length) return bet.stake;
+      const divisor = voids.reduce((product, s) => product * s.odds, 1);
+      if(!Number.isFinite(divisor) || divisor <= 0) throw new Error('Invalid void-leg odds; review required');
+      return voids.length ? round2(bet.stake * bet.combinedOdds / divisor) : bet.potentialReturn;
+    }
     if(status === 'VOID') return bet.stake;
     return 0;
   }
@@ -5373,6 +5391,7 @@
   function computeOverallStatus(selections){
     if(selections.some(s => s.result === null || s.result === undefined)) return 'PENDING';
     if(selections.some(s => s.result === 'LOST')) return 'LOST';
+    if(selections.every(s => s.result === 'VOID')) return 'VOID';
     return 'WON';
   }
 
@@ -5396,20 +5415,22 @@
       // working from a stale copy.
       const bet = await sget('bilbbet2_bet:'+betId);
       if(!bet) return;
+      const previousCredit = settlementCredit(bet.status || 'PENDING', bet);
       bet.selections[index].result = result;
       const prevOverall = bet.status || 'PENDING';
       const newOverall = computeOverallStatus(bet.selections);
       const statusChanged = newOverall !== prevOverall;
+      const payoutChanged = settlementCredit(newOverall, bet) !== previousCredit;
       const stillQualifies = newOverall === 'LOST' && isNearMissBonus(bet.selections);
       const bonusNeedsClawback = bet.nearMissBonusAwarded && !stillQualifies;
       const bonusNewlyEarned = !bet.nearMissBonusAwarded && stillQualifies;
-      if(statusChanged || bonusNeedsClawback || bonusNewlyEarned){
+      if(statusChanged || payoutChanged || bonusNeedsClawback || bonusNewlyEarned){
         const u = await getUser(bet.username);
         if(u){
           let delta = 0;
           const reasonParts = [];
-          if(statusChanged){
-            delta += settlementCredit(newOverall, bet) - settlementCredit(prevOverall, bet);
+          if(statusChanged || payoutChanged){
+            delta += settlementCredit(newOverall, bet) - previousCredit;
             reasonParts.push(`Bet leg resolved (now ${newOverall.toLowerCase()})`);
             if(newOverall === 'VOID'){
               if(bet.featuredPickRound && u.featuredPickUsedRound === bet.featuredPickRound){
@@ -6473,7 +6494,7 @@
         if(!pick) continue; // not confirmed -- can't be a perfect round
         if(scoreA == null || scoreB == null) continue; // result not in yet
         const winner = scoreA > scoreB ? teamA : teamB;
-        if(pick.team === winner) resolvedAndCorrect++;
+        if(sameTeam(pick.team, winner)) resolvedAndCorrect++;
       }
     }
     // A strict-above-median result can have at most half the field as
@@ -6917,7 +6938,7 @@
         if(!pick) continue;
         const [teamA, teamB] = fixtures[i];
         if(teamB.startsWith('MR MEDIAN ')){ skipped++; continue; } // tipping-only mechanic, not a real fixture -- never becomes a real bet
-        const side = pick.team === teamA ? 'a' : 'b';
+        const side = sameTeam(pick.team, teamA) ? 'a' : 'b';
         const id = 'H2H|res-'+side+'|R'+round+'|'+teamA+'|'+teamB;
         if(state.slip.some(s=>s.id===id)){ skipped++; continue; }
         const conflict = findConflict(id);
@@ -7014,7 +7035,7 @@
         if(!actual || actual.length < slot.count) continue; // not fully resolved yet
         for(const pick of userPicks){
           totals[u.username].total++;
-          if(actual.includes(pick.team)){
+          if(actual.some(team => sameTeam(team, pick.team))){
             totals[u.username].correct++;
             totals[u.username].oddsPoints += pick.odds;
           }
@@ -7045,7 +7066,7 @@
       const actual = state.preseasonResults[slot.key];
       if(!actual || actual.length < slot.count) continue; // not fully resolved yet
       for(const pick of userPicks){
-        if(!actual.includes(pick.team)) continue; // wrong pick -- no reward
+        if(!actual.some(team => sameTeam(team, pick.team))) continue; // wrong pick -- no reward
         const key = 'bilbbet2_preseason_pick_reward_' + username.toLowerCase() + '_' + seasonKeyPart() + '_' + slot.key + '_' + pick.team;
         if(await sget(key)) continue; // already paid for this specific correct pick
         let awarded = false;
@@ -7159,7 +7180,7 @@
             totals[u.username].oddsPoints += pick.odds / 2;
           } else {
             const actualWinner = scoreA > scoreB ? teamA : teamB;
-            if(pick.team === actualWinner){
+            if(sameTeam(pick.team, actualWinner)){
               totals[u.username].correct++;
               totals[u.username].oddsPoints += pick.odds;
             }

@@ -659,3 +659,6 @@ Pool-only arrivals, withdrawals and renames must trigger whole-league regenerati
 
 
 Post-deadline diagnostic sweeps: October 10 and October 12, 2026, at approximately 09:00 Australia/Sydney. New-entry deadline remains October 9. These checks report discrepancies only; they do not admit entrants or publish roster changes. October 10 is an optional phone review; conference updates are handled on October 12. The final day-before-kickoff sweep remains scheduled. GitHub scheduled runs may be delayed.
+
+
+Settlement identity audit: H2H result suggestions and weekly/preseason tip scoring resolve historical team names through unique registry aliases. Stored selections, accepted odds and reward receipt keys are preserved. Void multi legs contribute odds of 1; entirely void multis refund the stake. Isolated tests cover partial voids, all-void refunds and repeated resolution. Historical settlements are not automatically adjusted. Cross-session concurrency and interrupted writes remain to test. Original potential-return displays still require a separate audit against actual settled credits.
