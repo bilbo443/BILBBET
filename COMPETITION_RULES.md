@@ -28,3 +28,6 @@ Round 1 tipping uses separate Mr Median contests for Eliza, Division 2 and Divis
 
 
 FA Cup: a preliminary round is required only above 64 active entrants. When required, it is played in matchweek 2 and Round of 64 in matchweek 4. With 64 or fewer entrants, Round of 64 starts in matchweek 2. Later stage dates remain pending. Review the calendar whenever the confirmed entry count changes.
+
+
+Final roster market hold: Roddy futures, FA Cup futures, Div 3 markets, Roddy leading-at, and Charity/Philanthropy remain closed pending the final roster/conference review. roster_rules.final_roster_market_hold prevents refreshed prices reopening these markets and blocks held selections at submission. Div 1/2 and unchanged ECL markets remain available. Accepted bets retain their odds. Regenerate and review affected calculations before deliberately clearing the hold; there is no automatic reopening date.

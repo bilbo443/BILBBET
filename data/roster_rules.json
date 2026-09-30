@@ -10,5 +10,6 @@
     "12": 6,
     "16": 8
   },
-  "promotion_rules_confirmed": false
+  "promotion_rules_confirmed": false,
+  "final_roster_market_hold": true
 }

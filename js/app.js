@@ -134,6 +134,17 @@
       throw new Error('Failed to load: ' + failures.join('; '));
     }
     files.forEach((name, i) => { DATA[name] = results[i]; });
+    if(DATA.roster_rules.final_roster_market_hold){
+      for(const key of ['roddy','fa_cup_markets'])
+        for(const rows of Object.values(DATA.futures[key] || {})) for(const row of rows) row.suspended = true;
+      for(const [div, markets] of Object.entries(DATA.futures.divisions || {}))
+        if(div.startsWith('DIVISION 3')) for(const rows of Object.values(markets)) for(const row of rows) row.suspended = true;
+      for(const rows of Object.values(DATA.leading_at.roddy_leading_at || {})) for(const row of rows) row.suspended = true;
+      for(const [div, rounds] of Object.entries(DATA.leading_at.leading_at || {}))
+        if(div.startsWith('DIVISION 3')) for(const rows of Object.values(rounds)) for(const row of rows) row.suspended = true;
+      for(const key of ['charity','philanthropy']) for(const row of DATA.special_markets[key] || []) row.suspended = true;
+    }
+
     // Optional admin preview data must never prevent the public app loading.
     DATA.admin_teams = await fetch('./data/admin_teams.json', {cache:'no-store'})
       .then(r => { if(!r.ok) throw new Error('Registry unavailable'); return r.json(); })
@@ -470,7 +481,16 @@
     return state.closeScope === 'all';
   }
 
+  function finalRosterMarketHeld(id){
+    if(!ROSTER_RULES.final_roster_market_hold) return false;
+    const parts = id.split('|');
+    if(parts[0] === 'FACUP' || parts[0] === 'FUT' && parts[1] === 'RODDY' || parts[0] === 'LEADAT' && parts[1] === 'RODDY') return true;
+    if(parts[0] === 'SPECIALFIX' && ['charity','philanthropy'].includes(parts[1])) return true;
+    const pool = (DATA.admin_teams || []).filter(t => String(t.status).startsWith('DIVISION 3')).map(t => t.name);
+    return parts.some(part => part.startsWith('DIVISION 3') || pool.includes(resolveTeamName(part)));
+  }
   function isPickBlocked(id){
+    if(finalRosterMarketHeld(id)) return true;
     if(partialRelease() && id.startsWith('H2H|') && (FIXTURES_ARE_PLACEHOLDER || !state.h2hRealScheduleConfirmed)) return true;
     if(partialRelease()){
       const parts = id.split('|');
