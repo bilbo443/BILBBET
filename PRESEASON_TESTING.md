@@ -685,3 +685,20 @@ No price publication or enable-submissions workflow is added. Odds continue usin
 Install by running supabase/simple-access.sql in Supabase SQL Editor, save its private admin PIN, and require PASS. Then commit/deploy js/app.js and this documentation, hard refresh, sign in as admin, and check normal player login, balance, My Bets and tip confirmation. Do not restore public table writes. The SQL migration also probes anonymous account reads, bet placement and settlement; a failed probe rolls the entire migration back.
 
 Automatic tipping reward credits remain paused pending a server-owned calculation. Tips, preseason entries and leaderboards remain available. Verified-admin betting settlement remains available. Player PIN resets retain existing balances and bets and invalidate prior sessions.
+
+
+## Server tipping rewards — October 2, 2026
+
+This update supersedes the October 1 automatic-reward pause. Install the server reward SQL before deploying the matching frontend.
+
+Perfect-round, weekly, seasonal and preseason credits are calculated by the server from saved entries and administrator-synchronised fixtures/results. Existing amounts, draw half-credit, median targets and rounded-up dead-heat splits are retained. Only approved player accounts qualify. Existing reward markers prevent previously paid awards being credited again.
+
+Balance updates, reward markers, transaction records and winner-feed entries commit together. A failed operation rolls back; a repeated claim pays nothing for awards already recorded. Browser balance-credit functions are retired.
+
+Administrator sign-in automatically synchronises the deployed fixture/results context. Sign in as admin after publishing new results or changing the roster/schedule. Relevant admin setting changes also schedule a sync. Rewards wait when fixture controls no longer match the synced context.
+
+Players automatically check their rewards on sign-in and when opening tipping. No payment is due before qualifying results and lockouts. Seasonal awards additionally require the relevant season-closed flag and resolved fixtures; preseason leaderboard awards require every configured slot to be resolved.
+
+Odds points continue using saved pick odds. Independent verification of every submitted price remains a separate outstanding item. Corrections to an already-paid result require an administrator review; this update does not automatically claw back credits.
+
+Verification used isolated accounts: 30 database checks and 11 full-app checks passed. After deployment, check admin sign-in, normal player access, unchanged preseason balances, My Bets and tip persistence.

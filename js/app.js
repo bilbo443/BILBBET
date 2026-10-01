@@ -834,7 +834,11 @@
   async function sset(key,val){
     // Only admins persist shared price caches.
     if(!state.user?.isAdmin && (key.startsWith('bilbbet2_featured_') || key.startsWith('bilbbet2_best_value_winner_'))) return false;
-    return await secureRpc('bilbbet_write',{p_key:key,p_value:val,p_delete:false});
+    const saved=await secureRpc('bilbbet_write',{p_key:key,p_value:val,p_delete:false});
+    if(['bilbbet2_cup_fixtures','bilbbet2_playoff_fixtures','bilbbet2_season_closed',
+      'bilbbet2_divisions_announced','bilbbet2_h2h_schedule_confirmed','bilbbet2_current_season_label',
+      'bilbbet2_preseason_results'].includes(key))scheduleRewardSync();
+    return saved;
   }
   // A genuine delete, not sset(key, null) -- the kv_store table's value
   // column is NOT NULL, so upserting a JS null there fails the Supabase
@@ -4828,6 +4832,7 @@
     state.adminBets = bets;
     state.novelty = novelty;
     state.suggestions = suggestions;
+    await syncRewardContext();
     render();
   }
 
@@ -6510,25 +6515,7 @@
   // award. Returns true only on the specific call that actually granted it,
   // so the caller knows whether to show a fresh celebration or stay quiet.
   async function awardPerfectSectionIfEligible(username, round, section){
-    if(!state.user?.isAdmin)return; // Financial awards require verified admin access.
-    if(!perfectRoundEligible(section.key, round)) return false;
-    const key = tipRewardKey(username, round, section.key);
-    if(await sget(key)) return false; // cheap pre-check -- skips the heavier calculation for already-resolved rounds; the real safety guarantee is the re-check inside the lock below, not this
-    const perfect = await checkPerfectSection(username, round, section); // read-only, safe outside the lock
-    if(!perfect) return false;
-    let awarded = false;
-    await withUserLock(username, async () => {
-      if(await sget(key)) return; // re-checked inside the lock -- closes the race between concurrent callers
-      const fresh = await getUser(username);
-      if(!fresh) return;
-      fresh.balance += TIP_REWARD_AMOUNT;
-      await saveUser(fresh);
-      await logTransaction(username, 'TIP_REWARD', TIP_REWARD_AMOUNT, fresh.balance, `Perfect round \u2014 ${section.label} (Round ${round})`);
-      await logGlobalWinner(username, 'Perfect round', TIP_REWARD_AMOUNT, section.label, round);
-      await sset(key, true);
-      awarded = true;
-    });
-    return awarded;
+    return false; // Credits are calculated and committed by bilbbet_claim_rewards.
   }
 
   // Every fixture across every tippable competition for a round -- not
@@ -6570,65 +6557,19 @@
   // than down (a 3-way tie for 10 clams pays 4 each, not 3.33 -- the
   // total paid out in a tie can exceed the headline amount by design).
   async function awardTierMetricIfEligible(username, tierKey, metric, winners, amount, reasonLabel){
-    if(!state.user?.isAdmin)return; // Financial awards require verified admin access.
-    if(!winners.includes(username)) return null;
-    const key = 'bilbbet2_tier_reward_' + username.toLowerCase() + '_' + tierKey + '_' + metric;
-    if(await sget(key)) return null;
-    const share = deadHeatSplit(amount, winners.length);
-    let awarded = null;
-    await withUserLock(username, async () => {
-      if(await sget(key)) return; // re-checked inside the lock -- closes the race between concurrent callers
-      const fresh = await getUser(username);
-      if(!fresh) return;
-      fresh.balance += share;
-      await saveUser(fresh);
-      const tieNote = winners.length > 1 ? ` (tied ${winners.length}-way, split rounded up)` : '';
-      await logTransaction(username, 'TIER_REWARD', share, fresh.balance, `${reasonLabel}${tieNote}`);
-      const category = tierKey.startsWith('SEASON') ? 'Seasonal leaderboard'
-        : tierKey.startsWith('PRESEASON') ? 'Pre-season leaderboard' : 'Weekly leaderboard';
-      await logGlobalWinner(username, category, share, `${reasonLabel}${tieNote}`);
-      await sset(key, true);
-      awarded = { amount: share, metric };
-    });
-    return awarded;
+    return null; // Credits are calculated and committed by bilbbet_claim_rewards.
   }
 
   // Weekly, per-section prize (league sections only) -- checks both odds
   // and points independently for one already-fully-resolved round.
   async function awardWeeklySectionRewardsIfEligible(username, round, sectionKey){
-    if(!state.user?.isAdmin)return; // Financial awards require verified admin access.
-    if(!WEEKLY_SECTION_REWARD_SECTIONS.includes(sectionKey)) return [];
-    const section = TIPPING_SECTIONS.find(s => s.key === sectionKey);
-    const totals = await computeTippingTotals(section.divs, round, round);
-    const entries = Object.entries(totals).map(([u, t]) => ({ username: u, ...t })).filter(t => t.total > 0);
-    const oddsWinners = findMetricWinners(entries, 'oddsPoints', WEEKLY_MIN_CORRECT_PCT);
-    const correctWinners = findMetricWinners(entries, 'correct', WEEKLY_MIN_CORRECT_PCT);
-    const tierKey = 'WKSEC_' + seasonKeyPart() + '_' + sectionKey + '_R' + round;
-    const label = `Weekly ${sectionKey} leaderboard \u2014 Round ${round}`;
-    const results = [];
-    const oddsResult = await awardTierMetricIfEligible(username, tierKey, 'oddsPoints', oddsWinners, WEEKLY_SECTION_REWARD_AMOUNT, `${label} (odds)`);
-    if(oddsResult) results.push(oddsResult);
-    const correctResult = await awardTierMetricIfEligible(username, tierKey, 'correct', correctWinners, WEEKLY_SECTION_REWARD_AMOUNT, `${label} (points)`);
-    if(correctResult) results.push(correctResult);
-    return results;
+    return []; // Credits are calculated and committed by bilbbet_claim_rewards.
   }
 
   // Weekly, ALL-competitions-combined prize -- same shape, different scope
   // and amount.
   async function awardWeeklyOverallRewardsIfEligible(username, round){
-    if(!state.user?.isAdmin)return; // Financial awards require verified admin access.
-    const totals = await computeTippingTotals('ALL', round, round);
-    const entries = Object.entries(totals).map(([u, t]) => ({ username: u, ...t })).filter(t => t.total > 0);
-    const oddsWinners = findMetricWinners(entries, 'oddsPoints', WEEKLY_MIN_CORRECT_PCT);
-    const correctWinners = findMetricWinners(entries, 'correct', WEEKLY_MIN_CORRECT_PCT);
-    const tierKey = 'WKALL_' + seasonKeyPart() + '_R' + round;
-    const label = `Weekly overall leaderboard \u2014 Round ${round}`;
-    const results = [];
-    const oddsResult = await awardTierMetricIfEligible(username, tierKey, 'oddsPoints', oddsWinners, WEEKLY_OVERALL_REWARD_AMOUNT, `${label} (odds)`);
-    if(oddsResult) results.push(oddsResult);
-    const correctResult = await awardTierMetricIfEligible(username, tierKey, 'correct', correctWinners, WEEKLY_OVERALL_REWARD_AMOUNT, `${label} (points)`);
-    if(correctResult) results.push(correctResult);
-    return results;
+    return []; // Credits are calculated and committed by bilbbet_claim_rewards.
   }
 
   const SEASON_MAX_ROUND = 26;
@@ -6663,24 +6604,7 @@
   // the weekly tier) since that wasn't specified for the seasonal prizes
   // -- only the ratio category has its own, separate 25%-tipped bar.
   async function awardSeasonalSectionRewardsIfEligible(username, sectionKey){
-    if(!state.user?.isAdmin)return; // Financial awards require verified admin access.
-    if(!SEASONAL_SECTION_REWARD_SECTIONS.includes(sectionKey)) return [];
-    if(!state.seasonClosed[sectionKey]) return [];
-    const section = TIPPING_SECTIONS.find(s => s.key === sectionKey);
-    const totals = await computeTippingTotals(section.divs, 1, SEASON_MAX_ROUND);
-    const entries = Object.entries(totals).map(([u, t]) => ({ username: u, ...t })).filter(t => t.total > 0);
-    const totalPossible = countSeasonFixtures(section.divs);
-    const oddsWinners = findMetricWinners(entries, 'oddsPoints', 0);
-    const correctWinners = findMetricWinners(entries, 'correct', 0);
-    const ratioWinners = findRatioWinners(entries, SEASONAL_MIN_TIPPED_PCT, totalPossible);
-    const tierKey = 'SEASON_' + seasonKeyPart() + '_' + sectionKey;
-    const label = `Seasonal ${section.label} leaderboard`;
-    const results = [];
-    for(const [metric, winners, metricLabel] of [['oddsPoints', oddsWinners, 'odds'], ['correct', correctWinners, 'points'], ['ratio', ratioWinners, 'accuracy ratio']]){
-      const result = await awardTierMetricIfEligible(username, tierKey, metric, winners, SEASONAL_SECTION_REWARD_AMOUNT, `${label} (${metricLabel})`);
-      if(result) results.push(result);
-    }
-    return results;
+    return []; // Credits are calculated and committed by bilbbet_claim_rewards.
   }
 
   // Seasonal, ALL-competitions-combined prize -- same shape, gated by the
@@ -6688,22 +6612,7 @@
   // stay open even after individual league sections have been flagged
   // closed, e.g. while cup competitions are still running).
   async function awardSeasonalOverallRewardsIfEligible(username){
-    if(!state.user?.isAdmin)return; // Financial awards require verified admin access.
-    if(!state.seasonClosed.ALL) return [];
-    const totals = await computeTippingTotals('ALL', 1, SEASON_MAX_ROUND);
-    const entries = Object.entries(totals).map(([u, t]) => ({ username: u, ...t })).filter(t => t.total > 0);
-    const totalPossible = countSeasonFixtures(TIPPING_DIVS);
-    const oddsWinners = findMetricWinners(entries, 'oddsPoints', 0);
-    const correctWinners = findMetricWinners(entries, 'correct', 0);
-    const ratioWinners = findRatioWinners(entries, SEASONAL_MIN_TIPPED_PCT, totalPossible);
-    const tierKey = 'SEASON_' + seasonKeyPart() + '_ALL';
-    const label = 'Seasonal overall leaderboard';
-    const results = [];
-    for(const [metric, winners, metricLabel] of [['oddsPoints', oddsWinners, 'odds'], ['correct', correctWinners, 'points'], ['ratio', ratioWinners, 'accuracy ratio']]){
-      const result = await awardTierMetricIfEligible(username, tierKey, metric, winners, SEASONAL_OVERALL_REWARD_AMOUNT, `${label} (${metricLabel})`);
-      if(result) results.push(result);
-    }
-    return results;
+    return []; // Credits are calculated and committed by bilbbet_claim_rewards.
   }
 
   // Sweeps every past, completed round's qualifying sections for the
@@ -6853,46 +6762,69 @@
     render();
   }
 
-  async function checkAndCelebrateReward(){
-    return; // Automatic credits are paused pending server-owned reward calculation.
-    if(!state.user || state.user.isAdmin) return; // admin balance isn't a competitive punter balance -- never eligible for any tipping reward
-    const myUsername = state.user.username; // captured once -- re-reading state.user.username after each await below would silently track whoever's logged in BY THEN, not who this sweep was actually started for
-    const lastPlayed = state.currentRound - 1;
-    const checkKey = myUsername.toLowerCase() + '|' + lastPlayed;
-    if(state.tippingRewardChecked === checkKey) return; // already swept up through this many completed rounds this session
-    state.tippingRewardChecked = checkKey;
-    let totalWon = 0;
-    const pickResults = await awardPreseasonPickRewardsIfEligible(myUsername);
-    totalWon += pickResults.reduce((s, x) => s + x.amount, 0);
-    const preseasonLbResults = await awardPreseasonLeaderboardRewardsIfEligible(myUsername);
-    totalWon += preseasonLbResults.reduce((s, x) => s + x.amount, 0);
-    if(lastPlayed >= 1){
-    for(let r = lastPlayed; r >= 1; r--){
+  let rewardSyncTimer=null;
+  async function syncRewardContext(){
+    if(!state.user?.isAdmin)return;
+    const fixtures=[];
+    for(let round=1;round<=26;round++){
       for(const section of TIPPING_SECTIONS){
-        const awarded = await awardPerfectSectionIfEligible(myUsername, r, section);
-        if(awarded) totalWon += TIP_REWARD_AMOUNT;
-      }
-      if(isRoundFullyResolvedForTipping(r)){
-        for(const sectionKey of WEEKLY_SECTION_REWARD_SECTIONS){
-          const results = await awardWeeklySectionRewardsIfEligible(myUsername, r, sectionKey);
-          totalWon += results.reduce((s, x) => s + x.amount, 0);
+        for(const div of section.divs){
+          const pairs=getTippableFixtures(div,round);
+          for(let i=0;i<pairs.length;i++){
+            const [a,b]=pairs[i];
+            const median=isMrMedianWeek(div,round);
+            fixtures.push({
+              round,section:section.key,key:div+'|'+i,
+              a:resolveTeamName(a),b:resolveTeamName(b),
+              sa:fixtureScore(a,b,round),sb:fixtureScore(b,a,round),
+              median,target:median?mrMedianRewardTarget(div,round):null,
+              eligible:perfectRoundEligible(section.key,round)
+            });
+          }
         }
-        const overallResults = await awardWeeklyOverallRewardsIfEligible(myUsername, r);
-        totalWon += overallResults.reduce((s, x) => s + x.amount, 0);
       }
     }
+    const aliases={};
+    for(const row of DATA.admin_teams||[]){
+      for(const name of [row.name,...String(row.prev_names||'').split(',')]){
+        if(name.trim())aliases[name.trim().toUpperCase()]=resolveTeamName(name.trim());
+      }
     }
-    for(const sectionKey of SEASONAL_SECTION_REWARD_SECTIONS){
-      const results = await awardSeasonalSectionRewardsIfEligible(myUsername, sectionKey);
-      totalWon += results.reduce((s, x) => s + x.amount, 0);
+    await secureRpc('bilbbet_sync_rewards',{
+      p_context:{
+        season:seasonKeyPart(),fixtures,aliases,
+        slots:PRESEASON_SLOTS.map(({key,label,count})=>({key,label,count}))
+      }
+    });
+  }
+  function scheduleRewardSync(){
+    if(!state.user?.isAdmin)return;
+    clearTimeout(rewardSyncTimer);
+    rewardSyncTimer=setTimeout(()=>syncRewardContext().catch(e=>{
+      console.error('Reward results sync failed:',e);
+      alert('The change was saved, but tipping rewards are waiting for results to sync. Sign in as admin again to retry. '+e.message);
+    }),300);
+  }
+  async function checkAndCelebrateReward(){
+    if(!state.user || state.user.isAdmin || state.rewardClaimInFlight)return;
+    const username=state.user.username;
+    state.rewardClaimInFlight=true;
+    try{
+      const result=await secureRpc('bilbbet_claim_rewards');
+      if(Number(result.amount)>0 && state.user?.username===username){
+        const fresh=await getUser(username);
+        if(state.user?.username===username){
+          state.user=fresh||state.user;
+          state.txHistory=null;
+          state.tippingRewardBanner=`\u{1F389} You earned ${result.amount} clams from tipping rewards! Check the Prizes tab for the full breakdown.`;
+          render();
+        }
+      }
+    }catch(e){
+      console.error('Tipping rewards could not be checked:',e);
     }
-    const seasonalOverallResults = await awardSeasonalOverallRewardsIfEligible(myUsername);
-    totalWon += seasonalOverallResults.reduce((s, x) => s + x.amount, 0);
-    if(totalWon > 0 && state.user && state.user.username === myUsername){ // only touch the live session if it's still the same user who earned this
-      const fresh = await getUser(myUsername);
-      if(fresh && state.user && state.user.username === myUsername) state.user = fresh; // re-checked after the second await too, for the same reason
-      state.tippingRewardBanner = `\u{1F389} You earned ${totalWon} clams from tipping rewards! Check the Prizes tab for the full breakdown.`;
-      render();
+    finally{
+      state.rewardClaimInFlight=false;
     }
   }
 
@@ -7034,36 +6966,7 @@
   // already uses, and idempotent per (username, slot, team) so one
   // specific correct pick can never be paid twice.
   async function awardPreseasonPickRewardsIfEligible(username){
-    if(!state.user?.isAdmin)return; // Financial awards require verified admin access.
-    if(state.preseasonResults === null){ state.preseasonResults = (await sget(PRESEASON_RESULTS_KEY)) || {}; }
-    const data = await sget(preseasonStorageKey(username));
-    if(!data || !data.picks) return [];
-    const results = [];
-    for(const slot of PRESEASON_SLOTS){
-      const userPicks = data.picks[slot.key] || [];
-      if(!userPicks.length) continue;
-      const actual = state.preseasonResults[slot.key];
-      if(!actual || actual.length < slot.count) continue; // not fully resolved yet
-      for(const pick of userPicks){
-        if(!actual.some(team => sameTeam(team, pick.team))) continue; // wrong pick -- no reward
-        const key = 'bilbbet2_preseason_pick_reward_' + username.toLowerCase() + '_' + seasonKeyPart() + '_' + slot.key + '_' + pick.team;
-        if(await sget(key)) continue; // already paid for this specific correct pick
-        let awarded = false;
-        await withUserLock(username, async () => {
-          if(await sget(key)) return; // re-checked inside the lock
-          const fresh = await getUser(username);
-          if(!fresh) return;
-          fresh.balance += PRESEASON_PICK_REWARD_AMOUNT;
-          await saveUser(fresh);
-          await logTransaction(username, 'PRESEASON_PICK_REWARD', PRESEASON_PICK_REWARD_AMOUNT, fresh.balance, `Correct pre-season pick \u2014 ${slot.label}: ${pick.team}`);
-          await logGlobalWinner(username, 'Pre-season pick', PRESEASON_PICK_REWARD_AMOUNT, `${slot.label}: ${pick.team}`);
-          await sset(key, true);
-          awarded = true;
-        });
-        if(awarded) results.push({ amount: PRESEASON_PICK_REWARD_AMOUNT, slot: slot.key, team: pick.team });
-      }
-    }
-    return results;
+    return []; // Credits are calculated and committed by bilbbet_claim_rewards.
   }
 
   // The overall pre-season prizes only mean anything once every single
@@ -7079,20 +6982,7 @@
     });
   }
   async function awardPreseasonLeaderboardRewardsIfEligible(username){
-    if(!state.user?.isAdmin)return; // Financial awards require verified admin access.
-    if(state.preseasonResults === null){ state.preseasonResults = (await sget(PRESEASON_RESULTS_KEY)) || {}; }
-    if(!arePreseasonResultsFullyResolved()) return [];
-    const totals = await computePreseasonTotals();
-    const entries = Object.entries(totals).map(([u,t]) => ({ username: u, ...t })).filter(t => t.total > 0);
-    const oddsWinners = findMetricWinners(entries, 'oddsPoints', 0);
-    const correctWinners = findMetricWinners(entries, 'correct', 0);
-    const tierKey = 'PRESEASON_' + seasonKeyPart() + '_LB';
-    const results = [];
-    const oddsResult = await awardTierMetricIfEligible(username, tierKey, 'oddsPoints', oddsWinners, PRESEASON_LEADERBOARD_REWARD_AMOUNT, 'Pre-season leaderboard (odds)');
-    if(oddsResult) results.push(oddsResult);
-    const correctResult = await awardTierMetricIfEligible(username, tierKey, 'correct', correctWinners, PRESEASON_LEADERBOARD_REWARD_AMOUNT, 'Pre-season leaderboard (points)');
-    if(correctResult) results.push(correctResult);
-    return results;
+    return []; // Credits are calculated and committed by bilbbet_claim_rewards.
   }
 
   async function computePreseasonLeaderboard(){
@@ -8101,6 +7991,7 @@
       if(u.isAdmin)await loadAdminData();
       else{if(!u.welcomeSeen){state.welcomeModalOpen=true;u.welcomeSeen=true;await saveUser(u);}checkTipReminderStatus();}
       await loadHomeStats();render();
+      if(!u.isAdmin)checkAndCelebrateReward();
     }catch(e){state.error=e.message;render();}
   }
 
