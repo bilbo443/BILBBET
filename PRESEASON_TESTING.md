@@ -671,3 +671,6 @@ Settlement safety: install supabase/settlement.sql before deploying js/app.js. S
 
 
 Atomic bet placement: install bilbbet_place_bets in Supabase before deploying this update. Stakes, bet records, both indexes, promotion allowances, history and submission receipts save in one transaction. Session storage retains unconfirmed requests so retries reuse the same receipt, including after reload. Test insufficient balance, failed batch writes, duplicate requests, featured picks and boost allowances. Browser price metadata remains client supplied; database authentication and other account writes are separate review items.
+
+
+Temporary security pause: revoke table writes and bet RPC execution from PUBLIC, anon and authenticated. App submissions are blocked and failed database writes no longer fall back to memory. Existing records and database reads remain intact. Do not restore anonymous grants as a reopening shortcut. Server-side account and administrator authentication, read access and remaining privileged functions require review before reopening.

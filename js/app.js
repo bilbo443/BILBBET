@@ -479,6 +479,9 @@
     return scheduledCloseDue() && state.lastAutoClosedRound !== state.currentRound;
   }
   async function refreshSubmissionControls(){
+    alert('Betting and tipping submissions are temporarily paused while account protection is updated.');
+    return false;
+    // Resume the checks below only after database authentication is installed.
     if(!supabaseClient){ alert('The live connection is required to confirm entries. Please reload and try again.'); return false; }
     const fields = {
       bilbbet2_round_betting_open: 'roundBettingOpen', bilbbet2_close_scope: 'closeScope',
@@ -501,6 +504,7 @@
   }
 
   function isRoundBlocked(round){
+    return true; // Temporary security pause.
     if(round < state.currentRound) return true;
     if(state.roundBettingOpen && !submissionClockClosed()) return false;
     if(round === state.currentRound) return true;
@@ -516,6 +520,7 @@
     return parts.some(part => part.startsWith('DIVISION 3') || pool.includes(resolveTeamName(part)));
   }
   function isPickBlocked(id){
+    return true; // Temporary security pause; database restrictions are authoritative.
     if(finalRosterMarketHeld(id)) return true;
     if(partialRelease() && id.startsWith('H2H|') && (FIXTURES_ARE_PLACEHOLDER || !state.h2hRealScheduleConfirmed)) return true;
     if(partialRelease()){
@@ -815,19 +820,13 @@
     try{ const r = await window.storage.get(key, true); return r ? JSON.parse(r.value) : null; }catch(e){ return null; }
   }
   async function sset(key, val){
-    if(supabaseClient){
-      try {
-        const { error } = await supabaseClient.from('kv_store').upsert({ key, value: val });
-        if(error) throw error;
-        return true;
-      } catch(e) { console.error('Supabase write failed for', key, '-- falling back:', e.message); }
+    if(!supabaseClient) throw new Error('A live database connection is required. Nothing was saved.');
+    const { error } = await supabaseClient.from('kv_store').upsert({ key, value: val });
+    if(error){
+      alert('Changes are temporarily paused. Nothing was saved.');
+      throw new Error('Database write refused; no local fallback was used.');
     }
-    if(!hasRealStorage){
-      memoryStore[key] = JSON.stringify(val);
-      if(!usingMemoryFallback){ usingMemoryFallback = true; state.storageDegraded = true; }
-      return true;
-    }
-    try{ await window.storage.set(key, JSON.stringify(val), true); return true; }catch(e){ return false; }
+    return true;
   }
   // A genuine delete, not sset(key, null) -- the kv_store table's value
   // column is NOT NULL, so upserting a JS null there fails the Supabase
@@ -835,18 +834,13 @@
   // is exactly what triggered the "running without a persistent
   // connection" banner after this was first written the wrong way).
   async function sdelete(key){
-    if(supabaseClient){
-      try {
-        const { error } = await supabaseClient.from('kv_store').delete().eq('key', key);
-        if(error) throw error;
-        return true;
-      } catch(e) { console.error('Supabase delete failed for', key, '-- falling back:', e.message); }
+    if(!supabaseClient) throw new Error('A live database connection is required. Nothing was saved.');
+    const { error } = await supabaseClient.from('kv_store').delete().eq('key', key);
+    if(error){
+      alert('Changes are temporarily paused. Nothing was saved.');
+      throw new Error('Database write refused; no local fallback was used.');
     }
-    if(!hasRealStorage){
-      delete memoryStore[key];
-      return true;
-    }
-    try{ await window.storage.delete(key, true); return true; }catch(e){ return false; }
+    return true;
   }
   async function getIndex(name){ return (await sget(name)) || []; }
   async function addToIndex(name, id){ const list = await getIndex(name); if(!list.includes(id)){ list.push(id); await sset(name, list); } }
@@ -1862,7 +1856,7 @@
       }
       return; // read-only embed: no login, slip or navigation handlers
     }
-    document.getElementById('app').innerHTML = renderMain();
+    document.getElementById('app').innerHTML = '<div role="status" style="padding:14px 18px;margin:12px;border:1px solid #8b6060;border-radius:8px;background:#302323;color:#fff;line-height:1.5;"><strong>Submissions temporarily paused</strong><br>Betting, tipping, registration and admin changes are paused while account protection is updated. Existing bets and balances are retained.</div>' + renderMain();
     attachHandlers();
   }
 
@@ -8213,7 +8207,7 @@
     // a real starting value immediately rather than leaving reward keys
     // unversioned until the next rollover happens to set one.
     state.currentSeasonLabel = deriveSeasonLabel();
-    await sset('bilbbet2_current_season_label', state.currentSeasonLabel);
+    // Keep the derived label in the view during the pause.
   }
   const savedPlayoffFixtures = await sget('bilbbet2_playoff_fixtures');
   if(savedPlayoffFixtures){ state.playoffFixtures = savedPlayoffFixtures; }
@@ -8253,7 +8247,7 @@
   // round we last auto-closed (rather than just the open/closed flag) means
   // a manual reopen after auto-close sticks -- it won't immediately
   // re-trigger on the next page load for the same round.
-  if(scheduledCloseDue() && state.roundBettingOpen && savedAutoClosedRound !== state.currentRound){
+  if(false && scheduledCloseDue() && state.roundBettingOpen && savedAutoClosedRound !== state.currentRound){
     state.roundBettingOpen = false;
     await sset('bilbbet2_round_betting_open', false);
     await sset('bilbbet2_last_autoclosed_round', state.currentRound);
