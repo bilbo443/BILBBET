@@ -479,32 +479,22 @@
     return scheduledCloseDue() && state.lastAutoClosedRound !== state.currentRound;
   }
   async function refreshSubmissionControls(){
-    alert('Betting and tipping submissions are temporarily paused while account protection is updated.');
-    return false;
-    // Resume the checks below only after database authentication is installed.
-    if(!supabaseClient){ alert('The live connection is required to confirm entries. Please reload and try again.'); return false; }
-    const fields = {
-      bilbbet2_round_betting_open: 'roundBettingOpen', bilbbet2_close_scope: 'closeScope',
-      bilbbet2_paused_categories: 'pausedCategories', bilbbet2_last_autoclosed_round: 'lastAutoClosedRound',
-      bilbbet2_h2h_schedule_confirmed: 'h2hRealScheduleConfirmed', bilbbet2_divisions_announced: 'divisionsAnnounced',
-      bilbbet2_current_round_override: 'currentRoundOverride'
-    };
-    try {
-      const { data, error } = await supabaseClient.from('kv_store').select('key,value').in('key', Object.keys(fields));
-      if(error) throw error;
-      for(const row of data || []) state[fields[row.key]] = row.value;
-      state.currentRound = state.currentRoundOverride || deriveCurrentRoundFromDate();
+    const fields={bilbbet2_round_betting_open:'roundBettingOpen',bilbbet2_close_scope:'closeScope',
+      bilbbet2_paused_categories:'pausedCategories',bilbbet2_last_autoclosed_round:'lastAutoClosedRound',
+      bilbbet2_h2h_schedule_confirmed:'h2hRealScheduleConfirmed',bilbbet2_divisions_announced:'divisionsAnnounced',
+      bilbbet2_current_round_override:'currentRoundOverride'};
+    try{
+      const data=await secureRead(Object.keys(fields));
+      for(const [key,value]of Object.entries(data))if(value!==null)state[fields[key]]=value;
+      state.currentRound=state.currentRoundOverride||deriveCurrentRoundFromDate();
       return true;
-    } catch(e){ alert('Could not verify lockout. Nothing was submitted; please try again.'); return false; }
+    }catch(e){alert('Could not verify lockout. Nothing was submitted. '+e.message);return false;}
   }
-  async function saveConfirmedEntry(key, value){
-    const { error } = await supabaseClient.from('kv_store').upsert({key, value});
-    if(error){ alert('Your entry was not confirmed. Please reload and try again.'); return false; }
-    return true;
+  async function saveConfirmedEntry(key,value){
+    try{return await sset(key,value);}catch(e){alert('Your entry was not saved. '+e.message);return false;}
   }
 
   function isRoundBlocked(round){
-    return true; // Temporary security pause.
     if(round < state.currentRound) return true;
     if(state.roundBettingOpen && !submissionClockClosed()) return false;
     if(round === state.currentRound) return true;
@@ -520,7 +510,6 @@
     return parts.some(part => part.startsWith('DIVISION 3') || pool.includes(resolveTeamName(part)));
   }
   function isPickBlocked(id){
-    return true; // Temporary security pause; database restrictions are authoritative.
     if(finalRosterMarketHeld(id)) return true;
     if(partialRelease() && id.startsWith('H2H|') && (FIXTURES_ARE_PLACEHOLDER || !state.h2hRealScheduleConfirmed)) return true;
     if(partialRelease()){
@@ -791,9 +780,39 @@
   // the placeholder strings to skip Supabase and fall back automatically.
   const SUPABASE_URL = 'https://dhgkrlimitbordddcaqo.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_fWZvXvtCp1YhfuU47H3fjQ_zDIFGHCB';
+  function readSecureSession(){
+    try { return JSON.parse(localStorage.getItem('bilbbet_secure_session') || 'null'); }
+    catch(e){ return null; }
+  }
+  let secureSession = readSecureSession();
+  async function secureRpc(name, args = {}){
+    if(!supabaseClient) throw new Error('The live connection is required. Please reload.');
+    const {data,error}=await supabaseClient.rpc(name,args);
+    if(error) throw new Error(error.message);
+    if(data?.error) throw new Error(data.error);
+    return data;
+  }
+  async function secureRead(keys){ return await secureRpc('bilbbet_read',{p_keys:keys}); }
+  async function secureSignIn(username,pin){
+    const data=await secureRpc('bilbbet_login',{p_username:username,p_pin:pin});
+    secureSession={token:data.token,username:data.user.username};
+    localStorage.setItem('bilbbet_secure_session',JSON.stringify(secureSession));
+    return data.user;
+  }
+  async function secureSignOut(){
+    try { if(secureSession) await secureRpc('bilbbet_logout'); }
+    finally { secureSession=null; localStorage.removeItem('bilbbet_secure_session'); forgetRememberedUsername(); }
+  }
+
   let supabaseClient = null;
   if(SUPABASE_URL.startsWith('http') && SUPABASE_ANON_KEY && typeof window !== 'undefined' && window.supabase){
-    try { supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); }
+    try { supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth:{persistSession:false}, global:{fetch:async(input,init={})=>{
+        const headers=new Headers(init.headers || input.headers || {});
+        if(secureSession?.token)headers.set('x-bilbbet-session',secureSession.token);
+        return await fetch(input,{...init,headers});
+      }}
+    }); }
     catch(e) { console.error('Supabase client failed to initialise:', e); }
   }
 
@@ -809,24 +828,13 @@
   let usingMemoryFallback = false;
 
   async function sget(key){
-    if(supabaseClient){
-      try {
-        const { data, error } = await supabaseClient.from('kv_store').select('value').eq('key', key).maybeSingle();
-        if(error) throw error;
-        return data ? data.value : null;
-      } catch(e) { console.error('Supabase read failed for', key, '-- falling back:', e.message); }
-    }
-    if(!hasRealStorage) return Object.prototype.hasOwnProperty.call(memoryStore,key) ? JSON.parse(memoryStore[key]) : null;
-    try{ const r = await window.storage.get(key, true); return r ? JSON.parse(r.value) : null; }catch(e){ return null; }
+    const data=await secureRead([key]);
+    return data[key] ?? null;
   }
-  async function sset(key, val){
-    if(!supabaseClient) throw new Error('A live database connection is required. Nothing was saved.');
-    const { error } = await supabaseClient.from('kv_store').upsert({ key, value: val });
-    if(error){
-      alert('Changes are temporarily paused. Nothing was saved.');
-      throw new Error('Database write refused; no local fallback was used.');
-    }
-    return true;
+  async function sset(key,val){
+    // Only admins persist shared price caches.
+    if(!state.user?.isAdmin && (key.startsWith('bilbbet2_featured_') || key.startsWith('bilbbet2_best_value_winner_'))) return false;
+    return await secureRpc('bilbbet_write',{p_key:key,p_value:val,p_delete:false});
   }
   // A genuine delete, not sset(key, null) -- the kv_store table's value
   // column is NOT NULL, so upserting a JS null there fails the Supabase
@@ -834,13 +842,7 @@
   // is exactly what triggered the "running without a persistent
   // connection" banner after this was first written the wrong way).
   async function sdelete(key){
-    if(!supabaseClient) throw new Error('A live database connection is required. Nothing was saved.');
-    const { error } = await supabaseClient.from('kv_store').delete().eq('key', key);
-    if(error){
-      alert('Changes are temporarily paused. Nothing was saved.');
-      throw new Error('Database write refused; no local fallback was used.');
-    }
-    return true;
+    return await secureRpc('bilbbet_write',{p_key:key,p_value:null,p_delete:true});
   }
   async function getIndex(name){ return (await sget(name)) || []; }
   async function addToIndex(name, id){ const list = await getIndex(name); if(!list.includes(id)){ list.push(id); await sset(name, list); } }
@@ -938,7 +940,14 @@
     userLocks[key] = settled.catch(() => {});
     return settled;
   }
-  async function saveUser(u){ return await sset('bilbbet2_user:' + u.username.toLowerCase(), u); }
+  async function saveUser(u){
+    if(state.user&&!state.user.isAdmin){
+      const fresh=await getUser(u.username);
+      if(!fresh)throw new Error('Sign in again to save your preferences.');
+      u={...fresh,tipReminderEnabled:u.tipReminderEnabled,welcomeSeen:u.welcomeSeen};
+    }
+    return await sset('bilbbet2_user:'+u.username.toLowerCase(),u);
+  }
 
   // ---------- H2H sampling model (bootstrap + shrinkage) ----------
   // widen (0-1): blends in a wider reference pool for teams with very
@@ -1856,7 +1865,7 @@
       }
       return; // read-only embed: no login, slip or navigation handlers
     }
-    document.getElementById('app').innerHTML = '<div role="status" style="padding:14px 18px;margin:12px;border:1px solid #8b6060;border-radius:8px;background:#302323;color:#fff;line-height:1.5;"><strong>Submissions temporarily paused</strong><br>Betting, tipping, registration and admin changes are paused while account protection is updated. Existing bets and balances are retained.</div>' + renderMain();
+    document.getElementById('app').innerHTML = renderMain();
     attachHandlers();
   }
 
@@ -2297,7 +2306,7 @@
               <button type="button" class="bb-btn ghost" id="use-admin-login" style="margin-top:6px;width:100%;font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px;">${state.adminLoginMode ? '\u2713 Logging in as admin' : 'Log in as admin instead'}</button>
             </div>
             <div><span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;display:block;margin-bottom:4px;">PIN</span>
-              <input class="bb-input" id="f-pin" type="password" inputmode="numeric" value="${esc(state.pin)}"/></div>
+              <input class="bb-input" id="f-pin" type="password" inputmode="${state.adminLoginMode ? 'text' : 'numeric'}" value="${esc(state.pin)}"/></div>
             ${state.registeringMode ? `
               <label style="display:flex;align-items:flex-start;gap:8px;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">
                 <input type="checkbox" id="tos-agree-checkbox-inline" ${state.tosAgreed?'checked':''} style="margin-top:2px;"/>
@@ -4769,7 +4778,7 @@
                   ${u.isAdmin || u.status==='RESET' ? '' : (u.status==='KICKED'
                     ? `<button class="bb-btn ghost" data-regstatus="${esc(u.username)}|APPROVED" style="padding:5px 10px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Unkick</button>`
                     : `<button class="bb-btn ghost" data-kick-user="${esc(u.username)}" style="padding:5px 10px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Kick</button>`)}
-                  ${u.isAdmin || u.status==='RESET' ? '' : `<button class="bb-btn ghost" data-reset-registration="${esc(u.username)}" style="padding:5px 10px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Reset registration</button>`}
+                  ${u.isAdmin || u.status==='RESET' ? '' : `<button class="bb-btn ghost" data-reset-registration="${esc(u.username)}" style="padding:5px 10px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Reset PIN</button>`}
                   ${u.isAdmin ? '' : `<button class="bb-btn ghost" data-delete-account="${esc(u.username)}" style="padding:5px 10px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:var(--bb-danger);border-color:var(--bb-danger);">Delete</button>`}
                 </td>
               </tr>`).join('')}
@@ -5247,17 +5256,12 @@
   // from the same source data), so nothing there is lost -- only the old
   // PIN, live balance, and current-season status are cleared.
   async function resetRegistration(username){
-    if(!confirm(`Reset ${username}'s registration? They'll need to register again with a new PIN, and their current balance will be cleared (their carried-over history isn't lost -- it's reapplied automatically once they re-register and are approved). This can't be undone.`)) return;
-    await withUserLock(username, async () => {
-      const u = await getUser(username);
-      if(!u) return;
-      u.status = 'RESET';
-      u.pinHash = null;
-      u.balance = 0;
-      u.everFunded = false;
-      await saveUser(u);
-    });
-    await loadAdminData();
+    if(!confirm(`Issue a replacement PIN for ${username}? Their existing balance and bets will be retained, and their signed-in sessions will end.`))return;
+    try{
+      const pin=await secureRpc('bilbbet_reset_pin',{p_username:username});
+      alert(`Replacement PIN for ${username}: ${pin}\nShare this privately with that player. Their balance and bets are retained.`);
+      await loadAdminData();
+    }catch(e){alert(e.message);}
   }
 
   async function applyRegistrationStatus(username, newStatus){
@@ -6506,6 +6510,7 @@
   // award. Returns true only on the specific call that actually granted it,
   // so the caller knows whether to show a fresh celebration or stay quiet.
   async function awardPerfectSectionIfEligible(username, round, section){
+    if(!state.user?.isAdmin)return; // Financial awards require verified admin access.
     if(!perfectRoundEligible(section.key, round)) return false;
     const key = tipRewardKey(username, round, section.key);
     if(await sget(key)) return false; // cheap pre-check -- skips the heavier calculation for already-resolved rounds; the real safety guarantee is the re-check inside the lock below, not this
@@ -6565,6 +6570,7 @@
   // than down (a 3-way tie for 10 clams pays 4 each, not 3.33 -- the
   // total paid out in a tie can exceed the headline amount by design).
   async function awardTierMetricIfEligible(username, tierKey, metric, winners, amount, reasonLabel){
+    if(!state.user?.isAdmin)return; // Financial awards require verified admin access.
     if(!winners.includes(username)) return null;
     const key = 'bilbbet2_tier_reward_' + username.toLowerCase() + '_' + tierKey + '_' + metric;
     if(await sget(key)) return null;
@@ -6590,6 +6596,7 @@
   // Weekly, per-section prize (league sections only) -- checks both odds
   // and points independently for one already-fully-resolved round.
   async function awardWeeklySectionRewardsIfEligible(username, round, sectionKey){
+    if(!state.user?.isAdmin)return; // Financial awards require verified admin access.
     if(!WEEKLY_SECTION_REWARD_SECTIONS.includes(sectionKey)) return [];
     const section = TIPPING_SECTIONS.find(s => s.key === sectionKey);
     const totals = await computeTippingTotals(section.divs, round, round);
@@ -6609,6 +6616,7 @@
   // Weekly, ALL-competitions-combined prize -- same shape, different scope
   // and amount.
   async function awardWeeklyOverallRewardsIfEligible(username, round){
+    if(!state.user?.isAdmin)return; // Financial awards require verified admin access.
     const totals = await computeTippingTotals('ALL', round, round);
     const entries = Object.entries(totals).map(([u, t]) => ({ username: u, ...t })).filter(t => t.total > 0);
     const oddsWinners = findMetricWinners(entries, 'oddsPoints', WEEKLY_MIN_CORRECT_PCT);
@@ -6655,6 +6663,7 @@
   // the weekly tier) since that wasn't specified for the seasonal prizes
   // -- only the ratio category has its own, separate 25%-tipped bar.
   async function awardSeasonalSectionRewardsIfEligible(username, sectionKey){
+    if(!state.user?.isAdmin)return; // Financial awards require verified admin access.
     if(!SEASONAL_SECTION_REWARD_SECTIONS.includes(sectionKey)) return [];
     if(!state.seasonClosed[sectionKey]) return [];
     const section = TIPPING_SECTIONS.find(s => s.key === sectionKey);
@@ -6679,6 +6688,7 @@
   // stay open even after individual league sections have been flagged
   // closed, e.g. while cup competitions are still running).
   async function awardSeasonalOverallRewardsIfEligible(username){
+    if(!state.user?.isAdmin)return; // Financial awards require verified admin access.
     if(!state.seasonClosed.ALL) return [];
     const totals = await computeTippingTotals('ALL', 1, SEASON_MAX_ROUND);
     const entries = Object.entries(totals).map(([u, t]) => ({ username: u, ...t })).filter(t => t.total > 0);
@@ -6844,6 +6854,7 @@
   }
 
   async function checkAndCelebrateReward(){
+    return; // Automatic credits are paused pending server-owned reward calculation.
     if(!state.user || state.user.isAdmin) return; // admin balance isn't a competitive punter balance -- never eligible for any tipping reward
     const myUsername = state.user.username; // captured once -- re-reading state.user.username after each await below would silently track whoever's logged in BY THEN, not who this sweep was actually started for
     const lastPlayed = state.currentRound - 1;
@@ -7023,6 +7034,7 @@
   // already uses, and idempotent per (username, slot, team) so one
   // specific correct pick can never be paid twice.
   async function awardPreseasonPickRewardsIfEligible(username){
+    if(!state.user?.isAdmin)return; // Financial awards require verified admin access.
     if(state.preseasonResults === null){ state.preseasonResults = (await sget(PRESEASON_RESULTS_KEY)) || {}; }
     const data = await sget(preseasonStorageKey(username));
     if(!data || !data.picks) return [];
@@ -7067,6 +7079,7 @@
     });
   }
   async function awardPreseasonLeaderboardRewardsIfEligible(username){
+    if(!state.user?.isAdmin)return; // Financial awards require verified admin access.
     if(state.preseasonResults === null){ state.preseasonResults = (await sget(PRESEASON_RESULTS_KEY)) || {}; }
     if(!arePreseasonResultsFullyResolved()) return [];
     const totals = await computePreseasonTotals();
@@ -7386,7 +7399,7 @@
     const toggleTxHistory = $('[data-toggle-tx-history]');
     if(toggleTxHistory) toggleTxHistory.onclick = () => { state.txHistoryExpanded = !state.txHistoryExpanded; render(); };
     const logoutBtn = $('#logout-btn');
-    if(logoutBtn) logoutBtn.onclick = () => { forgetRememberedUsername(); state = {...state, screen:'main', user:null, username:'', pin:'', adminLoginMode:false, registeringMode:false, tosAgreed:false, error:'', info:'', loginModalOpen:false, slip:[], betMode:'multi', activeTab:'HOME', h2hMarket:null, h2hFixtureMarket:null, myBets:null, adminPunters:null, adminBets:null, novelty:null, statsData:null, tippingData:null, tippingPending:{}, tippingRound:null, tippingAllPicks:null, round1LegacyTips:false, tippingLeaderboard:null, tipReminderStatus:null, tippingRewardChecked:null, tippingRewardBanner:null, preseasonData:null, preseasonPending:{}, preseasonAllPicks:null, preseasonLeaderboard:null, homeTippingNudge:null, txHistory:null, trashTalkBanner:null}; render(); };
+    if(logoutBtn) logoutBtn.onclick = async () => { await secureSignOut(); state = {...state, screen:'main', user:null, username:'', pin:'', adminLoginMode:false, registeringMode:false, tosAgreed:false, error:'', info:'', loginModalOpen:false, slip:[], betMode:'multi', activeTab:'HOME', h2hMarket:null, h2hFixtureMarket:null, myBets:null, adminPunters:null, adminBets:null, novelty:null, statsData:null, tippingData:null, tippingPending:{}, tippingRound:null, tippingAllPicks:null, round1LegacyTips:false, tippingLeaderboard:null, tipReminderStatus:null, tippingRewardChecked:null, tippingRewardBanner:null, preseasonData:null, preseasonPending:{}, preseasonAllPicks:null, preseasonLeaderboard:null, homeTippingNudge:null, txHistory:null, trashTalkBanner:null}; render(); };
     const openLoginBtn = $('#open-login-btn'); if(openLoginBtn) openLoginBtn.onclick = () => { state.loginModalOpen = true; state.adminLoginMode=false; state.error=''; state.info=''; render(); };
     const openTeamSearchBtn = $('#open-team-search-btn'); if(openTeamSearchBtn) openTeamSearchBtn.onclick = () => { state.teamDirectoryOpen = true; state.viewingTeamProfile = null; render(); };
     const closeTeamSearchBtn = $('#close-team-search'); if(closeTeamSearchBtn) closeTeamSearchBtn.onclick = () => { state.teamSearchOpen = false; state.teamSearchQuery=''; render(); };
@@ -8076,113 +8089,29 @@
   }
 
   async function doLogin(){
-    const pin = state.pin.trim();
-    state.info = '';
-
-    // precoded admin login -- driven by the dedicated adminLoginMode flag, not the
-    // shared username field, so it can never be silently overwritten by whatever
-    // the team-search box last did (that was the cause of "only works after
-    // touching the search box first").
-    if(state.adminLoginMode){
-      if(!pin){ state.error='Enter your PIN.'; render(); return; }
-      if(pin !== '2845'){ state.error='Wrong PIN.'; render(); return; }
-      let adminUser = await getUser('admin');
-      if(!adminUser){
-        adminUser = { username: 'admin', pinHash: simpleHash('2845'), balance: 0, isAdmin: true, status: 'APPROVED', everFunded: true, welcomeSeen: true };
-        await saveUser(adminUser);
-        await addToIndex('bilbbet2_users_index', 'admin');
-      }
-      state.user = adminUser; state.error=''; state.username=''; state.pin=''; state.adminLoginMode=false; state.screen='main'; state.loginModalOpen=false;
-      rememberUsername(adminUser.username);
-      state.activeTab='HOME'; state.adminPunters=null; state.adminBets=null; state.novelty=null; state.statsData=null; state.myBets=null; state.tippingData=null; state.tippingPending={}; state.tippingRound=null; state.tippingAllPicks=null; state.tippingLeaderboard=null; state.tipReminderStatus=null; state.tippingRewardChecked=null; state.tippingRewardBanner=null; state.preseasonData=null; state.preseasonPending={}; state.preseasonAllPicks=null; state.preseasonLeaderboard=null; state.homeTippingNudge=null; state.txHistory=null;
+    state.error='';state.info='';
+    try{
+      const u=await secureSignIn(state.adminLoginMode?'admin':state.username.trim(),state.pin.trim());
+      if(u.status==='PENDING'){await secureSignOut();state.error='Your registration is awaiting admin approval.';render();return;}
+      state.user=u;state.username='';state.pin='';state.adminLoginMode=false;state.loginModalOpen=false;state.screen='main';state.activeTab='HOME';
+      rememberUsername(u.username);
+      state.adminPunters=null;state.adminBets=null;state.novelty=null;state.myBets=null;state.tippingData=null;state.tippingPending={};state.preseasonData=null;state.txHistory=null;
+      if(u.isAdmin)await secureRpc('bilbbet_sync_settings',{p_dates:ROUND_DATES,p_rules:ROSTER_RULES,p_pool:(DATA.admin_teams||[]).filter(t=>String(t.status).startsWith('DIVISION 3')).map(t=>t.name),p_carry:CARRY_BALANCES});
       render();
-      loadAdminData();  // background load so the attention flag is accurate from the start, not just after visiting Admin
-      return;
-    }
-
-    const username = state.username.trim();
-    if(!username || !pin){ state.error='Enter a username and PIN.'; render(); return; }
-
-    const u = await getUser(username);
-    if(!u){ state.error='No account with that username. Try "create account" below.'; render(); return; }
-    if(u.status === 'RESET'){ state.error='This registration was reset by the admin \u2014 use "First time? Create account" to register again with a new PIN.'; state.username=''; state.pin=''; render(); return; }
-    if(u.pinHash !== simpleHash(pin)){ state.error='Wrong PIN.'; render(); return; }
-    const status = u.status || 'APPROVED';
-    if(status === 'PENDING'){ state.error='Your registration is still awaiting admin approval \u2014 check back soon.'; state.username=''; state.pin=''; render(); return; }
-    if(status === 'REJECTED'){ state.error='Your registration was rejected. Contact the admin if you think that\u2019s a mistake.'; state.username=''; state.pin=''; render(); return; }
-    if(status === 'KICKED'){ state.error='Your account has been removed by Bilbbet management. Contact the admin if you think that\u2019s a mistake.'; state.username=''; state.pin=''; render(); return; }
-    state.user = u; state.error=''; state.username=''; state.pin=''; state.screen='main'; state.loginModalOpen=false;
-    rememberUsername(u.username);
-    state.activeTab='HOME'; state.adminPunters=null; state.adminBets=null; state.novelty=null; state.statsData=null; state.myBets=null; state.tippingData=null; state.tippingPending={}; state.tippingRound=null; state.tippingAllPicks=null; state.tippingLeaderboard=null; state.tipReminderStatus=null; state.tippingRewardChecked=null; state.tippingRewardBanner=null; state.preseasonData=null; state.preseasonPending={}; state.preseasonAllPicks=null; state.preseasonLeaderboard=null; state.homeTippingNudge=null; state.txHistory=null;
-    // A punter's genuine first successful login, distinct from the pending-
-    // approval wait -- shown once, ever, per account.
-    if(!u.welcomeSeen){
-      state.welcomeModalOpen = true;
-      u.welcomeSeen = true;
-      saveUser(u); // fire-and-forget -- the modal shouldn't wait on this to appear
-    }
-    checkTipReminderStatus(); // async, fire-and-forget -- flag appears on its own re-render once resolved
-    // A punter who's genuinely punted before (not brand new) and ended last
-    // season under 500 clams gets a little needling on the way in -- kept
-    // as a dismissible banner rather than a blocking alert() (grammar also
-    // fixed: "Expect to lose more sucker" -> "Expect to lose more, sucker.").
-    // Set before the render call below, not after, so it shows immediately
-    // on login rather than waiting for some unrelated next render.
-    if(u.historicalRecord && u.historicalRecord.totalBets > 0 && (u.dormantCarry||0) < 500){
-      state.trashTalkBanner = 'Expect to lose more, sucker.';
-    }
-    render();
+      if(u.isAdmin)await loadAdminData();
+      else{if(!u.welcomeSeen){state.welcomeModalOpen=true;u.welcomeSeen=true;await saveUser(u);}checkTipReminderStatus();}
+      await loadHomeStats();render();
+    }catch(e){state.error=e.message;render();}
   }
 
   async function doRegister(){
-    const username = state.username.trim(), pin = state.pin.trim();
-    state.info = '';
-    const isRealTeam = ALL_TEAMS.some(t => t.toLowerCase() === username.toLowerCase());
-    if(state.customNameMode && isRealTeam){
-      state.error = "That's a registered Eliza Cup team name \u2014 switch back to \"I have a team in the Eliza Cup\" if that's you.";
-      render(); return;
-    }
-    if(!state.customNameMode && username && !isRealTeam){
-      state.error = "Couldn't find that team \u2014 check the spelling, or use \"Not part of the Eliza Cup? Make up your own name\" below if you don't have one.";
-      render(); return;
-    }
-    if(!state.tosAgreed){ state.error='You must read and agree to the Terms & Conditions before registering.'; render(); return; }
-    if(username.toLowerCase() === 'admin'){ state.error='That name is reserved for the admin login.'; render(); return; }
-    if(!username || pin.length<4){ state.error='Pick a username and a PIN of at least 4 digits.'; render(); return; }
-    const existing = await getUser(username);
-    if(existing && existing.status !== 'RESET'){ state.error='That username is taken. Log in instead.'; render(); return; }
-    const isFirstEver = (await getIndex('bilbbet2_users_index')).length === 0;
-    const carryData = CARRY_BALANCES[username] || null;
-    // the very first account ever registered becomes admin and is auto-approved
-    // (there's no admin yet to approve them); everyone after that starts PENDING
-    // with no funds until an admin approves them. If this team has a carry
-    // balance from a previous season, it stays dormant (invisible, reads as 0)
-    // until approval, at which point it's added on top of the usual 1,000
-    // registration bonus.
-    const u = isFirstEver
-      ? { username, pinHash: simpleHash(pin), balance: 1000, isAdmin: true, status: 'APPROVED', everFunded: true, welcomeSeen: false, tipReminderEnabled: state.tipReminderOptIn }
-      : { username, pinHash: simpleHash(pin), balance: 0, isAdmin: false, status: 'PENDING', everFunded: false, welcomeSeen: false, tipReminderEnabled: state.tipReminderOptIn,
-          dormantCarry: carryData ? carryData.carry : 0, historicalRecord: carryData ? carryData.historicalRecord : null };
-    const saved = await sset('bilbbet2_user:' + username.toLowerCase(), u);
-    if(!saved){ state.error='Could not save your account (storage unavailable). Try reloading.'; render(); return; }
-    await addToIndex('bilbbet2_users_index', username);
-    state.registeringMode = false; state.tosAgreed = false;
-    if(isFirstEver){
-      state.user = u; state.error=''; state.username=''; state.pin=''; state.screen='main'; state.loginModalOpen=false;
-    rememberUsername(u.username);
-      state.activeTab='HOME'; state.adminPunters=null; state.adminBets=null; state.novelty=null; state.statsData=null; state.myBets=null; state.tippingData=null; state.tippingPending={}; state.tippingRound=null; state.tippingAllPicks=null; state.tippingLeaderboard=null; state.tipReminderStatus=null; state.tippingRewardChecked=null; state.tippingRewardBanner=null; state.preseasonData=null; state.preseasonPending={}; state.preseasonAllPicks=null; state.preseasonLeaderboard=null; state.homeTippingNudge=null; state.txHistory=null;
-    } else {
-      state.username=''; state.pin=''; state.error='';
-      state.info = `Registration submitted for ${username} \u2014 an admin needs to approve your account before you can log in and get your starting clams.`;
-      // Offering the tour right here, not forcing it on every visit -- this
-      // is genuinely the one moment it's most useful (they're about to have
-      // a wait ahead of them anyway) and it's just as dismissable as the
-      // Read Me link, not a blocking gate.
-      state.loginModalOpen = false;
-      state.tutorialStep = 0;
-      state.tutorialModalOpen = true;
-    }
-    render();
+    if(!state.tosAgreed){state.error='Read and agree to the Terms & Conditions first.';render();return;}
+    try{
+      const data=await secureRpc('bilbbet_register',{p_username:state.username.trim(),p_pin:state.pin.trim(),p_reminder:state.tipReminderOptIn});
+      secureSession={token:data.token,username:data.user.username};localStorage.setItem('bilbbet_secure_session',JSON.stringify(secureSession));
+      state.user=data.user;rememberUsername(data.user.username);state.username='';state.pin='';state.registeringMode=false;state.loginModalOpen=false;
+      state.info='Registration saved. Betting becomes available after admin approval.';state.tutorialStep=0;state.tutorialModalOpen=true;render();
+    }catch(e){state.error=e.message;render();}
   }
 
   // Real behavior change from earlier this project: currentRound used to
@@ -8249,8 +8178,10 @@
   // re-trigger on the next page load for the same round.
   if(false && scheduledCloseDue() && state.roundBettingOpen && savedAutoClosedRound !== state.currentRound){
     state.roundBettingOpen = false;
-    await sset('bilbbet2_round_betting_open', false);
-    await sset('bilbbet2_last_autoclosed_round', state.currentRound);
+    if(state.user?.isAdmin){
+      await sset('bilbbet2_round_betting_open', false);
+      await sset('bilbbet2_last_autoclosed_round', state.currentRound);
+    }
     state.lastAutoClosedRound = state.currentRound;
   }
   const savedOddsRefreshRequested = await sget('bilbbet2_odds_refresh_requested');
@@ -8262,11 +8193,11 @@
   // could have been kicked/reset/rejected since the last visit. No PIN
   // re-entry needed, same tradeoff as any standard "remember me": whoever
   // has this browser is treated as this punter until they log out.
-  const rememberedUsername = getRememberedUsername();
+  const rememberedUsername = secureSession?.username || null;
   if(rememberedUsername && !state.user){
     const u = await getUser(rememberedUsername);
     const status = u && (u.status || 'APPROVED');
-    if(u && !['RESET','PENDING','REJECTED','KICKED'].includes(status)){
+    if(u && u.__kv_version && !['RESET','PENDING','REJECTED','KICKED'].includes(status)){
       state.user = u;
       state.activeTab = (state.activeTab === 'ADMIN' && !u.isAdmin) ? 'HOME' : state.activeTab;
     } else {

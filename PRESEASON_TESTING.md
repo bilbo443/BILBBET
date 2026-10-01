@@ -674,3 +674,14 @@ Atomic bet placement: install bilbbet_place_bets in Supabase before deploying th
 
 
 Temporary security pause: revoke table writes and bet RPC execution from PUBLIC, anon and authenticated. App submissions are blocked and failed database writes no longer fall back to memory. Existing records and database reads remain intact. Do not restore anonymous grants as a reopening shortcut. Server-side account and administrator authentication, read access and remaining privileged functions require review before reopening.
+
+
+## Simplified protected access — October 1, 2026
+
+Existing username/PIN screens remain. Players keep their PINs, balances, bets and entries. Identity and administrator access are checked on the server, direct table access stays revoked, and atomic placement/settlement retains duplicate protection. Retire the old public admin PIN; the installation SQL generates its six-digit replacement privately in SQL Editor results.
+
+No price publication or enable-submissions workflow is added. Odds continue using the existing app formulas; this version does not independently authenticate every quoted price. Protected administrator sign-in automatically synchronises the server's calendar, Division 3 pool, roster-market hold and carry data from the deployed JSON files. Sign in as admin after deploying calendar or roster changes so those controls match the app.
+
+Install by running supabase/simple-access.sql in Supabase SQL Editor, save its private admin PIN, and require PASS. Then commit/deploy js/app.js and this documentation, hard refresh, sign in as admin, and check normal player login, balance, My Bets and tip confirmation. Do not restore public table writes. The SQL migration also probes anonymous account reads, bet placement and settlement; a failed probe rolls the entire migration back.
+
+Automatic tipping reward credits remain paused pending a server-owned calculation. Tips, preseason entries and leaderboards remain available. Verified-admin betting settlement remains available. Player PIN resets retain existing balances and bets and invalidate prior sessions.
