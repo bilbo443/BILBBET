@@ -713,3 +713,14 @@ The server checks selection prices, combined odds, places adjustments, featured 
 Simulated prices displayed to players use the synced price list so different browser simulations cannot cause valid submissions to be rejected. The model still uses the existing recreational odds formulas; matching a trusted price does not establish its predictive accuracy. Custom matchup prices are included when full competition release permits them. Novelty prices are included from the admin-managed markets.
 
 Verification: 28 isolated database checks and 15 full-app checks passed, including altered prices, features, boosts, places multis, unchanged entries and a simulated median bet. Install the Supabase price SQL before deploying the frontend, then hard refresh and sign in as admin to activate the checks.
+
+
+## Weekly price sync cache — October 2, 2026
+
+The expensive trusted-price calculation is reused within the same matchweek. Its completion fingerprint is stored privately on the server, so it works across browsers and devices. Only admins can read or mark the sync. The first admin sign-in after this update builds the fingerprint; later sign-ins reuse the board.
+
+A new round, changed deployed pricing/roster/fixture data, relevant admin controls or changed featured/novelty offers invalidates the fingerprint and rebuilds prices. Raw real_results updates do not invalidate prices; results/reward-context syncing remains separate. A failed price publication is not marked complete and retries on the next admin sign-in. Existing price validation, balances and bets are unchanged.
+
+After installing the cache SQL and deploying the app, sign in as admin once to seed it, then sign out/in again to check reuse. This is once per matchweek when inputs remain unchanged, not a calendar-week timer.
+
+Verification: 35 isolated database checks and 20 full-app checks passed, including reuse on a second admin login, results-only updates and recalculation after changed odds.

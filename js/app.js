@@ -838,7 +838,7 @@
     const saved=await secureRpc('bilbbet_write',{p_key:key,p_value:val,p_delete:false});
     if(['bilbbet2_cup_fixtures','bilbbet2_playoff_fixtures','bilbbet2_season_closed',
       'bilbbet2_divisions_announced','bilbbet2_h2h_schedule_confirmed','bilbbet2_current_season_label',
-      'bilbbet2_preseason_results','bilbbet2_current_round_override','bilbbet2_novelty_index'].includes(key) || key.startsWith('bilbbet2_novelty:') || key.startsWith('bilbbet2_featured_') || key.startsWith('bilbbet2_home_median_'))scheduleRewardSync();
+      'bilbbet2_preseason_results','bilbbet2_current_round_override','bilbbet2_novelty_index','bilbbet2_ecl_groups','bilbbet2_r1_fixture_override','bilbbet2_round_betting_open','bilbbet2_close_scope','bilbbet2_paused_categories'].includes(key) || key.startsWith('bilbbet2_novelty:') || key.startsWith('bilbbet2_featured_') || key.startsWith('bilbbet2_home_median_'))scheduleRewardSync();
     return saved;
   }
   // A genuine delete, not sset(key, null) -- the kv_store table's value
@@ -6796,10 +6796,52 @@
       }
     }
   }
+  async function priceSyncFingerprint(){
+    const data=Object.fromEntries(Object.entries(DATA).filter(([key])=>!['real_results','carry_balances'].includes(key)));
+    const input={
+      season:seasonKeyPart(),round:state.currentRound,data,
+      controls:{
+        cupFixtures:state.cupFixtures,
+        playoffFixtures:state.playoffFixtures,
+        eclGroups:state.eclGroups,
+        divisionsAnnounced:state.divisionsAnnounced,
+        scheduleConfirmed:state.h2hRealScheduleConfirmed,
+        r1FixtureOverride:state.r1FixtureOverride,
+        pausedCategories:state.pausedCategories,
+        roundBettingOpen:state.roundBettingOpen,
+        closeScope:state.closeScope,
+        lastAutoClosedRound:state.lastAutoClosedRound
+      },
+      novelty:state.novelty||[],
+      featuredFixtures:state.featuredFixturesData||[],
+      medianSpecials:state.homeMedianSpecialsRound===state.currentRound?(state.homeMedianSpecialsData||[]):[]
+    };
+    const canonical=value=>Array.isArray(value)?value.map(canonical):value&&typeof value==='object'
+      ?Object.fromEntries(Object.keys(value).sort().map(key=>[key,canonical(value[key])])):value;
+    const digest=await crypto.subtle.digest(
+      'SHA-256',
+      new TextEncoder().encode(JSON.stringify(canonical(input)))
+    );
+    return Array.from(new Uint8Array(digest),byte=>byte.toString(16).padStart(2,'0')).join('');
+  }
+  async function syncPricesIfNeeded(){
+    if(!state.user?.isAdmin)return;
+    if(!await refreshSubmissionControls())throw new Error('Could not refresh price controls.');
+    await loadFeaturedMedianSpecials(state.currentRound);
+    const fingerprint=await priceSyncFingerprint();
+    const cached=await secureRpc('bilbbet_price_sync_status');
+    if(cached.fingerprint===fingerprint && Number(cached.round)===state.currentRound){
+      await loadTrustedPrices();
+      return {reused:true};
+    }
+    const count=await collectTrustedPrices();
+    await secureRpc('bilbbet_mark_price_sync',{p_fingerprint:fingerprint});
+    return {reused:false,count};
+  }
   let priceSyncRunning=null;
   async function syncTrustedPrices(){
     if(priceSyncRunning)return priceSyncRunning;
-    priceSyncRunning=collectTrustedPrices();
+    priceSyncRunning=syncPricesIfNeeded();
     try{return await priceSyncRunning;}
     finally{priceSyncRunning=null;}
   }
@@ -7029,7 +7071,6 @@
         if(name.trim())aliases[name.trim().toUpperCase()]=resolveTeamName(name.trim());
       }
     }
-    await syncTrustedPrices();
     await secureRpc('bilbbet_sync_rewards',{
       p_context:{
         season:seasonKeyPart(),fixtures,aliases,
@@ -7040,7 +7081,7 @@
   function scheduleRewardSync(){
     if(!state.user?.isAdmin || priceSyncRunning)return;
     clearTimeout(rewardSyncTimer);
-    rewardSyncTimer=setTimeout(()=>syncRewardContext().catch(e=>{
+    rewardSyncTimer=setTimeout(()=>Promise.resolve().then(()=>syncTrustedPrices()).then(()=>syncRewardContext()).catch(e=>{
       console.error('Reward results sync failed:',e);
       alert('The change was saved, but tipping rewards are waiting for results to sync. Sign in as admin again to retry. '+e.message);
     }),300);
