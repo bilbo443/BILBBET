@@ -7981,148 +7981,104 @@
     document.querySelectorAll('[data-delete-novelty]').forEach(el => el.onclick = () => deleteNoveltyItem(el.dataset.deleteNovelty));
   }
 
-  async function placeBet(){
-    if(!state.user){ alert('You must log in first to place a bet.'); state.loginModalOpen=true; render(); return; }
-    if(state.betSubmissionInProgress){ return; } // a rapid double-click/double-submit shouldn't place two bets or lose one's data
-    if(!await refreshSubmissionControls()) return;
-    if(state.slip.some(s => isPickBlocked(s.id))){
-      alert('Betting closed while building this slip \u2014 remove the affected selection(s) to continue.');
-      return;
+  function pendingPlacementKey(){ return 'bilbbet_pending_placement_' + state.user.username.toLowerCase(); }
+  async function sendPlacementRequest(request, recoverOnly = false){
+    if(!supabaseClient) throw new Error('The live connection is required to place a bet.');
+    const {data,error} = await supabaseClient.rpc('bilbbet_place_bets', {
+      p_request_id: request.id, p_username: request.username, p_bets: request.bets,
+      p_round: request.round, p_deadline: request.deadline, p_recover_only: recoverOnly
+    });
+    if(error){
+      // Database rejection is definitive; a missing response may have committed.
+      if(error.code === 'P0001' || String(error.code || '').startsWith('22')) sessionStorage.removeItem(request.storageKey);
+      throw new Error(error.message + ' Check My Bets before making another submission.');
     }
-    const stakeInput = document.getElementById('stake-input');
-    const stake = Math.max(0.01, parseFloat(stakeInput.value)||0.01);
-    if(!state.slip.length){ alert('Add at least one selection first.'); return; }
-    if(stake > state.user.balance){ alert("You don't have that many clams."); return; }
-    if(stake >= state.user.balance * 0.5){
-      if(!confirm(`That's ${fmt(stake)} of your ${fmt(state.user.balance)} clams \u2014 over half your balance. Place it anyway?`)) return;
-    }
+    if(!data?.user || !Array.isArray(data.bets)) throw new Error('Submission response was incomplete. Retry to check the same submission.');
+    sessionStorage.removeItem(request.storageKey);
+    if(state.user && state.user.username.toLowerCase() === request.username.toLowerCase()) state.user = data.user;
+    return data;
+  }
+  async function recoverPendingPlacement(){
+    const key = pendingPlacementKey();
+    const saved = sessionStorage.getItem(key);
+    if(!saved) return false;
+    const request = JSON.parse(saved);
     state.betSubmissionInProgress = true;
     try {
-      // Snapshot the slip ONCE, synchronously, right here -- and use this
-      // exact snapshot for everything below, never state.slip directly
-      // again in this function. Without this, combinedOdds() (computed
-      // here, before any await) and bet.selections (previously read from
-      // state.slip AFTER the awaits) could end up reflecting two different
-      // moments in time if the user adds or removes picks while the bet is
-      // still submitting -- a real, exploitable mismatch: add several
-      // high-odds picks to lock in high combined odds, then rapidly remove
-      // all but one near-certain pick before the write lands, and the
-      // saved bet would pay out at multi-leg odds for what's effectively a
-      // single easy bet.
-      const slipSnapshot = state.slip.slice();
-      const hasFeatured = slipSnapshot.some(s => isFeaturedPick(s.id));
-      // A featured pick already carries its own boosted price -- stacking
-      // the separate +10% multi-boost on top would be a second discount on
-      // the same bet, not the single promotional highlight this is meant
-      // to be.
-      const boostEligible = !hasFeatured && slipSnapshot.length >= 3 && (!state.user.boostUsedRound || state.user.boostUsedRound !== state.currentRound);
-      const boostApplied = boostEligible && state.useBoost;
-      const combined = combinedOddsFor(slipSnapshot) * (boostApplied ? BOOST_MULTIPLIER : 1);
-      const myUsername = state.user.username; // captured once -- state.user could change while the awaits below are in flight
-      const u = await withUserLock(myUsername, async () => {
-        if(!await refreshSubmissionControls() || slipSnapshot.some(s => isPickBlocked(s.id))) throw new Error("Betting has closed. No stake was deducted.");
-        const fresh = await getUser(myUsername);
-        if(!fresh || fresh.balance < stake) throw new Error("Your balance has changed. No stake was deducted; reload and try again.");
-        // Re-checked here, inside the lock, against freshly-read data --
-        // not the stale local copy from before this bet started submitting.
-        // Two separate tabs for the same account could each pass a check
-        // made from their own local state before either has actually
-        // recorded using this round's featured pick; only a check against
-        // what's genuinely in storage, serialized by the lock, closes that.
-        if(hasFeatured && fresh.featuredPickUsedRound === state.currentRound){
-          return null; // signals: blocked, handled by the caller below
-        }
-        fresh.balance -= stake;
-        if(boostApplied) fresh.boostUsedRound = state.currentRound;
-        if(hasFeatured) fresh.featuredPickUsedRound = state.currentRound;
-        await saveUser(fresh);
-        await logTransaction(myUsername, 'BET_PLACED', -stake, fresh.balance,
-          slipSnapshot.length === 1 ? `Bet placed: ${slipSnapshot[0].label}` : `Bet placed: ${slipSnapshot.length}-leg multi`);
-        return fresh;
-      });
-      if(u === null){
-        alert("You've already used this round's featured pick in another bet \u2014 only one featured (boosted) pick per round.");
-        return;
-      }
-      if(state.user && state.user.username === myUsername) state.user = u; // only reflect the new balance if this is still the same session that placed the bet
-      const bet = { id: uid(), username: u.username, selections: slipSnapshot, stake, combinedOdds: combined, boosted: boostApplied,
-                    featuredPickRound: hasFeatured ? state.currentRound : null,
-                    boostRound: boostApplied ? state.currentRound : null,
-                    potentialReturn: round2(stake*combined), timestamp: Date.now(), status: 'PENDING' };
-      await sset('bilbbet2_bet:'+bet.id, bet);
-      await addToIndex('bilbbet2_bets_index_' + u.username.toLowerCase(), bet.id);
-      await addToIndex('bilbbet2_all_bets_index', bet.id);
-      // Only clear the slip of exactly what was actually placed -- if the
-      // user added something else while this was submitting, that stays.
-      state.slip = state.slip.filter(s => !slipSnapshot.includes(s));
-      state.stake = 50; state.useBoost = false;
-      render();
-      alert('Bet placed: ' + stake + ' clams to win ' + fmt(bet.potentialReturn) + ' clams' + (boostApplied ? ' (boosted!)' : '') + '. Check "My Bets" to track it.');
-    } catch(e){
-      alert(e.message || "Submission failed. Reload and check My Bets before retrying.");
-    } finally {
-      state.betSubmissionInProgress = false;
-    }
+      await sendPlacementRequest(request, true);
+      const submitted = new Set(request.bets.flatMap(b => b.selections.map(s => s.id)));
+      state.slip = state.slip.filter(s => !submitted.has(s.id));
+      await loadMyBets();
+      alert('Your earlier submission is confirmed. No second stake was deducted.');
+    } finally { state.betSubmissionInProgress = false; }
+    return true;
+  }
+  async function submitBetsAtomically(bets){
+    if(!await refreshSubmissionControls() || bets.some(b => b.selections.some(s => isPickBlocked(s.id)))) throw new Error('Betting has closed. No stake was deducted.');
+    const rounds = bets.flatMap(b => b.selections.map(s => getPickRound(s.id))).filter(r => r !== null);
+    if(state.closeScope === 'all') rounds.push(state.currentRound);
+    const deadlines = rounds.map(r => ROUND_DATES[r] ? sydneyKickoffUTC(ROUND_DATES[r]).toISOString() : null).filter(Boolean).sort();
+    const storageKey = pendingPlacementKey();
+    const request = {id:uid(), username:state.user.username, bets, round:state.currentRound, deadline:deadlines[0] || null, storageKey};
+    // Persist before sending so a reload or lost response can retry this ID.
+    sessionStorage.setItem(storageKey, JSON.stringify(request));
+    return await sendPlacementRequest(request);
+  }
+
+  async function placeBet(){
+    if(!state.user){ alert('You must log in first to place a bet.'); state.loginModalOpen=true; render(); return; }
+    if(state.betSubmissionInProgress) return;
+    try {
+      if(await recoverPendingPlacement()) return;
+      if(!await refreshSubmissionControls()) return;
+      if(!state.slip.length){ alert('Add at least one selection first.'); return; }
+      if(state.slip.some(s => isPickBlocked(s.id))){ alert('Betting has closed for a selection in this slip.'); return; }
+      const stake = round2(Math.max(0.01, parseFloat(document.getElementById('stake-input').value) || 0.01));
+      if(!Number.isFinite(stake) || stake > state.user.balance){ alert('Enter a stake within your balance.'); return; }
+      if(stake >= state.user.balance * 0.5 && !confirm(`Stake ${fmt(stake)} of your ${fmt(state.user.balance)} clams?`)) return;
+      state.betSubmissionInProgress = true;
+      const selections = JSON.parse(JSON.stringify(state.slip));
+      const selectedItems = state.slip.slice();
+      const hasFeatured = selections.some(s => isFeaturedPick(s.id));
+      const boosted = !hasFeatured && selections.length >= 3 && state.useBoost && state.user.boostUsedRound !== state.currentRound;
+      const combined = combinedOddsFor(selections) * (boosted ? BOOST_MULTIPLIER : 1);
+      const bet = {id:uid(), username:state.user.username, selections, stake, combinedOdds:combined, boosted,
+        featuredPickRound:hasFeatured ? state.currentRound : null, boostRound:boosted ? state.currentRound : null,
+        potentialReturn:round2(stake*combined), timestamp:Date.now(), status:'PENDING'};
+      await submitBetsAtomically([bet]);
+      state.slip = state.slip.filter(s => !selectedItems.includes(s));
+      state.stake=50; state.useBoost=false; render();
+      alert('Bet placed: ' + stake + ' clams to win ' + fmt(bet.potentialReturn) + ' clams.');
+    } catch(e){ alert(e.message || 'Submission not confirmed. Check My Bets, then retry the same submission.'); }
+    finally { state.betSubmissionInProgress=false; }
   }
 
   async function placeBetsAsSingles(){
     if(!state.user){ alert('You must log in first to place a bet.'); state.loginModalOpen=true; render(); return; }
-    if(state.betSubmissionInProgress){ return; }
-    if(!await refreshSubmissionControls()) return;
-    if(state.slip.some(s => isPickBlocked(s.id))){
-      alert('Betting closed while building this slip \u2014 remove the affected selection(s) to continue.');
-      return;
-    }
-    if(!state.slip.length){ alert('Add at least one selection first.'); return; }
-    if(state.slip.some(s => !s.singleStake || s.singleStake < 0.01)){ alert('Every selection needs a stake before placing as singles.'); return; }
-    const stakes = state.slip.map(s => Math.max(0.01, s.singleStake));
-    const totalStake = stakes.reduce((a,b)=>a+b,0);
-    if(totalStake > state.user.balance){ alert("You don't have enough clams to cover all of those singles."); return; }
-    if(totalStake >= state.user.balance * 0.5){
-      if(!confirm(`That's ${fmt(totalStake)} of your ${fmt(state.user.balance)} clams total \u2014 over half your balance. Place them anyway?`)) return;
-    }
-    state.betSubmissionInProgress = true;
+    if(state.betSubmissionInProgress) return;
     try {
-      const slipSnapshot = state.slip.slice();
-      const hasFeatured = slipSnapshot.some(s => isFeaturedPick(s.id));
-      const myUsername = state.user.username; // captured once -- state.user could change while the awaits below are in flight
-      const u = await withUserLock(myUsername, async () => {
-        if(!await refreshSubmissionControls() || slipSnapshot.some(s => isPickBlocked(s.id))) throw new Error("Betting has closed. No stake was deducted.");
-        const fresh = await getUser(myUsername);
-        if(!fresh || fresh.balance < totalStake) throw new Error("Your balance has changed. No stake was deducted; reload and try again.");
-        if(hasFeatured && fresh.featuredPickUsedRound === state.currentRound){
-          return null;
-        }
-        fresh.balance -= totalStake;
-        if(hasFeatured) fresh.featuredPickUsedRound = state.currentRound;
-        await saveUser(fresh);
-        await logTransaction(myUsername, 'BET_PLACED', -totalStake, fresh.balance, `Placed ${slipSnapshot.length} single bet${slipSnapshot.length!==1?'s':''}`);
-        return fresh;
+      if(await recoverPendingPlacement()) return;
+      if(!await refreshSubmissionControls()) return;
+      if(!state.slip.length){ alert('Add at least one selection first.'); return; }
+      if(state.slip.some(s => isPickBlocked(s.id))){ alert('Betting has closed for a selection in this slip.'); return; }
+      if(state.slip.some(s => !Number.isFinite(s.singleStake) || s.singleStake < 0.01)){ alert('Every selection needs a valid stake.'); return; }
+      const selectedItems = state.slip.slice();
+      const selections = JSON.parse(JSON.stringify(selectedItems));
+      const bets = selections.map(item => {
+        const stake=round2(item.singleStake);
+        return {id:uid(), username:state.user.username, selections:[item], stake, combinedOdds:item.odds,
+          featuredPickRound:isFeaturedPick(item.id) ? state.currentRound : null,
+          potentialReturn:round2(stake*item.odds), timestamp:Date.now(), status:'PENDING'};
       });
-      if(u === null){
-        alert("You've already used this round's featured pick in another bet \u2014 only one featured (boosted) pick per round.");
-        return;
-      }
-      if(state.user && state.user.username === myUsername) state.user = u; // only reflect the new balance if this is still the same session that placed the bets
-      for(const item of slipSnapshot){
-        const stake = Math.max(0.01, item.singleStake||0);
-        const bet = { id: uid(), username: u.username, selections: [item], stake, combinedOdds: item.odds,
-                      featuredPickRound: isFeaturedPick(item.id) ? state.currentRound : null,
-                      potentialReturn: round2(stake*item.odds), timestamp: Date.now(), status: 'PENDING' };
-        await sset('bilbbet2_bet:'+bet.id, bet);
-        await addToIndex('bilbbet2_bets_index_' + u.username.toLowerCase(), bet.id);
-        await addToIndex('bilbbet2_all_bets_index', bet.id);
-      }
-      const count = slipSnapshot.length;
-      state.slip = state.slip.filter(s => !slipSnapshot.includes(s));
-      state.stake = 50;
-      render();
-      alert('Placed ' + count + ' single bets totalling ' + totalStake + ' clams staked. Check "My Bets" to track them.');
-    } catch(e){
-      alert(e.message || "Submission failed. Reload and check My Bets before retrying.");
-    } finally {
-      state.betSubmissionInProgress = false;
-    }
+      const total=round2(bets.reduce((sum,b) => sum+b.stake,0));
+      if(total > state.user.balance){ alert('Your balance does not cover these singles.'); return; }
+      if(total >= state.user.balance * 0.5 && !confirm(`Stake ${fmt(total)} of your ${fmt(state.user.balance)} clams?`)) return;
+      state.betSubmissionInProgress=true;
+      await submitBetsAtomically(bets);
+      state.slip=state.slip.filter(s => !selectedItems.includes(s)); state.stake=50; render();
+      alert('Placed ' + bets.length + ' single bets for ' + fmt(total) + ' clams.');
+    } catch(e){ alert(e.message || 'Submission not confirmed. Check My Bets, then retry the same submission.'); }
+    finally { state.betSubmissionInProgress=false; }
   }
 
   async function doLogin(){

@@ -668,3 +668,6 @@ Void-adjusted return displays: My Bets, admin tables, CSV exports, win statistic
 
 
 Settlement safety: install supabase/settlement.sql before deploying js/app.js. Settlement now updates the account, bet and transaction log in one database transaction, including near-miss bonus corrections. Tested rollback, response-loss retries, voids and corrections in an isolated PostgreSQL runtime. Submissions refresh live lockout settings and enforce Sydney kickoff time; tipping writes require a live connection. Explicit reopening is retained. Bet placement is still a separate non-atomic workflow; broader database authentication and other simultaneous account writes need their own review.
+
+
+Atomic bet placement: install bilbbet_place_bets in Supabase before deploying this update. Stakes, bet records, both indexes, promotion allowances, history and submission receipts save in one transaction. Session storage retains unconfirmed requests so retries reuse the same receipt, including after reload. Test insufficient balance, failed batch writes, duplicate requests, featured picks and boost allowances. Browser price metadata remains client supplied; database authentication and other account writes are separate review items.
