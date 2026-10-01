@@ -484,6 +484,7 @@
       bilbbet2_h2h_schedule_confirmed:'h2hRealScheduleConfirmed',bilbbet2_divisions_announced:'divisionsAnnounced',
       bilbbet2_current_round_override:'currentRoundOverride'};
     try{
+      await loadTrustedPrices();
       const data=await secureRead(Object.keys(fields));
       for(const [key,value]of Object.entries(data))if(value!==null)state[fields[key]]=value;
       state.currentRound=state.currentRoundOverride||deriveCurrentRoundFromDate();
@@ -837,7 +838,7 @@
     const saved=await secureRpc('bilbbet_write',{p_key:key,p_value:val,p_delete:false});
     if(['bilbbet2_cup_fixtures','bilbbet2_playoff_fixtures','bilbbet2_season_closed',
       'bilbbet2_divisions_announced','bilbbet2_h2h_schedule_confirmed','bilbbet2_current_season_label',
-      'bilbbet2_preseason_results'].includes(key))scheduleRewardSync();
+      'bilbbet2_preseason_results','bilbbet2_current_round_override','bilbbet2_novelty_index'].includes(key) || key.startsWith('bilbbet2_novelty:') || key.startsWith('bilbbet2_featured_') || key.startsWith('bilbbet2_home_median_'))scheduleRewardSync();
     return saved;
   }
   // A genuine delete, not sset(key, null) -- the kv_store table's value
@@ -1124,14 +1125,16 @@
   // calculated median (see ensureMrMedianScore) -- a genuinely different
   // proposition from computeWinAnyOpponentMarket below, which settles on
   // whether the team won their real match outright.
+  const medianPriceCache={};
   function computeVsLeagueMedianMarket(team, round, nSims){
+    if(medianPriceCache[team])return {...medianPriceCache[team],round};
     nSims = nSims || 20000;
     const div = findTeamDivision(team);
     const a = sampleTeam(team, nSims);
     const b = divSampler[div] ? divSampler[div](nSims) : sampleTeam(team, nSims);
     let aWin=0,bWin=0,draw=0;
     for(let i=0;i<nSims;i++){ if(a[i]>b[i]) aWin++; else if(b[i]>a[i]) bWin++; else draw++; }
-    return { team, round, div, aWinPct:aWin/nSims*100, bWinPct:bWin/nSims*100, drawPct:draw/nSims*100 };
+    return medianPriceCache[team]={ team, round, div, aWinPct:aWin/nSims*100, bWinPct:bWin/nSims*100, drawPct:draw/nSims*100 };
   }
   const winAnyOpponentCache = {};
   // Interim market while the real H2H schedule isn't locked in yet (see
@@ -1870,6 +1873,7 @@
       return; // read-only embed: no login, slip or navigation handlers
     }
     document.getElementById('app').innerHTML = renderMain();
+    applyTrustedPrices();
     attachHandlers();
   }
 
@@ -3037,6 +3041,8 @@
       const rows = fixtures.map(([teamA, teamB], i) => {
         const m = markets[i];
         const aOdds = toOdds(m.aWinPct), bOdds = toOdds(m.bWinPct);
+        if(!aOdds.suspended)aOdds.odds=trustedOdds('TIP|'+round+'|'+div+'|'+i+'|'+teamA,aOdds.odds);
+        if(!bOdds.suspended)bOdds.odds=trustedOdds('TIP|'+round+'|'+div+'|'+i+'|'+teamB,bOdds.odds);
         const key = div+'|'+i;
         const current = state.tippingPending[key];
         if(teamB.startsWith('MR MEDIAN ')){
@@ -6288,6 +6294,7 @@
   // multi-select -- picking toggles membership, up to the slot's count;
   // once full, picking a new team is a no-op until one is removed.
   function togglePreseasonPick(slotKey, team, odds, count){
+    odds=trustedOdds('PRES|'+slotKey+'|'+team,odds);
     const current = state.preseasonPending[slotKey] || [];
     const already = current.some(p => p.team === team);
     let next;
@@ -6341,6 +6348,7 @@
   // punter explicitly hits Confirm, per direct instruction: a tip isn't
   // "real" just because a radio button was clicked.
   function setPendingTip(div, fixtureIdx, team, odds){
+    odds=trustedOdds('TIP|'+state.tippingRound+'|'+div+'|'+fixtureIdx+'|'+team,odds);
     if(!state.user || !state.tippingData) return;
     state.tippingPending = { ...state.tippingPending, [div+'|'+fixtureIdx]: { team, odds } };
     render();
@@ -6350,6 +6358,7 @@
   // shared across all its conferences; the old fixed 12 was impossible to
   // achieve in Division 3 after its field shrank to 18 teams.
   function toggleMrMedianPick(div, fixtureIdx, team, odds){
+    odds=trustedOdds('TIP|'+state.tippingRound+'|'+div+'|'+fixtureIdx+'|'+team,odds);
     if(!state.user || !state.tippingData) return;
     const key = div + '|' + fixtureIdx;
     if(state.tippingPending[key]){
@@ -6762,6 +6771,236 @@
     render();
   }
 
+  let trustedPrices=new Map();
+  async function loadTrustedPrices(){
+    const list=await secureRpc('bilbbet_price_list');
+    trustedPrices=new Map(list.map(q=>[q.id,q]));
+  }
+  function trustedOdds(id,fallback){return Number(trustedPrices.get(id)?.odds??fallback);}
+  function applyTrustedPrices(){
+    for(const el of document.querySelectorAll('[data-pick][data-odds]')){
+      const q=trustedPrices.get(el.dataset.pick);
+      if(!q)continue;
+      const old=Number(el.dataset.odds),price=Number(q.odds);
+      el.dataset.odds=String(price);
+      if(old===price)continue;
+      const walker=document.createTreeWalker(el,NodeFilter.SHOW_TEXT),nodes=[];
+      while(walker.nextNode())nodes.push(walker.currentNode);
+      const from=formatOdds(old),to=formatOdds(price);
+      for(const node of nodes.reverse()){
+        const index=node.textContent.lastIndexOf(from);
+        if(index>=0){
+          node.textContent=node.textContent.slice(0,index)+to+node.textContent.slice(index+from.length);
+          break;
+        }
+      }
+    }
+  }
+  let priceSyncRunning=null;
+  async function syncTrustedPrices(){
+    if(priceSyncRunning)return priceSyncRunning;
+    priceSyncRunning=collectTrustedPrices();
+    try{return await priceSyncRunning;}
+    finally{priceSyncRunning=null;}
+  }
+  async function collectTrustedPrices(){
+    if(!state.user?.isAdmin)throw new Error('Administrator sign-in required.');
+    if(!await refreshSubmissionControls())throw new Error('Could not refresh price controls.');
+    await loadFeaturedMedianSpecials(state.currentRound);
+    const rows=new Map();
+    const record=(id,odds,label)=>{
+      odds=Number(odds);
+      if(!Number.isFinite(odds)||odds<=0||isPickBlocked(id))return;
+      if(id.startsWith('H2H|') && EARLY_DIV12_RELEASE && (FIXTURES_ARE_PLACEHOLDER||!state.h2hRealScheduleConfirmed))return;
+      const old=rows.get(id);
+      if(old){
+        if(!old.prices.includes(odds))old.prices.push(odds);
+        old.odds=odds;
+        return;
+      }
+      const p=parsePick(id),parts=id.split('|');
+      const q={
+        id,odds,prices:[odds],
+        team:p.team || (['H2H_WIN','H2H_MEDIAN'].includes(parts[0])?parts[1]:p.type==='h2h'?(p.side==='a'?p.teamA:p.side==='b'?p.teamB:null):null),
+        label:label||id,
+        featured:isFeaturedPick(id),
+        round:getPickRound(id),
+        category:pickCategory(id),
+        type:parts[0]
+      };
+      if(['H2H_WIN','H2H_MEDIAN'].includes(parts[0])){
+        q.round=Number(parts[2].replace('R',''));
+        q.event='TEAMROUND|'+parts[1]+'|'+parts[2];
+      }
+      if(p.type==='fut'){
+        if(p.div==='RODDY')q.type='RODDY';
+        if(p.div.startsWith('DIVISION 3'))q.type='DIV3';
+        q.event='FUTTEAM|'+p.div+'|'+p.team;
+        q.exclusive=p.group;
+        const places=placesCountFor(p.div,p.marketKey);
+        if(places!==null){
+          q.places=places;
+          q.teams=p.div==='RODDY'?TOTAL_TEAMS:(H2H_DIVISIONS[p.div]||[]).length;
+          q.pool=p.div+'|'+p.marketKey;
+          q.team=p.team;
+          if(p.marketKey==='promotion_pct'){
+            q.pool=promotionPoolKey(p.div)+'|'+p.marketKey;
+            q.teams=Object.entries(H2H_DIVISIONS)
+              .filter(([div])=>promotionPoolKey(div)===promotionPoolKey(p.div))
+              .reduce((n,[,teams])=>n+teams.length,0);
+          }
+        }
+      }else if(p.type==='ecl'||p.type==='facup'){
+        q.event=p.type+'TEAM|'+p.team;
+        q.exclusive=p.group;
+        const places=(p.type==='ecl'?ECL_PLACES:FA_CUP_PLACES)[p.marketKey];
+        if(places!==undefined){
+          q.places=places;
+          q.teams=p.type==='ecl'?ECL_TOTAL_ENTRANTS:TOTAL_TEAMS;
+          q.pool=p.type+'|'+p.marketKey;
+          q.team=p.team;
+        }
+      }else if(p.type==='h2h'){
+        q.event='MATCH|'+p.roundTag+'|'+p.teamA+'|'+p.teamB;
+      }else if(p.type==='leadat'){
+        q.exclusive=p.group;
+        if(p.scope==='RODDY')q.type='HELD';
+      }else if(p.type==='specialfix'){
+        q.exclusive=p.group;
+        if(['charity','philanthropy'].includes(p.marketKey))q.type='HELD';
+      }else if(parts[0]==='NOVELTY'){
+        q.novelty_id=parts[1];
+        q.exclusive=id;
+      }
+      rows.set(id,q);
+    };
+    const htmlPrices=html=>{
+      const container=document.createElement('div');
+      container.innerHTML=html;
+      container.querySelectorAll('[data-pick][data-odds]').forEach(el=>{
+        record(el.dataset.pick,el.dataset.odds,el.dataset.label);
+      });
+    };
+    for(const [div,markets]of Object.entries(FUTURES.divisions)){
+      for(const [key,items]of Object.entries(markets)){
+        for(const row of items){
+          if(!row.suspended)record('FUT|'+div+'|'+key+'|'+row.team,row.odds,row.team+' — '+(FUTURES.market_labels[key]||key));
+        }
+      }
+    }
+    for(const [section,prefix]of [['roddy','FUT|RODDY'],['fa_cup_markets','FACUP'],['ecl_markets','ECL']]){
+      for(const [key,items]of Object.entries(FUTURES[section]||{})){
+        for(const row of items){
+          if(!row.suspended)record(prefix+'|'+key+'|'+row.team,row.odds,row.team+' — '+key);
+        }
+      }
+    }
+    for(let tipRound=state.currentRound;tipRound<=26;tipRound++){
+      for(const div of TIPPING_DIVS){
+        const fixtures=getTippableFixtures(div,tipRound);
+        const markets=getFixtureMarkets(div,tipRound,true);
+        fixtures.forEach(([a,b],i)=>{
+          for(const [team,pct]of [[a,markets[i]?.aWinPct],[b,markets[i]?.bWinPct]]){
+            if(team.startsWith('MR MEDIAN'))continue;
+            const info=toOdds(pct);
+            if(info.suspended)continue;
+            const id='TIP|'+tipRound+'|'+div+'|'+i+'|'+team;
+            const tier=div.startsWith('ELIZA')?'ELIZA':div.startsWith('DIVISION 2')?'DIV2':div.startsWith('DIVISION 3')?'DIV3':div;
+            rows.set(id,{
+              id,odds:info.odds,prices:[info.odds],bettable:false,tier,
+              cap:tipRound===1?mrMedianPickCap(tier):null
+            });
+          }
+        });
+      }
+    }
+    for(const slot of PRESEASON_SLOTS){
+      if(partialRelease() && !slot.divs?.every(availableDivision))continue;
+      for(const row of preseasonSlotOptions(slot)){
+        if(row.suspended)continue;
+        const id='PRES|'+slot.key+'|'+row.team;
+        rows.set(id,{id,odds:row.odds,prices:[row.odds],bettable:false,cap:slot.count});
+      }
+    }
+    const saved={
+      h2hRound:state.h2hRound,
+      specialsRound:state.specialsRound,
+      leadingAtRound:state.leadingAtRound,
+      specialsExtremeExpanded:state.specialsExtremeExpanded,
+      h2hFixtureMarket:state.h2hFixtureMarket
+    };
+    try{
+      state.h2hFixtureMarket=null;
+      state.h2hRound=state.currentRound;
+      state.specialsRound=state.currentRound;
+      state.leadingAtRound=state.currentRound;
+      for(const div of Object.keys(H2H_DIVISIONS)){
+        if(!availableDivision(div))continue;
+        htmlPrices(renderFixtureList(div));
+        htmlPrices(renderBeatMedianSection(div,state.currentRound));
+        if(!FIXTURES_ARE_PLACEHOLDER&&state.h2hRealScheduleConfirmed){
+          for(const m of getFixtureMarkets(div,state.currentRound))htmlPrices(renderH2HMarket(m));
+        }
+        for(const round of Object.keys(LEADING_AT[div]||{})){
+          state.leadingAtRound=Number(round);
+          htmlPrices(renderLeadingAtMarket(div));
+        }
+      }
+      for(const round of Object.keys(RODDY_LEADING_AT||{})){
+        state.leadingAtRound=Number(round);
+        htmlPrices(renderLeadingAtMarket('RODDY'));
+      }
+      for(const c of Object.values(state.cupFixtures||{})){
+        for(const f of c||[]){
+          if(f.round===state.currentRound)htmlPrices(renderH2HMarket(computeH2HMarket(f.teamA,f.teamB,state.currentRound)));
+        }
+      }
+      for(const list of Object.values(state.playoffFixtures||{})){
+        for(const f of list||[]){
+          if(f.round===state.currentRound)htmlPrices(renderH2HMarket(computeH2HMarket(f.teamA,f.teamB,state.currentRound)));
+        }
+      }
+      for(const key of ['win','lose','charity','philanthropy']){
+        state.specialsExtremeExpanded=key;
+        htmlPrices(renderSpecialsTab());
+      }
+      htmlPrices(renderHomeTab());
+      htmlPrices(renderElectionHub());
+      for(const group of Object.keys(state.eclGroups||{}))htmlPrices(renderEclGroupBox(group));
+    }finally{
+      Object.assign(state,saved);
+    }
+    for(const item of state.novelty||[]){
+      if(item.status==='OPEN')record('NOVELTY|'+item.id,item.odds,item.name);
+    }
+    if(!partialRelease()){
+      const teams=Object.values(H2H_DIVISIONS).flat();
+      for(let i=0;i<teams.length;i++){
+        for(let j=i+1;j<teams.length;j++){
+          htmlPrices(renderH2HMarket(computeH2HMarket(teams[i],teams[j],state.currentRound)));
+        }
+      }
+    }
+    for(const pick of computeFeaturedFutures())record(pick.id,pick.odds,pick.team+' — '+pick.market);
+    for(const pick of state.featuredFixturesData||[]){
+      if(homeFixtureReleased(pick))record(pick.id,pick.odds,pick.label||pick.team);
+    }
+    const savedRound=state.h2hRound;
+    try{
+      for(let round=state.currentRound+1;round<=26;round++){
+        for(const div of Object.keys(H2H_DIVISIONS)){
+          if(!availableDivision(div))continue;
+          state.h2hRound=round;
+          htmlPrices(renderBeatMedianSection(div,round));
+        }
+      }
+    }finally{
+      state.h2hRound=savedRound;
+    }
+    const count=await secureRpc('bilbbet_publish_board',{p_quotes:[...rows.values()]});
+    await loadTrustedPrices();
+    return count;
+  }
   let rewardSyncTimer=null;
   async function syncRewardContext(){
     if(!state.user?.isAdmin)return;
@@ -6790,6 +7029,7 @@
         if(name.trim())aliases[name.trim().toUpperCase()]=resolveTeamName(name.trim());
       }
     }
+    await syncTrustedPrices();
     await secureRpc('bilbbet_sync_rewards',{
       p_context:{
         season:seasonKeyPart(),fixtures,aliases,
@@ -6798,7 +7038,7 @@
     });
   }
   function scheduleRewardSync(){
-    if(!state.user?.isAdmin)return;
+    if(!state.user?.isAdmin || priceSyncRunning)return;
     clearTimeout(rewardSyncTimer);
     rewardSyncTimer=setTimeout(()=>syncRewardContext().catch(e=>{
       console.error('Reward results sync failed:',e);
@@ -7991,6 +8231,7 @@
       if(u.isAdmin)await loadAdminData();
       else{if(!u.welcomeSeen){state.welcomeModalOpen=true;u.welcomeSeen=true;await saveUser(u);}checkTipReminderStatus();}
       await loadHomeStats();render();
+      if(u.isAdmin)await syncTrustedPrices();
       if(!u.isAdmin)checkAndCelebrateReward();
     }catch(e){state.error=e.message;render();}
   }
@@ -8096,6 +8337,7 @@
     }
   }
 
+  await loadTrustedPrices();
   render();
   loadHomeStats(); // not awaited -- the initial render shows a loading state, this fills it in once ready
   if(EMBED_MODE){

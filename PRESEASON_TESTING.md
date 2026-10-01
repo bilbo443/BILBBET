@@ -702,3 +702,14 @@ Players automatically check their rewards on sign-in and when opening tipping. N
 Odds points continue using saved pick odds. Independent verification of every submitted price remains a separate outstanding item. Corrections to an already-paid result require an administrator review; this update does not automatically claw back credits.
 
 Verification used isolated accounts: 30 database checks and 11 full-app checks passed. After deployment, check admin sign-in, normal player access, unchanged preseason balances, My Bets and tip persistence.
+
+
+## Trusted price checks — October 2, 2026
+
+This supersedes the earlier limitation that submitted prices were not independently verified. Admin sign-in automatically syncs the trusted price list using the current deployed data and existing formulas. Sign in as admin after an odds/fixture/roster update or a round change; prices awaiting a new-round sync are rejected without charging the player. No separate publication button is required.
+
+The server checks selection prices, combined odds, places adjustments, featured allowances and the 10% multi boost. New tipping/preseason odds must match the trusted list. Previously confirmed tips/predictions retain their accepted odds, including renamed entries; this migration does not retrospectively verify old prices. Existing bets and placement receipts retain their accepted terms and duplicate protection.
+
+Simulated prices displayed to players use the synced price list so different browser simulations cannot cause valid submissions to be rejected. The model still uses the existing recreational odds formulas; matching a trusted price does not establish its predictive accuracy. Custom matchup prices are included when full competition release permits them. Novelty prices are included from the admin-managed markets.
+
+Verification: 28 isolated database checks and 15 full-app checks passed, including altered prices, features, boosts, places multis, unchanged entries and a simulated median bet. Install the Supabase price SQL before deploying the frontend, then hard refresh and sign in as admin to activate the checks.
