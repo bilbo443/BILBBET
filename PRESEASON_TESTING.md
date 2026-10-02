@@ -724,3 +724,6 @@ A new round, changed deployed pricing/roster/fixture data, relevant admin contro
 After installing the cache SQL and deploying the app, sign in as admin once to seed it, then sign out/in again to check reuse. This is once per matchweek when inputs remain unchanged, not a calendar-week timer.
 
 Verification: 35 isolated database checks and 20 full-app checks passed, including reuse on a second admin login, results-only updates and recalculation after changed odds.
+
+
+Last to Join specials — October 2: Division 2A/2B home markets use stable team IDs and case-insensitive team-name usernames. Contenders cannot bet on their own conference, including multis; one selection per conference per bet. Admin Specials controls mark joined (strikeout, no new bets, automatic repricing), edit odds, close, confirm winner, or void the entire conference for withdrawal. Existing accepted odds remain unchanged. Betting closes at one remaining contender or October 9 23:59 Sydney; exceptions affect settlement, not reopening. Singles and multi legs settle atomically through existing server settlement. Install join-special SQL before this frontend; weekly quote refresh is not needed for individual special updates.

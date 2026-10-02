@@ -511,6 +511,11 @@
     return parts.some(part => part.startsWith('DIVISION 3') || pool.includes(resolveTeamName(part)));
   }
   function isPickBlocked(id){
+    if(id.startsWith('JOIN|')){
+      const [,code,teamId]=id.split('|');
+      const m=joinMarkets.find(m=>m.code===code);
+      return !m||joinMarketBlocked(m)||!m.contenders.some(c=>c.id===teamId&&!c.joined);
+    }
     if(finalRosterMarketHeld(id)) return true;
     if(partialRelease() && id.startsWith('H2H|') && (FIXTURES_ARE_PLACEHOLDER || !state.h2hRealScheduleConfirmed)) return true;
     if(partialRelease()){
@@ -1777,6 +1782,7 @@
       ${curtainDown() ? '' : `
       ${renderRoundCountdown()}
       ${renderHomeDigest()}
+      ${renderJoinMarkets()}
       <div class="bb-card" style="background:linear-gradient(135deg,#2a2410,#1a1a1a);border-color:#4a3a10;margin-bottom:16px;text-align:center;padding:1.25rem;">
         <div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);letter-spacing:0.08em;color:#ffdd00;text-transform:uppercase;font-weight:700;">This week's boosted odds</div>
         <div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-top:4px;">Every pick below is +${Math.round((FEATURED_BOOST_MULTIPLIER-1)*100)}% on the normal price \u2014 just for being featured.</div>
@@ -4689,7 +4695,8 @@
         after a mistaken override) reverses that credit automatically, so balances always stay consistent with the bet's current status.
         Kick (void) cancels the bet and refunds the stake, as if it had never been placed.
       </p>`;
-    const SPECIALS_HTML = `\n      <h3>Specials &amp; Novelty</h3>
+    const SPECIALS_HTML = `\n      ${renderJoinMarkets(true)}
+      <h3>Specials &amp; Novelty</h3>
       <div class="bb-card" style="margin-bottom:1.5rem;">
         <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px;">
           <div style="flex:2;min-width:200px;"><span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;display:block;margin-bottom:4px;">Bet name</span>
@@ -5902,6 +5909,7 @@
   }
 
   function parsePick(id){
+    if(id.startsWith('JOIN|'))return {type:'join',group:'JOIN|'+id.split('|')[1]};
     const parts = id.split('|');
     if(parts[0]==='H2H'){
       const [, kindRaw, roundTag, teamA, teamB] = parts;
@@ -6771,8 +6779,53 @@
     render();
   }
 
+
+  let joinMarkets=[];
+  function joinMarketBlocked(m){
+    return m.status!=='OPEN'||Date.now()>=Date.parse(m.deadline)||
+      m.contenders.some(c=>c.team.toLowerCase()===String(state.user?.username||'').toLowerCase());
+  }
+  function renderJoinMarkets(admin=false){
+    if(!joinMarkets.length)return '';
+    return '<h3>Last Through the Door</h3>'+joinMarkets.map(m=>{
+      const blocked=joinMarketBlocked(m);
+      const contender=m.contenders.some(c=>c.team.toLowerCase()===String(state.user?.username||'').toLowerCase());
+      return `<div class="bb-card"><h4>Last to Join — Division ${esc(m.code)}</h4>
+        <p style="color:#9a9a9a;">Who will be last to join their Sokkah league? Betting closes by 11:59pm Sydney time on October 9, or when only one contender remains. An approved extension may delay settlement. Any withdrawal or loss of a place voids this entire conference special. Existing bets keep their accepted odds.</p>
+        <p>${esc(m.status)}${contender?' · You are a contender and cannot bet on this conference special.':''}</p>
+        ${m.contenders.map(c=>{
+          const id='JOIN|'+m.code+'|'+c.id;
+          const enabled=!admin&&!blocked&&!c.joined;
+          return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;flex-wrap:wrap;">
+            <span style="flex:1;min-width:180px;${c.joined?'text-decoration:line-through;color:#888;':''}">${teamLogo(c.team,20)} ${esc(c.team)}${c.joined?' — joined':''}</span>
+            ${enabled?`<button class="bb-btn ghost" data-pick="${id}" data-label="${esc(c.team+' — Last to Join Division '+m.code)}" data-odds="${c.odds}">${formatOdds(c.odds)}</button>`:`<span>${c.joined?'Joined':formatOdds(c.odds)}</span>`}
+            ${admin&&!['SETTLED','VOID'].includes(m.status)?`
+              ${!c.joined?`<button class="bb-btn ghost" data-join-action="${m.code}|${c.id}|JOINED">Mark joined</button>`:''}
+              ${!c.joined&&m.status==='OPEN'?`<input class="bb-input" style="width:90px;" type="number" min="1.01" max="1000" step="0.01" value="${c.odds}" id="join-odds-${m.code}-${c.id}"><button class="bb-btn ghost" data-join-action="${m.code}|${c.id}|ODDS">Save odds</button>`:''}
+              ${m.status==='CLOSED'?`<button class="bb-btn ghost" data-join-action="${m.code}|${c.id}|WINNER">Confirm winner</button>`:''}`:''}
+          </div>`;
+        }).join('')}
+        ${admin&&!['SETTLED','VOID'].includes(m.status)?`<div style="display:flex;gap:8px;margin-top:12px;">${m.status==='OPEN'?`<button class="bb-btn ghost" data-join-action="${m.code}||CLOSE">Close betting</button>`:''}<button class="bb-btn ghost" data-join-action="${m.code}||VOID">Withdrawal / void conference</button></div><p style="color:#9a9a9a;">Mark joined reprices the remaining contenders automatically. Save odds overrides one current price. Confirm the final result with the organiser before selecting a winner.</p>`:''}
+      </div>`;
+    }).join('');
+  }
+  async function updateJoinMarket(code,id,action){
+    const m=joinMarkets.find(m=>m.code===code);if(!m)return;
+    if(action==='VOID'&&!confirm('Void every bet on the Division '+code+' special? Singles will be refunded and multi legs voided.'))return;
+    if(action==='WINNER'&&!confirm('Confirm this contender as the organiser-verified last team to join? This settles all bets on this conference.'))return;
+    if(action==='JOINED'&&!confirm('Mark this team joined and recalculate the remaining prices?'))return;
+    const odds=action==='ODDS'?Number(document.getElementById('join-odds-'+code+'-'+id).value):null;
+    try{
+      await secureRpc('bilbbet_update_join_market',{p_code:code,p_version:m.version,p_action:action,p_team_id:id||null,p_odds:odds});
+      await loadTrustedPrices();
+      state.slip=state.slip.filter(s=>!s.id.startsWith('JOIN|'+code+'|'));
+      await loadAdminData();render();
+    }catch(e){alert('Special was not updated: '+e.message);await loadTrustedPrices();render();}
+  }
+
   let trustedPrices=new Map();
   async function loadTrustedPrices(){
+    joinMarkets=await secureRpc('bilbbet_join_markets');
     const list=await secureRpc('bilbbet_price_list');
     trustedPrices=new Map(list.map(q=>[q.id,q]));
   }
@@ -6910,6 +6963,8 @@
       }else if(p.type==='specialfix'){
         q.exclusive=p.group;
         if(['charity','philanthropy'].includes(p.marketKey))q.type='HELD';
+      }else if(parts[0]==='JOIN'){
+        q.exclusive='JOIN|'+parts[1];
       }else if(parts[0]==='NOVELTY'){
         q.novelty_id=parts[1];
         q.exclusive=id;
@@ -8148,6 +8203,10 @@
       const comp = el.dataset.clearCupoverride;
       delete state.cupCalendarOverrides[comp][state.currentRound];
       saveCupOverrides();
+    });
+    document.querySelectorAll('[data-join-action]').forEach(el=>el.onclick=()=>{
+      const [code,id,action]=el.dataset.joinAction.split('|');
+      updateJoinMarket(code,id,action);
     });
     document.querySelectorAll('[data-noveltystatus]').forEach(el => el.onclick = () => {
       const [noveltyId, status] = el.dataset.noveltystatus.split('|');
