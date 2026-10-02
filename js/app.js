@@ -6783,13 +6783,13 @@
   let joinMarkets=[];
   function joinMarketBlocked(m){
     return m.status!=='OPEN'||Date.now()>=Date.parse(m.deadline)||
-      m.contenders.some(c=>c.team.toLowerCase()===String(state.user?.username||'').toLowerCase());
+      m.contenders.some(c=>(c.id===state.user?.teamId||c.team.toLowerCase()===String(state.user?.username||'').toLowerCase()));
   }
   function renderJoinMarkets(admin=false){
     if(!joinMarkets.length)return '';
     return '<h3>Last Through the Door</h3>'+joinMarkets.map(m=>{
       const blocked=joinMarketBlocked(m);
-      const contender=m.contenders.some(c=>c.team.toLowerCase()===String(state.user?.username||'').toLowerCase());
+      const contender=m.contenders.some(c=>(c.id===state.user?.teamId||c.team.toLowerCase()===String(state.user?.username||'').toLowerCase()));
       return `<div class="bb-card"><h4>Last to Join — Division ${esc(m.code)}</h4>
         <p style="color:#9a9a9a;">Who will be last to join their Sokkah league? Betting closes by 11:59pm Sydney time on October 9, or when only one contender remains. An approved extension may delay settlement. Any withdrawal or loss of a place voids this entire conference special. Existing bets keep their accepted odds.</p>
         <p>${esc(m.status)}${contender?' · You are a contender and cannot bet on this conference special.':''}</p>
@@ -8326,7 +8326,11 @@
       state.user=u;state.username='';state.pin='';state.adminLoginMode=false;state.loginModalOpen=false;state.screen='main';state.activeTab='HOME';
       rememberUsername(u.username);
       state.adminPunters=null;state.adminBets=null;state.novelty=null;state.myBets=null;state.tippingData=null;state.tippingPending={};state.preseasonData=null;state.txHistory=null;
-      if(u.isAdmin)await secureRpc('bilbbet_sync_settings',{p_dates:ROUND_DATES,p_rules:ROSTER_RULES,p_pool:(DATA.admin_teams||[]).filter(t=>String(t.status).startsWith('DIVISION 3')).map(t=>t.name),p_carry:CARRY_BALANCES});
+      if(u.isAdmin){
+        await secureRpc('bilbbet_sync_settings',{p_dates:ROUND_DATES,p_rules:ROSTER_RULES,p_pool:(DATA.admin_teams||[]).filter(t=>String(t.status).startsWith('DIVISION 3')).map(t=>t.name),p_carry:CARRY_BALANCES});
+        const identity=await secureRpc('bilbbet_sync_team_identity',{p_teams:DATA.admin_teams,p_carry:CARRY_BALANCES});
+        if(identity.review.length)console.info('Team identity review:',identity.review);
+      }
       render();
       if(u.isAdmin)await loadAdminData();
       else{if(!u.welcomeSeen){state.welcomeModalOpen=true;u.welcomeSeen=true;await saveUser(u);}checkTipReminderStatus();}
@@ -8339,7 +8343,17 @@
   async function doRegister(){
     if(!state.tosAgreed){state.error='Read and agree to the Terms & Conditions first.';render();return;}
     try{
-      const data=await secureRpc('bilbbet_register',{p_username:state.username.trim(),p_pin:state.pin.trim(),p_reminder:state.tipReminderOptIn});
+      const key=name=>String(name||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+      const input=state.username.trim();
+      const matches=(DATA.admin_teams||[]).filter(t=>{
+        const aliases=[t.name,t.prev_names,...String(t.prev_names||'').split(',')];
+        if(t.name==='SUCCULENT CHINESE MEAL')aliases.push('SUCCULENT CHINESE MEAL FC');
+        return aliases.some(name=>key(name)===key(input));
+      });
+      if(!state.customNameMode&&matches.length!==1)throw new Error('Please select your team by name from the list.');
+      if(state.customNameMode&&matches.length)throw new Error('This is a registered team name. Select your team from the list.');
+      const data=await secureRpc('bilbbet_register_team',{p_username:state.customNameMode?input:matches[0].name,p_pin:state.pin.trim(),p_reminder:state.tipReminderOptIn,p_team_id:state.customNameMode?null:String(matches[0].id)});
+      if(data.error)throw new Error(data.error);
       secureSession={token:data.token,username:data.user.username};localStorage.setItem('bilbbet_secure_session',JSON.stringify(secureSession));
       state.user=data.user;rememberUsername(data.user.username);state.username='';state.pin='';state.registeringMode=false;state.loginModalOpen=false;
       state.info='Registration saved. Betting becomes available after admin approval.';state.tutorialStep=0;state.tutorialModalOpen=true;render();
