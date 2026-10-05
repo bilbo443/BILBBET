@@ -730,3 +730,6 @@ Last to Join specials — October 2: Division 2A/2B home markets use stable team
 
 
 Internal team identity — October 2: registration uses registry team IDs internally; players still choose names and sign in with names/PINs. Carry-over and history resolve by ID; unique team/account links prevent repeat claims. Admin login synchronises names, historical aliases and carry records, then links uniquely matched existing accounts without changing balances, bets or recorded registration carries. Ambiguous or duplicate matches are retained for review. Approved alias SUCCULENT CHINESE MEAL FC links to its registered team. Drone Police ID 088 retains its manual-credit exception. Existing-account carry differences require review, never automatic credit. Current or historical team names can sign into the linked account with the existing PIN. Last to Join bans also use the internal identity. Install SQL then deploy frontend and sign in as admin before new team registrations.
+
+
+Roster Watch — October 6: include draft/h2h_history.json in roster-update PRs alongside roddy_history.json. Publish both reviewed history files with the roster so renames and team moves cannot leave H2H history stale.

@@ -38,6 +38,7 @@ jobs:
             draft/h2h_schedule.json
             draft/team_market_coeffs.json
             draft/roddy_history.json
+            draft/h2h_history.json
             draft/h2h_shift.json
             draft/h2h_cup_shift.json
             draft/h2h_variance_widen.json
