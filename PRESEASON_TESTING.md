@@ -739,3 +739,6 @@ Last to Join relaunch — October 6: original 2A and 2B markets remain VOID and 
 
 
 Team logos use existing PNG filenames mapped to internal registry IDs. Current names take priority over previous names; exact slug filenames take priority over duplicate spellings. Both old and new names use the same ID mapping. Filenames are URL-encoded. Missing or ambiguous matches retain the usual fallback. Review mappings when new crests are uploaded.
+
+
+Archived Last to Join markets are hidden from both Home and Admin. Their VOID records, bets and refunds remain retained in the database.

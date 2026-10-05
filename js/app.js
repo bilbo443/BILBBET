@@ -6865,7 +6865,7 @@
   }
   function renderJoinMarkets(admin=false){
     if(!joinMarkets.length)return '';
-    return '<h3>Last Through the Door</h3>'+joinMarkets.filter(m=>admin||!m.archived).map(m=>{
+    return '<h3>Last Through the Door</h3>'+joinMarkets.filter(m=>!m.archived).map(m=>{
       const blocked=joinMarketBlocked(m);
       const contender=m.contenders.some(c=>(c.id===state.user?.teamId||c.team.toLowerCase()===String(state.user?.username||'').toLowerCase()));
       return `<div class="bb-card"><h4>Last to Join — Division ${esc(m.division||m.code)}${m.archived?' (previous market)':''}</h4>
