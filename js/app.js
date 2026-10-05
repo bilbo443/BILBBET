@@ -6787,10 +6787,10 @@
   }
   function renderJoinMarkets(admin=false){
     if(!joinMarkets.length)return '';
-    return '<h3>Last Through the Door</h3>'+joinMarkets.map(m=>{
+    return '<h3>Last Through the Door</h3>'+joinMarkets.filter(m=>admin||!m.archived).map(m=>{
       const blocked=joinMarketBlocked(m);
       const contender=m.contenders.some(c=>(c.id===state.user?.teamId||c.team.toLowerCase()===String(state.user?.username||'').toLowerCase()));
-      return `<div class="bb-card"><h4>Last to Join — Division ${esc(m.code)}</h4>
+      return `<div class="bb-card"><h4>Last to Join — Division ${esc(m.division||m.code)}${m.archived?' (previous market)':''}</h4>
         <p style="color:#9a9a9a;">Who will be last to join their Sokkah league? Betting closes by 11:59pm Sydney time on October 9, or when only one contender remains. An approved extension may delay settlement. Any withdrawal or loss of a place voids this entire conference special. Existing bets keep their accepted odds.</p>
         <p>${esc(m.status)}${contender?' · You are a contender and cannot bet on this conference special.':''}</p>
         ${m.contenders.map(c=>{
@@ -6798,7 +6798,7 @@
           const enabled=!admin&&!blocked&&!c.joined;
           return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;flex-wrap:wrap;">
             <span style="flex:1;min-width:180px;${c.joined?'text-decoration:line-through;color:#888;':''}">${teamLogo(c.team,20)} ${esc(c.team)}${c.joined?' — joined':''}</span>
-            ${enabled?`<button class="bb-btn ghost" data-pick="${id}" data-label="${esc(c.team+' — Last to Join Division '+m.code)}" data-odds="${c.odds}">${formatOdds(c.odds)}</button>`:`<span>${c.joined?'Joined':formatOdds(c.odds)}</span>`}
+            ${enabled?`<button class="bb-btn ghost" data-pick="${id}" data-label="${esc(c.team+' — Last to Join Division '+(m.division||m.code))}" data-odds="${c.odds}">${formatOdds(c.odds)}</button>`:`<span>${c.joined?'Joined':formatOdds(c.odds)}</span>`}
             ${admin&&!['SETTLED','VOID'].includes(m.status)?`
               ${!c.joined?`<button class="bb-btn ghost" data-join-action="${m.code}|${c.id}|JOINED">Mark joined</button>`:''}
               ${!c.joined&&m.status==='OPEN'?`<input class="bb-input" style="width:90px;" type="number" min="1.01" max="1000" step="0.01" value="${c.odds}" id="join-odds-${m.code}-${c.id}"><button class="bb-btn ghost" data-join-action="${m.code}|${c.id}|ODDS">Save odds</button>`:''}
@@ -6811,7 +6811,7 @@
   }
   async function updateJoinMarket(code,id,action){
     const m=joinMarkets.find(m=>m.code===code);if(!m)return;
-    if(action==='VOID'&&!confirm('Void every bet on the Division '+code+' special? Singles will be refunded and multi legs voided.'))return;
+    if(action==='VOID'&&!confirm('Void every bet on the Division '+(m.division||code)+' special? Singles will be refunded and multi legs voided.'))return;
     if(action==='WINNER'&&!confirm('Confirm this contender as the organiser-verified last team to join? This settles all bets on this conference.'))return;
     if(action==='JOINED'&&!confirm('Mark this team joined and recalculate the remaining prices?'))return;
     const odds=action==='ODDS'?Number(document.getElementById('join-odds-'+code+'-'+id).value):null;

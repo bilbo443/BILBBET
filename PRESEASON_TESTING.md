@@ -733,3 +733,6 @@ Internal team identity — October 2: registration uses registry team IDs intern
 
 
 Roster Watch — October 6: include draft/h2h_history.json in roster-update PRs alongside roddy_history.json. Publish both reviewed history files with the roster so renames and team moves cannot leave H2H history stale.
+
+
+Last to Join relaunch — October 6: original 2A and 2B markets remain VOID and are archived from Home, with existing bets and refunds preserved. Replacement codes are 2A-v2 and 2B-v2; player-facing labels show Division 2A and 2B. Remaining contenders retain their saved odds. 2A: 3DOGS, ALBANIAN BOARS, CARNEGIE DACHSHUNDS FC, INTER MILANOVIC, LALAS LEVEN. 2B: ROYAL KC UNITED FC, DEER PARK UNITED. Casual Approach has joined 2B and is excluded. Admin controls, participant restrictions and the October 9 cutoff remain active.
