@@ -1,0 +1,31 @@
+{
+  "status": "draft_ready",
+  "extracted_path": "draft/extracted-20261005-120231.json",
+  "odds_path": "draft/odds-draft-20261005-120231.json",
+  "roster_change_summary": "## Roster changes detected\n- **Status change**: SONS OF VALHALLA: DIVISION 2A -> DIVISION 2B\n- **Status change**: VICTORY: DIVISION 3 -> DIVISION 2A\n- **Renamed**: LOLLEY POP MAN -> SYDNEY OLEEE\n- **Status change**: X2 STRANGE: DIVISION 2B -> DIVISION 2A\n- **Renamed**: GOT WOUD? -> DOG GOES WOOF, PAYNE GOES MEOW\n- **Renamed**: PAYNE IN THE NECK -> PAYNE IN THE NECK FC\n- **Status change**: REAPERS FC: DIVISION 2A -> INACTIVE\n- **Renamed**: JEREMY -> PAIN IN DIAS\n- **Renamed**: JYE -> QUINTASENTIAL FC\n- **Renamed**: ALEX -> SABITEURS\n\n**Not covered by this sync -- needs a manual follow-up if this change affects them**: `leading_at.json` and `special_markets.json` still reference the OLD roster (regenerating either is a genuinely expensive full simulation, unsuitable to run automatically on every routine check). Run `regenerate_leading_at.py` / `regenerate_special_markets.py` if this change touches a division or team either of those cover. (`h2h_record.json` is handled automatically -- no action needed there.)\n\nDivision 3 pool: 30 unassigned team(s). No conference is inferred from DIV 3 - TBC. Existing held conference fixtures are retained only as technical data until the organiser assigns teams. Technical roster changed; 53 currently configured entrants. Higher-tier sheet exceptions: []. Review this PR before merging.\n\n(Source season: 26/27)",
+  "log": [
+    "[2026-10-05T12:02:31] Layer 3 pipeline starting",
+    "[2026-10-05T12:02:31] Checking for roster changes (All Time Data sheet)",
+    "[2026-10-05T12:02:57] Roster change detected -- using the freshly-synced files for this run",
+    "[2026-10-05T12:02:57] ## Roster changes detected\n- **Status change**: SONS OF VALHALLA: DIVISION 2A -> DIVISION 2B\n- **Status change**: VICTORY: DIVISION 3 -> DIVISION 2A\n- **Renamed**: LOLLEY POP MAN -> SYDNEY OLEEE\n- **Status change**: X2 STRANGE: DIVISION 2B -> DIVISION 2A\n- **Renamed**: GOT WOUD? -> DOG GOES WOOF, PAYNE GOES MEOW\n- **Renamed**: PAYNE IN THE NECK -> PAYNE IN THE NECK FC\n- **Status change**: REAPERS FC: DIVISION 2A -> INACTIVE\n- **Renamed**: JEREMY -> PAIN IN DIAS\n- **Renamed**: JYE -> QUINTASENTIAL FC\n- **Renamed**: ALEX -> SABITEURS\n\n**Not covered by this sync -- needs a manual follow-up if this change affects them**: `leading_at.json` and `special_markets.json` still reference the OLD roster (regenerating either is a genuinely expensive full simulation, unsuitable to run automatically on every routine check). Run `regenerate_leading_at.py` / `regenerate_special_markets.py` if this change touches a division or team either of those cover. (`h2h_record.json` is handled automatically -- no action needed there.)\n\nDivision 3 pool: 30 unassigned team(s). No conference is inferred from DIV 3 - TBC. Existing held conference fixtures are retained only as technical data until the organiser assigns teams. Technical roster changed; 53 currently configured entrants. Higher-tier sheet exceptions: []. Review this PR before merging.\n\n(Source season: 26/27)",
+    "[2026-10-05T12:02:57] Fetching sheet from https://docs.google.com/spreadsheets/d/e/2PACX-1vQsdcA8lCRuiNppvU3vpQxH0NstU7HSrhFKQzq_y_GJ6xV5dW40QY2psO6Zc4h19htMVoqFeqFKsApQ/pub?gid=724499574&single=true&output=csv",
+    "[2026-10-05T12:02:58] Stability check 1/3: first fetch done, waiting 180s before re-checking...",
+    "[2026-10-05T12:06:01] Stability check 1/3: sheet content unchanged across the wait -- proceeding.",
+    "[2026-10-05T12:06:01] Fetch succeeded and confirmed stable",
+    "[2026-10-05T12:06:01] Running Layer 2 validation gate",
+    "[2026-10-05T12:06:01] [\u2713] required_headers: All required headers present.",
+    "[2026-10-05T12:06:01] [\u2713] round_columns: All 26 round columns present.",
+    "[2026-10-05T12:06:01] [\u2713] no_duplicate_table: 'TEAM NAME' appears 1 times, matching the known sections.",
+    "[2026-10-05T12:06:01] [\u2713] pending_scores: 15 unassigned/inactive sheet row(s) held out of odds.",
+    "[2026-10-05T12:06:01] [\u2713] row_count: 53 configured rows plus 15 pending rows (68 total, maximum 100).",
+    "[2026-10-05T12:06:01] [\u2713] known_roster: Every team name matches the current roster or the known roster-transition allowlist (['DEER PARK UNITED']). Remove ROSTER_TRANSITION_ALLOWLIST once the transition is officially confirmed.",
+    "[2026-10-05T12:06:01] [\u2713] score_ranges: All scores fall within the plausible range (0, 200).",
+    "[2026-10-05T12:06:01] [\u2713] system_accounts: No system-account-like names found.",
+    "[2026-10-05T12:06:01] [\u2713] calendar_consistency: All scored rounds have reached their kickoff date.",
+    "[2026-10-05T12:06:01] Validation passed -- extracting results (Layer 1)",
+    "[2026-10-05T12:06:01] Extracted 53 team record(s) to draft/extracted-20261005-120231.json",
+    "[2026-10-05T12:06:01] Extraction consistency check passed -- every team's reported total matches its round-by-round sum",
+    "[2026-10-05T12:06:01] Running simulation",
+    "[2026-10-05T12:06:06] Simulation complete -- writing draft odds"
+  ]
+}
