@@ -2397,8 +2397,13 @@
               ${state.registeringMode ? `<span id="toggle-custom-name" style="display:block;font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:#9a9a9a;text-decoration:underline;cursor:pointer;margin-top:4px;">${state.customNameMode ? 'Actually, I have a team in the Eliza Cup' : "Not part of the Eliza Cup? Make up your own name"}</span>` : ''}
               <button type="button" class="bb-btn ghost" id="use-admin-login" style="margin-top:6px;width:100%;font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px;">${state.adminLoginMode ? '\u2713 Logging in as admin' : 'Log in as admin instead'}</button>
             </div>
-            <div><span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;display:block;margin-bottom:4px;">PIN</span>
+            <div><span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;display:block;margin-bottom:4px;">${state.pinRecovery && !state.adminLoginMode ? 'Replacement PIN from admin' : 'PIN'}</span>
               <input class="bb-input" id="f-pin" type="password" inputmode="${state.adminLoginMode ? 'text' : 'numeric'}" value="${esc(state.pin)}"/></div>
+            ${state.pinRecovery && !state.adminLoginMode ? `
+              <p style="margin:0;color:#9a9a9a;">Choose your own PIN for your existing account. Your balance, bets and tips stay unchanged.</p>
+              <label>New PIN<input class="bb-input" id="recovery-new-pin" type="password" inputmode="numeric" autocomplete="new-password"/></label>
+              <label>Confirm new PIN<input class="bb-input" id="recovery-confirm-pin" type="password" inputmode="numeric" autocomplete="new-password"/></label>
+            ` : ''}
             ${state.registeringMode ? `
               <label style="display:flex;align-items:flex-start;gap:8px;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">
                 <input type="checkbox" id="tos-agree-checkbox-inline" ${state.tosAgreed?'checked':''} style="margin-top:2px;"/>
@@ -2414,8 +2419,9 @@
               <button type="button" class="bb-btn" id="confirm-register-submit" ${state.tosAgreed?'':'disabled'}>Confirm &amp; register</button>
               <button type="button" class="bb-btn ghost" id="back-from-register">Back</button>
             ` : `
-              <button type="submit" class="bb-btn" id="login-submit" style="margin-top:4px;">Log in</button>
-              <button type="button" class="bb-btn ghost" id="register-submit">First time? Create account</button>
+              <button type="submit" class="bb-btn" id="login-submit" style="margin-top:4px;">${state.pinRecovery && !state.adminLoginMode ? 'Save my PIN and sign in' : 'Log in'}</button>
+              ${!state.adminLoginMode ? `<button type="button" class="bb-btn ghost" id="pin-recovery-toggle">${state.pinRecovery ? 'Back to normal login' : 'Have a replacement PIN? Choose your own'}</button>` : ''}
+              ${!state.pinRecovery ? `<button type="button" class="bb-btn ghost" id="register-submit">First time? Create account</button>` : ''}
             `}
             <button type="button" class="bb-btn ghost" id="close-login-modal">Cancel</button>
           </form>
@@ -5345,17 +5351,12 @@
     await loadAdminData();
   }
 
-  // For a punter who's forgotten their PIN: wipes the account's login and
-  // funding state so they can register again from scratch with a new PIN,
-  // via the normal registration flow. Their carry balance and historical
-  // record get reapplied automatically on re-registration (looked up fresh
-  // from the same source data), so nothing there is lost -- only the old
-  // PIN, live balance, and current-season status are cleared.
+  // Replacement PIN recovery retains the existing account and all records.
   async function resetRegistration(username){
     if(!confirm(`Issue a replacement PIN for ${username}? Their existing balance and bets will be retained, and their signed-in sessions will end.`))return;
     try{
       const pin=await secureRpc('bilbbet_reset_pin',{p_username:username});
-      alert(`Replacement PIN for ${username}: ${pin}\nShare this privately with that player. Their balance and bets are retained.`);
+      alert(`Replacement PIN for ${username}: ${pin}\nShare this privately. The player can select "Have a replacement PIN? Choose your own" on the login screen. Their balance and bets are retained.`);
       await loadAdminData();
     }catch(e){alert(e.message);}
   }
@@ -7601,10 +7602,19 @@
     }
     const toggleCustomName = $('#toggle-custom-name');
     if(toggleCustomName) toggleCustomName.onclick = () => { state.customNameMode = !state.customNameMode; state.username = ''; state.error=''; render(); };
+    const recoveryToggle = $('#pin-recovery-toggle');
+    if(recoveryToggle) recoveryToggle.onclick = () => {
+      state.pinRecovery = !state.pinRecovery;
+      state.registeringMode = false;
+      state.pin = '';
+      state.error = '';
+      state.info = '';
+      render();
+    };
     const fPin = $('#f-pin'); if(fPin) fPin.oninput = e => { state.pin = e.target.value; };
     const loginForm = $('#login-form'); if(loginForm) loginForm.onsubmit = e => { e.preventDefault(); doLogin(); };
     const registerBtn = $('#register-submit');
-    if(registerBtn) registerBtn.onclick = () => { state.registeringMode = true; state.error=''; render(); };
+    if(registerBtn) registerBtn.onclick = () => { state.pinRecovery = false; state.registeringMode = true; state.error=''; render(); };
     const backFromRegisterBtn = $('#back-from-register');
     if(backFromRegisterBtn) backFromRegisterBtn.onclick = () => { state.registeringMode = false; state.customNameMode = false; state.tosAgreed = false; state.tipReminderOptIn = true; state.error=''; render(); };
     const confirmRegisterBtn = $('#confirm-register-submit');
@@ -7735,7 +7745,7 @@
       headerTeamSearch.oninput = e => { state.teamSearchQuery = e.target.value; };
       headerTeamSearch.onchange = e => { state.teamSearchQuery = e.target.value; render(); };
     }
-    const closeLoginBtn = $('#close-login-modal'); if(closeLoginBtn) closeLoginBtn.onclick = () => { state.loginModalOpen = false; state.adminLoginMode=false; state.registeringMode=false; state.customNameMode=false; state.tosAgreed=false; state.error=''; state.info=''; render(); };
+    const closeLoginBtn = $('#close-login-modal'); if(closeLoginBtn) closeLoginBtn.onclick = () => { state.pinRecovery = false; state.pin = ''; state.loginModalOpen = false; state.adminLoginMode=false; state.registeringMode=false; state.customNameMode=false; state.tosAgreed=false; state.error=''; state.info=''; render(); };
     const dismissTrashTalk = $('#dismiss-trash-talk'); if(dismissTrashTalk) dismissTrashTalk.onclick = () => { state.trashTalkBanner = null; render(); };
     const useAdminBtn = $('#use-admin-login'); if(useAdminBtn) useAdminBtn.onclick = () => { state.adminLoginMode = true; render(); };
     document.querySelectorAll('[data-tab]').forEach(el => el.onclick = () => {
@@ -8399,7 +8409,28 @@
   async function doLogin(){
     state.error='';state.info='';
     try{
-      const u=await secureSignIn(state.adminLoginMode?'admin':state.username.trim(),state.pin.trim());
+      let u;
+      if(state.pinRecovery && !state.adminLoginMode){
+        const newPin = document.getElementById('recovery-new-pin').value;
+        const confirmation = document.getElementById('recovery-confirm-pin').value;
+        if(newPin.length < 4 || new TextEncoder().encode(newPin).length > 72 || newPin !== newPin.trim())
+          throw new Error('Choose a PIN of at least four characters without leading or trailing spaces.');
+        if(newPin !== confirmation)
+          throw new Error('Your new PIN entries do not match.');
+        const data = await secureRpc('bilbbet_choose_pin', {
+          p_username:state.username.trim(),
+          p_replacement_pin:state.pin.trim(),
+          p_new_pin:newPin
+        });
+        if(!data?.token || !data?.user)
+          throw new Error('Recovery response was incomplete. Try normal login with your chosen PIN.');
+        secureSession = {token:data.token,username:data.user.username};
+        localStorage.setItem('bilbbet_secure_session',JSON.stringify(secureSession));
+        u = data.user;
+        state.pinRecovery = false;
+      } else {
+        u=await secureSignIn(state.adminLoginMode?'admin':state.username.trim(),state.pin.trim());
+      }
       if(u.status==='PENDING'){await secureSignOut();state.error='Your registration is awaiting admin approval.';render();return;}
       state.user=u;state.username='';state.pin='';state.adminLoginMode=false;state.loginModalOpen=false;state.screen='main';state.activeTab='HOME';
       rememberUsername(u.username);

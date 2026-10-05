@@ -742,3 +742,6 @@ Team logos use existing PNG filenames mapped to internal registry IDs. Current n
 
 
 Archived Last to Join markets are hidden from both Home and Admin. Their VOID records, bets and refunds remain retained in the database.
+
+
+Player PIN recovery: use the team name, admin replacement PIN and a confirmed chosen PIN. Recovery authenticates through existing login limits, preserves account IDs, balances, bets, tips and manual carry corrections, and revokes prior sessions. Existing issued replacement PINs also work.
