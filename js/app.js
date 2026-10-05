@@ -700,10 +700,10 @@
     for(let i=0;i<name.length;i++) hash = (hash*31 + name.charCodeAt(i)) >>> 0;
     return `hsl(${hash % 360}, 45%, 32%)`;
   }
-  function logoBadge(kind, name, size){
+  function logoBadge(kind, name, size, imagePath){
     size = size || 26;
     const slug = logoSlug(name);
-    const path = 'assets/logos/' + kind + 's/' + slug + '.png';
+    const path = imagePath || 'assets/logos/' + kind + 's/' + slug + '.png';
     const color = logoColor(name);
     const fg = (kind === 'competition' && name === 'RODDY') ? '#1b1b1b' : '#fff'; // gold badge needs dark text to stay legible
     const initial = esc(logoInitials(name));
@@ -712,7 +712,85 @@
       <img src="${esc(path)}" alt="" style="position:absolute;top:0;left:0;width:100%;height:100%;border-radius:50%;object-fit:contain;" onerror="this.style.display='none';" onload="this.previousElementSibling.style.background='#1b1b1b';this.previousElementSibling.textContent='';"/>
     </span>`;
   }
-  function teamLogo(name, size){ return logoBadge('team', resolveLogoName(name), size); }
+  const TEAM_LOGO_FILES_BY_ID = {
+  "001": "dinkin-crfc.png",
+  "002": "jarvis-zebras.png",
+  "003": "nukeforrest-nukes.png",
+  "004": "lindon-chevella-fc.png",
+  "005": "the-maltese-knights.png",
+  "006": "spooners-fc.png",
+  "007": "stairway-to-evans.png",
+  "009": "zen-garden-c-f.png",
+  "011": "for-vuck-s-sake-fc.png",
+  "012": "garry-wallah-united-fc.png",
+  "018": "casual-approach.png",
+  "019": "kallo-fc.png",
+  "020": "sauce-fc.png",
+  "021": "alaskan-bull-worms.png",
+  "022": "bc-united-zebras.png",
+  "024": "dw-about-it-fc.png",
+  "025": "fc-tikitoka.png",
+  "026": "give-us-wang.png",
+  "028": "justiceformoon-fc.png",
+  "029": "mongrel-garden.png",
+  "030": "nanistate.png",
+  "034": "zen-pij-fc.png",
+  "037": "best-of-a-bad-bench.png",
+  "040": "frogbert-football.png",
+  "041": "harvey-frekes.png",
+  "042": "sons-of-valhalla.png",
+  "043": "inter-milanovic.png",
+  "049": "victory.png",
+  "050": "victoryrules.png",
+  "052": "3dogs.png",
+  "053": "aarongurdwoodreich.png",
+  "055": "albanian-boars.png",
+  "056": "big-mac-fc.png",
+  "057": "brexit-lads.png",
+  "063": "jerry-the-painter.png",
+  "064": "lalas-leven.png",
+  "065": "loaves-and-fishes.png",
+  "066": "lolley-pop-man.png",
+  "067": "manchesthair-utd.png",
+  "068": "royal-kc-united-fc.png",
+  "069": "silverman-s-xi.png",
+  "072": "the-waine-train.png",
+  "073": "top-kuolity.png",
+  "074": "x2-strange.png",
+  "075": "afc-big-red-port.png",
+  "077": "carnegie-dachshunds-fc.png",
+  "080": "the garucci-show.png",
+  "081": "payne-in-the-neck-fc.png",
+  "082": "reapers-fc.png",
+  "083": "rotorua-united.png",
+  "085": "fully-scicluna.png",
+  "087": "tsatas-dip.png",
+  "088": "the-drone-police.png",
+  "089": "ballers.png",
+  "091": "GALUCTASARY.png",
+  "096": "garncelona.png",
+  "102": "succulent-chinese-meal.png",
+  "103": "ruby-fc.png"
+};
+  function teamLogo(name, size){
+    const key = String(name).toLowerCase().replace(/[^a-z0-9]/g, '');
+    const teams = DATA.admin_teams || [];
+    let matches = teams.filter(t =>
+      String(t.name).toLowerCase().replace(/[^a-z0-9]/g, '') === key
+    );
+    if(!matches.length){
+      matches = teams.filter(t =>
+        String(t.prev_names || '').split(',').some(n =>
+          n.toLowerCase().replace(/[^a-z0-9]/g, '') === key
+        )
+      );
+    }
+    const file = matches.length === 1
+      ? TEAM_LOGO_FILES_BY_ID[String(matches[0].id)] : null;
+    return logoBadge('team', name, size, file
+      ? 'assets/logos/teams/' + encodeURIComponent(file)
+      : 'assets/logos/teams/' + logoSlug(resolveLogoName(name)) + '.png');
+  }
   // Visual-only logo alias, kept as a general-purpose escape hatch -- e.g.
   // if a genuinely new name shows up with no matching real team at all.
   // Turned out unnecessary for the election candidates: "DW Bout It FC"
