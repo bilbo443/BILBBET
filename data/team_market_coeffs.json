@@ -113,20 +113,20 @@
       "relegation_risk": 0.025,
       "variance_widen": 0.26
     },
-    "SONS OF VALHALLA": {
-      "eliza": -0.195,
-      "roddy": -0.152,
-      "fa_cup": -0.152,
-      "ecl": -0.152,
-      "relegation_risk": 0.139,
-      "variance_widen": 0.14
-    },
     "INTER MILANOVIC": {
       "eliza": -0.385,
       "roddy": -0.079,
       "fa_cup": -0.079,
       "ecl": -0.079,
       "relegation_risk": 0.242,
+      "variance_widen": 0.14
+    },
+    "VICTORY": {
+      "eliza": -0.022,
+      "roddy": -0.159,
+      "fa_cup": -0.159,
+      "ecl": -0.159,
+      "relegation_risk": -0.085,
       "variance_widen": 0.14
     },
     "3DOGS": {
@@ -169,6 +169,14 @@
       "relegation_risk": -0.109,
       "variance_widen": 0.26
     },
+    "X2 STRANGE": {
+      "eliza": -0.045,
+      "roddy": -0.172,
+      "fa_cup": -0.172,
+      "ecl": -0.172,
+      "relegation_risk": -0.017,
+      "variance_widen": 0.26
+    },
     "AFC BIG RED PORT": {
       "eliza": 0.162,
       "roddy": 0.246,
@@ -183,14 +191,6 @@
       "fa_cup": 0.126,
       "ecl": 0.126,
       "relegation_risk": -0.045,
-      "variance_widen": 0.38
-    },
-    "REAPERS FC": {
-      "eliza": 0.134,
-      "roddy": 0.208,
-      "fa_cup": 0.208,
-      "ecl": 0.208,
-      "relegation_risk": -0.086,
       "variance_widen": 0.38
     },
     "ROTORUA UNITED": {
@@ -241,6 +241,14 @@
       "relegation_risk": -0.076,
       "variance_widen": 0.02
     },
+    "SONS OF VALHALLA": {
+      "eliza": -0.195,
+      "roddy": -0.152,
+      "fa_cup": -0.152,
+      "ecl": -0.152,
+      "relegation_risk": 0.139,
+      "variance_widen": 0.14
+    },
     "ROYAL KC UNITED FC": {
       "eliza": 0.048,
       "roddy": 0.079,
@@ -255,14 +263,6 @@
       "fa_cup": 0.408,
       "ecl": 0.408,
       "relegation_risk": -0.199,
-      "variance_widen": 0.26
-    },
-    "X2 STRANGE": {
-      "eliza": -0.045,
-      "roddy": -0.172,
-      "fa_cup": -0.172,
-      "ecl": -0.172,
-      "relegation_risk": -0.017,
       "variance_widen": 0.26
     },
     "DEER PARK UNITED": {
@@ -361,14 +361,6 @@
       "relegation_risk": 0.071,
       "variance_widen": 0.02
     },
-    "VICTORY": {
-      "eliza": -0.022,
-      "roddy": -0.159,
-      "fa_cup": -0.159,
-      "ecl": -0.159,
-      "relegation_risk": -0.085,
-      "variance_widen": 0.14
-    },
     "AARONGURDWOODREICH": {
       "eliza": -0.046,
       "roddy": -0.155,
@@ -401,7 +393,7 @@
       "relegation_risk": 0.016,
       "variance_widen": 0.26
     },
-    "LOLLEY POP MAN": {
+    "SYDNEY OLEEE": {
       "eliza": -0.232,
       "roddy": -0.361,
       "fa_cup": -0.361,
@@ -417,7 +409,7 @@
       "relegation_risk": 0.006,
       "variance_widen": 0.38
     },
-    "GOT WOUD?": {
+    "DOG GOES WOOF, PAYNE GOES MEOW": {
       "eliza": 0.0,
       "roddy": 0.0,
       "fa_cup": 0.0,
@@ -425,7 +417,7 @@
       "relegation_risk": 0.0,
       "variance_widen": 0.5
     },
-    "PAYNE IN THE NECK": {
+    "PAYNE IN THE NECK FC": {
       "eliza": -0.299,
       "roddy": -0.444,
       "fa_cup": -0.444,
@@ -457,7 +449,7 @@
       "relegation_risk": 0.0,
       "variance_widen": 0.5
     },
-    "JEREMY": {
+    "PAIN IN DIAS": {
       "eliza": 0.0,
       "roddy": 0.0,
       "fa_cup": 0.0,
@@ -497,7 +489,7 @@
       "relegation_risk": 0.0,
       "variance_widen": 0.5
     },
-    "JYE": {
+    "QUINTASENTIAL FC": {
       "eliza": 0.0,
       "roddy": 0.0,
       "fa_cup": 0.0,
@@ -505,7 +497,7 @@
       "relegation_risk": 0.0,
       "variance_widen": 0.5
     },
-    "ALEX": {
+    "SABITEURS": {
       "eliza": 0.0,
       "roddy": 0.0,
       "fa_cup": 0.0,

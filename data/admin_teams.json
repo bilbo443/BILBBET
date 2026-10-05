@@ -333,7 +333,7 @@
     "player": "DANIEL",
     "year_entered": "2023/24",
     "prev_names": "EL VAGABUNDO, THE GUS BUS, EL TACO DE STEEL, HEILAN COOS",
-    "status": "DIVISION 2A"
+    "status": "DIVISION 2B"
   },
   {
     "id": "043",
@@ -389,7 +389,7 @@
     "player": "LAZAR",
     "year_entered": "2023/24",
     "prev_names": null,
-    "status": "DIVISION 3"
+    "status": "DIVISION 2A"
   },
   {
     "id": "050",
@@ -521,10 +521,10 @@
   },
   {
     "id": "066",
-    "name": "LOLLEY POP MAN",
+    "name": "SYDNEY OLEEE",
     "player": "MATT",
     "year_entered": "2024/25",
-    "prev_names": null,
+    "prev_names": "LOLLEY POP MAN",
     "status": "DIVISION 3"
   },
   {
@@ -589,7 +589,7 @@
     "player": "X2",
     "year_entered": "2024/25",
     "prev_names": null,
-    "status": "DIVISION 2B"
+    "status": "DIVISION 2A"
   },
   {
     "id": "075",
@@ -617,10 +617,10 @@
   },
   {
     "id": "078",
-    "name": "GOT WOUD?",
+    "name": "DOG GOES WOOF, PAYNE GOES MEOW",
     "player": "JOSH",
     "year_entered": "2025/26",
-    "prev_names": "DOG GOES WOOF, PAYNE GOES MEOW",
+    "prev_names": "DOG GOES WOOF, PAYNE GOES MEOW, GOT WOUD?",
     "status": "DIVISION 3"
   },
   {
@@ -641,10 +641,10 @@
   },
   {
     "id": "081",
-    "name": "PAYNE IN THE NECK",
+    "name": "PAYNE IN THE NECK FC",
     "player": "GUY",
     "year_entered": "2025/26",
-    "prev_names": null,
+    "prev_names": "PAYNE IN THE NECK",
     "status": "DIVISION 3"
   },
   {
@@ -653,7 +653,7 @@
     "player": "SHAUN",
     "year_entered": "2025/26",
     "prev_names": null,
-    "status": "DIVISION 2A"
+    "status": "INACTIVE"
   },
   {
     "id": "083",
@@ -714,7 +714,7 @@
   {
     "id": "091",
     "name": "GALUCTASARY",
-    "player": "LAZAR'S MATE 2",
+    "player": "LOCUSV3",
     "year_entered": "2026/27",
     "prev_names": null,
     "status": "DIVISION 3"
@@ -745,10 +745,10 @@
   },
   {
     "id": "095",
-    "name": "JEREMY",
+    "name": "PAIN IN DIAS",
     "player": "JEREMY",
     "year_entered": "2026/27",
-    "prev_names": null,
+    "prev_names": "JEREMY",
     "status": "DIVISION 3"
   },
   {
@@ -785,18 +785,18 @@
   },
   {
     "id": "100",
-    "name": "JYE",
-    "player": "JYE COHEN",
+    "name": "QUINTASENTIAL FC",
+    "player": "JYE",
     "year_entered": "2026/27",
-    "prev_names": null,
+    "prev_names": "JYE",
     "status": "DIVISION 3"
   },
   {
     "id": "101",
-    "name": "ALEX",
-    "player": "ALEX BALDO",
+    "name": "SABITEURS",
+    "player": "ALEX",
     "year_entered": "2026/27",
-    "prev_names": null,
+    "prev_names": "ALEX",
     "status": "DIVISION 3"
   },
   {
