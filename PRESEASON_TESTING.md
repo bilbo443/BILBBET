@@ -754,3 +754,6 @@ Division odds stability: roster and weekly refresh use seed 7, team-ID-specific 
 
 
 Verified Division 2 history repair: IDs 042, 079 and 080 use their own 26 recorded 25/26 scores rather than synthetic conference pools. The ID-keyed source is data/team_score_history_by_id.json and takes priority during roster sync. Prior registry names also participate in matching so a rename retains existing coefficients and history. Older unverified seasons are not invented. These historical inputs require an annual update when another season is incorporated. No balances, bets, carry records or published futures odds are modified by this installer. Review regenerated odds separately.
+
+
+Reviewed weekly odds publication: Carnegie Dachshunds keeps ID 077 and its prior name alias. Verified histories for IDs 042, 079 and 080 are retained. Two identical-input simulations matched the reviewed draft exactly. Current pricing includes the one-time deterministic simulation correction; future unchanged inputs must preserve prices. Final-roster market hold remains enabled. Existing account balances, carry records, logos and accepted bets are preserved.
