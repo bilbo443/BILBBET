@@ -387,7 +387,8 @@ def sync_futures_divisions(new_roster, team_coeffs, scale, history, data_dir, dr
             current = renorm
         return current
 
-    rows, _ = simulate_division_futures(new_roster, team_coeffs, scale, history, [], n_sim=n_sim, seed=seed)
+    rows, _ = simulate_division_futures(new_roster, team_coeffs, scale, history, [],
+        n_sim=n_sim, seed=7, team_ids={t['name']: str(t['id']) for t in (admin_teams or [])})
     by_div = {}
     for r in rows:
         by_div.setdefault(r['division'], []).append(r)
@@ -398,7 +399,7 @@ def sync_futures_divisions(new_roster, team_coeffs, scale, history, data_dir, dr
             if key not in by_div.get(div, [{}])[0]:
                 continue
             entries = [(r['team'], float(r[key])) for r in by_div[div]]
-            floored = floor_and_renormalize(entries, 100.0 * n_qual)
+            floored = entries  # Shared simulator already applies the probability floor.
             market_rows = []
             for t, p in floored:
                 odds = pct_to_odds(p)

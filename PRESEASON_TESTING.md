@@ -748,3 +748,6 @@ Player PIN recovery: use the team name, admin replacement PIN and a confirmed ch
 
 
 October 7 roster publication: 68 active teams; nine confirmed Division 3 assignments, 21 unassigned until the October 11 draw. Technical conference slots remain provisional. Stable IDs, previous-name aliases, ID-based logos and carry records are retained. Leading-at and special markets receive identity-only renames without recalculation. Final-roster market hold remains enabled. No account balances or accepted bets are modified.
+
+
+Division odds stability: roster and weekly refresh use seed 7, team-ID-specific independent random streams, canonical team ordering and the same probability floor. Unchanged inputs, team renames and unrelated conference changes must preserve division prices. Genuine changes to scoring history, coefficients or conference membership may reprice the affected division. Accepted bet odds remain unchanged. This update does not change recency weighting or preseason damping.

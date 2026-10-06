@@ -34,6 +34,8 @@ flagged clearly as such rather than presented as more authoritative than
 it is.
 """
 import json
+import hashlib
+from pathlib import Path
 import numpy as np
 
 TOTAL_ROUNDS = 26
@@ -175,11 +177,11 @@ def shrink_values_toward_pool(values, pool, shrink):
     return values - own_mean + target_mean
 
 
-def make_sampler(values, shift):
+def make_sampler(values, shift, rng=None):
     values = np.round(np.array(values) + shift)
     n = len(values)
     def sample(count):
-        idx = np.random.randint(0, n, count)
+        idx = rng.integers(0, n, count) if rng is not None else np.random.randint(0, n, count)
         return values[idx]
     return sample
 
@@ -203,8 +205,10 @@ def season_schedule(div, teams):
     return round_robin_schedule(teams, TOTAL_ROUNDS)
 
 
-def simulate_division_futures(new_divs, team_coeffs, scale, history, extracted_results, n_sim=N_SIM, seed=7):
-    np.random.seed(seed)
+def simulate_division_futures(new_divs, team_coeffs, scale, history, extracted_results, n_sim=N_SIM, seed=7, team_ids=None):
+    team_ids = team_ids or {}
+    identity = lambda name: str(team_ids.get(name, name))
+    new_divs = {div: sorted(teams, key=identity) for div, teams in sorted(new_divs.items())}
     roster_teams = [t for teams in new_divs.values() for t in teams]
     shifts, adjustments = compute_adjusted_shifts(team_coeffs, scale, history, extracted_results,
                                                     roster_teams=roster_teams, market='eliza')
@@ -225,7 +229,9 @@ def simulate_division_futures(new_divs, team_coeffs, scale, history, extracted_r
             own_values = history.get(t, div_pool[div])
             if t in history:
                 own_values = shrink_values_toward_pool(own_values, div_pool[div], shrink)
-            samplers[t] = make_sampler(own_values, shift)
+            random_seed = int.from_bytes(hashlib.sha256(
+                json.dumps([seed, div, identity(t)]).encode()).digest()[:8], 'big')
+            samplers[t] = make_sampler(own_values, shift, np.random.default_rng(random_seed))
 
     division_schedules = {div: season_schedule(div, teams) for div, teams in new_divs.items()}
     rank_counts = {div: {t: np.zeros(len(teams), dtype=int) for t in teams} for div, teams in new_divs.items()}
@@ -276,7 +282,45 @@ def simulate_division_futures(new_divs, team_coeffs, scale, history, extracted_r
             if is_div3:
                 row['bottom3_pct'] = round(100 * counts[-3:].sum() / n_sim, 2)
             rows.append(row)
-    return rows, adjustments
+    return stable_division_rows(rows), adjustments
+
+
+
+def stable_division_rows(rows, floor_pct=0.5):
+    """Use identical probability flooring in roster and weekly refreshes."""
+    for div in sorted({r['division'] for r in rows}):
+        group = [r for r in rows if r['division'] == div]
+        for key in group[0]:
+            if key in ('division', 'team'):
+                continue
+            size = len(group)
+            target = 100.0 * (3 if key in ('top3_pct', 'bottom3_pct') else
+                size // 2 if key in ('top_half_pct', 'bottom_half_pct') else
+                4 if key == 'relegation_pct' and div.startswith('ELIZA') else
+                3 if key == 'relegation_pct' else 1)
+            pending = list(range(size))
+            values = np.array([r[key] for r in group], dtype=float)
+            result = np.zeros(size)
+            remaining = target
+            while pending:
+                total = sum(values[i] for i in pending)
+                proposed = {
+                    i: remaining * values[i] / total if total
+                    else remaining / len(pending)
+                    for i in pending
+                }
+                small = [i for i in pending if proposed[i] < floor_pct]
+                if not small:
+                    for i in pending:
+                        result[i] = proposed[i]
+                    break
+                for i in small:
+                    result[i] = floor_pct
+                    remaining -= floor_pct
+                pending = [i for i in pending if i not in small]
+            for row, value in zip(group, result):
+                row[key] = float(value)
+    return rows
 
 
 def regenerate_division_futures(extracted_results, coeffs_path='data/team_market_coeffs.json',
@@ -287,5 +331,9 @@ def regenerate_division_futures(extracted_results, coeffs_path='data/team_market
     new_divs = json.load(open(divs_path))
     history = json.load(open(history_path))
 
-    rows, adjustments = simulate_division_futures(new_divs, team_coeffs, scale, history, extracted_results)
+    registry_path = Path(divs_path).with_name('admin_teams.json')
+    registry = json.loads(registry_path.read_text()) if registry_path.exists() else []
+    team_ids = {t['name']: str(t['id']) for t in registry}
+    rows, adjustments = simulate_division_futures(new_divs, team_coeffs, scale, history,
+        extracted_results, seed=7, team_ids=team_ids)
     return {'division_rows': rows, 'live_adjustments_applied': adjustments}
