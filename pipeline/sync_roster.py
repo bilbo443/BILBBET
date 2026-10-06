@@ -241,6 +241,14 @@ def sync_coefficients_and_pools(new_roster, admin_teams, data_dir, draft_dir):
     each time this project has done one), not something this automated
     path attempts on its own."""
     id_by_name = {}
+    prior_path = os.path.join(data_dir, 'admin_teams.json')
+    prior_teams = json.load(open(prior_path)) if os.path.exists(prior_path) else []
+    active_ids = {str(t['id']) for t in admin_teams}
+    for previous in prior_teams:
+        if str(previous['id']) in active_ids:
+            for name in [previous['name']] + str(previous.get('prev_names') or '').split(','):
+                if name.strip():
+                    id_by_name[name.strip().upper()] = previous['id']
     for t in admin_teams:
         id_by_name[t['name'].strip().upper()] = t['id']
         prev = t.get('prev_names')
@@ -250,6 +258,18 @@ def sync_coefficients_and_pools(new_roster, admin_teams, data_dir, draft_dir):
 
     old_tmc = json.load(open(os.path.join(data_dir, 'team_market_coeffs.json')))
     old_history = json.load(open(os.path.join(data_dir, 'roddy_history.json')))
+    verified_path = os.path.join(data_dir, 'team_score_history_by_id.json')
+    verified = json.load(open(verified_path)) if os.path.exists(verified_path) else {}
+    verified_history_by_id = {
+        str(tid): record['scores'] for tid, record in verified.items()
+    }
+    own_history_by_id = {}
+    for old_name, values in old_history.items():
+        tid = id_by_name.get(old_name.strip().upper())
+        if tid is not None and values:
+            own_history_by_id[str(tid)] = values
+    own_history_by_id.update(verified_history_by_id)
+
     old_shift = json.load(open(os.path.join(data_dir, 'h2h_shift.json')))
     old_cup_shift = json.load(open(os.path.join(data_dir, 'h2h_cup_shift.json')))
     old_widen = json.load(open(os.path.join(data_dir, 'h2h_variance_widen.json')))
@@ -276,8 +296,8 @@ def sync_coefficients_and_pools(new_roster, admin_teams, data_dir, draft_dir):
         for t in teams:
             tid = id_by_name.get(t.upper())
             old_entry = old_coeffs_by_id.get(tid)
-            if old_entry:
-                pool.extend(old_history.get(old_entry[0], []))
+            if own_history_by_id.get(str(tid)):
+                pool.extend(own_history_by_id.get(str(tid), []))
         division_pool[div] = pool if pool else [60]
 
     team_division = {t: div for div, teams in new_roster.items() for t in teams}
@@ -290,13 +310,13 @@ def sync_coefficients_and_pools(new_roster, admin_teams, data_dir, draft_dir):
         if old_entry:
             old_name, c = old_entry
             team_coeffs[t] = c
-            history[t] = old_history.get(old_name) or fallback_pool
+            history[t] = own_history_by_id.get(str(tid)) or fallback_pool
             shift[t] = old_shift.get(old_name, round(scale * (c['eliza'] - 0.5 * c['relegation_risk']), 3))
             cup_shift[t] = old_cup_shift.get(old_name, round(scale * c['fa_cup'], 3))
             widen[t] = old_widen.get(old_name, c.get('variance_widen', 0.0))
         else:
             team_coeffs[t] = neutral
-            history[t] = fallback_pool
+            history[t] = own_history_by_id.get(str(tid)) or fallback_pool
             shift[t] = 0.0
             cup_shift[t] = 0.0
             widen[t] = 0.5

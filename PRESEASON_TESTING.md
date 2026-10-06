@@ -751,3 +751,6 @@ October 7 roster publication: 68 active teams; nine confirmed Division 3 assignm
 
 
 Division odds stability: roster and weekly refresh use seed 7, team-ID-specific independent random streams, canonical team ordering and the same probability floor. Unchanged inputs, team renames and unrelated conference changes must preserve division prices. Genuine changes to scoring history, coefficients or conference membership may reprice the affected division. Accepted bet odds remain unchanged. This update does not change recency weighting or preseason damping.
+
+
+Verified Division 2 history repair: IDs 042, 079 and 080 use their own 26 recorded 25/26 scores rather than synthetic conference pools. The ID-keyed source is data/team_score_history_by_id.json and takes priority during roster sync. Prior registry names also participate in matching so a rename retains existing coefficients and history. Older unverified seasons are not invented. These historical inputs require an annual update when another season is incorporated. No balances, bets, carry records or published futures odds are modified by this installer. Review regenerated odds separately.
