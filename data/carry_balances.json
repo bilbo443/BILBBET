@@ -107,6 +107,18 @@
       "voidReturn": 0.0
     }
   },
+  "SONS OF VALHALLA": {
+    "carry": 0.0,
+    "historicalRecord": {
+      "totalBets": 0,
+      "winningBets": 0,
+      "winnings": 0.0,
+      "losingBets": 0,
+      "losses": 0.0,
+      "voidBets": 0,
+      "voidReturn": 0.0
+    }
+  },
   "JARVIS ZEBRAS": {
     "carry": 40000.2,
     "historicalRecord": {
@@ -467,7 +479,7 @@
       "voidReturn": 0.0
     }
   },
-  "SONS OF VALHALLA": {
+  "RIO'S RHINOS": {
     "carry": 0.0,
     "historicalRecord": {
       "totalBets": 0,
@@ -563,7 +575,7 @@
       "voidReturn": 0.0
     }
   },
-  "THE MALTESE KNIGHTS": {
+  "TBCFC": {
     "carry": 0.0,
     "historicalRecord": {
       "totalBets": 0,
@@ -575,7 +587,7 @@
       "voidReturn": 0.0
     }
   },
-  "GARRY WALLAH UNITED FC": {
+  "GARRY WALLAH UNITED": {
     "carry": 0.0,
     "historicalRecord": {
       "totalBets": 0,
@@ -612,6 +624,18 @@
     }
   },
   "AARONGURDWOODREICH": {
+    "carry": 0.0,
+    "historicalRecord": {
+      "totalBets": 0,
+      "winningBets": 0,
+      "winnings": 0.0,
+      "losingBets": 0,
+      "losses": 0.0,
+      "voidBets": 0,
+      "voidReturn": 0.0
+    }
+  },
+  "BREXIT LADS": {
     "carry": 0.0,
     "historicalRecord": {
       "totalBets": 0,
@@ -671,6 +695,30 @@
       "voidReturn": 0.0
     }
   },
+  "GALUCTASARY": {
+    "carry": 0.0,
+    "historicalRecord": {
+      "totalBets": 0,
+      "winningBets": 0,
+      "winnings": 0.0,
+      "losingBets": 0,
+      "losses": 0.0,
+      "voidBets": 0,
+      "voidReturn": 0.0
+    }
+  },
+  "SK STURM MELBOURNE": {
+    "carry": 0.0,
+    "historicalRecord": {
+      "totalBets": 0,
+      "winningBets": 0,
+      "winnings": 0.0,
+      "losingBets": 0,
+      "losses": 0.0,
+      "voidBets": 0,
+      "voidReturn": 0.0
+    }
+  },
   "NUKEFORREST NUKES": {
     "carry": 0.0,
     "historicalRecord": {
@@ -707,18 +755,6 @@
       "voidReturn": 0.0
     }
   },
-  "BREXIT LADS": {
-    "carry": 0.0,
-    "historicalRecord": {
-      "totalBets": 0,
-      "winningBets": 0,
-      "winnings": 0.0,
-      "losingBets": 0,
-      "losses": 0.0,
-      "voidBets": 0,
-      "voidReturn": 0.0
-    }
-  },
   "PAW PATROL UNITED": {
     "carry": 0.0,
     "historicalRecord": {
@@ -732,6 +768,54 @@
     }
   },
   "SYDNEY OLEEE": {
+    "carry": 0.0,
+    "historicalRecord": {
+      "totalBets": 0,
+      "winningBets": 0,
+      "winnings": 0.0,
+      "losingBets": 0,
+      "losses": 0.0,
+      "voidBets": 0,
+      "voidReturn": 0.0
+    }
+  },
+  "GARNCELONA": {
+    "carry": 0.0,
+    "historicalRecord": {
+      "totalBets": 0,
+      "winningBets": 0,
+      "winnings": 0.0,
+      "losingBets": 0,
+      "losses": 0.0,
+      "voidBets": 0,
+      "voidReturn": 0.0
+    }
+  },
+  "RUBY FC": {
+    "carry": 0.0,
+    "historicalRecord": {
+      "totalBets": 0,
+      "winningBets": 0,
+      "winnings": 0.0,
+      "losingBets": 0,
+      "losses": 0.0,
+      "voidBets": 0,
+      "voidReturn": 0.0
+    }
+  },
+  "DADDY VALKANIS & SONS": {
+    "carry": 0.0,
+    "historicalRecord": {
+      "totalBets": 0,
+      "winningBets": 0,
+      "winnings": 0.0,
+      "losingBets": 0,
+      "losses": 0.0,
+      "voidBets": 0,
+      "voidReturn": 0.0
+    }
+  },
+  "KRANSKY FC": {
     "carry": 0.0,
     "historicalRecord": {
       "totalBets": 0,

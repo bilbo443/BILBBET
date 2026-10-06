@@ -241,13 +241,13 @@
       "relegation_risk": -0.076,
       "variance_widen": 0.02
     },
-    "SONS OF VALHALLA": {
-      "eliza": -0.195,
-      "roddy": -0.152,
-      "fa_cup": -0.152,
-      "ecl": -0.152,
-      "relegation_risk": 0.139,
-      "variance_widen": 0.14
+    "RIO'S RHINOS": {
+      "eliza": 0.0,
+      "roddy": 0.0,
+      "fa_cup": 0.0,
+      "ecl": 0.0,
+      "relegation_risk": 0.0,
+      "variance_widen": 0.5
     },
     "ROYAL KC UNITED FC": {
       "eliza": 0.048,
@@ -305,6 +305,78 @@
       "relegation_risk": -0.014,
       "variance_widen": 0.38
     },
+    "TBCFC": {
+      "eliza": -0.38,
+      "roddy": -0.525,
+      "fa_cup": -0.525,
+      "ecl": -0.525,
+      "relegation_risk": 0.156,
+      "variance_widen": 0.26
+    },
+    "GARRY WALLAH UNITED": {
+      "eliza": 0.053,
+      "roddy": -0.105,
+      "fa_cup": -0.105,
+      "ecl": -0.105,
+      "relegation_risk": -0.073,
+      "variance_widen": 0.02
+    },
+    "BREXIT LADS": {
+      "eliza": -0.4,
+      "roddy": -0.554,
+      "fa_cup": -0.554,
+      "ecl": -0.554,
+      "relegation_risk": 0.189,
+      "variance_widen": 0.26
+    },
+    "GALUCTASARY": {
+      "eliza": 0.0,
+      "roddy": 0.0,
+      "fa_cup": 0.0,
+      "ecl": 0.0,
+      "relegation_risk": 0.0,
+      "variance_widen": 0.5
+    },
+    "SK STURM MELBOURNE": {
+      "eliza": 0.0,
+      "roddy": 0.0,
+      "fa_cup": 0.0,
+      "ecl": 0.0,
+      "relegation_risk": 0.0,
+      "variance_widen": 0.5
+    },
+    "GARNCELONA": {
+      "eliza": 0.0,
+      "roddy": 0.0,
+      "fa_cup": 0.0,
+      "ecl": 0.0,
+      "relegation_risk": 0.0,
+      "variance_widen": 0.5
+    },
+    "RUBY FC": {
+      "eliza": 0.0,
+      "roddy": 0.0,
+      "fa_cup": 0.0,
+      "ecl": 0.0,
+      "relegation_risk": 0.0,
+      "variance_widen": 0.5
+    },
+    "DADDY VALKANIS & SONS": {
+      "eliza": 0.0,
+      "roddy": 0.0,
+      "fa_cup": 0.0,
+      "ecl": 0.0,
+      "relegation_risk": 0.0,
+      "variance_widen": 0.5
+    },
+    "KRANSKY FC": {
+      "eliza": 0.0,
+      "roddy": 0.0,
+      "fa_cup": 0.0,
+      "ecl": 0.0,
+      "relegation_risk": 0.0,
+      "variance_widen": 0.5
+    },
     "NUKEFORREST NUKES": {
       "eliza": -0.459,
       "roddy": -0.381,
@@ -313,14 +385,6 @@
       "relegation_risk": 0.237,
       "variance_widen": 0.14
     },
-    "THE MALTESE KNIGHTS": {
-      "eliza": -0.38,
-      "roddy": -0.525,
-      "fa_cup": -0.525,
-      "ecl": -0.525,
-      "relegation_risk": 0.156,
-      "variance_widen": 0.26
-    },
     "FOR VUCK'S SAKE FC": {
       "eliza": 0.05,
       "roddy": -0.091,
@@ -328,14 +392,6 @@
       "ecl": -0.091,
       "relegation_risk": 0.025,
       "variance_widen": 0.26
-    },
-    "GARRY WALLAH UNITED FC": {
-      "eliza": 0.053,
-      "roddy": -0.105,
-      "fa_cup": -0.105,
-      "ecl": -0.105,
-      "relegation_risk": -0.073,
-      "variance_widen": 0.02
     },
     "THE 2ND JARV ADMINISTRATION": {
       "eliza": -0.226,
@@ -367,14 +423,6 @@
       "fa_cup": -0.155,
       "ecl": -0.155,
       "relegation_risk": 0.161,
-      "variance_widen": 0.26
-    },
-    "BREXIT LADS": {
-      "eliza": -0.4,
-      "roddy": -0.554,
-      "fa_cup": -0.554,
-      "ecl": -0.554,
-      "relegation_risk": 0.189,
       "variance_widen": 0.26
     },
     "PAW PATROL UNITED": {
@@ -425,22 +473,6 @@
       "relegation_risk": 0.163,
       "variance_widen": 0.38
     },
-    "GALUCTASARY": {
-      "eliza": 0.0,
-      "roddy": 0.0,
-      "fa_cup": 0.0,
-      "ecl": 0.0,
-      "relegation_risk": 0.0,
-      "variance_widen": 0.5
-    },
-    "SK STURM MELBOURNE": {
-      "eliza": 0.0,
-      "roddy": 0.0,
-      "fa_cup": 0.0,
-      "ecl": 0.0,
-      "relegation_risk": 0.0,
-      "variance_widen": 0.5
-    },
     "SILVO'S SQUAD": {
       "eliza": 0.0,
       "roddy": 0.0,
@@ -450,14 +482,6 @@
       "variance_widen": 0.5
     },
     "PAIN IN DIAS": {
-      "eliza": 0.0,
-      "roddy": 0.0,
-      "fa_cup": 0.0,
-      "ecl": 0.0,
-      "relegation_risk": 0.0,
-      "variance_widen": 0.5
-    },
-    "GARNCELONA": {
       "eliza": 0.0,
       "roddy": 0.0,
       "fa_cup": 0.0,
@@ -506,30 +530,6 @@
       "variance_widen": 0.5
     },
     "SUCCULENT CHINESE MEAL": {
-      "eliza": 0.0,
-      "roddy": 0.0,
-      "fa_cup": 0.0,
-      "ecl": 0.0,
-      "relegation_risk": 0.0,
-      "variance_widen": 0.5
-    },
-    "RUBY FC": {
-      "eliza": 0.0,
-      "roddy": 0.0,
-      "fa_cup": 0.0,
-      "ecl": 0.0,
-      "relegation_risk": 0.0,
-      "variance_widen": 0.5
-    },
-    "DADDY VALKANIS & SONS": {
-      "eliza": 0.0,
-      "roddy": 0.0,
-      "fa_cup": 0.0,
-      "ecl": 0.0,
-      "relegation_risk": 0.0,
-      "variance_widen": 0.5
-    },
-    "KRANSKY FC": {
       "eliza": 0.0,
       "roddy": 0.0,
       "fa_cup": 0.0,

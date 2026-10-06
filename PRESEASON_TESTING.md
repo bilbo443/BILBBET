@@ -745,3 +745,6 @@ Archived Last to Join markets are hidden from both Home and Admin. Their VOID re
 
 
 Player PIN recovery: use the team name, admin replacement PIN and a confirmed chosen PIN. Recovery authenticates through existing login limits, preserves account IDs, balances, bets, tips and manual carry corrections, and revokes prior sessions. Existing issued replacement PINs also work.
+
+
+October 7 roster publication: 68 active teams; nine confirmed Division 3 assignments, 21 unassigned until the October 11 draw. Technical conference slots remain provisional. Stable IDs, previous-name aliases, ID-based logos and carry records are retained. Leading-at and special markets receive identity-only renames without recalculation. Final-roster market hold remains enabled. No account balances or accepted bets are modified.
