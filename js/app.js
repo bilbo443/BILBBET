@@ -135,7 +135,7 @@
     }
     files.forEach((name, i) => { DATA[name] = results[i]; });
     if(DATA.roster_rules.final_roster_market_hold){
-      for(const key of ['roddy','fa_cup_markets'])
+      for(const key of (DATA.roster_rules.roddy_markets_ready ? ['fa_cup_markets'] : ['roddy','fa_cup_markets']))
         for(const rows of Object.values(DATA.futures[key] || {})) for(const row of rows) row.suspended = true;
       for(const [div, markets] of Object.entries(DATA.futures.divisions || {}))
         if(div.startsWith('DIVISION 3')) for(const rows of Object.values(markets)) for(const row of rows) row.suspended = true;
@@ -505,6 +505,7 @@
   function finalRosterMarketHeld(id){
     if(!ROSTER_RULES.final_roster_market_hold) return false;
     const parts = id.split('|');
+    if(parts[0] === 'FUT' && parts[1] === 'RODDY' && ROSTER_RULES.roddy_markets_ready) return false;
     if(parts[0] === 'FACUP' || parts[0] === 'FUT' && parts[1] === 'RODDY' || parts[0] === 'LEADAT' && parts[1] === 'RODDY') return true;
     if(parts[0] === 'SPECIALFIX' && ['charity','philanthropy'].includes(parts[1])) return true;
     const pool = (DATA.admin_teams || []).filter(t => String(t.status).startsWith('DIVISION 3')).map(t => t.name);
@@ -518,7 +519,7 @@
     }
     if(finalRosterMarketHeld(id)) return true;
     if(partialRelease() && id.startsWith('H2H|') && (FIXTURES_ARE_PLACEHOLDER || !state.h2hRealScheduleConfirmed)) return true;
-    if(partialRelease()){
+    if(partialRelease() && !(id.startsWith('FUT|RODDY|') && ROSTER_RULES.roddy_markets_ready)){
       const parts = id.split('|');
       if(parts.some(part => part.startsWith('DIVISION 3') ||
         DIV3_CONFERENCES.some(div => (H2H_DIVISIONS[div] || []).includes(part)))) return true;

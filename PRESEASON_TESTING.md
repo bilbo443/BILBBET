@@ -779,3 +779,14 @@ Roddy newcomer ability model:
 - Review after three scored rounds; automatic fading is not implemented.
 - Model must be reviewed for subsequent seasons before reuse.
 - Draft comparison and repeatability checks required before publication.
+
+
+Roddy publication, 12 October 2026:
+- Published reviewed 66-team Roddy prices using subjective newcomer ability model.
+- Roddy readiness is separate from final_roster_market_hold.
+- Cup, Division 3 and unfinished leading-at/special markets remain held.
+- Non-Roddy prices and fixtures retained, with identity renames only.
+- Previous names retained, including Drummoyne Terriers.
+- Identical alias records consolidated without adding carry amounts.
+- No account balances, accepted bets or settlement records changed.
+- Drone Police manual carry correction must not be credited again.

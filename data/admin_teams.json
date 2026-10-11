@@ -12,7 +12,7 @@
     "name": "JARVIS ZEBRAS",
     "player": "CHRIS",
     "year_entered": "2012/13",
-    "prev_names": "",
+    "prev_names": null,
     "status": "ELIZA CUP"
   },
   {
@@ -21,14 +21,14 @@
     "player": "AIDAN",
     "year_entered": "2012/13",
     "prev_names": "PAIN F.C",
-    "status": "DIVISION 3"
+    "status": "INACTIVE"
   },
   {
     "id": "004",
     "name": "LINDON-CHEVELLA FC",
     "player": "BEN",
     "year_entered": "2012/13",
-    "prev_names": "",
+    "prev_names": null,
     "status": "INACTIVE"
   },
   {
@@ -60,7 +60,7 @@
     "name": "FUTB\u00d3L DE NANG",
     "player": null,
     "year_entered": "2016/17",
-    "prev_names": "",
+    "prev_names": null,
     "status": "INACTIVE"
   },
   {
@@ -76,7 +76,7 @@
     "name": "BOZZAS COKE FC",
     "player": null,
     "year_entered": null,
-    "prev_names": "",
+    "prev_names": null,
     "status": "INACTIVE"
   },
   {
@@ -84,7 +84,7 @@
     "name": "FOR VUCK'S SAKE FC",
     "player": "DAVE",
     "year_entered": null,
-    "prev_names": "",
+    "prev_names": null,
     "status": "DIVISION 3"
   },
   {
@@ -100,7 +100,7 @@
     "name": "KING GRAYSKULL",
     "player": null,
     "year_entered": null,
-    "prev_names": "",
+    "prev_names": null,
     "status": "INACTIVE"
   },
   {
@@ -108,15 +108,15 @@
     "name": "THE 2ND JARV ADMINISTRATION",
     "player": "MAX",
     "year_entered": null,
-    "prev_names": "",
-    "status": "DIVISION 3"
+    "prev_names": null,
+    "status": "INACTIVE"
   },
   {
     "id": "015",
     "name": "NO PINTS NO PARTY",
     "player": null,
     "year_entered": null,
-    "prev_names": "",
+    "prev_names": null,
     "status": "INACTIVE"
   },
   {
@@ -132,7 +132,7 @@
     "name": "THE NOODS",
     "player": null,
     "year_entered": null,
-    "prev_names": "",
+    "prev_names": null,
     "status": "INACTIVE"
   },
   {
@@ -140,7 +140,7 @@
     "name": "CASUAL APPROACH",
     "player": "ANDREW",
     "year_entered": "2021/22",
-    "prev_names": "",
+    "prev_names": null,
     "status": "DIVISION 2B"
   },
   {
@@ -148,7 +148,7 @@
     "name": "KALLO FC",
     "player": "DAN",
     "year_entered": "2021/22",
-    "prev_names": "",
+    "prev_names": null,
     "status": "ELIZA CUP"
   },
   {
@@ -180,7 +180,7 @@
     "name": "BIG V",
     "player": null,
     "year_entered": "2022/23",
-    "prev_names": "",
+    "prev_names": null,
     "status": "INACTIVE"
   },
   {
@@ -188,7 +188,7 @@
     "name": "DW ABOUT IT FC",
     "player": "AYDEN",
     "year_entered": "2022/23",
-    "prev_names": "",
+    "prev_names": null,
     "status": "ELIZA CUP"
   },
   {
@@ -197,7 +197,7 @@
     "player": "OZ",
     "year_entered": "2022/23",
     "prev_names": "FENERBAHCE, AL-ABAMA, DIDDY OIL IT FC",
-    "status": "DIVISION 3"
+    "status": "INACTIVE"
   },
   {
     "id": "026",
@@ -212,7 +212,7 @@
     "name": "ITSMYFIRSTDAY",
     "player": null,
     "year_entered": "2022/23",
-    "prev_names": "",
+    "prev_names": null,
     "status": "INACTIVE"
   },
   {
@@ -236,7 +236,7 @@
     "name": "NANISTATE",
     "player": "MAX",
     "year_entered": "2022/23",
-    "prev_names": "",
+    "prev_names": null,
     "status": "ELIZA CUP"
   },
   {
@@ -244,7 +244,7 @@
     "name": "SLIPPERY FISH",
     "player": null,
     "year_entered": "2022/23",
-    "prev_names": "",
+    "prev_names": null,
     "status": "INACTIVE"
   },
   {
@@ -276,7 +276,7 @@
     "name": "#GOTWOOD",
     "player": null,
     "year_entered": "2023/24",
-    "prev_names": "",
+    "prev_names": null,
     "status": "INACTIVE"
   },
   {
@@ -284,7 +284,7 @@
     "name": "ALEAGUEALLSTARS",
     "player": null,
     "year_entered": "2023/24",
-    "prev_names": "",
+    "prev_names": null,
     "status": "INACTIVE"
   },
   {
@@ -298,17 +298,17 @@
   {
     "id": "038",
     "name": "BORATVERYNICE",
-    "player": null,
+    "player": "HELLOWORLD",
     "year_entered": "2023/24",
-    "prev_names": "",
-    "status": "INACTIVE"
+    "prev_names": null,
+    "status": "DIVISION 3"
   },
   {
     "id": "039",
     "name": "CROMER CROCODILES",
     "player": null,
     "year_entered": "2023/24",
-    "prev_names": "",
+    "prev_names": null,
     "status": "INACTIVE"
   },
   {
@@ -316,7 +316,7 @@
     "name": "FROGBERT FOOTBALL",
     "player": "ROBERT",
     "year_entered": "2023/24",
-    "prev_names": "",
+    "prev_names": null,
     "status": "ELIZA CUP"
   },
   {
@@ -356,7 +356,7 @@
     "name": "JFT ESPORTS",
     "player": null,
     "year_entered": "2023/24",
-    "prev_names": "",
+    "prev_names": null,
     "status": "INACTIVE"
   },
   {
@@ -364,23 +364,23 @@
     "name": "KUOL RUNNINGS",
     "player": null,
     "year_entered": "2023/24",
-    "prev_names": "",
+    "prev_names": null,
     "status": "INACTIVE"
   },
   {
     "id": "047",
     "name": "MACCA'S STARS",
-    "player": null,
+    "player": "BRAYDEN",
     "year_entered": "2023/24",
-    "prev_names": "",
-    "status": "INACTIVE"
+    "prev_names": null,
+    "status": "DIVISION 3"
   },
   {
     "id": "048",
     "name": "TOBY'S TROOPS",
     "player": "TOBY",
     "year_entered": "2023/24",
-    "prev_names": "",
+    "prev_names": null,
     "status": "INACTIVE"
   },
   {
@@ -388,7 +388,7 @@
     "name": "VICTORY",
     "player": "LAZAR",
     "year_entered": "2023/24",
-    "prev_names": "",
+    "prev_names": null,
     "status": "DIVISION 2A"
   },
   {
@@ -396,7 +396,7 @@
     "name": "VICTORYRULES",
     "player": "WAYNE",
     "year_entered": "2023/24",
-    "prev_names": "",
+    "prev_names": null,
     "status": "ELIZA CUP"
   },
   {
@@ -412,7 +412,7 @@
     "name": "3DOGS",
     "player": "ROCHELLE",
     "year_entered": "2024/25",
-    "prev_names": "",
+    "prev_names": null,
     "status": "DIVISION 2A"
   },
   {
@@ -420,7 +420,7 @@
     "name": "AARONGURDWOODREICH",
     "player": "CORIN",
     "year_entered": "2024/25",
-    "prev_names": "",
+    "prev_names": null,
     "status": "DIVISION 3"
   },
   {
@@ -428,7 +428,7 @@
     "name": "AI FC",
     "player": null,
     "year_entered": "2024/25",
-    "prev_names": "",
+    "prev_names": null,
     "status": "INACTIVE"
   },
   {
@@ -452,7 +452,7 @@
     "name": "BREXIT LADS",
     "player": "MARK",
     "year_entered": "2024/25",
-    "prev_names": "",
+    "prev_names": null,
     "status": "DIVISION 3A"
   },
   {
@@ -468,7 +468,7 @@
     "name": "CALUM",
     "player": null,
     "year_entered": "2024/25",
-    "prev_names": "",
+    "prev_names": null,
     "status": "INACTIVE"
   },
   {
@@ -476,7 +476,7 @@
     "name": "CAPTAIN CLOUGH",
     "player": null,
     "year_entered": "2024/25",
-    "prev_names": "",
+    "prev_names": null,
     "status": "INACTIVE"
   },
   {
@@ -484,7 +484,7 @@
     "name": "HAKUNA JUAN MATA",
     "player": null,
     "year_entered": "2024/25",
-    "prev_names": "",
+    "prev_names": null,
     "status": "INACTIVE"
   },
   {
@@ -508,15 +508,15 @@
     "name": "LALAS LEVEN",
     "player": "LAURENCE",
     "year_entered": "2024/25",
-    "prev_names": "",
+    "prev_names": null,
     "status": "DIVISION 2A"
   },
   {
     "id": "065",
-    "name": "LOAVES AND FISHES",
+    "name": "LOAVES & FISHES",
     "player": "ANTONIO",
     "year_entered": "2024/25",
-    "prev_names": "JESUS IS KING",
+    "prev_names": "JESUS IS KING, LOAVES AND FISHES",
     "status": "DIVISION 3"
   },
   {
@@ -532,15 +532,15 @@
     "name": "MANCHESTHAIR UTD",
     "player": "SCOTT",
     "year_entered": "2024/25",
-    "prev_names": "",
+    "prev_names": null,
     "status": "DIVISION 2A"
   },
   {
     "id": "068",
-    "name": "ROYAL KC UNITED FC",
+    "name": "RICKY DIACO FC",
     "player": "KYLE",
     "year_entered": "2024/25",
-    "prev_names": "",
+    "prev_names": "ROYAL KC UNITED FC",
     "status": "DIVISION 2B"
   },
   {
@@ -548,7 +548,7 @@
     "name": "SILVERMAN'S XI",
     "player": "LUKE",
     "year_entered": "2024/25",
-    "prev_names": "",
+    "prev_names": null,
     "status": "DIVISION 2B"
   },
   {
@@ -556,7 +556,7 @@
     "name": "ST DOMINGOS",
     "player": null,
     "year_entered": "2024/25",
-    "prev_names": "",
+    "prev_names": null,
     "status": "INACTIVE"
   },
   {
@@ -564,7 +564,7 @@
     "name": "SUPER FREKE",
     "player": null,
     "year_entered": "2024/25",
-    "prev_names": "",
+    "prev_names": null,
     "status": "INACTIVE"
   },
   {
@@ -572,7 +572,7 @@
     "name": "THE WAINE TRAIN",
     "player": "NICHOLAS",
     "year_entered": "2024/25",
-    "prev_names": "",
+    "prev_names": null,
     "status": "DIVISION 2A"
   },
   {
@@ -580,7 +580,7 @@
     "name": "TOP KUOLITY",
     "player": "DAVID",
     "year_entered": "2024/25",
-    "prev_names": "",
+    "prev_names": null,
     "status": "ELIZA CUP"
   },
   {
@@ -588,7 +588,7 @@
     "name": "X2 STRANGE",
     "player": "X2",
     "year_entered": "2024/25",
-    "prev_names": "",
+    "prev_names": null,
     "status": "DIVISION 2A"
   },
   {
@@ -596,7 +596,7 @@
     "name": "AFC BIG RED PORT",
     "player": "BIG RED",
     "year_entered": "2025/26",
-    "prev_names": "",
+    "prev_names": null,
     "status": "DIVISION 2A"
   },
   {
@@ -617,10 +617,10 @@
   },
   {
     "id": "078",
-    "name": "DOG GOES WOOF, PAYNE GOES MEOW",
+    "name": "GOT WOUD?",
     "player": "JOSH",
     "year_entered": "2025/26",
-    "prev_names": "DOG GOES WOOF, PAYNE GOES MEOW, GOT WOUD?",
+    "prev_names": "DOG GOES WOOF, PAYNE GOES MEOW, DOG GOES WOOF, PAYNE GOES MEOW",
     "status": "DIVISION 3"
   },
   {
@@ -628,7 +628,7 @@
     "name": "DEER PARK UNITED",
     "player": "ANTHONY",
     "year_entered": "2025/26",
-    "prev_names": "",
+    "prev_names": null,
     "status": "DIVISION 2B"
   },
   {
@@ -652,7 +652,7 @@
     "name": "REAPERS FC",
     "player": "SHAUN",
     "year_entered": "2025/26",
-    "prev_names": "",
+    "prev_names": null,
     "status": "INACTIVE"
   },
   {
@@ -660,7 +660,7 @@
     "name": "ROTORUA UNITED",
     "player": "RYAN",
     "year_entered": "2025/26",
-    "prev_names": "",
+    "prev_names": null,
     "status": "DIVISION 2A"
   },
   {
@@ -668,7 +668,7 @@
     "name": "SHANENIGANS",
     "player": "SHA",
     "year_entered": "2025/26",
-    "prev_names": "",
+    "prev_names": null,
     "status": "INACTIVE"
   },
   {
@@ -700,7 +700,7 @@
     "name": "BALLERS",
     "player": "JORDAN",
     "year_entered": "2025/26",
-    "prev_names": "",
+    "prev_names": null,
     "status": "DIVISION 2B"
   },
   {
@@ -708,7 +708,7 @@
     "name": "MELBCITYGUY",
     "player": "ALAS",
     "year_entered": "2025/26",
-    "prev_names": "",
+    "prev_names": null,
     "status": "INACTIVE"
   },
   {
@@ -716,7 +716,7 @@
     "name": "GALUCTASARY",
     "player": "LOCUSV3",
     "year_entered": "2026/27",
-    "prev_names": "",
+    "prev_names": null,
     "status": "DIVISION 3A"
   },
   {
@@ -724,7 +724,7 @@
     "name": "SK STURM MELBOURNE",
     "player": "ALVIUS",
     "year_entered": "2026/27",
-    "prev_names": "",
+    "prev_names": null,
     "status": "DIVISION 3A"
   },
   {
@@ -732,7 +732,7 @@
     "name": "DAVIES ELITE",
     "player": null,
     "year_entered": null,
-    "prev_names": "",
+    "prev_names": null,
     "status": "INACTIVE"
   },
   {
@@ -740,7 +740,7 @@
     "name": "SILVO'S SQUAD",
     "player": "SILVO",
     "year_entered": "2026/27",
-    "prev_names": "",
+    "prev_names": null,
     "status": "DIVISION 3"
   },
   {
@@ -756,7 +756,7 @@
     "name": "GARNCELONA",
     "player": "GARNY",
     "year_entered": "2026/27",
-    "prev_names": "",
+    "prev_names": null,
     "status": "DIVISION 3B"
   },
   {
@@ -764,23 +764,23 @@
     "name": "SHAQNADO 2: RETURN OF THE SHAQ",
     "player": "JACOB",
     "year_entered": "2026/27",
-    "prev_names": "",
+    "prev_names": null,
     "status": "DIVISION 3"
   },
   {
     "id": "098",
-    "name": "BRAYDEN",
-    "player": "BRAYDEN",
+    "name": "PLACEHOLDER 1",
+    "player": "PLACEHOLDER 1",
     "year_entered": "2026/27",
-    "prev_names": "",
-    "status": "DIVISION 3"
+    "prev_names": "BRAYDEN",
+    "status": "INACTIVE"
   },
   {
     "id": "099",
-    "name": "BRANDON'S MATE",
-    "player": "BRANDON'S MATE",
+    "name": "DRUMMOYNE TERRIERS",
+    "player": "BRAZ",
     "year_entered": "2026/27",
-    "prev_names": "",
+    "prev_names": "BRANDON'S MATE, FROG'S MATE",
     "status": "DIVISION 3"
   },
   {
@@ -801,10 +801,10 @@
   },
   {
     "id": "102",
-    "name": "SUCCULENT CHINESE MEAL",
+    "name": "E/MELB SUCCULENT CHINESE MEAL",
     "player": "BENJAMIN",
     "year_entered": "2026/27",
-    "prev_names": "",
+    "prev_names": "SUCCULENT CHINESE MEAL",
     "status": "DIVISION 3"
   },
   {
@@ -820,7 +820,7 @@
     "name": "DADDY VALKANIS & SONS",
     "player": "MEAPA",
     "year_entered": "2026/27",
-    "prev_names": "",
+    "prev_names": null,
     "status": "DIVISION 3B"
   },
   {
@@ -828,7 +828,7 @@
     "name": "KRANSKY FC",
     "player": "JONEZY",
     "year_entered": "2026/27",
-    "prev_names": "",
+    "prev_names": null,
     "status": "DIVISION 3B"
   },
   {
@@ -836,7 +836,7 @@
     "name": "CONCEICAO",
     "player": "HARPER",
     "year_entered": "2026/27",
-    "prev_names": "",
+    "prev_names": null,
     "status": "DIVISION 3"
   }
 ]
