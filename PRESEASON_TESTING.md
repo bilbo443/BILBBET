@@ -768,3 +768,14 @@ Newcomer Roddy assessments:
 - Review after three scored rounds; automatic fading is not implemented.
 - Weekly division-only refresh does not recalculate Roddy.
 - Review generated Roddy prices before publishing; cup and Division 3 holds remain.
+
+
+Roddy newcomer ability model:
+- Uses reviewed one-point season-level ability uncertainty, matched by team ID.
+- Replaces earlier coefficient bonuses for modelled teams; does not stack them.
+- Ability draws use a separate seeded generator, leaving FA Cup random draws unchanged.
+- Preserves base coefficients and individual/fallback histories.
+- Subjective mean shifts are fixed preseason estimates, not measured ability.
+- Review after three scored rounds; automatic fading is not implemented.
+- Model must be reviewed for subsequent seasons before reuse.
+- Draft comparison and repeatability checks required before publication.

@@ -1,0 +1,79 @@
+{
+  "season": "2026-27",
+  "enabled": true,
+  "basis": "Subjective preseason estimates; not verified scoring history",
+  "review_after_scored_rounds": 3,
+  "automatic_decay": false,
+  "teams": {
+    "094": {
+      "name": "SILVO'S SQUAD",
+      "weekly_mean_shift": 19.596338272094727,
+      "weekly_ability_sd": 1.0
+    },
+    "102": {
+      "name": "E/MELB SUCCULENT CHINESE MEAL",
+      "weekly_mean_shift": 13.050222396850586,
+      "weekly_ability_sd": 1.0
+    },
+    "103": {
+      "name": "RUBY FC",
+      "weekly_mean_shift": 6.390142440795898,
+      "weekly_ability_sd": 1.0
+    },
+    "106": {
+      "name": "CONCEICAO",
+      "weekly_mean_shift": 6.374883651733398,
+      "weekly_ability_sd": 1.0
+    },
+    "099": {
+      "name": "DRUMMOYNE TERRIERS",
+      "weekly_mean_shift": 0.22568871212598768,
+      "weekly_ability_sd": 1.0
+    },
+    "091": {
+      "name": "GALUCTASARY",
+      "weekly_mean_shift": 0.22568871212598768,
+      "weekly_ability_sd": 1.0
+    },
+    "092": {
+      "name": "SK STURM MELBOURNE",
+      "weekly_mean_shift": 0.22568871212598768,
+      "weekly_ability_sd": 1.0
+    },
+    "104": {
+      "name": "DADDY VALKANIS & SONS",
+      "weekly_mean_shift": 0.07522957070866255,
+      "weekly_ability_sd": 1.0
+    },
+    "100": {
+      "name": "QUINTASENTIAL FC",
+      "weekly_mean_shift": 0.0,
+      "weekly_ability_sd": 1.0
+    },
+    "101": {
+      "name": "SABITEURS",
+      "weekly_mean_shift": 0.0,
+      "weekly_ability_sd": 1.0
+    },
+    "096": {
+      "name": "GARNCELONA",
+      "weekly_mean_shift": -0.22568871212598768,
+      "weekly_ability_sd": 1.0
+    },
+    "105": {
+      "name": "KRANSKY FC",
+      "weekly_mean_shift": -0.22568871212598768,
+      "weekly_ability_sd": 1.0
+    },
+    "095": {
+      "name": "PAIN IN DIAS",
+      "weekly_mean_shift": -0.3009182828346502,
+      "weekly_ability_sd": 1.0
+    },
+    "097": {
+      "name": "SHAQNADO 2: RETURN OF THE SHAQ",
+      "weekly_mean_shift": -0.3009182828346502,
+      "weekly_ability_sd": 1.0
+    }
+  }
+}

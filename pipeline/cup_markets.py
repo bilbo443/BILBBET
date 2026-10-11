@@ -1,5 +1,6 @@
 """Refresh roster-dependent Roddy and FA Cup markets in a draft snapshot."""
 import numpy as np
+import hashlib
 from roster_format import fa_cup_draw
 from simulation_adapter import make_sampler
 from diff_report import pct_to_odds
@@ -20,7 +21,7 @@ def market_rows(pcts):
     return sorted(rows, key=lambda row: (row['suspended'], row['odds']))
 
 
-def regenerate_roddy_and_cup(roster, coeffs, scale, history, n_sim=6000, seed=11, roddy_adjustments=None):
+def regenerate_roddy_and_cup(roster, coeffs, scale, history, n_sim=6000, seed=11, roddy_adjustments=None, roddy_ability_model=None):
     teams = [t for division in roster.values() for t in division]
     pool = [score for t in teams for score in history.get(t, [])] or [60]
     def samplers_for(market):
@@ -28,12 +29,30 @@ def regenerate_roddy_and_cup(roster, coeffs, scale, history, n_sim=6000, seed=11
         return {t: make_sampler(history.get(t, pool),
                     scale * (coeffs.get(t, {}).get(market, 0.0)
                              + ((roddy_adjustments or {}).get(t, 0.0)
-                                if market == 'roddy' else 0.0))) for t in teams}
+                                if market == 'roddy' and t not in (roddy_ability_model or {}) else 0.0))) for t in teams}
 
     samplers = samplers_for('roddy')
     positions = {t: np.zeros(len(teams), dtype=int) for t in teams}
-    for _ in range(n_sim):
-        totals = {t: samplers[t](26).sum() for t in teams}
+    ability_totals = {}
+    for team, entry in (roddy_ability_model or {}).items():
+        if team not in teams:
+            continue
+        identity = str(entry['team_id']).zfill(3)
+        ability_seed = int.from_bytes(hashlib.sha256(
+            (str(seed) + ':roddy-ability:' + identity).encode()
+        ).digest()[:8], 'big')
+        ability_rng = np.random.default_rng(ability_seed)
+        mean = float(entry['weekly_mean_shift'])
+        sd = float(entry['weekly_ability_sd'])
+        if not -50 <= mean <= 50 or not 0 <= sd <= 10:
+            raise ValueError('Invalid Roddy ability model for ' + identity)
+        ability_totals[team] = 26 * (
+            mean + ability_rng.normal(0, sd, size=n_sim)
+        )
+    for simulation in range(n_sim):
+        totals = {t: samplers[t](26).sum()
+                  + (ability_totals[t][simulation] if t in ability_totals else 0)
+                  for t in teams}
         for pos, team in enumerate(sorted(teams, key=lambda t: -totals[t])):
             positions[team][pos] += 1
     roddy = {market: market_rows({t: 100*count[:places].sum()/n_sim

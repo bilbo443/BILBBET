@@ -454,10 +454,24 @@ def sync_futures_divisions(new_roster, team_coeffs, scale, history, data_dir, dr
                     if not -0.1 <= adjustment <= 0.1:
                         raise ValueError('Invalid newcomer adjustment for ID ' + tid)
                     roddy_adjustments[team['name']] = adjustment
+    ability_path = os.path.join(data_dir, 'roddy_ability_model.json')
+    roddy_ability_model = {}
+    if os.path.exists(ability_path):
+        ability_settings = json.load(open(ability_path))
+        if ability_settings.get('enabled'):
+            if ability_settings.get('season') != '2026-27':
+                raise ValueError('Review Roddy ability model for the current season')
+            for team in (admin_teams or []):
+                tid = str(team['id']).zfill(3)
+                entry = ability_settings.get('teams', {}).get(tid)
+                if entry is not None:
+                    roddy_ability_model[team['name']] = {
+                        **entry, 'team_id': tid
+                    }
     futures['roddy'], futures['fa_cup_markets'], draw = regenerate_roddy_and_cup(
         field_roster if field_roster is not None else new_roster,
         team_coeffs, scale, history, n_sim=n_sim, seed=seed,
-        roddy_adjustments=roddy_adjustments)
+        roddy_adjustments=roddy_adjustments, roddy_ability_model=roddy_ability_model)
     json.dump(futures, open(os.path.join(draft_dir, 'futures.json'), 'w'))
     json.dump(draw, open(os.path.join(draft_dir, 'fa_cup_draw.json'), 'w'))
     return futures
