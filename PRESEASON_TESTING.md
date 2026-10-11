@@ -757,3 +757,14 @@ Verified Division 2 history repair: IDs 042, 079 and 080 use their own 26 record
 
 
 Reviewed weekly odds publication: Carnegie Dachshunds keeps ID 077 and its prior name alias. Verified histories for IDs 042, 079 and 080 are retained. Two identical-input simulations matched the reviewed draft exactly. Current pricing includes the one-time deterministic simulation correction; future unchanged inputs must preserve prices. Final-roster market hold remains enabled. Existing account balances, carry records, logos and accepted bets are preserved.
+
+
+Newcomer Roddy assessments:
+- data/newcomer_assessments.json stores subjective adjustments by permanent ID.
+- Roster regeneration adds them to Roddy only; underlying coefficients are retained.
+- Renames retain the adjustment through the ID match.
+- Missing settings or enabled=false produces no adjustment.
+- Unknown experience is not interpreted as zero seasons.
+- Review after three scored rounds; automatic fading is not implemented.
+- Weekly division-only refresh does not recalculate Roddy.
+- Review generated Roddy prices before publishing; cup and Division 3 holds remain.

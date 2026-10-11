@@ -439,8 +439,25 @@ def sync_futures_divisions(new_roster, team_coeffs, scale, history, data_dir, dr
     missing_ecl = set(futures.get('ecl_field', [])) - all_teams
     if missing_ecl:
         raise ValueError(f'ECL field contains departed teams: {sorted(missing_ecl)}')
+    # Subjective preseason Roddy adjustments are matched by permanent ID.
+    # Base coefficients, FA Cup and division simulations remain unchanged.
+    adjustments_path = os.path.join(data_dir, 'newcomer_assessments.json')
+    roddy_adjustments = {}
+    if os.path.exists(adjustments_path):
+        assessments = json.load(open(adjustments_path))
+        if assessments.get('enabled'):
+            for team in (admin_teams or []):
+                tid = str(team['id']).zfill(3)
+                entry = assessments.get('teams', {}).get(tid)
+                if entry is not None:
+                    adjustment = float(entry['roddy_adjustment'])
+                    if not -0.1 <= adjustment <= 0.1:
+                        raise ValueError('Invalid newcomer adjustment for ID ' + tid)
+                    roddy_adjustments[team['name']] = adjustment
     futures['roddy'], futures['fa_cup_markets'], draw = regenerate_roddy_and_cup(
-        field_roster if field_roster is not None else new_roster, team_coeffs, scale, history, n_sim=n_sim, seed=seed)
+        field_roster if field_roster is not None else new_roster,
+        team_coeffs, scale, history, n_sim=n_sim, seed=seed,
+        roddy_adjustments=roddy_adjustments)
     json.dump(futures, open(os.path.join(draft_dir, 'futures.json'), 'w'))
     json.dump(draw, open(os.path.join(draft_dir, 'fa_cup_draw.json'), 'w'))
     return futures

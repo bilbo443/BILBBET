@@ -20,13 +20,15 @@ def market_rows(pcts):
     return sorted(rows, key=lambda row: (row['suspended'], row['odds']))
 
 
-def regenerate_roddy_and_cup(roster, coeffs, scale, history, n_sim=6000, seed=11):
+def regenerate_roddy_and_cup(roster, coeffs, scale, history, n_sim=6000, seed=11, roddy_adjustments=None):
     teams = [t for division in roster.values() for t in division]
     pool = [score for t in teams for score in history.get(t, [])] or [60]
     def samplers_for(market):
         np.random.seed(seed)
         return {t: make_sampler(history.get(t, pool),
-                    scale * coeffs.get(t, {}).get(market, 0.0)) for t in teams}
+                    scale * (coeffs.get(t, {}).get(market, 0.0)
+                             + ((roddy_adjustments or {}).get(t, 0.0)
+                                if market == 'roddy' else 0.0))) for t in teams}
 
     samplers = samplers_for('roddy')
     positions = {t: np.zeros(len(teams), dtype=int) for t in teams}

@@ -1,0 +1,107 @@
+{
+  "season": "2026-27",
+  "enabled": true,
+  "scope": "roddy",
+  "basis": "Organiser assessments; not verified scoring history",
+  "review": "Review after the first three scored rounds. No automatic decay installed.",
+  "teams": {
+    "094": {
+      "name": "SILVO'S SQUAD",
+      "serious_seasons": "5+",
+      "engagement": "highest",
+      "chat_context": "background",
+      "roddy_adjustment": 0.07
+    },
+    "102": {
+      "name": "E/MELB SUCCULENT CHINESE MEAL",
+      "serious_seasons": "~3",
+      "engagement": "highest",
+      "chat_context": "dedicated_active",
+      "roddy_adjustment": 0.06
+    },
+    "103": {
+      "name": "RUBY FC",
+      "serious_seasons": null,
+      "engagement": "upper_middle",
+      "chat_context": "dedicated_active",
+      "roddy_adjustment": 0.02
+    },
+    "106": {
+      "name": "CONCEICAO",
+      "serious_seasons": null,
+      "engagement": "upper_middle",
+      "chat_context": "unconfirmed",
+      "roddy_adjustment": 0.015
+    },
+    "099": {
+      "name": "DRUMMOYNE TERRIERS",
+      "serious_seasons": null,
+      "engagement": "upper_middle",
+      "chat_context": "unconfirmed",
+      "roddy_adjustment": 0.015
+    },
+    "091": {
+      "name": "GALUCTASARY",
+      "serious_seasons": "~2",
+      "engagement": "middle",
+      "chat_context": "background",
+      "roddy_adjustment": 0.015
+    },
+    "092": {
+      "name": "SK STURM MELBOURNE",
+      "serious_seasons": "~2",
+      "engagement": "middle",
+      "chat_context": "background",
+      "roddy_adjustment": 0.015
+    },
+    "104": {
+      "name": "DADDY VALKANIS & SONS",
+      "serious_seasons": null,
+      "engagement": "middle",
+      "chat_context": "dedicated_active",
+      "roddy_adjustment": 0.005
+    },
+    "100": {
+      "name": "QUINTASENTIAL FC",
+      "serious_seasons": null,
+      "engagement": "middle",
+      "chat_context": "unconfirmed",
+      "roddy_adjustment": 0.0
+    },
+    "101": {
+      "name": "SABITEURS",
+      "serious_seasons": null,
+      "engagement": "unknown",
+      "chat_context": "unconfirmed",
+      "roddy_adjustment": 0.0
+    },
+    "096": {
+      "name": "GARNCELONA",
+      "serious_seasons": null,
+      "engagement": "lowest",
+      "chat_context": "dedicated_active",
+      "roddy_adjustment": -0.015
+    },
+    "105": {
+      "name": "KRANSKY FC",
+      "serious_seasons": null,
+      "engagement": "lowest",
+      "chat_context": "dedicated_active",
+      "roddy_adjustment": -0.015
+    },
+    "095": {
+      "name": "PAIN IN DIAS",
+      "serious_seasons": null,
+      "engagement": "lowest",
+      "chat_context": "general_chat",
+      "roddy_adjustment": -0.02
+    },
+    "097": {
+      "name": "SHAQNADO 2: RETURN OF THE SHAQ",
+      "serious_seasons": null,
+      "engagement": "lowest",
+      "chat_context": "general_chat",
+      "roddy_adjustment": -0.02
+    }
+  }
+}
