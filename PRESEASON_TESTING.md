@@ -878,3 +878,11 @@ Home opening-round hubs:
 - No provisional Division 1 opponents presented as confirmed fixtures.
 - Existing lockout, market holds and server price checks remain effective.
 - Projected score ranges cached per page load; not guaranteed results.
+
+
+Public division visibility:
+- All division sections visible to normal users and visitors.
+- Public visibility separated from provisional H2H betting restrictions.
+- Unconfirmed H2H selections remain blocked.
+- Existing category pauses, lockouts and unfinished-market holds retained.
+- Verify confirmed cup H2H separately before reopening match betting.

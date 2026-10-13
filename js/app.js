@@ -519,7 +519,7 @@
       return !m||joinMarketBlocked(m)||!m.contenders.some(c=>c.id===teamId&&!c.joined);
     }
     if(finalRosterMarketHeld(id)) return true;
-    if(partialRelease() && id.startsWith('H2H|') && (FIXTURES_ARE_PLACEHOLDER || !state.h2hRealScheduleConfirmed)) return true;
+    if(id.startsWith('H2H|') && (FIXTURES_ARE_PLACEHOLDER || !state.h2hRealScheduleConfirmed)) return true;
     if(partialRelease() && !(ROSTER_RULES.competition_futures_ready && ['FUT','FACUP','ECL'].includes(id.split('|')[0])) && !(id.startsWith('FUT|RODDY|') && ROSTER_RULES.roddy_markets_ready)){
       const parts = id.split('|');
       if(parts.some(part => part.startsWith('DIVISION 3') ||
@@ -561,7 +561,7 @@
   const EARLY_DIV12_RELEASE = true;
   const EARLY_DIVISIONS = ['ELIZA CUP (D1)', 'DIVISION 2A', 'DIVISION 2B'];
   function partialRelease(){
-    return EARLY_DIV12_RELEASE && !(state.user && state.user.isAdmin);
+    return false; // All divisions are now publicly visible.
   }
   function availableDivision(div){ return !partialRelease() || EARLY_DIVISIONS.includes(div); }
   function curtainDown(){ return !EARLY_DIV12_RELEASE && !state.divisionsAnnounced && !(state.user && state.user.isAdmin); }
