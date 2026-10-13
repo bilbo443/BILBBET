@@ -886,3 +886,10 @@ Public division visibility:
 - Unconfirmed H2H selections remain blocked.
 - Existing category pauses, lockouts and unfinished-market holds retained.
 - Verify confirmed cup H2H separately before reopening match betting.
+
+
+Preliminary Home price display:
+- Shows both team prices when matching Round 1 fixtures exist in Admin.
+- Home and linked match view reuse the same cached simulation.
+- Display change only; betting restrictions and server checks retained.
+- Prices reflect existing H2H settlement semantics, not a new advancement market.

@@ -1837,6 +1837,19 @@
       const f = preliminary.find(f =>
         (f.teamA === a && f.teamB === b) ||
         (f.teamA === b && f.teamB === a));
+      let priceSummary = '';
+      if(f){
+        const key = f.teamA+'|'+f.teamB+'|R1';
+        if(!openingHubCupMarkets[key])
+          openingHubCupMarkets[key] = computeH2HMarket(f.teamA,f.teamB,1);
+        const market = openingHubCupMarkets[key];
+        const first = toOdds(market.aWinPct);
+        const second = toOdds(market.bWinPct);
+        priceSummary = `<div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0;">
+          <span class="bb-pill">${esc(f.teamA)}: ${first.suspended ? 'Unavailable' : formatOdds(first.odds)}</span>
+          <span class="bb-pill">${esc(f.teamB)}: ${second.suspended ? 'Unavailable' : formatOdds(second.odds)}</span>
+        </div>`;
+      }
       return `<div class="bb-card" style="margin-bottom:8px;">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-weight:600;">
           ${teamLogo(a,24)}${esc(a)}
@@ -1844,6 +1857,7 @@
           ${teamLogo(b,24)}${esc(b)}
         </div>
         <p style="color:#9a9a9a;margin:8px 0;">GW1 · Winner advances</p>
+        ${priceSummary}
         ${f ? `<button class="bb-btn ghost" data-opening-cup="${esc(a)}|${esc(b)}">View match odds</button>`
             : `<span style="color:#9a9a9a;">Match market awaiting admin fixture entry.</span>`}
       </div>`;
