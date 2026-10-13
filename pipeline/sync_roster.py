@@ -321,6 +321,27 @@ def sync_coefficients_and_pools(new_roster, admin_teams, data_dir, draft_dir):
             cup_shift[t] = 0.0
             widen[t] = 0.5
 
+    # Explicit subjective proxies, preserved by permanent team ID.
+    overrides_path = os.path.join(data_dir, 'team_coefficient_overrides.json')
+    if os.path.exists(overrides_path):
+        overrides = json.load(open(overrides_path))
+        if overrides.get('season') != '2026-27':
+            raise ValueError('Review coefficient overrides for this season')
+        allowed = {'eliza', 'roddy', 'fa_cup', 'ecl', 'relegation_risk'}
+        for team in admin_teams:
+            tid = str(team['id']).zfill(3)
+            entry = overrides.get('teams', {}).get(tid)
+            name = team['name'].strip()
+            if entry is None or name not in team_coeffs:
+                continue
+            for key, value in entry['coefficients'].items():
+                if key not in allowed:
+                    raise ValueError('Unknown coefficient override: ' + key)
+                value = float(value)
+                if not -3 <= value <= 3:
+                    raise ValueError('Invalid coefficient override for ' + tid)
+                team_coeffs[name][key] = value
+
     tmc = {'scale': scale, 'team_coeffs': team_coeffs}
     json.dump(tmc, open(os.path.join(draft_dir, 'team_market_coeffs.json'), 'w'))
     json.dump(history, open(os.path.join(draft_dir, 'roddy_history.json'), 'w'))

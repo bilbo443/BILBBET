@@ -1,0 +1,18 @@
+{
+  "season": "2026-27",
+  "teams": {
+    "038": {
+      "name": "BORATVERYNICE",
+      "basis": "Organiser assessment: median Division 2 quality",
+      "verified_scores": false,
+      "coefficients": {
+        "eliza": 0.0645,
+        "roddy": 0.1025,
+        "fa_cup": 0.1025,
+        "ecl": 0.1025,
+        "relegation_risk": -0.0605
+      },
+      "review": "Replace with verified individual history when available."
+    }
+  }
+}

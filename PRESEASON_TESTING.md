@@ -820,3 +820,18 @@ Competition futures release, 13 October 2026:
 - Leading-at and affected specials remain held pending regeneration.
 - Provisional H2H fixture controls and category pauses remain effective.
 - Test futures availability using a normal player account, not only admin.
+
+
+Boratverynice, ID 038:
+- Provisional coefficients use the 24-player Division 2 median.
+- Organiser assessment, not a reconstruction of verified 2024/25 scores.
+- Override persists by ID through roster refreshes.
+- Existing fallback history and variance setting retained.
+- Recalculate and review affected markets before publishing prices.
+
+
+Borat proxy price publication:
+- Updated Division 3A and FA Cup prices from the reviewed proxy run.
+- Roddy and other division/ECL prices preserved.
+- Subjective median Division 2 proxy; verified history still unavailable.
+- Promotion suspensions retained; accepted bets retain original odds.

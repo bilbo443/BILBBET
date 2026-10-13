@@ -330,11 +330,11 @@
       "variance_widen": 0.02
     },
     "BORATVERYNICE": {
-      "eliza": 0.0,
-      "roddy": 0.0,
-      "fa_cup": 0.0,
-      "ecl": 0.0,
-      "relegation_risk": 0.0,
+      "eliza": 0.0645,
+      "roddy": 0.1025,
+      "fa_cup": 0.1025,
+      "ecl": 0.1025,
+      "relegation_risk": -0.0605,
       "variance_widen": 0.5
     },
     "MACCA'S STARS": {
