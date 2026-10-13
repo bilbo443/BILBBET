@@ -790,3 +790,23 @@ Roddy publication, 12 October 2026:
 - Identical alias records consolidated without adding carry amounts.
 - No account balances, accepted bets or settlement records changed.
 - Drone Police manual carry correction must not be credited again.
+
+
+Official draw update, 13 October 2026:
+- Division 3A and 3B each contain 14 confirmed teams.
+- GW1 preliminary: Boratverynice v Galuctasary; Sabiteurs v Quintasential FC.
+- GW2 is Round of 64; its pairings are not yet drawn.
+- Cup simulation conditions on the confirmed preliminary matches.
+- Subsequent matches are simulated as fresh draws, not published fixtures.
+- Rules from quarter-finals onwards still need organiser confirmation.
+- Published Roddy prices must be retained during roster publication.
+- Conference schedules remain provisional until official fixtures arrive.
+
+
+Published confirmed conference membership and official preliminary draw:
+- 66 active teams; Division 3A and 3B each have 14.
+- Published Roddy prices retained exactly.
+- GW1 preliminary pairings confirmed; GW2 Round of 64 draw pending.
+- Generated regular-season schedules remain provisional and held.
+- Leading-at and affected specials still require regeneration.
+- Existing accounts, balances and accepted bets untouched.

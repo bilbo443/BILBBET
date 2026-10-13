@@ -1,225 +1,79 @@
 {
   "preliminary": [
     [
-      "STAIRWAY TO EVANS",
-      "FULLY SCICLUNA"
-    ],
-    [
-      "VICTORY",
-      "TBCFC"
-    ],
-    [
-      "DW ABOUT IT FC",
+      "BORATVERYNICE",
       "GALUCTASARY"
     ],
     [
-      "SYDNEY OLEEE",
-      "RICKY DIACO FC"
+      "SABITEURS",
+      "QUINTASENTIAL FC"
     ]
   ],
-  "r64_matches": [
-    [
-      "QUINTASENTIAL FC",
-      "RUBY FC"
-    ],
-    [
-      "SHAQNADO 2: RETURN OF THE SHAQ",
-      "GIVE US WANG"
-    ],
-    [
-      "PAYNE IN THE NECK FC",
-      "THE GARUCCI-SHOW"
-    ],
-    [
-      "ALBANIAN BOARS",
-      "JUAN EL MAGICO FC"
-    ],
-    [
-      "MONGREL GARDEN",
-      "RIO'S RHINOS"
-    ],
-    [
-      [
-        "PRELIM",
-        0
-      ],
-      "TOP KUOLITY"
-    ],
-    [
-      "NUKEFORREST NUKES",
-      "JUSTICEFORMOON FC"
-    ],
-    [
-      "ROTORUA UNITED",
-      [
-        "PRELIM",
-        3
-      ]
-    ],
-    [
-      "FOR VUCK'S SAKE FC",
-      "CASUAL APPROACH"
-    ],
-    [
-      "PAW PATROL UNITED",
-      "GARRY WALLAH UNITED"
-    ],
-    [
-      "GOT WOUD?",
-      "ALASKAN BULL WORMS"
-    ],
-    [
-      "3DOGS",
-      "BREXIT LADS"
-    ],
-    [
-      "THE WAINE TRAIN",
-      "LOAVES & FISHES"
-    ],
-    [
-      "CARNEGIE DACHSHUNDS",
-      "PAIN IN DIAS"
-    ],
-    [
-      "FROGBERT FOOTBALL",
-      "X2 STRANGE"
-    ],
-    [
-      "BC UNITED ZEBRAS",
-      [
-        "PRELIM",
-        2
-      ]
-    ],
-    [
-      "DRUMMOYNE TERRIERS",
-      "HARVEY FREKES"
-    ],
-    [
-      "MANCHESTHAIR UTD",
-      "SILVO'S SQUAD"
-    ],
-    [
-      "KRANSKY FC",
-      "E/MELB SUCCULENT CHINESE MEAL"
-    ],
-    [
-      "INTER MILANOVIC",
-      "PLACEHOLDER 1"
-    ],
-    [
-      "DEER PARK UNITED",
-      "SPOONERS FC"
-    ],
-    [
-      "KALLO FC",
-      "BALLERS"
-    ],
-    [
-      "AFC BIG RED PORT",
-      "THE DRONE POLICE"
-    ],
-    [
-      "VICTORYRULES",
-      "DINKIN CRFC"
-    ],
-    [
-      "THE BEAU-CHAMPS",
-      "THE 2ND JARV ADMINISTRATION"
-    ],
-    [
-      "LALAS LEVEN",
-      "DADDY VALKANIS & SONS"
-    ],
-    [
-      "CONCEICAO",
-      "SABITEURS"
-    ],
-    [
-      "SILVERMAN'S XI",
-      "JARVIS ZEBRAS"
-    ],
-    [
-      [
-        "PRELIM",
-        1
-      ],
-      "BIG MAC FC"
-    ],
-    [
-      "AARONGURDWOODREICH",
-      "SAUCE FC"
-    ],
-    [
-      "FC TIKITOKA",
-      "NANISTATE"
-    ],
-    [
-      "GARNCELONA",
-      "SK STURM MELBOURNE"
-    ]
-  ],
-  "r32_byes": [],
   "preliminary_byes": [
-    "3DOGS",
-    "AARONGURDWOODREICH",
-    "AFC BIG RED PORT",
-    "ALASKAN BULL WORMS",
-    "ALBANIAN BOARS",
-    "BALLERS",
-    "BC UNITED ZEBRAS",
-    "BIG MAC FC",
-    "DRUMMOYNE TERRIERS",
-    "PLACEHOLDER 1",
-    "BREXIT LADS",
-    "CARNEGIE DACHSHUNDS",
-    "CASUAL APPROACH",
-    "CONCEICAO",
-    "DADDY VALKANIS & SONS",
-    "DEER PARK UNITED",
-    "DINKIN CRFC",
-    "GOT WOUD?",
-    "FC TIKITOKA",
-    "FOR VUCK'S SAKE FC",
-    "FROGBERT FOOTBALL",
-    "GARNCELONA",
-    "GARRY WALLAH UNITED",
-    "GIVE US WANG",
-    "HARVEY FREKES",
-    "INTER MILANOVIC",
     "JARVIS ZEBRAS",
-    "JUAN EL MAGICO FC",
-    "JUSTICEFORMOON FC",
+    "STAIRWAY TO EVANS",
     "KALLO FC",
-    "KRANSKY FC",
-    "LALAS LEVEN",
-    "LOAVES & FISHES",
-    "MANCHESTHAIR UTD",
-    "MONGREL GARDEN",
-    "NANISTATE",
-    "NUKEFORREST NUKES",
-    "PAIN IN DIAS",
-    "PAW PATROL UNITED",
-    "PAYNE IN THE NECK FC",
-    "QUINTASENTIAL FC",
-    "RIO'S RHINOS",
-    "ROTORUA UNITED",
-    "RUBY FC",
-    "SABITEURS",
     "SAUCE FC",
-    "SHAQNADO 2: RETURN OF THE SHAQ",
-    "SILVERMAN'S XI",
-    "SILVO'S SQUAD",
-    "SK STURM MELBOURNE",
-    "SPOONERS FC",
-    "E/MELB SUCCULENT CHINESE MEAL",
-    "THE 2ND JARV ADMINISTRATION",
-    "THE BEAU-CHAMPS",
-    "THE DRONE POLICE",
-    "THE GARUCCI-SHOW",
-    "THE WAINE TRAIN",
-    "TOP KUOLITY",
+    "ALASKAN BULL WORMS",
+    "BC UNITED ZEBRAS",
+    "DW ABOUT IT FC",
+    "GIVE US WANG",
+    "NANISTATE",
+    "FROGBERT FOOTBALL",
+    "HARVEY FREKES",
     "VICTORYRULES",
-    "X2 STRANGE"
-  ]
+    "BIG MAC FC",
+    "TOP KUOLITY",
+    "INTER MILANOVIC",
+    "VICTORY",
+    "3DOGS",
+    "ALBANIAN BOARS",
+    "LALAS LEVEN",
+    "MANCHESTHAIR UTD",
+    "THE WAINE TRAIN",
+    "X2 STRANGE",
+    "AFC BIG RED PORT",
+    "CARNEGIE DACHSHUNDS",
+    "ROTORUA UNITED",
+    "THE DRONE POLICE",
+    "DINKIN CRFC",
+    "SPOONERS FC",
+    "CASUAL APPROACH",
+    "JUSTICEFORMOON FC",
+    "RIO'S RHINOS",
+    "RICKY DIACO FC",
+    "SILVERMAN'S XI",
+    "DEER PARK UNITED",
+    "THE GARUCCI-SHOW",
+    "FULLY SCICLUNA",
+    "JUAN EL MAGICO FC",
+    "BALLERS",
+    "TBCFC",
+    "FOR VUCK'S SAKE FC",
+    "GARRY WALLAH UNITED",
+    "MACCA'S STARS",
+    "AARONGURDWOODREICH",
+    "BREXIT LADS",
+    "LOAVES & FISHES",
+    "GOT WOUD?",
+    "SK STURM MELBOURNE",
+    "DRUMMOYNE TERRIERS",
+    "E/MELB SUCCULENT CHINESE MEAL",
+    "CONCEICAO",
+    "MONGREL GARDEN",
+    "PAW PATROL UNITED",
+    "SYDNEY OLEEE",
+    "THE BEAU-CHAMPS",
+    "PAYNE IN THE NECK FC",
+    "SILVO'S SQUAD",
+    "PAIN IN DIAS",
+    "GARNCELONA",
+    "SHAQNADO 2: RETURN OF THE SHAQ",
+    "RUBY FC",
+    "DADDY VALKANIS & SONS",
+    "KRANSKY FC"
+  ],
+  "r64_matches": [],
+  "r32_byes": [],
+  "r64_draw_confirmed": false
 }

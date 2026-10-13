@@ -468,10 +468,16 @@ def sync_futures_divisions(new_roster, team_coeffs, scale, history, data_dir, dr
                     roddy_ability_model[team['name']] = {
                         **entry, 'team_id': tid
                     }
+    official_path = os.path.join(data_dir, 'official_fa_cup_draw.json')
+    official_cup_draw = None
+    if os.path.exists(official_path):
+        official_cup_draw = json.load(open(official_path))
+        if official_cup_draw.get('season') != '2026-27':
+            raise ValueError('Review official cup draw for the current season')
     futures['roddy'], futures['fa_cup_markets'], draw = regenerate_roddy_and_cup(
         field_roster if field_roster is not None else new_roster,
         team_coeffs, scale, history, n_sim=n_sim, seed=seed,
-        roddy_adjustments=roddy_adjustments, roddy_ability_model=roddy_ability_model)
+        roddy_adjustments=roddy_adjustments, roddy_ability_model=roddy_ability_model, official_cup_draw=official_cup_draw)
     json.dump(futures, open(os.path.join(draft_dir, 'futures.json'), 'w'))
     json.dump(draw, open(os.path.join(draft_dir, 'fa_cup_draw.json'), 'w'))
     return futures

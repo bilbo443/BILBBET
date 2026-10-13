@@ -21,7 +21,7 @@ def market_rows(pcts):
     return sorted(rows, key=lambda row: (row['suspended'], row['odds']))
 
 
-def regenerate_roddy_and_cup(roster, coeffs, scale, history, n_sim=6000, seed=11, roddy_adjustments=None, roddy_ability_model=None):
+def regenerate_roddy_and_cup(roster, coeffs, scale, history, n_sim=6000, seed=11, roddy_adjustments=None, roddy_ability_model=None, official_cup_draw=None):
     teams = [t for division in roster.values() for t in division]
     pool = [score for t in teams for score in history.get(t, [])] or [60]
     def samplers_for(market):
@@ -61,6 +61,23 @@ def regenerate_roddy_and_cup(roster, coeffs, scale, history, n_sim=6000, seed=11
 
     samplers = samplers_for('fa_cup')
     draw = fa_cup_draw(teams, seed=seed)
+    if official_cup_draw is not None:
+        pairs = official_cup_draw['preliminary']
+        participants = [t for pair in pairs for t in pair]
+        if (len(teams) != 66 or len(pairs) != 2
+                or any(len(pair) != 2 for pair in pairs)
+                or len(set(participants)) != 4
+                or not set(participants).issubset(teams)):
+            raise ValueError('Official preliminary draw does not match the field')
+        if official_cup_draw.get('r64_draw_confirmed'):
+            raise ValueError('Confirmed Round of 64 needs a separate draw update')
+        draw = {
+            'preliminary': pairs,
+            'preliminary_byes': [t for t in teams if t not in participants],
+            'r64_matches': [],
+            'r32_byes': [],
+            'r64_draw_confirmed': False
+        }
     reached = {t: {stage: 0 for stage in FA_MARKETS.values()} for t in teams}
     def play(a, b):
         score_a, score_b = samplers[a](1)[0], samplers[b](1)[0]
@@ -73,9 +90,16 @@ def regenerate_roddy_and_cup(roster, coeffs, scale, history, n_sim=6000, seed=11
     for _ in range(n_sim):
         prelim = {('PRELIM', i): play(a, b)
                   for i, (a, b) in enumerate(draw['preliminary'])}
-        field = list(draw['r32_byes'])
-        field += [play(prelim.get(a, a), prelim.get(b, b))
-                  for a, b in draw['r64_matches']]
+        if official_cup_draw is not None:
+            # Future pairings are simulated afresh, never published as official.
+            r64_field = list(draw['preliminary_byes']) + list(prelim.values())
+            if len(r64_field) != 64:
+                raise ValueError('Official preliminary must produce 64 survivors')
+            field = round_matches(r64_field)
+        else:
+            field = list(draw['r32_byes'])
+            field += [play(prelim.get(a, a), prelim.get(b, b))
+                      for a, b in draw['r64_matches']]
         for stage in ('r32', 'r16', 'qf', 'sf', 'final'):
             for t in field:
                 reached[t][stage] += 1
