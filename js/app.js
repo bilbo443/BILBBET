@@ -3400,8 +3400,15 @@
           return `<div style="margin-bottom:12px;">
               <div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-bottom:6px;">${esc(slot.label)} ${slot.count>1?`<span style="color:#7fbf8f;">(${current.length}/${slot.count})</span>`:''}</div>
               <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                ${current.filter(p => !options.some(o => sameTeam(p.team,o.team))).map((p,i) =>
+                  `<div style="padding:8px;border:1px solid #777;border-radius:6px;width:100%;">
+                    Saved pick: <strong>${esc(resolveTeamName(p.team))}</strong>
+                    <span style="color:#9a9a9a;"> — no longer an option in this category</span>
+                    <button class="bb-btn ghost" data-preseason-remove-saved="${esc(slot.key)}|${i}" style="margin-left:8px;">Remove</button>
+                  </div>`
+                ).join('')}
                 ${options.map(o => {
-                  const picked = current.some(p => p.team === o.team);
+                  const picked = current.some(p => sameTeam(p.team, o.team));
                   // A suspended market (near-certain outcome, no real price) still
                   // needs to be pickable here -- this is a prediction game, not a
                   // real-money book, so "no edge" shouldn't mean "can't predict it".
@@ -6501,10 +6508,10 @@
   function togglePreseasonPick(slotKey, team, odds, count){
     odds=trustedOdds('PRES|'+slotKey+'|'+team,odds);
     const current = state.preseasonPending[slotKey] || [];
-    const already = current.some(p => p.team === team);
+    const already = current.some(p => sameTeam(p.team, team));
     let next;
     if(already){
-      next = current.filter(p => p.team !== team);
+      next = current.filter(p => !sameTeam(p.team, team));
     } else if(count === 1){
       next = [{ team, odds }];
     } else if(current.length < count){
@@ -7998,6 +8005,23 @@
       state.futureMarketTab = 'fixtures';
       state.cupFixtureMarket = openingHubCupMarkets[key];
       state.cupFixtureMarketStage = 'GW1 · Preliminary Round';
+      render();
+    });
+    document.querySelectorAll('[data-preseason-remove-saved]').forEach(el => el.onclick = () => {
+      const parts = el.dataset.preseasonRemoveSaved.split('|');
+      const index = Number(parts.pop());
+      const slotKey = parts.join('|');
+      const slot = PRESEASON_SLOTS.find(s => s.key === slotKey);
+      if(!slot) return;
+      const current = state.preseasonPending[slotKey] || [];
+      const options = preseasonSlotOptions(slot);
+      const unavailable = current.filter(p => !options.some(o => sameTeam(p.team,o.team)));
+      const pick = unavailable[index];
+      if(!pick) return;
+      state.preseasonPending = {
+        ...state.preseasonPending,
+        [slotKey]: current.filter(p => p !== pick)
+      };
       render();
     });
     const backCupBtn = $('#back-to-cup-fixtures'); if(backCupBtn) backCupBtn.onclick = () => { state.cupFixtureMarket = null; state.cupFixtureMarketStage = null; render(); };

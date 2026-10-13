@@ -893,3 +893,11 @@ Preliminary Home price display:
 - Home and linked match view reuse the same cached simulation.
 - Display change only; betting restrictions and server checks retained.
 - Prices reflect existing H2H settlement semantics, not a new advancement market.
+
+
+Preseason pick display repair:
+- Highlights and toggles saved selections using current-name/alias matching.
+- Unavailable saved picks are visible and individually removable.
+- Removes only from the working selection; user must Confirm to save.
+- No automatic deletion, migration, repricing or reward changes.
+- Confirm retains existing lockout and server checks.
