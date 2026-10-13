@@ -31,3 +31,15 @@ FA Cup: a preliminary round is required only above 64 active entrants. When requ
 
 
 Final roster market hold: Roddy futures, FA Cup futures, Div 3 markets, Roddy leading-at, and Charity/Philanthropy remain closed pending the final roster/conference review. roster_rules.final_roster_market_hold prevents refreshed prices reopening these markets and blocks held selections at submission. Div 1/2 and unchanged ECL markets remain available. Accepted bets retain their odds. Regenerate and review affected calculations before deliberately clearing the hold; there is no automatic reopening date.
+
+
+Confirmed conference promotion rules:
+- Division 2A/2B: one automatic place plus one finals place each.
+- Division 3A/3B: two automatic places plus one finals place each.
+- Division 3 finals include the top eight in each conference.
+- An already automatically promoted finals winner passes the extra place
+  to the highest remaining regular-season H2H table team in its conference.
+- Promotion tipping allows two picks per Division 2 conference and three per Division 3.
+- Neutral 1.00 tipping values are used pending simulated promotion prices.
+- Promotion betting remains suspended.
+- Installation does not alter saved picks, balances or accepted bets.

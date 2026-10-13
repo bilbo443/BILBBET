@@ -7,11 +7,37 @@
   "fa_cup_draw_seed": 11,
   "fa_cup_preliminary_calendar_round": 1,
   "division3_finals_teams_by_minimum_size": {
-    "12": 6,
+    "12": 8,
     "16": 8
   },
-  "promotion_rules_confirmed": false,
+  "promotion_rules_confirmed": true,
   "final_roster_market_hold": true,
   "roddy_markets_ready": true,
-  "competition_futures_ready": true
+  "competition_futures_ready": true,
+  "promotion_rules": {
+    "DIVISION 2A": {
+      "automatic_places": 1,
+      "finals_places": 1,
+      "total_promoted": 2
+    },
+    "DIVISION 2B": {
+      "automatic_places": 1,
+      "finals_places": 1,
+      "total_promoted": 2
+    },
+    "DIVISION 3A": {
+      "automatic_places": 2,
+      "finals_places": 1,
+      "total_promoted": 3,
+      "finals_qualifiers": 8
+    },
+    "DIVISION 3B": {
+      "automatic_places": 2,
+      "finals_places": 1,
+      "total_promoted": 3,
+      "finals_qualifiers": 8
+    }
+  },
+  "promotion_final_place_fallback": "Highest regular-season H2H table team in the same conference not already automatically promoted.",
+  "promotion_betting_ready": false
 }

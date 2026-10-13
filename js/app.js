@@ -3063,11 +3063,28 @@
     { key: 'relegated|ELIZA CUP (D1)', label: 'Eliza Cup relegation', divs: ['ELIZA CUP (D1)'], marketKey: 'relegation_pct', count: 4 },
     { key: 'relegated|DIVISION 2A', label: 'Division 2A relegation', divs: ['DIVISION 2A'], marketKey: 'relegation_pct', count: 3 },
     { key: 'relegated|DIVISION 2B', label: 'Division 2B relegation', divs: ['DIVISION 2B'], marketKey: 'relegation_pct', count: 3 },
+    ...['DIVISION 2A','DIVISION 2B'].map(d => ({
+      key: 'promoted|'+d,
+      label: d.replace('DIVISION','Division')+' promotion',
+      divs: [d], marketKey: 'promotion_pct', count: 2,
+      promotionTippingOnly: true
+    })),
+    ...['DIVISION 3A','DIVISION 3B'].map(d => ({
+      key: 'promoted|'+d,
+      label: d.replace('DIVISION','Division')+' promotion',
+      divs: [d], marketKey: 'promotion_pct', count: 3,
+      promotionTippingOnly: true
+    })),
     { key: 'winner|RODDY', label: 'Roddy winner', source: 'roddy', marketKey: 'roddy_win_pct', count: 1 },
     { key: 'winner|FA CUP', label: 'FA Cup winner', source: 'fa_cup_markets', marketKey: 'win_pct', count: 1 },
     { key: 'winner|ECL', label: 'ECL winner', source: 'ecl_markets', marketKey: 'win_pct', count: 1 },
   ];
   function preseasonSlotOptions(slot){
+    if(slot.promotionTippingOnly){
+      return slot.divs.flatMap(div => (H2H_DIVISIONS[div] || []).map(team => ({
+        team, div, odds:1.00, suspended:false
+      })));
+    }
     if(slot.source) return FUTURES[slot.source][slot.marketKey] || [];
     return slot.divs.flatMap(d => (FUTURES.divisions[d][slot.marketKey] || []).map(e => ({...e, div: d})));
   }
@@ -3398,7 +3415,7 @@
           const options = preseasonSlotOptions(slot);
           const current = state.preseasonPending[slot.key] || [];
           return `<div style="margin-bottom:12px;">
-              <div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-bottom:6px;">${esc(slot.label)} ${slot.count>1?`<span style="color:#7fbf8f;">(${current.length}/${slot.count})</span>`:''}</div>
+              <div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-bottom:6px;">${esc(slot.label)} ${slot.promotionTippingOnly ? '<span style="display:block;color:#9a9a9a;font-size:14px;">Select the teams who will be promoted. Includes automatic places and the finals place. If the finals winner is already promoted, the place passes to the highest remaining team in this conference’s regular-season H2H table. Neutral tipping value: 1.00; promotion betting remains unavailable.</span>' : ''} ${slot.count>1?`<span style="color:#7fbf8f;">(${current.length}/${slot.count})</span>`:''}</div>
               <div style="display:flex;flex-wrap:wrap;gap:6px;">
                 ${current.filter(p => !options.some(o => sameTeam(p.team,o.team))).map((p,i) =>
                   `<div style="padding:8px;border:1px solid #777;border-radius:6px;width:100%;">
