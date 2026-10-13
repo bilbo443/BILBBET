@@ -810,3 +810,13 @@ Published confirmed conference membership and official preliminary draw:
 - Generated regular-season schedules remain provisional and held.
 - Leading-at and affected specials still require regeneration.
 - Existing accounts, balances and accepted bets untouched.
+
+
+Competition futures release, 13 October 2026:
+- Competition futures released independently of unfinished market holds.
+- Final Division 3 fields are 14 teams per conference.
+- FA Cup futures use confirmed preliminaries and simulated future redraws.
+- Unconfirmed promotion prices remain suspended.
+- Leading-at and affected specials remain held pending regeneration.
+- Provisional H2H fixture controls and category pauses remain effective.
+- Test futures availability using a normal player account, not only admin.

@@ -135,10 +135,10 @@
     }
     files.forEach((name, i) => { DATA[name] = results[i]; });
     if(DATA.roster_rules.final_roster_market_hold){
-      for(const key of (DATA.roster_rules.roddy_markets_ready ? ['fa_cup_markets'] : ['roddy','fa_cup_markets']))
+      for(const key of (DATA.roster_rules.competition_futures_ready ? [] : (DATA.roster_rules.roddy_markets_ready ? ['fa_cup_markets'] : ['roddy','fa_cup_markets'])))
         for(const rows of Object.values(DATA.futures[key] || {})) for(const row of rows) row.suspended = true;
       for(const [div, markets] of Object.entries(DATA.futures.divisions || {}))
-        if(div.startsWith('DIVISION 3')) for(const rows of Object.values(markets)) for(const row of rows) row.suspended = true;
+        if(div.startsWith('DIVISION 3') && !DATA.roster_rules.competition_futures_ready) for(const rows of Object.values(markets)) for(const row of rows) row.suspended = true;
       for(const rows of Object.values(DATA.leading_at.roddy_leading_at || {})) for(const row of rows) row.suspended = true;
       for(const [div, rounds] of Object.entries(DATA.leading_at.leading_at || {}))
         if(div.startsWith('DIVISION 3')) for(const rows of Object.values(rounds)) for(const row of rows) row.suspended = true;
@@ -505,6 +505,7 @@
   function finalRosterMarketHeld(id){
     if(!ROSTER_RULES.final_roster_market_hold) return false;
     const parts = id.split('|');
+    if(ROSTER_RULES.competition_futures_ready && ['FUT','FACUP','ECL'].includes(parts[0])) return false;
     if(parts[0] === 'FUT' && parts[1] === 'RODDY' && ROSTER_RULES.roddy_markets_ready) return false;
     if(parts[0] === 'FACUP' || parts[0] === 'FUT' && parts[1] === 'RODDY' || parts[0] === 'LEADAT' && parts[1] === 'RODDY') return true;
     if(parts[0] === 'SPECIALFIX' && ['charity','philanthropy'].includes(parts[1])) return true;
@@ -519,7 +520,7 @@
     }
     if(finalRosterMarketHeld(id)) return true;
     if(partialRelease() && id.startsWith('H2H|') && (FIXTURES_ARE_PLACEHOLDER || !state.h2hRealScheduleConfirmed)) return true;
-    if(partialRelease() && !(id.startsWith('FUT|RODDY|') && ROSTER_RULES.roddy_markets_ready)){
+    if(partialRelease() && !(ROSTER_RULES.competition_futures_ready && ['FUT','FACUP','ECL'].includes(id.split('|')[0])) && !(id.startsWith('FUT|RODDY|') && ROSTER_RULES.roddy_markets_ready)){
       const parts = id.split('|');
       if(parts.some(part => part.startsWith('DIVISION 3') ||
         DIV3_CONFERENCES.some(div => (H2H_DIVISIONS[div] || []).includes(part)))) return true;
@@ -2810,7 +2811,7 @@
   const FUTURES_SUBTABS = [...FUTURE_DIVS, 'RODDY', 'FA CUP', 'ECL'];
   function futuresSubTabBar(){
     const renderItem = t => `<div class="bb-tab ${state.futuresSubTab===t?'active '+divColorClass(t):''}" data-futuressubtab="${esc(t)}" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;display:flex;align-items:center;gap:4px;">${subTabLogo(t)}${t==='RODDY'?'The Roddy':t.replace(' (D1)','')}</div>`;
-    return twoRowTabBar(FUTURE_DIVS.filter(availableDivision), partialRelease() ? [] : ['RODDY', 'FA CUP', 'ECL'], renderItem);
+    return twoRowTabBar(ROSTER_RULES.competition_futures_ready ? FUTURE_DIVS : FUTURE_DIVS.filter(availableDivision), partialRelease() && !ROSTER_RULES.competition_futures_ready ? [] : ['RODDY', 'FA CUP', 'ECL'], renderItem);
   }
 
   const fixtureMarketCache = {};
