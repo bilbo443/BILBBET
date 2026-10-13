@@ -313,14 +313,6 @@
       "relegation_risk": 0.156,
       "variance_widen": 0.26
     },
-    "FOR VUCK'S SAKE FC": {
-      "eliza": 0.05,
-      "roddy": -0.091,
-      "fa_cup": -0.091,
-      "ecl": -0.091,
-      "relegation_risk": 0.025,
-      "variance_widen": 0.26
-    },
     "GARRY WALLAH UNITED": {
       "eliza": 0.053,
       "roddy": -0.105,
@@ -337,28 +329,20 @@
       "relegation_risk": -0.0605,
       "variance_widen": 0.5
     },
-    "MACCA'S STARS": {
-      "eliza": 0.0,
-      "roddy": 0.0,
-      "fa_cup": 0.0,
-      "ecl": 0.0,
-      "relegation_risk": 0.0,
-      "variance_widen": 0.5
-    },
-    "AARONGURDWOODREICH": {
-      "eliza": -0.046,
-      "roddy": -0.155,
-      "fa_cup": -0.155,
-      "ecl": -0.155,
-      "relegation_risk": 0.161,
-      "variance_widen": 0.26
-    },
     "BREXIT LADS": {
       "eliza": -0.4,
       "roddy": -0.554,
       "fa_cup": -0.554,
       "ecl": -0.554,
       "relegation_risk": 0.189,
+      "variance_widen": 0.26
+    },
+    "PAW PATROL UNITED": {
+      "eliza": -0.199,
+      "roddy": -0.325,
+      "fa_cup": -0.325,
+      "ecl": -0.325,
+      "relegation_risk": 0.013,
       "variance_widen": 0.26
     },
     "LOAVES & FISHES": {
@@ -377,6 +361,14 @@
       "relegation_risk": 0.0,
       "variance_widen": 0.5
     },
+    "PAYNE IN THE NECK FC": {
+      "eliza": -0.299,
+      "roddy": -0.444,
+      "fa_cup": -0.444,
+      "ecl": -0.444,
+      "relegation_risk": 0.163,
+      "variance_widen": 0.38
+    },
     "GALUCTASARY": {
       "eliza": 0.0,
       "roddy": 0.0,
@@ -393,7 +385,23 @@
       "relegation_risk": 0.0,
       "variance_widen": 0.5
     },
-    "DRUMMOYNE TERRIERS": {
+    "PAIN IN DIAS": {
+      "eliza": 0.0,
+      "roddy": 0.0,
+      "fa_cup": 0.0,
+      "ecl": 0.0,
+      "relegation_risk": 0.0,
+      "variance_widen": 0.5
+    },
+    "QUINTASENTIAL FC": {
+      "eliza": 0.0,
+      "roddy": 0.0,
+      "fa_cup": 0.0,
+      "ecl": 0.0,
+      "relegation_risk": 0.0,
+      "variance_widen": 0.5
+    },
+    "SABITEURS": {
       "eliza": 0.0,
       "roddy": 0.0,
       "fa_cup": 0.0,
@@ -409,13 +417,13 @@
       "relegation_risk": 0.0,
       "variance_widen": 0.5
     },
-    "CONCEICAO": {
-      "eliza": 0.0,
-      "roddy": 0.0,
-      "fa_cup": 0.0,
-      "ecl": 0.0,
-      "relegation_risk": 0.0,
-      "variance_widen": 0.5
+    "FOR VUCK'S SAKE FC": {
+      "eliza": 0.05,
+      "roddy": -0.091,
+      "fa_cup": -0.091,
+      "ecl": -0.091,
+      "relegation_risk": 0.025,
+      "variance_widen": 0.26
     },
     "MONGREL GARDEN": {
       "eliza": 0.02,
@@ -425,12 +433,20 @@
       "relegation_risk": 0.071,
       "variance_widen": 0.02
     },
-    "PAW PATROL UNITED": {
-      "eliza": -0.199,
-      "roddy": -0.325,
-      "fa_cup": -0.325,
-      "ecl": -0.325,
-      "relegation_risk": 0.013,
+    "MACCA'S STARS": {
+      "eliza": 0.0,
+      "roddy": 0.0,
+      "fa_cup": 0.0,
+      "ecl": 0.0,
+      "relegation_risk": 0.0,
+      "variance_widen": 0.5
+    },
+    "AARONGURDWOODREICH": {
+      "eliza": -0.046,
+      "roddy": -0.155,
+      "fa_cup": -0.155,
+      "ecl": -0.155,
+      "relegation_risk": 0.161,
       "variance_widen": 0.26
     },
     "SYDNEY OLEEE": {
@@ -449,23 +465,7 @@
       "relegation_risk": 0.006,
       "variance_widen": 0.38
     },
-    "PAYNE IN THE NECK FC": {
-      "eliza": -0.299,
-      "roddy": -0.444,
-      "fa_cup": -0.444,
-      "ecl": -0.444,
-      "relegation_risk": 0.163,
-      "variance_widen": 0.38
-    },
     "SILVO'S SQUAD": {
-      "eliza": 0.0,
-      "roddy": 0.0,
-      "fa_cup": 0.0,
-      "ecl": 0.0,
-      "relegation_risk": 0.0,
-      "variance_widen": 0.5
-    },
-    "PAIN IN DIAS": {
       "eliza": 0.0,
       "roddy": 0.0,
       "fa_cup": 0.0,
@@ -489,15 +489,7 @@
       "relegation_risk": 0.0,
       "variance_widen": 0.5
     },
-    "QUINTASENTIAL FC": {
-      "eliza": 0.0,
-      "roddy": 0.0,
-      "fa_cup": 0.0,
-      "ecl": 0.0,
-      "relegation_risk": 0.0,
-      "variance_widen": 0.5
-    },
-    "SABITEURS": {
+    "DRUMMOYNE TERRIERS": {
       "eliza": 0.0,
       "roddy": 0.0,
       "fa_cup": 0.0,
@@ -522,6 +514,14 @@
       "variance_widen": 0.5
     },
     "KRANSKY FC": {
+      "eliza": 0.0,
+      "roddy": 0.0,
+      "fa_cup": 0.0,
+      "ecl": 0.0,
+      "relegation_risk": 0.0,
+      "variance_widen": 0.5
+    },
+    "CONCEICAO": {
       "eliza": 0.0,
       "roddy": 0.0,
       "fa_cup": 0.0,

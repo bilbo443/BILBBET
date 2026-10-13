@@ -1325,321 +1325,326 @@
     "DIVISION 3A": {
       "win_div_pct": [
         {
-          "team": "FOR VUCK'S SAKE FC",
-          "odds": 9.94,
-          "suspended": false
-        },
-        {
-          "team": "LOAVES & FISHES",
-          "odds": 11.1,
-          "suspended": false
-        },
-        {
           "team": "BORATVERYNICE",
-          "odds": 11.79,
-          "suspended": false
-        },
-        {
-          "team": "AARONGURDWOODREICH",
-          "odds": 12.29,
-          "suspended": false
-        },
-        {
-          "team": "GARRY WALLAH UNITED",
-          "odds": 12.56,
-          "suspended": false
-        },
-        {
-          "team": "GOT WOUD?",
-          "odds": 12.73,
-          "suspended": false
-        },
-        {
-          "team": "GALUCTASARY",
-          "odds": 12.73,
+          "odds": 2.97,
           "suspended": false
         },
         {
           "team": "E/MELB SUCCULENT CHINESE MEAL",
-          "odds": 12.83,
+          "odds": 5.31,
           "suspended": false
         },
         {
-          "team": "MACCA'S STARS",
-          "odds": 12.92,
+          "team": "LOAVES & FISHES",
+          "odds": 6.18,
           "suspended": false
         },
         {
-          "team": "CONCEICAO",
-          "odds": 12.92,
+          "team": "GOT WOUD?",
+          "odds": 21.16,
+          "suspended": false
+        },
+        {
+          "team": "PAIN IN DIAS",
+          "odds": 22.95,
+          "suspended": false
+        },
+        {
+          "team": "GALUCTASARY",
+          "odds": 23.11,
+          "suspended": false
+        },
+        {
+          "team": "QUINTASENTIAL FC",
+          "odds": 23.51,
           "suspended": false
         },
         {
           "team": "SK STURM MELBOURNE",
-          "odds": 12.99,
+          "odds": 26.45,
           "suspended": false
         },
         {
-          "team": "DRUMMOYNE TERRIERS",
-          "odds": 13.57,
+          "team": "PAW PATROL UNITED",
+          "odds": 26.82,
+          "suspended": false
+        },
+        {
+          "team": "SABITEURS",
+          "odds": 30.23,
+          "suspended": false
+        },
+        {
+          "team": "GARRY WALLAH UNITED",
+          "odds": 31.96,
           "suspended": false
         },
         {
           "team": "TBCFC",
-          "odds": 21.5,
+          "odds": 56.68,
+          "suspended": false
+        },
+        {
+          "team": "PAYNE IN THE NECK FC",
+          "odds": 66.59,
           "suspended": false
         },
         {
           "team": "BREXIT LADS",
-          "odds": 37.79,
+          "odds": 70.54,
           "suspended": false
         }
       ],
       "top3_pct": [
         {
-          "team": "FOR VUCK'S SAKE FC",
-          "odds": 3.43,
-          "suspended": false
-        },
-        {
-          "team": "LOAVES & FISHES",
-          "odds": 3.55,
-          "suspended": false
-        },
-        {
-          "team": "AARONGURDWOODREICH",
-          "odds": 4.08,
-          "suspended": false
-        },
-        {
           "team": "BORATVERYNICE",
-          "odds": 4.16,
+          "odds": 1.49,
           "suspended": false
         },
         {
           "team": "E/MELB SUCCULENT CHINESE MEAL",
-          "odds": 4.3,
+          "odds": 2.0,
           "suspended": false
         },
         {
-          "team": "GARRY WALLAH UNITED",
-          "odds": 4.34,
+          "team": "LOAVES & FISHES",
+          "odds": 2.21,
           "suspended": false
         },
         {
           "team": "GOT WOUD?",
-          "odds": 4.34,
-          "suspended": false
-        },
-        {
-          "team": "MACCA'S STARS",
-          "odds": 4.36,
-          "suspended": false
-        },
-        {
-          "team": "CONCEICAO",
-          "odds": 4.38,
+          "odds": 5.23,
           "suspended": false
         },
         {
           "team": "GALUCTASARY",
-          "odds": 4.4,
+          "odds": 5.94,
+          "suspended": false
+        },
+        {
+          "team": "QUINTASENTIAL FC",
+          "odds": 6.09,
+          "suspended": false
+        },
+        {
+          "team": "PAIN IN DIAS",
+          "odds": 6.17,
           "suspended": false
         },
         {
           "team": "SK STURM MELBOURNE",
-          "odds": 4.45,
+          "odds": 6.29,
           "suspended": false
         },
         {
-          "team": "DRUMMOYNE TERRIERS",
-          "odds": 4.56,
+          "team": "SABITEURS",
+          "odds": 6.32,
+          "suspended": false
+        },
+        {
+          "team": "PAW PATROL UNITED",
+          "odds": 6.65,
+          "suspended": false
+        },
+        {
+          "team": "GARRY WALLAH UNITED",
+          "odds": 7.44,
           "suspended": false
         },
         {
           "team": "TBCFC",
-          "odds": 6.07,
+          "odds": 10.0,
+          "suspended": false
+        },
+        {
+          "team": "PAYNE IN THE NECK FC",
+          "odds": 13.64,
           "suspended": false
         },
         {
           "team": "BREXIT LADS",
-          "odds": 9.55,
+          "odds": 15.05,
           "suspended": false
         }
       ],
       "top_half_pct": [
         {
-          "team": "FOR VUCK'S SAKE FC",
-          "odds": 1.62,
-          "suspended": false
-        },
-        {
-          "team": "LOAVES & FISHES",
-          "odds": 1.67,
-          "suspended": false
-        },
-        {
-          "team": "AARONGURDWOODREICH",
-          "odds": 1.81,
-          "suspended": false
-        },
-        {
           "team": "BORATVERYNICE",
-          "odds": 1.82,
-          "suspended": false
-        },
-        {
-          "team": "GOT WOUD?",
-          "odds": 1.85,
-          "suspended": false
-        },
-        {
-          "team": "SK STURM MELBOURNE",
-          "odds": 1.85,
+          "odds": 1.07,
           "suspended": false
         },
         {
           "team": "E/MELB SUCCULENT CHINESE MEAL",
-          "odds": 1.85,
+          "odds": 1.2,
           "suspended": false
         },
         {
-          "team": "GARRY WALLAH UNITED",
-          "odds": 1.88,
+          "team": "LOAVES & FISHES",
+          "odds": 1.23,
           "suspended": false
         },
         {
-          "team": "MACCA'S STARS",
-          "odds": 1.88,
-          "suspended": false
-        },
-        {
-          "team": "CONCEICAO",
-          "odds": 1.88,
-          "suspended": false
-        },
-        {
-          "team": "GALUCTASARY",
+          "team": "GOT WOUD?",
           "odds": 1.89,
           "suspended": false
         },
         {
-          "team": "DRUMMOYNE TERRIERS",
-          "odds": 1.91,
+          "team": "GALUCTASARY",
+          "odds": 1.99,
+          "suspended": false
+        },
+        {
+          "team": "QUINTASENTIAL FC",
+          "odds": 2.01,
+          "suspended": false
+        },
+        {
+          "team": "PAIN IN DIAS",
+          "odds": 2.09,
+          "suspended": false
+        },
+        {
+          "team": "SK STURM MELBOURNE",
+          "odds": 2.1,
+          "suspended": false
+        },
+        {
+          "team": "SABITEURS",
+          "odds": 2.1,
+          "suspended": false
+        },
+        {
+          "team": "PAW PATROL UNITED",
+          "odds": 2.12,
+          "suspended": false
+        },
+        {
+          "team": "GARRY WALLAH UNITED",
+          "odds": 2.36,
           "suspended": false
         },
         {
           "team": "TBCFC",
-          "odds": 2.23,
+          "odds": 2.94,
+          "suspended": false
+        },
+        {
+          "team": "PAYNE IN THE NECK FC",
+          "odds": 3.43,
           "suspended": false
         },
         {
           "team": "BREXIT LADS",
-          "odds": 3.18,
+          "odds": 3.49,
           "suspended": false
         }
       ],
       "bottom_half_pct": [
         {
           "team": "BREXIT LADS",
-          "odds": 1.36,
+          "odds": 1.31,
+          "suspended": false
+        },
+        {
+          "team": "PAYNE IN THE NECK FC",
+          "odds": 1.32,
           "suspended": false
         },
         {
           "team": "TBCFC",
-          "odds": 1.66,
-          "suspended": false
-        },
-        {
-          "team": "DRUMMOYNE TERRIERS",
-          "odds": 1.9,
-          "suspended": false
-        },
-        {
-          "team": "GALUCTASARY",
-          "odds": 1.92,
+          "odds": 1.41,
           "suspended": false
         },
         {
           "team": "GARRY WALLAH UNITED",
-          "odds": 1.93,
+          "odds": 1.6,
           "suspended": false
         },
         {
-          "team": "MACCA'S STARS",
-          "odds": 1.93,
+          "team": "PAW PATROL UNITED",
+          "odds": 1.73,
           "suspended": false
         },
         {
-          "team": "CONCEICAO",
-          "odds": 1.93,
-          "suspended": false
-        },
-        {
-          "team": "GOT WOUD?",
-          "odds": 1.96,
+          "team": "SABITEURS",
+          "odds": 1.74,
           "suspended": false
         },
         {
           "team": "SK STURM MELBOURNE",
-          "odds": 1.96,
+          "odds": 1.75,
           "suspended": false
         },
         {
-          "team": "E/MELB SUCCULENT CHINESE MEAL",
-          "odds": 1.97,
+          "team": "PAIN IN DIAS",
+          "odds": 1.75,
           "suspended": false
         },
         {
-          "team": "BORATVERYNICE",
-          "odds": 1.99,
+          "team": "QUINTASENTIAL FC",
+          "odds": 1.81,
           "suspended": false
         },
         {
-          "team": "AARONGURDWOODREICH",
-          "odds": 2.01,
+          "team": "GALUCTASARY",
+          "odds": 1.83,
+          "suspended": false
+        },
+        {
+          "team": "GOT WOUD?",
+          "odds": 1.92,
           "suspended": false
         },
         {
           "team": "LOAVES & FISHES",
-          "odds": 2.22,
+          "odds": 4.26,
           "suspended": false
         },
         {
-          "team": "FOR VUCK'S SAKE FC",
-          "odds": 2.31,
+          "team": "E/MELB SUCCULENT CHINESE MEAL",
+          "odds": 4.56,
+          "suspended": false
+        },
+        {
+          "team": "BORATVERYNICE",
+          "odds": 8.35,
           "suspended": false
         }
       ],
       "wooden_spoon_pct": [
         {
+          "team": "PAYNE IN THE NECK FC",
+          "odds": 6.35,
+          "suspended": false
+        },
+        {
           "team": "BREXIT LADS",
-          "odds": 6.0,
+          "odds": 6.68,
           "suspended": false
         },
         {
           "team": "TBCFC",
-          "odds": 10.32,
+          "odds": 7.71,
           "suspended": false
         },
         {
-          "team": "GOT WOUD?",
-          "odds": 13.51,
+          "team": "GARRY WALLAH UNITED",
+          "odds": 10.26,
           "suspended": false
         },
         {
-          "team": "GALUCTASARY",
-          "odds": 13.66,
+          "team": "PAW PATROL UNITED",
+          "odds": 13.2,
           "suspended": false
         },
         {
-          "team": "AARONGURDWOODREICH",
-          "odds": 13.8,
+          "team": "SABITEURS",
+          "odds": 13.77,
           "suspended": false
         },
         {
-          "team": "CONCEICAO",
-          "odds": 13.94,
+          "team": "PAIN IN DIAS",
+          "odds": 13.89,
           "suspended": false
         },
         {
@@ -1648,38 +1653,33 @@
           "suspended": false
         },
         {
-          "team": "DRUMMOYNE TERRIERS",
-          "odds": 14.32,
+          "team": "QUINTASENTIAL FC",
+          "odds": 14.46,
           "suspended": false
         },
         {
-          "team": "GARRY WALLAH UNITED",
-          "odds": 14.83,
+          "team": "GALUCTASARY",
+          "odds": 15.57,
           "suspended": false
         },
         {
-          "team": "E/MELB SUCCULENT CHINESE MEAL",
-          "odds": 15.0,
-          "suspended": false
-        },
-        {
-          "team": "BORATVERYNICE",
-          "odds": 16.06,
-          "suspended": false
-        },
-        {
-          "team": "MACCA'S STARS",
-          "odds": 16.51,
-          "suspended": false
-        },
-        {
-          "team": "FOR VUCK'S SAKE FC",
-          "odds": 19.72,
+          "team": "GOT WOUD?",
+          "odds": 15.59,
           "suspended": false
         },
         {
           "team": "LOAVES & FISHES",
-          "odds": 21.02,
+          "odds": 77.58,
+          "suspended": false
+        },
+        {
+          "team": "E/MELB SUCCULENT CHINESE MEAL",
+          "odds": 103.72,
+          "suspended": false
+        },
+        {
+          "team": "BORATVERYNICE",
+          "odds": 190.48,
           "suspended": false
         }
       ],
@@ -1687,11 +1687,6 @@
         {
           "team": "TBCFC",
           "odds": 3.67,
-          "suspended": true
-        },
-        {
-          "team": "FOR VUCK'S SAKE FC",
-          "odds": 1001,
           "suspended": true
         },
         {
@@ -1705,17 +1700,12 @@
           "suspended": true
         },
         {
-          "team": "MACCA'S STARS",
+          "team": "BREXIT LADS",
           "odds": 1001,
           "suspended": true
         },
         {
-          "team": "AARONGURDWOODREICH",
-          "odds": 2.71,
-          "suspended": true
-        },
-        {
-          "team": "BREXIT LADS",
+          "team": "PAW PATROL UNITED",
           "odds": 1001,
           "suspended": true
         },
@@ -1730,6 +1720,11 @@
           "suspended": true
         },
         {
+          "team": "PAYNE IN THE NECK FC",
+          "odds": 1001,
+          "suspended": true
+        },
+        {
           "team": "GALUCTASARY",
           "odds": 1001,
           "suspended": true
@@ -1740,90 +1735,95 @@
           "suspended": true
         },
         {
-          "team": "DRUMMOYNE TERRIERS",
+          "team": "PAIN IN DIAS",
+          "odds": 1001,
+          "suspended": true
+        },
+        {
+          "team": "QUINTASENTIAL FC",
+          "odds": 1001,
+          "suspended": true
+        },
+        {
+          "team": "SABITEURS",
           "odds": 1001,
           "suspended": true
         },
         {
           "team": "E/MELB SUCCULENT CHINESE MEAL",
-          "odds": 1001,
-          "suspended": true
-        },
-        {
-          "team": "CONCEICAO",
           "odds": 1001,
           "suspended": true
         }
       ],
       "bottom3_pct": [
         {
-          "team": "BREXIT LADS",
+          "team": "PAYNE IN THE NECK FC",
           "odds": 2.45,
           "suspended": false
         },
         {
+          "team": "BREXIT LADS",
+          "odds": 2.53,
+          "suspended": false
+        },
+        {
           "team": "TBCFC",
-          "odds": 3.6,
-          "suspended": false
-        },
-        {
-          "team": "GALUCTASARY",
-          "odds": 4.43,
-          "suspended": false
-        },
-        {
-          "team": "DRUMMOYNE TERRIERS",
-          "odds": 4.57,
-          "suspended": false
-        },
-        {
-          "team": "CONCEICAO",
-          "odds": 4.62,
+          "odds": 2.91,
           "suspended": false
         },
         {
           "team": "GARRY WALLAH UNITED",
-          "odds": 4.64,
+          "odds": 3.59,
           "suspended": false
         },
         {
-          "team": "E/MELB SUCCULENT CHINESE MEAL",
-          "odds": 4.64,
+          "team": "SABITEURS",
+          "odds": 4.13,
           "suspended": false
         },
         {
-          "team": "AARONGURDWOODREICH",
-          "odds": 4.69,
+          "team": "PAW PATROL UNITED",
+          "odds": 4.2,
           "suspended": false
         },
         {
-          "team": "GOT WOUD?",
-          "odds": 4.69,
-          "suspended": false
-        },
-        {
-          "team": "MACCA'S STARS",
-          "odds": 4.78,
+          "team": "PAIN IN DIAS",
+          "odds": 4.21,
           "suspended": false
         },
         {
           "team": "SK STURM MELBOURNE",
-          "odds": 4.79,
+          "odds": 4.27,
           "suspended": false
         },
         {
-          "team": "BORATVERYNICE",
-          "odds": 4.92,
+          "team": "QUINTASENTIAL FC",
+          "odds": 4.3,
           "suspended": false
         },
         {
-          "team": "FOR VUCK'S SAKE FC",
-          "odds": 6.11,
+          "team": "GALUCTASARY",
+          "odds": 4.73,
+          "suspended": false
+        },
+        {
+          "team": "GOT WOUD?",
+          "odds": 4.95,
           "suspended": false
         },
         {
           "team": "LOAVES & FISHES",
-          "odds": 6.19,
+          "odds": 17.16,
+          "suspended": false
+        },
+        {
+          "team": "E/MELB SUCCULENT CHINESE MEAL",
+          "odds": 19.84,
+          "suspended": false
+        },
+        {
+          "team": "BORATVERYNICE",
+          "odds": 56.69,
           "suspended": false
         }
       ]
@@ -1831,373 +1831,383 @@
     "DIVISION 3B": {
       "win_div_pct": [
         {
-          "team": "MONGREL GARDEN",
-          "odds": 9.27,
-          "suspended": false
-        },
-        {
-          "team": "DADDY VALKANIS & SONS",
-          "odds": 11.18,
-          "suspended": false
-        },
-        {
-          "team": "THE BEAU-CHAMPS",
-          "odds": 11.38,
-          "suspended": false
-        },
-        {
-          "team": "PAIN IN DIAS",
-          "odds": 11.8,
-          "suspended": false
-        },
-        {
-          "team": "SHAQNADO 2: RETURN OF THE SHAQ",
-          "odds": 11.86,
-          "suspended": false
-        },
-        {
-          "team": "QUINTASENTIAL FC",
-          "odds": 12.4,
-          "suspended": false
-        },
-        {
           "team": "SILVO'S SQUAD",
-          "odds": 12.42,
+          "odds": 4.43,
           "suspended": false
         },
         {
-          "team": "SABITEURS",
-          "odds": 12.73,
+          "team": "MONGREL GARDEN",
+          "odds": 7.59,
           "suspended": false
         },
         {
-          "team": "KRANSKY FC",
-          "odds": 12.78,
+          "team": "FOR VUCK'S SAKE FC",
+          "odds": 8.47,
           "suspended": false
         },
         {
-          "team": "GARNCELONA",
-          "odds": 13.17,
+          "team": "AARONGURDWOODREICH",
+          "odds": 8.66,
+          "suspended": false
+        },
+        {
+          "team": "CONCEICAO",
+          "odds": 9.05,
           "suspended": false
         },
         {
           "team": "RUBY FC",
-          "odds": 13.47,
+          "odds": 9.29,
+          "suspended": false
+        },
+        {
+          "team": "THE BEAU-CHAMPS",
+          "odds": 9.67,
+          "suspended": false
+        },
+        {
+          "team": "DADDY VALKANIS & SONS",
+          "odds": 35.02,
+          "suspended": false
+        },
+        {
+          "team": "GARNCELONA",
+          "odds": 40.19,
+          "suspended": false
+        },
+        {
+          "team": "DRUMMOYNE TERRIERS",
+          "odds": 42.71,
+          "suspended": false
+        },
+        {
+          "team": "SHAQNADO 2: RETURN OF THE SHAQ",
+          "odds": 43.29,
+          "suspended": false
+        },
+        {
+          "team": "KRANSKY FC",
+          "odds": 43.89,
           "suspended": false
         },
         {
           "team": "SYDNEY OLEEE",
-          "odds": 18.6,
+          "odds": 123.7,
           "suspended": false
         },
         {
-          "team": "PAW PATROL UNITED",
-          "odds": 23.69,
-          "suspended": false
-        },
-        {
-          "team": "PAYNE IN THE NECK FC",
-          "odds": 31.54,
+          "team": "MACCA'S STARS",
+          "odds": 146.53,
           "suspended": false
         }
       ],
       "top3_pct": [
         {
+          "team": "SILVO'S SQUAD",
+          "odds": 1.96,
+          "suspended": false
+        },
+        {
           "team": "MONGREL GARDEN",
-          "odds": 3.31,
+          "odds": 2.69,
+          "suspended": false
+        },
+        {
+          "team": "FOR VUCK'S SAKE FC",
+          "odds": 2.92,
+          "suspended": false
+        },
+        {
+          "team": "AARONGURDWOODREICH",
+          "odds": 2.95,
+          "suspended": false
+        },
+        {
+          "team": "CONCEICAO",
+          "odds": 3.01,
           "suspended": false
         },
         {
           "team": "THE BEAU-CHAMPS",
-          "odds": 3.73,
-          "suspended": false
-        },
-        {
-          "team": "DADDY VALKANIS & SONS",
-          "odds": 4.06,
-          "suspended": false
-        },
-        {
-          "team": "SHAQNADO 2: RETURN OF THE SHAQ",
-          "odds": 4.13,
-          "suspended": false
-        },
-        {
-          "team": "PAIN IN DIAS",
-          "odds": 4.15,
-          "suspended": false
-        },
-        {
-          "team": "QUINTASENTIAL FC",
-          "odds": 4.15,
-          "suspended": false
-        },
-        {
-          "team": "SABITEURS",
-          "odds": 4.25,
-          "suspended": false
-        },
-        {
-          "team": "SILVO'S SQUAD",
-          "odds": 4.26,
-          "suspended": false
-        },
-        {
-          "team": "KRANSKY FC",
-          "odds": 4.29,
-          "suspended": false
-        },
-        {
-          "team": "GARNCELONA",
-          "odds": 4.31,
+          "odds": 3.13,
           "suspended": false
         },
         {
           "team": "RUBY FC",
-          "odds": 4.5,
+          "odds": 3.15,
+          "suspended": false
+        },
+        {
+          "team": "GARNCELONA",
+          "odds": 8.68,
+          "suspended": false
+        },
+        {
+          "team": "DADDY VALKANIS & SONS",
+          "odds": 8.97,
+          "suspended": false
+        },
+        {
+          "team": "DRUMMOYNE TERRIERS",
+          "odds": 9.69,
+          "suspended": false
+        },
+        {
+          "team": "KRANSKY FC",
+          "odds": 10.11,
+          "suspended": false
+        },
+        {
+          "team": "SHAQNADO 2: RETURN OF THE SHAQ",
+          "odds": 10.37,
+          "suspended": false
+        },
+        {
+          "team": "MACCA'S STARS",
+          "odds": 21.89,
           "suspended": false
         },
         {
           "team": "SYDNEY OLEEE",
-          "odds": 5.45,
-          "suspended": false
-        },
-        {
-          "team": "PAW PATROL UNITED",
-          "odds": 6.43,
-          "suspended": false
-        },
-        {
-          "team": "PAYNE IN THE NECK FC",
-          "odds": 8.93,
+          "odds": 21.89,
           "suspended": false
         }
       ],
       "top_half_pct": [
         {
-          "team": "MONGREL GARDEN",
-          "odds": 1.61,
-          "suspended": false
-        },
-        {
-          "team": "THE BEAU-CHAMPS",
-          "odds": 1.72,
-          "suspended": false
-        },
-        {
-          "team": "SHAQNADO 2: RETURN OF THE SHAQ",
-          "odds": 1.79,
-          "suspended": false
-        },
-        {
           "team": "SILVO'S SQUAD",
-          "odds": 1.82,
+          "odds": 1.19,
           "suspended": false
         },
         {
-          "team": "PAIN IN DIAS",
-          "odds": 1.82,
+          "team": "MONGREL GARDEN",
+          "odds": 1.35,
           "suspended": false
         },
         {
-          "team": "QUINTASENTIAL FC",
-          "odds": 1.82,
+          "team": "AARONGURDWOODREICH",
+          "odds": 1.4,
           "suspended": false
         },
         {
-          "team": "SABITEURS",
-          "odds": 1.82,
+          "team": "CONCEICAO",
+          "odds": 1.41,
           "suspended": false
         },
         {
-          "team": "DADDY VALKANIS & SONS",
-          "odds": 1.84,
-          "suspended": false
-        },
-        {
-          "team": "KRANSKY FC",
-          "odds": 1.85,
-          "suspended": false
-        },
-        {
-          "team": "GARNCELONA",
-          "odds": 1.86,
+          "team": "FOR VUCK'S SAKE FC",
+          "odds": 1.42,
           "suspended": false
         },
         {
           "team": "RUBY FC",
-          "odds": 1.86,
+          "odds": 1.42,
+          "suspended": false
+        },
+        {
+          "team": "THE BEAU-CHAMPS",
+          "odds": 1.44,
+          "suspended": false
+        },
+        {
+          "team": "DRUMMOYNE TERRIERS",
+          "odds": 2.66,
+          "suspended": false
+        },
+        {
+          "team": "DADDY VALKANIS & SONS",
+          "odds": 2.68,
+          "suspended": false
+        },
+        {
+          "team": "GARNCELONA",
+          "odds": 2.7,
+          "suspended": false
+        },
+        {
+          "team": "KRANSKY FC",
+          "odds": 2.72,
+          "suspended": false
+        },
+        {
+          "team": "SHAQNADO 2: RETURN OF THE SHAQ",
+          "odds": 2.86,
           "suspended": false
         },
         {
           "team": "SYDNEY OLEEE",
-          "odds": 2.14,
+          "odds": 4.71,
           "suspended": false
         },
         {
-          "team": "PAW PATROL UNITED",
-          "odds": 2.34,
-          "suspended": false
-        },
-        {
-          "team": "PAYNE IN THE NECK FC",
-          "odds": 2.95,
+          "team": "MACCA'S STARS",
+          "odds": 5.03,
           "suspended": false
         }
       ],
       "bottom_half_pct": [
         {
-          "team": "PAYNE IN THE NECK FC",
-          "odds": 1.41,
-          "suspended": false
-        },
-        {
-          "team": "PAW PATROL UNITED",
-          "odds": 1.61,
+          "team": "MACCA'S STARS",
+          "odds": 1.17,
           "suspended": false
         },
         {
           "team": "SYDNEY OLEEE",
-          "odds": 1.72,
-          "suspended": false
-        },
-        {
-          "team": "GARNCELONA",
-          "odds": 1.95,
-          "suspended": false
-        },
-        {
-          "team": "RUBY FC",
-          "odds": 1.95,
-          "suspended": false
-        },
-        {
-          "team": "KRANSKY FC",
-          "odds": 1.96,
-          "suspended": false
-        },
-        {
-          "team": "DADDY VALKANIS & SONS",
-          "odds": 1.98,
-          "suspended": false
-        },
-        {
-          "team": "PAIN IN DIAS",
-          "odds": 1.99,
-          "suspended": false
-        },
-        {
-          "team": "QUINTASENTIAL FC",
-          "odds": 1.99,
-          "suspended": false
-        },
-        {
-          "team": "SILVO'S SQUAD",
-          "odds": 2.0,
-          "suspended": false
-        },
-        {
-          "team": "SABITEURS",
-          "odds": 2.0,
+          "odds": 1.19,
           "suspended": false
         },
         {
           "team": "SHAQNADO 2: RETURN OF THE SHAQ",
-          "odds": 2.03,
+          "odds": 1.43,
+          "suspended": false
+        },
+        {
+          "team": "KRANSKY FC",
+          "odds": 1.46,
+          "suspended": false
+        },
+        {
+          "team": "GARNCELONA",
+          "odds": 1.47,
+          "suspended": false
+        },
+        {
+          "team": "DRUMMOYNE TERRIERS",
+          "odds": 1.48,
+          "suspended": false
+        },
+        {
+          "team": "DADDY VALKANIS & SONS",
+          "odds": 1.48,
           "suspended": false
         },
         {
           "team": "THE BEAU-CHAMPS",
-          "odds": 2.14,
+          "odds": 2.81,
+          "suspended": false
+        },
+        {
+          "team": "RUBY FC",
+          "odds": 2.87,
+          "suspended": false
+        },
+        {
+          "team": "FOR VUCK'S SAKE FC",
+          "odds": 2.89,
+          "suspended": false
+        },
+        {
+          "team": "CONCEICAO",
+          "odds": 2.92,
+          "suspended": false
+        },
+        {
+          "team": "AARONGURDWOODREICH",
+          "odds": 3.0,
           "suspended": false
         },
         {
           "team": "MONGREL GARDEN",
-          "odds": 2.34,
+          "odds": 3.21,
+          "suspended": false
+        },
+        {
+          "team": "SILVO'S SQUAD",
+          "odds": 4.77,
           "suspended": false
         }
       ],
       "wooden_spoon_pct": [
         {
-          "team": "PAYNE IN THE NECK FC",
-          "odds": 6.49,
-          "suspended": false
-        },
-        {
-          "team": "PAW PATROL UNITED",
-          "odds": 8.71,
-          "suspended": false
-        },
-        {
           "team": "SYDNEY OLEEE",
-          "odds": 11.23,
+          "odds": 4.73,
+          "suspended": false
+        },
+        {
+          "team": "MACCA'S STARS",
+          "odds": 4.77,
           "suspended": false
         },
         {
           "team": "SHAQNADO 2: RETURN OF THE SHAQ",
-          "odds": 14.05,
-          "suspended": false
-        },
-        {
-          "team": "QUINTASENTIAL FC",
-          "odds": 14.15,
-          "suspended": false
-        },
-        {
-          "team": "RUBY FC",
-          "odds": 14.83,
-          "suspended": false
-        },
-        {
-          "team": "KRANSKY FC",
-          "odds": 15.36,
+          "odds": 9.13,
           "suspended": false
         },
         {
           "team": "GARNCELONA",
-          "odds": 15.66,
+          "odds": 9.69,
           "suspended": false
         },
         {
-          "team": "SABITEURS",
-          "odds": 15.74,
+          "team": "KRANSKY FC",
+          "odds": 10.11,
           "suspended": false
         },
         {
-          "team": "PAIN IN DIAS",
-          "odds": 15.87,
+          "team": "DRUMMOYNE TERRIERS",
+          "odds": 10.13,
           "suspended": false
         },
         {
           "team": "DADDY VALKANIS & SONS",
-          "odds": 16.22,
+          "odds": 10.38,
           "suspended": false
         },
         {
           "team": "THE BEAU-CHAMPS",
-          "odds": 16.65,
+          "odds": 46.91,
           "suspended": false
         },
         {
-          "team": "SILVO'S SQUAD",
-          "odds": 17.47,
+          "team": "RUBY FC",
+          "odds": 50.65,
+          "suspended": false
+        },
+        {
+          "team": "FOR VUCK'S SAKE FC",
+          "odds": 52.04,
+          "suspended": false
+        },
+        {
+          "team": "AARONGURDWOODREICH",
+          "odds": 53.5,
+          "suspended": false
+        },
+        {
+          "team": "CONCEICAO",
+          "odds": 54.42,
           "suspended": false
         },
         {
           "team": "MONGREL GARDEN",
-          "odds": 20.61,
+          "odds": 60.66,
+          "suspended": false
+        },
+        {
+          "team": "SILVO'S SQUAD",
+          "odds": 123.67,
           "suspended": false
         }
       ],
       "promotion_pct": [
+        {
+          "team": "FOR VUCK'S SAKE FC",
+          "odds": 1001,
+          "suspended": true
+        },
         {
           "team": "MONGREL GARDEN",
           "odds": 1001,
           "suspended": true
         },
         {
-          "team": "PAW PATROL UNITED",
-          "odds": 4.09,
+          "team": "MACCA'S STARS",
+          "odds": 1001,
+          "suspended": true
+        },
+        {
+          "team": "AARONGURDWOODREICH",
+          "odds": 1001,
           "suspended": true
         },
         {
@@ -2211,17 +2221,7 @@
           "suspended": true
         },
         {
-          "team": "PAYNE IN THE NECK FC",
-          "odds": 1001,
-          "suspended": true
-        },
-        {
           "team": "SILVO'S SQUAD",
-          "odds": 1001,
-          "suspended": true
-        },
-        {
-          "team": "PAIN IN DIAS",
           "odds": 1001,
           "suspended": true
         },
@@ -2236,12 +2236,7 @@
           "suspended": true
         },
         {
-          "team": "QUINTASENTIAL FC",
-          "odds": 1001,
-          "suspended": true
-        },
-        {
-          "team": "SABITEURS",
+          "team": "DRUMMOYNE TERRIERS",
           "odds": 1001,
           "suspended": true
         },
@@ -2257,79 +2252,84 @@
         },
         {
           "team": "KRANSKY FC",
+          "odds": 1001,
+          "suspended": true
+        },
+        {
+          "team": "CONCEICAO",
           "odds": 1001,
           "suspended": true
         }
       ],
       "bottom3_pct": [
         {
-          "team": "PAYNE IN THE NECK FC",
-          "odds": 2.67,
-          "suspended": false
-        },
-        {
-          "team": "PAW PATROL UNITED",
-          "odds": 3.32,
+          "team": "MACCA'S STARS",
+          "odds": 1.93,
           "suspended": false
         },
         {
           "team": "SYDNEY OLEEE",
-          "odds": 3.75,
-          "suspended": false
-        },
-        {
-          "team": "QUINTASENTIAL FC",
-          "odds": 4.7,
-          "suspended": false
-        },
-        {
-          "team": "KRANSKY FC",
-          "odds": 4.72,
-          "suspended": false
-        },
-        {
-          "team": "RUBY FC",
-          "odds": 4.73,
-          "suspended": false
-        },
-        {
-          "team": "PAIN IN DIAS",
-          "odds": 4.75,
-          "suspended": false
-        },
-        {
-          "team": "GARNCELONA",
-          "odds": 4.88,
-          "suspended": false
-        },
-        {
-          "team": "SILVO'S SQUAD",
-          "odds": 4.9,
+          "odds": 2.01,
           "suspended": false
         },
         {
           "team": "SHAQNADO 2: RETURN OF THE SHAQ",
-          "odds": 4.91,
+          "odds": 3.03,
           "suspended": false
         },
         {
-          "team": "SABITEURS",
-          "odds": 4.91,
+          "team": "KRANSKY FC",
+          "odds": 3.19,
           "suspended": false
         },
         {
           "team": "DADDY VALKANIS & SONS",
-          "odds": 5.02,
+          "odds": 3.28,
+          "suspended": false
+        },
+        {
+          "team": "GARNCELONA",
+          "odds": 3.36,
+          "suspended": false
+        },
+        {
+          "team": "DRUMMOYNE TERRIERS",
+          "odds": 3.36,
           "suspended": false
         },
         {
           "team": "THE BEAU-CHAMPS",
-          "odds": 5.31,
+          "odds": 9.85,
+          "suspended": false
+        },
+        {
+          "team": "FOR VUCK'S SAKE FC",
+          "odds": 10.33,
+          "suspended": false
+        },
+        {
+          "team": "CONCEICAO",
+          "odds": 10.47,
+          "suspended": false
+        },
+        {
+          "team": "RUBY FC",
+          "odds": 10.91,
+          "suspended": false
+        },
+        {
+          "team": "AARONGURDWOODREICH",
+          "odds": 11.8,
           "suspended": false
         },
         {
           "team": "MONGREL GARDEN",
-          "odds": 6.4,
+          "odds": 13.23,
+          "suspended": false
+        },
+        {
+          "team": "SILVO'S SQUAD",
+          "odds": 22.68,
           "suspended": false
         }
       ]
@@ -2339,156 +2339,116 @@
     "roddy_win_pct": [
       {
         "team": "BC UNITED ZEBRAS",
-        "odds": 5.43,
+        "odds": 4.79,
         "suspended": false
       },
       {
         "team": "SILVERMAN'S XI",
-        "odds": 6.09,
+        "odds": 5.61,
         "suspended": false
       },
       {
         "team": "FROGBERT FOOTBALL",
-        "odds": 7.59,
-        "suspended": false
-      },
-      {
-        "team": "SILVO'S SQUAD",
-        "odds": 8.54,
+        "odds": 6.96,
         "suspended": false
       },
       {
         "team": "STAIRWAY TO EVANS",
-        "odds": 9.03,
+        "odds": 8.63,
         "suspended": false
       },
       {
         "team": "KALLO FC",
-        "odds": 10.99,
+        "odds": 9.32,
         "suspended": false
       },
       {
         "team": "HARVEY FREKES",
-        "odds": 18.11,
+        "odds": 15.96,
         "suspended": false
       },
       {
         "team": "JARVIS ZEBRAS",
-        "odds": 23.32,
-        "suspended": false
-      },
-      {
-        "team": "SAUCE FC",
-        "odds": 25.92,
+        "odds": 20.26,
         "suspended": false
       },
       {
         "team": "ALASKAN BULL WORMS",
-        "odds": 27.74,
+        "odds": 22.41,
         "suspended": false
       },
       {
-        "team": "NANISTATE",
-        "odds": 59.52,
+        "team": "SAUCE FC",
+        "odds": 22.95,
         "suspended": false
       },
       {
         "team": "THE WAINE TRAIN",
-        "odds": 71.88,
+        "odds": 51.02,
+        "suspended": false
+      },
+      {
+        "team": "NANISTATE",
+        "odds": 51.48,
         "suspended": false
       },
       {
         "team": "DW ABOUT IT FC",
-        "odds": 95.24,
+        "odds": 75.19,
         "suspended": false
       },
       {
         "team": "GIVE US WANG",
-        "odds": 117.82,
-        "suspended": false
-      },
-      {
-        "team": "AFC BIG RED PORT",
-        "odds": 124.22,
+        "odds": 81.63,
         "suspended": false
       },
       {
         "team": "VICTORYRULES",
-        "odds": 134.45,
+        "odds": 119.05,
         "suspended": false
       },
       {
-        "team": "SPOONERS FC",
-        "odds": 308.88,
+        "team": "AFC BIG RED PORT",
+        "odds": 126.98,
         "suspended": false
       },
       {
         "team": "JUAN EL MAGICO FC",
-        "odds": 308.88,
+        "odds": 204.08,
+        "suspended": false
+      },
+      {
+        "team": "SPOONERS FC",
+        "odds": 259.74,
         "suspended": false
       },
       {
         "team": "LALAS LEVEN",
-        "odds": 368.66,
+        "odds": 336.13,
         "suspended": false
       },
       {
         "team": "THE DRONE POLICE",
-        "odds": 761.9,
+        "odds": 634.92,
         "suspended": false
       },
       {
         "team": "DINKIN CRFC",
+        "odds": 714.29,
+        "suspended": false
+      },
+      {
+        "team": "BIG MAC FC",
         "odds": 1001,
         "suspended": false
       },
       {
-        "team": "TBCFC",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "FOR VUCK'S SAKE FC",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "GARRY WALLAH UNITED",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "CASUAL APPROACH",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "JUSTICEFORMOON FC",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "MONGREL GARDEN",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "BORATVERYNICE",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "RIO'S RHINOS",
+        "team": "TOP KUOLITY",
         "odds": 1001,
         "suspended": false
       },
       {
         "team": "INTER MILANOVIC",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "MACCA'S STARS",
         "odds": 1001,
         "suspended": false
       },
@@ -2503,17 +2463,82 @@
         "suspended": false
       },
       {
-        "team": "AARONGURDWOODREICH",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
         "team": "ALBANIAN BOARS",
         "odds": 1001,
         "suspended": false
       },
       {
-        "team": "BIG MAC FC",
+        "team": "MANCHESTHAIR UTD",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "X2 STRANGE",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "CARNEGIE DACHSHUNDS",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "ROTORUA UNITED",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "CASUAL APPROACH",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "JUSTICEFORMOON FC",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "RIO'S RHINOS",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "RICKY DIACO FC",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "DEER PARK UNITED",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "THE GARUCCI-SHOW",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "FULLY SCICLUNA",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "BALLERS",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "TBCFC",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "GARRY WALLAH UNITED",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "BORATVERYNICE",
         "odds": 1001,
         "suspended": false
       },
@@ -2533,72 +2558,12 @@
         "suspended": false
       },
       {
-        "team": "SYDNEY OLEEE",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "MANCHESTHAIR UTD",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "RICKY DIACO FC",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "TOP KUOLITY",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "X2 STRANGE",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "THE BEAU-CHAMPS",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "CARNEGIE DACHSHUNDS",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
         "team": "GOT WOUD?",
         "odds": 1001,
         "suspended": false
       },
       {
-        "team": "DEER PARK UNITED",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "THE GARUCCI-SHOW",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
         "team": "PAYNE IN THE NECK FC",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "ROTORUA UNITED",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "FULLY SCICLUNA",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "BALLERS",
         "odds": 1001,
         "suspended": false
       },
@@ -2618,21 +2583,6 @@
         "suspended": false
       },
       {
-        "team": "GARNCELONA",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "SHAQNADO 2: RETURN OF THE SHAQ",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "DRUMMOYNE TERRIERS",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
         "team": "QUINTASENTIAL FC",
         "odds": 1001,
         "suspended": false
@@ -2644,6 +2594,56 @@
       },
       {
         "team": "E/MELB SUCCULENT CHINESE MEAL",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "FOR VUCK'S SAKE FC",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "MONGREL GARDEN",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "MACCA'S STARS",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "AARONGURDWOODREICH",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "SYDNEY OLEEE",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "THE BEAU-CHAMPS",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "SILVO'S SQUAD",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "GARNCELONA",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "SHAQNADO 2: RETURN OF THE SHAQ",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "DRUMMOYNE TERRIERS",
         "odds": 1001,
         "suspended": false
       },
@@ -2671,171 +2671,131 @@
     "roddy_top3_pct": [
       {
         "team": "SILVERMAN'S XI",
-        "odds": 2.3,
+        "odds": 2.05,
         "suspended": false
       },
       {
         "team": "BC UNITED ZEBRAS",
-        "odds": 2.36,
+        "odds": 2.15,
         "suspended": false
       },
       {
         "team": "FROGBERT FOOTBALL",
-        "odds": 2.62,
-        "suspended": false
-      },
-      {
-        "team": "SILVO'S SQUAD",
-        "odds": 3.04,
+        "odds": 2.52,
         "suspended": false
       },
       {
         "team": "STAIRWAY TO EVANS",
-        "odds": 3.25,
+        "odds": 2.99,
         "suspended": false
       },
       {
         "team": "KALLO FC",
-        "odds": 3.67,
+        "odds": 3.27,
         "suspended": false
       },
       {
         "team": "HARVEY FREKES",
-        "odds": 5.59,
-        "suspended": false
-      },
-      {
-        "team": "ALASKAN BULL WORMS",
-        "odds": 6.64,
+        "odds": 4.91,
         "suspended": false
       },
       {
         "team": "JARVIS ZEBRAS",
-        "odds": 6.76,
+        "odds": 5.75,
+        "suspended": false
+      },
+      {
+        "team": "ALASKAN BULL WORMS",
+        "odds": 6.44,
         "suspended": false
       },
       {
         "team": "SAUCE FC",
-        "odds": 7.75,
+        "odds": 6.48,
         "suspended": false
       },
       {
         "team": "NANISTATE",
-        "odds": 12.17,
-        "suspended": false
-      },
-      {
-        "team": "THE WAINE TRAIN",
-        "odds": 18.4,
+        "odds": 10.93,
         "suspended": false
       },
       {
         "team": "DW ABOUT IT FC",
-        "odds": 18.52,
+        "odds": 14.25,
+        "suspended": false
+      },
+      {
+        "team": "THE WAINE TRAIN",
+        "odds": 14.47,
         "suspended": false
       },
       {
         "team": "GIVE US WANG",
-        "odds": 19.4,
+        "odds": 17.32,
         "suspended": false
       },
       {
         "team": "AFC BIG RED PORT",
-        "odds": 24.52,
+        "odds": 20.12,
         "suspended": false
       },
       {
         "team": "VICTORYRULES",
-        "odds": 29.38,
+        "odds": 23.81,
         "suspended": false
       },
       {
         "team": "JUAN EL MAGICO FC",
-        "odds": 40.96,
+        "odds": 34.42,
         "suspended": false
       },
       {
         "team": "SPOONERS FC",
-        "odds": 57.43,
+        "odds": 45.71,
         "suspended": false
       },
       {
         "team": "LALAS LEVEN",
-        "odds": 121.58,
+        "odds": 85.29,
         "suspended": false
       },
       {
         "team": "THE DRONE POLICE",
-        "odds": 121.58,
-        "suspended": false
-      },
-      {
-        "team": "E/MELB SUCCULENT CHINESE MEAL",
-        "odds": 139.37,
-        "suspended": false
-      },
-      {
-        "team": "FULLY SCICLUNA",
-        "odds": 211.64,
+        "odds": 105.82,
         "suspended": false
       },
       {
         "team": "DINKIN CRFC",
-        "odds": 215.63,
+        "odds": 129.87,
+        "suspended": false
+      },
+      {
+        "team": "FULLY SCICLUNA",
+        "odds": 154.44,
         "suspended": false
       },
       {
         "team": "CARNEGIE DACHSHUNDS",
-        "odds": 457.14,
+        "odds": 380.95,
         "suspended": false
       },
       {
-        "team": "TBCFC",
-        "odds": 1001,
+        "team": "BIG MAC FC",
+        "odds": 816.33,
         "suspended": false
       },
       {
-        "team": "FOR VUCK'S SAKE FC",
-        "odds": 1001,
+        "team": "THE GARUCCI-SHOW",
+        "odds": 952.38,
         "suspended": false
       },
       {
-        "team": "GARRY WALLAH UNITED",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "CASUAL APPROACH",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "JUSTICEFORMOON FC",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "MONGREL GARDEN",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "BORATVERYNICE",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "RIO'S RHINOS",
+        "team": "TOP KUOLITY",
         "odds": 1001,
         "suspended": false
       },
       {
         "team": "INTER MILANOVIC",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "MACCA'S STARS",
         "odds": 1001,
         "suspended": false
       },
@@ -2850,17 +2810,67 @@
         "suspended": false
       },
       {
-        "team": "AARONGURDWOODREICH",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
         "team": "ALBANIAN BOARS",
         "odds": 1001,
         "suspended": false
       },
       {
-        "team": "BIG MAC FC",
+        "team": "MANCHESTHAIR UTD",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "X2 STRANGE",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "ROTORUA UNITED",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "CASUAL APPROACH",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "JUSTICEFORMOON FC",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "RIO'S RHINOS",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "RICKY DIACO FC",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "DEER PARK UNITED",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "BALLERS",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "TBCFC",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "GARRY WALLAH UNITED",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "BORATVERYNICE",
         "odds": 1001,
         "suspended": false
       },
@@ -2880,62 +2890,12 @@
         "suspended": false
       },
       {
-        "team": "SYDNEY OLEEE",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "MANCHESTHAIR UTD",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "RICKY DIACO FC",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "TOP KUOLITY",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "X2 STRANGE",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "THE BEAU-CHAMPS",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
         "team": "GOT WOUD?",
         "odds": 1001,
         "suspended": false
       },
       {
-        "team": "DEER PARK UNITED",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "THE GARUCCI-SHOW",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
         "team": "PAYNE IN THE NECK FC",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "ROTORUA UNITED",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "BALLERS",
         "odds": 1001,
         "suspended": false
       },
@@ -2955,6 +2915,56 @@
         "suspended": false
       },
       {
+        "team": "QUINTASENTIAL FC",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "SABITEURS",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "E/MELB SUCCULENT CHINESE MEAL",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "FOR VUCK'S SAKE FC",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "MONGREL GARDEN",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "MACCA'S STARS",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "AARONGURDWOODREICH",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "SYDNEY OLEEE",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "THE BEAU-CHAMPS",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "SILVO'S SQUAD",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
         "team": "GARNCELONA",
         "odds": 1001,
         "suspended": false
@@ -2966,16 +2976,6 @@
       },
       {
         "team": "DRUMMOYNE TERRIERS",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "QUINTASENTIAL FC",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "SABITEURS",
         "odds": 1001,
         "suspended": false
       },
@@ -3003,117 +3003,112 @@
     "roddy_top5_pct": [
       {
         "team": "SILVERMAN'S XI",
-        "odds": 1.56,
+        "odds": 1.45,
         "suspended": false
       },
       {
         "team": "BC UNITED ZEBRAS",
-        "odds": 1.68,
+        "odds": 1.58,
         "suspended": false
       },
       {
         "team": "FROGBERT FOOTBALL",
-        "odds": 1.75,
-        "suspended": false
-      },
-      {
-        "team": "SILVO'S SQUAD",
-        "odds": 1.98,
+        "odds": 1.67,
         "suspended": false
       },
       {
         "team": "STAIRWAY TO EVANS",
-        "odds": 2.14,
+        "odds": 1.97,
         "suspended": false
       },
       {
         "team": "KALLO FC",
-        "odds": 2.22,
+        "odds": 2.05,
         "suspended": false
       },
       {
         "team": "HARVEY FREKES",
-        "odds": 3.18,
+        "odds": 2.81,
         "suspended": false
       },
       {
         "team": "ALASKAN BULL WORMS",
-        "odds": 3.51,
+        "odds": 3.16,
         "suspended": false
       },
       {
         "team": "JARVIS ZEBRAS",
-        "odds": 3.86,
+        "odds": 3.33,
         "suspended": false
       },
       {
         "team": "SAUCE FC",
-        "odds": 4.14,
+        "odds": 3.6,
         "suspended": false
       },
       {
         "team": "NANISTATE",
-        "odds": 6.13,
+        "odds": 5.33,
         "suspended": false
       },
       {
         "team": "DW ABOUT IT FC",
-        "odds": 8.01,
-        "suspended": false
-      },
-      {
-        "team": "GIVE US WANG",
-        "odds": 8.76,
+        "odds": 6.47,
         "suspended": false
       },
       {
         "team": "THE WAINE TRAIN",
-        "odds": 9.21,
+        "odds": 7.5,
+        "suspended": false
+      },
+      {
+        "team": "GIVE US WANG",
+        "odds": 7.8,
         "suspended": false
       },
       {
         "team": "AFC BIG RED PORT",
-        "odds": 10.63,
+        "odds": 8.71,
         "suspended": false
       },
       {
         "team": "VICTORYRULES",
-        "odds": 12.21,
+        "odds": 9.59,
         "suspended": false
       },
       {
         "team": "JUAN EL MAGICO FC",
-        "odds": 12.99,
+        "odds": 10.78,
         "suspended": false
       },
       {
         "team": "SPOONERS FC",
-        "odds": 21.69,
+        "odds": 18.49,
         "suspended": false
       },
       {
         "team": "THE DRONE POLICE",
-        "odds": 45.53,
+        "odds": 35.71,
         "suspended": false
       },
       {
         "team": "LALAS LEVEN",
-        "odds": 50.57,
-        "suspended": false
-      },
-      {
-        "team": "E/MELB SUCCULENT CHINESE MEAL",
-        "odds": 51.71,
+        "odds": 39.68,
         "suspended": false
       },
       {
         "team": "FULLY SCICLUNA",
-        "odds": 58.01,
+        "odds": 46.46,
         "suspended": false
       },
       {
         "team": "DINKIN CRFC",
-        "odds": 67.23,
+        "odds": 47.62,
+        "suspended": false
+      },
+      {
+        "team": "BIG MAC FC",
+        "odds": 146.52,
         "suspended": false
       },
       {
@@ -3122,67 +3117,27 @@
         "suspended": false
       },
       {
-        "team": "BIG MAC FC",
-        "odds": 193.7,
+        "team": "THE GARUCCI-SHOW",
+        "odds": 336.13,
         "suspended": false
       },
       {
-        "team": "THE GARUCCI-SHOW",
-        "odds": 544.22,
+        "team": "SILVO'S SQUAD",
+        "odds": 714.29,
         "suspended": false
       },
       {
         "team": "ALBANIAN BOARS",
-        "odds": 952.38,
+        "odds": 816.33,
         "suspended": false
       },
       {
-        "team": "TBCFC",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "FOR VUCK'S SAKE FC",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "GARRY WALLAH UNITED",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "CASUAL APPROACH",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "JUSTICEFORMOON FC",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "MONGREL GARDEN",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "BORATVERYNICE",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "RIO'S RHINOS",
+        "team": "TOP KUOLITY",
         "odds": 1001,
         "suspended": false
       },
       {
         "team": "INTER MILANOVIC",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "MACCA'S STARS",
         "odds": 1001,
         "suspended": false
       },
@@ -3197,7 +3152,62 @@
         "suspended": false
       },
       {
-        "team": "AARONGURDWOODREICH",
+        "team": "MANCHESTHAIR UTD",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "X2 STRANGE",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "ROTORUA UNITED",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "CASUAL APPROACH",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "JUSTICEFORMOON FC",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "RIO'S RHINOS",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "RICKY DIACO FC",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "DEER PARK UNITED",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "BALLERS",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "TBCFC",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "GARRY WALLAH UNITED",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "BORATVERYNICE",
         "odds": 1001,
         "suspended": false
       },
@@ -3217,57 +3227,12 @@
         "suspended": false
       },
       {
-        "team": "SYDNEY OLEEE",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "MANCHESTHAIR UTD",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "RICKY DIACO FC",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "TOP KUOLITY",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "X2 STRANGE",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "THE BEAU-CHAMPS",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
         "team": "GOT WOUD?",
         "odds": 1001,
         "suspended": false
       },
       {
-        "team": "DEER PARK UNITED",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
         "team": "PAYNE IN THE NECK FC",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "ROTORUA UNITED",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "BALLERS",
         "odds": 1001,
         "suspended": false
       },
@@ -3287,6 +3252,51 @@
         "suspended": false
       },
       {
+        "team": "QUINTASENTIAL FC",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "SABITEURS",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "E/MELB SUCCULENT CHINESE MEAL",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "FOR VUCK'S SAKE FC",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "MONGREL GARDEN",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "MACCA'S STARS",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "AARONGURDWOODREICH",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "SYDNEY OLEEE",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "THE BEAU-CHAMPS",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
         "team": "GARNCELONA",
         "odds": 1001,
         "suspended": false
@@ -3298,16 +3308,6 @@
       },
       {
         "team": "DRUMMOYNE TERRIERS",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "QUINTASENTIAL FC",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "SABITEURS",
         "odds": 1001,
         "suspended": false
       },
@@ -3335,191 +3335,186 @@
     "roddy_top10_pct": [
       {
         "team": "SILVERMAN'S XI",
-        "odds": 1.08,
+        "odds": 1.04,
         "suspended": false
       },
       {
         "team": "FROGBERT FOOTBALL",
-        "odds": 1.14,
+        "odds": 1.12,
         "suspended": false
       },
       {
         "team": "BC UNITED ZEBRAS",
-        "odds": 1.16,
-        "suspended": false
-      },
-      {
-        "team": "SILVO'S SQUAD",
-        "odds": 1.22,
+        "odds": 1.13,
         "suspended": false
       },
       {
         "team": "KALLO FC",
-        "odds": 1.29,
+        "odds": 1.24,
         "suspended": false
       },
       {
         "team": "STAIRWAY TO EVANS",
-        "odds": 1.3,
+        "odds": 1.25,
         "suspended": false
       },
       {
         "team": "HARVEY FREKES",
-        "odds": 1.54,
+        "odds": 1.44,
         "suspended": false
       },
       {
         "team": "ALASKAN BULL WORMS",
-        "odds": 1.58,
+        "odds": 1.48,
         "suspended": false
       },
       {
         "team": "JARVIS ZEBRAS",
-        "odds": 1.84,
+        "odds": 1.67,
         "suspended": false
       },
       {
         "team": "SAUCE FC",
-        "odds": 1.89,
+        "odds": 1.7,
         "suspended": false
       },
       {
         "team": "NANISTATE",
-        "odds": 2.28,
+        "odds": 2.0,
         "suspended": false
       },
       {
         "team": "DW ABOUT IT FC",
-        "odds": 2.66,
+        "odds": 2.27,
         "suspended": false
       },
       {
         "team": "GIVE US WANG",
-        "odds": 2.87,
+        "odds": 2.52,
         "suspended": false
       },
       {
         "team": "AFC BIG RED PORT",
-        "odds": 3.0,
+        "odds": 2.57,
         "suspended": false
       },
       {
         "team": "JUAN EL MAGICO FC",
-        "odds": 3.08,
+        "odds": 2.69,
         "suspended": false
       },
       {
         "team": "THE WAINE TRAIN",
-        "odds": 3.31,
+        "odds": 2.86,
         "suspended": false
       },
       {
         "team": "VICTORYRULES",
-        "odds": 3.7,
+        "odds": 3.22,
         "suspended": false
       },
       {
         "team": "SPOONERS FC",
-        "odds": 5.4,
+        "odds": 4.61,
         "suspended": false
       },
       {
         "team": "FULLY SCICLUNA",
-        "odds": 10.03,
+        "odds": 7.47,
         "suspended": false
       },
       {
         "team": "THE DRONE POLICE",
-        "odds": 10.63,
-        "suspended": false
-      },
-      {
-        "team": "E/MELB SUCCULENT CHINESE MEAL",
-        "odds": 10.92,
+        "odds": 8.86,
         "suspended": false
       },
       {
         "team": "LALAS LEVEN",
-        "odds": 12.68,
+        "odds": 10.58,
         "suspended": false
       },
       {
         "team": "DINKIN CRFC",
-        "odds": 13.9,
+        "odds": 11.54,
         "suspended": false
       },
       {
         "team": "BIG MAC FC",
-        "odds": 24.74,
+        "odds": 18.32,
         "suspended": false
       },
       {
         "team": "CARNEGIE DACHSHUNDS",
-        "odds": 30.48,
+        "odds": 26.95,
         "suspended": false
       },
       {
         "team": "ALBANIAN BOARS",
-        "odds": 62.79,
+        "odds": 38.87,
         "suspended": false
       },
       {
         "team": "THE GARUCCI-SHOW",
-        "odds": 66.83,
+        "odds": 40.82,
         "suspended": false
       },
       {
-        "team": "RICKY DIACO FC",
-        "odds": 634.92,
-        "suspended": false
-      },
-      {
-        "team": "TBCFC",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "FOR VUCK'S SAKE FC",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "GARRY WALLAH UNITED",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "CASUAL APPROACH",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "JUSTICEFORMOON FC",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "MONGREL GARDEN",
-        "odds": 1001,
+        "team": "SILVO'S SQUAD",
+        "odds": 78.28,
         "suspended": false
       },
       {
         "team": "BORATVERYNICE",
-        "odds": 1001,
+        "odds": 82.82,
         "suspended": false
       },
       {
-        "team": "RIO'S RHINOS",
-        "odds": 1001,
+        "team": "AARONGURDWOODREICH",
+        "odds": 204.08,
+        "suspended": false
+      },
+      {
+        "team": "RICKY DIACO FC",
+        "odds": 300.75,
+        "suspended": false
+      },
+      {
+        "team": "RUBY FC",
+        "odds": 476.19,
+        "suspended": false
+      },
+      {
+        "team": "E/MELB SUCCULENT CHINESE MEAL",
+        "odds": 519.48,
+        "suspended": false
+      },
+      {
+        "team": "MANCHESTHAIR UTD",
+        "odds": 571.43,
+        "suspended": false
+      },
+      {
+        "team": "CONCEICAO",
+        "odds": 634.92,
+        "suspended": false
+      },
+      {
+        "team": "THE BEAU-CHAMPS",
+        "odds": 714.29,
+        "suspended": false
+      },
+      {
+        "team": "TOP KUOLITY",
+        "odds": 952.38,
+        "suspended": false
+      },
+      {
+        "team": "FOR VUCK'S SAKE FC",
+        "odds": 952.38,
         "suspended": false
       },
       {
         "team": "INTER MILANOVIC",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "MACCA'S STARS",
         "odds": 1001,
         "suspended": false
       },
@@ -3534,7 +3529,47 @@
         "suspended": false
       },
       {
-        "team": "AARONGURDWOODREICH",
+        "team": "X2 STRANGE",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "ROTORUA UNITED",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "CASUAL APPROACH",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "JUSTICEFORMOON FC",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "RIO'S RHINOS",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "DEER PARK UNITED",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "BALLERS",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "TBCFC",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "GARRY WALLAH UNITED",
         "odds": 1001,
         "suspended": false
       },
@@ -3554,52 +3589,12 @@
         "suspended": false
       },
       {
-        "team": "SYDNEY OLEEE",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "MANCHESTHAIR UTD",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "TOP KUOLITY",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "X2 STRANGE",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "THE BEAU-CHAMPS",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
         "team": "GOT WOUD?",
         "odds": 1001,
         "suspended": false
       },
       {
-        "team": "DEER PARK UNITED",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
         "team": "PAYNE IN THE NECK FC",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "ROTORUA UNITED",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "BALLERS",
         "odds": 1001,
         "suspended": false
       },
@@ -3619,6 +3614,31 @@
         "suspended": false
       },
       {
+        "team": "QUINTASENTIAL FC",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "SABITEURS",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "MONGREL GARDEN",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "MACCA'S STARS",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
+        "team": "SYDNEY OLEEE",
+        "odds": 1001,
+        "suspended": false
+      },
+      {
         "team": "GARNCELONA",
         "odds": 1001,
         "suspended": false
@@ -3634,32 +3654,12 @@
         "suspended": false
       },
       {
-        "team": "QUINTASENTIAL FC",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "SABITEURS",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "RUBY FC",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
         "team": "DADDY VALKANIS & SONS",
         "odds": 1001,
         "suspended": false
       },
       {
         "team": "KRANSKY FC",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "CONCEICAO",
         "odds": 1001,
         "suspended": false
       }
@@ -3691,1303 +3691,1625 @@
     "reach_r32_pct": [
       {
         "team": "SILVERMAN'S XI",
-        "odds": 1.28,
-        "suspended": false
-      },
-      {
-        "team": "FROGBERT FOOTBALL",
-        "odds": 1.29,
+        "odds": 1.34,
         "suspended": false
       },
       {
         "team": "STAIRWAY TO EVANS",
-        "odds": 1.3,
+        "odds": 1.37,
+        "suspended": false
+      },
+      {
+        "team": "FROGBERT FOOTBALL",
+        "odds": 1.37,
         "suspended": false
       },
       {
         "team": "BC UNITED ZEBRAS",
-        "odds": 1.32,
-        "suspended": false
-      },
-      {
-        "team": "KALLO FC",
-        "odds": 1.34,
+        "odds": 1.39,
         "suspended": false
       },
       {
         "team": "HARVEY FREKES",
-        "odds": 1.34,
-        "suspended": false
-      },
-      {
-        "team": "ALASKAN BULL WORMS",
-        "odds": 1.36,
-        "suspended": false
-      },
-      {
-        "team": "JUAN EL MAGICO FC",
-        "odds": 1.36,
-        "suspended": false
-      },
-      {
-        "team": "JARVIS ZEBRAS",
-        "odds": 1.37,
-        "suspended": false
-      },
-      {
-        "team": "AFC BIG RED PORT",
-        "odds": 1.37,
-        "suspended": false
-      },
-      {
-        "team": "SAUCE FC",
-        "odds": 1.38,
-        "suspended": false
-      },
-      {
-        "team": "DW ABOUT IT FC",
-        "odds": 1.38,
-        "suspended": false
-      },
-      {
-        "team": "NANISTATE",
-        "odds": 1.38,
-        "suspended": false
-      },
-      {
-        "team": "GIVE US WANG",
         "odds": 1.4,
         "suspended": false
       },
       {
-        "team": "SPOONERS FC",
+        "team": "SAUCE FC",
+        "odds": 1.41,
+        "suspended": false
+      },
+      {
+        "team": "KALLO FC",
+        "odds": 1.42,
+        "suspended": false
+      },
+      {
+        "team": "ALASKAN BULL WORMS",
+        "odds": 1.43,
+        "suspended": false
+      },
+      {
+        "team": "NANISTATE",
         "odds": 1.45,
         "suspended": false
       },
       {
-        "team": "VICTORYRULES",
+        "team": "JARVIS ZEBRAS",
         "odds": 1.46,
         "suspended": false
       },
       {
-        "team": "FULLY SCICLUNA",
+        "team": "DW ABOUT IT FC",
         "odds": 1.46,
         "suspended": false
       },
       {
-        "team": "THE WAINE TRAIN",
+        "team": "JUAN EL MAGICO FC",
         "odds": 1.47,
         "suspended": false
       },
       {
-        "team": "BIG MAC FC",
+        "team": "GIVE US WANG",
+        "odds": 1.48,
+        "suspended": false
+      },
+      {
+        "team": "AFC BIG RED PORT",
+        "odds": 1.48,
+        "suspended": false
+      },
+      {
+        "team": "SPOONERS FC",
         "odds": 1.53,
         "suspended": false
       },
       {
-        "team": "DINKIN CRFC",
-        "odds": 1.56,
+        "team": "VICTORYRULES",
+        "odds": 1.54,
         "suspended": false
       },
       {
-        "team": "THE DRONE POLICE",
+        "team": "THE WAINE TRAIN",
         "odds": 1.57,
         "suspended": false
       },
       {
+        "team": "FULLY SCICLUNA",
+        "odds": 1.6,
+        "suspended": false
+      },
+      {
+        "team": "BIG MAC FC",
+        "odds": 1.64,
+        "suspended": false
+      },
+      {
+        "team": "DINKIN CRFC",
+        "odds": 1.64,
+        "suspended": false
+      },
+      {
         "team": "ALBANIAN BOARS",
-        "odds": 1.59,
+        "odds": 1.7,
+        "suspended": false
+      },
+      {
+        "team": "THE DRONE POLICE",
+        "odds": 1.7,
         "suspended": false
       },
       {
         "team": "THE GARUCCI-SHOW",
-        "odds": 1.61,
+        "odds": 1.74,
         "suspended": false
       },
       {
         "team": "LALAS LEVEN",
-        "odds": 1.62,
-        "suspended": false
-      },
-      {
-        "team": "CARNEGIE DACHSHUNDS",
-        "odds": 1.68,
-        "suspended": false
-      },
-      {
-        "team": "RICKY DIACO FC",
         "odds": 1.75,
         "suspended": false
       },
       {
-        "team": "BALLERS",
+        "team": "CARNEGIE DACHSHUNDS",
         "odds": 1.76,
         "suspended": false
       },
       {
-        "team": "TOP KUOLITY",
-        "odds": 1.81,
-        "suspended": false
-      },
-      {
-        "team": "MANCHESTHAIR UTD",
-        "odds": 1.81,
-        "suspended": false
-      },
-      {
-        "team": "ROTORUA UNITED",
-        "odds": 2.01,
-        "suspended": false
-      },
-      {
-        "team": "FOR VUCK'S SAKE FC",
-        "odds": 2.11,
-        "suspended": false
-      },
-      {
-        "team": "MONGREL GARDEN",
-        "odds": 2.14,
-        "suspended": false
-      },
-      {
-        "team": "3DOGS",
-        "odds": 2.17,
-        "suspended": false
-      },
-      {
-        "team": "DEER PARK UNITED",
-        "odds": 2.17,
-        "suspended": false
-      },
-      {
-        "team": "CASUAL APPROACH",
-        "odds": 2.19,
-        "suspended": false
-      },
-      {
-        "team": "LOAVES & FISHES",
-        "odds": 2.22,
-        "suspended": false
-      },
-      {
-        "team": "INTER MILANOVIC",
-        "odds": 2.24,
-        "suspended": false
-      },
-      {
-        "team": "JUSTICEFORMOON FC",
-        "odds": 2.26,
-        "suspended": false
-      },
-      {
-        "team": "AARONGURDWOODREICH",
-        "odds": 2.28,
-        "suspended": false
-      },
-      {
-        "team": "SHAQNADO 2: RETURN OF THE SHAQ",
-        "odds": 2.38,
-        "suspended": false
-      },
-      {
-        "team": "RIO'S RHINOS",
-        "odds": 2.39,
-        "suspended": false
-      },
-      {
-        "team": "GOT WOUD?",
-        "odds": 2.41,
-        "suspended": false
-      },
-      {
         "team": "SILVO'S SQUAD",
-        "odds": 2.41,
+        "odds": 1.85,
         "suspended": false
       },
       {
-        "team": "KRANSKY FC",
-        "odds": 2.41,
-        "suspended": false
-      },
-      {
-        "team": "GARRY WALLAH UNITED",
-        "odds": 2.43,
-        "suspended": false
-      },
-      {
-        "team": "GARNCELONA",
-        "odds": 2.43,
-        "suspended": false
-      },
-      {
-        "team": "RUBY FC",
-        "odds": 2.44,
-        "suspended": false
-      },
-      {
-        "team": "MACCA'S STARS",
-        "odds": 2.45,
-        "suspended": false
-      },
-      {
-        "team": "PAIN IN DIAS",
-        "odds": 2.46,
-        "suspended": false
-      },
-      {
-        "team": "SK STURM MELBOURNE",
-        "odds": 2.47,
-        "suspended": false
-      },
-      {
-        "team": "DRUMMOYNE TERRIERS",
-        "odds": 2.47,
-        "suspended": false
-      },
-      {
-        "team": "E/MELB SUCCULENT CHINESE MEAL",
-        "odds": 2.48,
-        "suspended": false
-      },
-      {
-        "team": "THE BEAU-CHAMPS",
-        "odds": 2.48,
-        "suspended": false
-      },
-      {
-        "team": "DADDY VALKANIS & SONS",
-        "odds": 2.5,
-        "suspended": false
-      },
-      {
-        "team": "VICTORY",
-        "odds": 2.51,
+        "team": "BALLERS",
+        "odds": 1.92,
         "suspended": false
       },
       {
         "team": "CONCEICAO",
-        "odds": 2.52,
+        "odds": 1.92,
         "suspended": false
       },
       {
-        "team": "X2 STRANGE",
-        "odds": 2.81,
+        "team": "RUBY FC",
+        "odds": 1.95,
         "suspended": false
       },
       {
-        "team": "SYDNEY OLEEE",
-        "odds": 3.67,
+        "team": "RICKY DIACO FC",
+        "odds": 1.97,
+        "suspended": false
+      },
+      {
+        "team": "E/MELB SUCCULENT CHINESE MEAL",
+        "odds": 1.98,
+        "suspended": false
+      },
+      {
+        "team": "MONGREL GARDEN",
+        "odds": 1.98,
+        "suspended": false
+      },
+      {
+        "team": "AARONGURDWOODREICH",
+        "odds": 1.98,
+        "suspended": false
+      },
+      {
+        "team": "TOP KUOLITY",
+        "odds": 2.0,
+        "suspended": false
+      },
+      {
+        "team": "FOR VUCK'S SAKE FC",
+        "odds": 2.0,
+        "suspended": false
+      },
+      {
+        "team": "LOAVES & FISHES",
+        "odds": 2.01,
+        "suspended": false
+      },
+      {
+        "team": "MANCHESTHAIR UTD",
+        "odds": 2.05,
+        "suspended": false
+      },
+      {
+        "team": "THE BEAU-CHAMPS",
+        "odds": 2.09,
+        "suspended": false
+      },
+      {
+        "team": "ROTORUA UNITED",
+        "odds": 2.25,
+        "suspended": false
+      },
+      {
+        "team": "SK STURM MELBOURNE",
+        "odds": 2.3,
+        "suspended": false
+      },
+      {
+        "team": "DADDY VALKANIS & SONS",
+        "odds": 2.31,
+        "suspended": false
+      },
+      {
+        "team": "SHAQNADO 2: RETURN OF THE SHAQ",
+        "odds": 2.32,
+        "suspended": false
+      },
+      {
+        "team": "GOT WOUD?",
+        "odds": 2.33,
+        "suspended": false
+      },
+      {
+        "team": "KRANSKY FC",
+        "odds": 2.34,
+        "suspended": false
+      },
+      {
+        "team": "DRUMMOYNE TERRIERS",
+        "odds": 2.35,
         "suspended": false
       },
       {
         "team": "PAW PATROL UNITED",
-        "odds": 3.82,
+        "odds": 2.37,
         "suspended": false
       },
       {
-        "team": "BORATVERYNICE",
-        "odds": 4.18,
+        "team": "GARNCELONA",
+        "odds": 2.39,
+        "suspended": false
+      },
+      {
+        "team": "PAIN IN DIAS",
+        "odds": 2.4,
+        "suspended": false
+      },
+      {
+        "team": "GARRY WALLAH UNITED",
+        "odds": 2.44,
+        "suspended": false
+      },
+      {
+        "team": "DEER PARK UNITED",
+        "odds": 2.49,
+        "suspended": false
+      },
+      {
+        "team": "3DOGS",
+        "odds": 2.51,
+        "suspended": false
+      },
+      {
+        "team": "SYDNEY OLEEE",
+        "odds": 2.54,
+        "suspended": false
+      },
+      {
+        "team": "CASUAL APPROACH",
+        "odds": 2.56,
+        "suspended": false
+      },
+      {
+        "team": "INTER MILANOVIC",
+        "odds": 2.61,
+        "suspended": false
+      },
+      {
+        "team": "JUSTICEFORMOON FC",
+        "odds": 2.61,
         "suspended": false
       },
       {
         "team": "TBCFC",
-        "odds": 4.34,
-        "suspended": false
-      },
-      {
-        "team": "SABITEURS",
-        "odds": 4.81,
-        "suspended": false
-      },
-      {
-        "team": "QUINTASENTIAL FC",
-        "odds": 4.88,
-        "suspended": false
-      },
-      {
-        "team": "GALUCTASARY",
-        "odds": 5.19,
+        "odds": 2.62,
         "suspended": false
       },
       {
         "team": "BREXIT LADS",
-        "odds": 5.5,
+        "odds": 2.64,
+        "suspended": false
+      },
+      {
+        "team": "MACCA'S STARS",
+        "odds": 2.65,
         "suspended": false
       },
       {
         "team": "PAYNE IN THE NECK FC",
-        "odds": 6.61,
+        "odds": 2.66,
+        "suspended": false
+      },
+      {
+        "team": "RIO'S RHINOS",
+        "odds": 2.71,
+        "suspended": false
+      },
+      {
+        "team": "BORATVERYNICE",
+        "odds": 2.96,
+        "suspended": false
+      },
+      {
+        "team": "VICTORY",
+        "odds": 3.04,
+        "suspended": false
+      },
+      {
+        "team": "X2 STRANGE",
+        "odds": 3.27,
+        "suspended": false
+      },
+      {
+        "team": "SABITEURS",
+        "odds": 4.6,
+        "suspended": false
+      },
+      {
+        "team": "QUINTASENTIAL FC",
+        "odds": 4.75,
+        "suspended": false
+      },
+      {
+        "team": "GALUCTASARY",
+        "odds": 6.07,
         "suspended": false
       }
     ],
     "reach_r16_pct": [
       {
         "team": "SILVERMAN'S XI",
-        "odds": 1.82,
+        "odds": 1.96,
         "suspended": false
       },
       {
         "team": "STAIRWAY TO EVANS",
-        "odds": 1.89,
+        "odds": 2.01,
         "suspended": false
       },
       {
         "team": "FROGBERT FOOTBALL",
-        "odds": 1.89,
+        "odds": 2.01,
         "suspended": false
       },
       {
         "team": "BC UNITED ZEBRAS",
-        "odds": 1.93,
-        "suspended": false
-      },
-      {
-        "team": "HARVEY FREKES",
-        "odds": 2.02,
+        "odds": 2.12,
         "suspended": false
       },
       {
         "team": "KALLO FC",
-        "odds": 2.03,
-        "suspended": false
-      },
-      {
-        "team": "ALASKAN BULL WORMS",
-        "odds": 2.06,
-        "suspended": false
-      },
-      {
-        "team": "JUAN EL MAGICO FC",
-        "odds": 2.09,
-        "suspended": false
-      },
-      {
-        "team": "JARVIS ZEBRAS",
-        "odds": 2.1,
+        "odds": 2.15,
         "suspended": false
       },
       {
         "team": "SAUCE FC",
-        "odds": 2.1,
+        "odds": 2.16,
         "suspended": false
       },
       {
-        "team": "AFC BIG RED PORT",
-        "odds": 2.1,
+        "team": "ALASKAN BULL WORMS",
+        "odds": 2.16,
         "suspended": false
       },
       {
-        "team": "DW ABOUT IT FC",
-        "odds": 2.13,
+        "team": "HARVEY FREKES",
+        "odds": 2.17,
         "suspended": false
       },
       {
         "team": "NANISTATE",
-        "odds": 2.13,
+        "odds": 2.24,
         "suspended": false
       },
       {
-        "team": "GIVE US WANG",
-        "odds": 2.2,
+        "team": "JUAN EL MAGICO FC",
+        "odds": 2.29,
         "suspended": false
       },
       {
-        "team": "THE WAINE TRAIN",
-        "odds": 2.34,
+        "team": "JARVIS ZEBRAS",
+        "odds": 2.31,
         "suspended": false
       },
       {
-        "team": "SPOONERS FC",
+        "team": "AFC BIG RED PORT",
+        "odds": 2.35,
+        "suspended": false
+      },
+      {
+        "team": "DW ABOUT IT FC",
         "odds": 2.37,
         "suspended": false
       },
       {
-        "team": "VICTORYRULES",
-        "odds": 2.39,
+        "team": "GIVE US WANG",
+        "odds": 2.44,
+        "suspended": false
+      },
+      {
+        "team": "SPOONERS FC",
+        "odds": 2.6,
         "suspended": false
       },
       {
         "team": "FULLY SCICLUNA",
-        "odds": 2.42,
+        "odds": 2.67,
         "suspended": false
       },
       {
-        "team": "DINKIN CRFC",
-        "odds": 2.69,
-        "suspended": false
-      },
-      {
-        "team": "BIG MAC FC",
+        "team": "VICTORYRULES",
         "odds": 2.7,
         "suspended": false
       },
       {
+        "team": "THE WAINE TRAIN",
+        "odds": 2.71,
+        "suspended": false
+      },
+      {
+        "team": "DINKIN CRFC",
+        "odds": 3.0,
+        "suspended": false
+      },
+      {
+        "team": "BIG MAC FC",
+        "odds": 3.05,
+        "suspended": false
+      },
+      {
         "team": "THE DRONE POLICE",
-        "odds": 2.89,
+        "odds": 3.24,
         "suspended": false
       },
       {
         "team": "ALBANIAN BOARS",
-        "odds": 2.92,
-        "suspended": false
-      },
-      {
-        "team": "THE GARUCCI-SHOW",
-        "odds": 3.01,
+        "odds": 3.26,
         "suspended": false
       },
       {
         "team": "LALAS LEVEN",
-        "odds": 3.08,
+        "odds": 3.45,
+        "suspended": false
+      },
+      {
+        "team": "THE GARUCCI-SHOW",
+        "odds": 3.45,
         "suspended": false
       },
       {
         "team": "CARNEGIE DACHSHUNDS",
-        "odds": 3.21,
+        "odds": 3.68,
+        "suspended": false
+      },
+      {
+        "team": "SILVO'S SQUAD",
+        "odds": 3.75,
+        "suspended": false
+      },
+      {
+        "team": "RUBY FC",
+        "odds": 4.16,
+        "suspended": false
+      },
+      {
+        "team": "AARONGURDWOODREICH",
+        "odds": 4.17,
         "suspended": false
       },
       {
         "team": "BALLERS",
-        "odds": 3.56,
+        "odds": 4.2,
         "suspended": false
       },
       {
         "team": "RICKY DIACO FC",
-        "odds": 3.57,
+        "odds": 4.24,
+        "suspended": false
+      },
+      {
+        "team": "E/MELB SUCCULENT CHINESE MEAL",
+        "odds": 4.25,
+        "suspended": false
+      },
+      {
+        "team": "CONCEICAO",
+        "odds": 4.26,
+        "suspended": false
+      },
+      {
+        "team": "MONGREL GARDEN",
+        "odds": 4.45,
         "suspended": false
       },
       {
         "team": "TOP KUOLITY",
-        "odds": 3.73,
-        "suspended": false
-      },
-      {
-        "team": "MANCHESTHAIR UTD",
-        "odds": 3.9,
-        "suspended": false
-      },
-      {
-        "team": "ROTORUA UNITED",
         "odds": 4.49,
         "suspended": false
       },
       {
         "team": "FOR VUCK'S SAKE FC",
-        "odds": 5.43,
-        "suspended": false
-      },
-      {
-        "team": "MONGREL GARDEN",
-        "odds": 5.57,
-        "suspended": false
-      },
-      {
-        "team": "DEER PARK UNITED",
-        "odds": 5.63,
-        "suspended": false
-      },
-      {
-        "team": "INTER MILANOVIC",
-        "odds": 5.9,
+        "odds": 4.52,
         "suspended": false
       },
       {
         "team": "LOAVES & FISHES",
-        "odds": 5.93,
+        "odds": 4.57,
         "suspended": false
       },
       {
-        "team": "3DOGS",
-        "odds": 5.95,
-        "suspended": false
-      },
-      {
-        "team": "CASUAL APPROACH",
-        "odds": 5.96,
-        "suspended": false
-      },
-      {
-        "team": "JUSTICEFORMOON FC",
-        "odds": 5.96,
-        "suspended": false
-      },
-      {
-        "team": "AARONGURDWOODREICH",
-        "odds": 6.2,
-        "suspended": false
-      },
-      {
-        "team": "SHAQNADO 2: RETURN OF THE SHAQ",
-        "odds": 6.8,
-        "suspended": false
-      },
-      {
-        "team": "MACCA'S STARS",
-        "odds": 6.86,
-        "suspended": false
-      },
-      {
-        "team": "SILVO'S SQUAD",
-        "odds": 6.9,
-        "suspended": false
-      },
-      {
-        "team": "SK STURM MELBOURNE",
-        "odds": 6.91,
-        "suspended": false
-      },
-      {
-        "team": "GARRY WALLAH UNITED",
-        "odds": 6.99,
-        "suspended": false
-      },
-      {
-        "team": "RIO'S RHINOS",
-        "odds": 7.01,
-        "suspended": false
-      },
-      {
-        "team": "GARNCELONA",
-        "odds": 7.07,
-        "suspended": false
-      },
-      {
-        "team": "GOT WOUD?",
-        "odds": 7.09,
-        "suspended": false
-      },
-      {
-        "team": "RUBY FC",
-        "odds": 7.12,
-        "suspended": false
-      },
-      {
-        "team": "E/MELB SUCCULENT CHINESE MEAL",
-        "odds": 7.18,
-        "suspended": false
-      },
-      {
-        "team": "DRUMMOYNE TERRIERS",
-        "odds": 7.23,
-        "suspended": false
-      },
-      {
-        "team": "KRANSKY FC",
-        "odds": 7.24,
-        "suspended": false
-      },
-      {
-        "team": "CONCEICAO",
-        "odds": 7.26,
-        "suspended": false
-      },
-      {
-        "team": "PAIN IN DIAS",
-        "odds": 7.32,
-        "suspended": false
-      },
-      {
-        "team": "DADDY VALKANIS & SONS",
-        "odds": 7.56,
-        "suspended": false
-      },
-      {
-        "team": "VICTORY",
-        "odds": 7.62,
+        "team": "MANCHESTHAIR UTD",
+        "odds": 4.69,
         "suspended": false
       },
       {
         "team": "THE BEAU-CHAMPS",
-        "odds": 8.07,
+        "odds": 4.77,
         "suspended": false
       },
       {
-        "team": "X2 STRANGE",
-        "odds": 9.35,
+        "team": "ROTORUA UNITED",
+        "odds": 5.62,
+        "suspended": false
+      },
+      {
+        "team": "GOT WOUD?",
+        "odds": 5.88,
+        "suspended": false
+      },
+      {
+        "team": "KRANSKY FC",
+        "odds": 5.89,
         "suspended": false
       },
       {
         "team": "BORATVERYNICE",
-        "odds": 11.57,
+        "odds": 6.04,
         "suspended": false
       },
       {
-        "team": "QUINTASENTIAL FC",
-        "odds": 14.04,
+        "team": "DADDY VALKANIS & SONS",
+        "odds": 6.11,
         "suspended": false
       },
       {
-        "team": "SABITEURS",
-        "odds": 14.04,
+        "team": "GARNCELONA",
+        "odds": 6.16,
         "suspended": false
       },
       {
-        "team": "GALUCTASARY",
-        "odds": 15.12,
+        "team": "SHAQNADO 2: RETURN OF THE SHAQ",
+        "odds": 6.26,
         "suspended": false
       },
       {
-        "team": "SYDNEY OLEEE",
-        "odds": 17.26,
+        "team": "SK STURM MELBOURNE",
+        "odds": 6.29,
+        "suspended": false
+      },
+      {
+        "team": "DRUMMOYNE TERRIERS",
+        "odds": 6.33,
         "suspended": false
       },
       {
         "team": "PAW PATROL UNITED",
-        "odds": 17.53,
+        "odds": 6.61,
+        "suspended": false
+      },
+      {
+        "team": "PAIN IN DIAS",
+        "odds": 6.62,
+        "suspended": false
+      },
+      {
+        "team": "GARRY WALLAH UNITED",
+        "odds": 6.84,
+        "suspended": false
+      },
+      {
+        "team": "CASUAL APPROACH",
+        "odds": 7.09,
+        "suspended": false
+      },
+      {
+        "team": "3DOGS",
+        "odds": 7.13,
+        "suspended": false
+      },
+      {
+        "team": "DEER PARK UNITED",
+        "odds": 7.15,
+        "suspended": false
+      },
+      {
+        "team": "SYDNEY OLEEE",
+        "odds": 7.39,
         "suspended": false
       },
       {
         "team": "TBCFC",
-        "odds": 22.32,
+        "odds": 7.56,
+        "suspended": false
+      },
+      {
+        "team": "JUSTICEFORMOON FC",
+        "odds": 7.69,
         "suspended": false
       },
       {
         "team": "BREXIT LADS",
-        "odds": 42.96,
+        "odds": 7.74,
+        "suspended": false
+      },
+      {
+        "team": "MACCA'S STARS",
+        "odds": 7.96,
+        "suspended": false
+      },
+      {
+        "team": "INTER MILANOVIC",
+        "odds": 8.16,
         "suspended": false
       },
       {
         "team": "PAYNE IN THE NECK FC",
-        "odds": 59.52,
+        "odds": 8.34,
+        "suspended": false
+      },
+      {
+        "team": "RIO'S RHINOS",
+        "odds": 8.49,
+        "suspended": false
+      },
+      {
+        "team": "VICTORY",
+        "odds": 10.06,
+        "suspended": false
+      },
+      {
+        "team": "SABITEURS",
+        "odds": 11.88,
+        "suspended": false
+      },
+      {
+        "team": "X2 STRANGE",
+        "odds": 11.9,
+        "suspended": false
+      },
+      {
+        "team": "QUINTASENTIAL FC",
+        "odds": 12.5,
+        "suspended": false
+      },
+      {
+        "team": "GALUCTASARY",
+        "odds": 17.11,
         "suspended": false
       }
     ],
     "reach_qf_pct": [
       {
         "team": "SILVERMAN'S XI",
-        "odds": 2.78,
+        "odds": 2.95,
         "suspended": false
       },
       {
         "team": "STAIRWAY TO EVANS",
-        "odds": 2.92,
+        "odds": 3.1,
         "suspended": false
       },
       {
         "team": "FROGBERT FOOTBALL",
-        "odds": 2.93,
+        "odds": 3.13,
         "suspended": false
       },
       {
         "team": "BC UNITED ZEBRAS",
-        "odds": 3.05,
-        "suspended": false
-      },
-      {
-        "team": "HARVEY FREKES",
-        "odds": 3.19,
-        "suspended": false
-      },
-      {
-        "team": "KALLO FC",
-        "odds": 3.32,
-        "suspended": false
-      },
-      {
-        "team": "JUAN EL MAGICO FC",
-        "odds": 3.37,
-        "suspended": false
-      },
-      {
-        "team": "JARVIS ZEBRAS",
-        "odds": 3.38,
-        "suspended": false
-      },
-      {
-        "team": "ALASKAN BULL WORMS",
-        "odds": 3.38,
+        "odds": 3.36,
         "suspended": false
       },
       {
         "team": "SAUCE FC",
-        "odds": 3.43,
+        "odds": 3.45,
         "suspended": false
       },
       {
-        "team": "AFC BIG RED PORT",
-        "odds": 3.46,
-        "suspended": false
-      },
-      {
-        "team": "NANISTATE",
+        "team": "ALASKAN BULL WORMS",
         "odds": 3.47,
         "suspended": false
       },
       {
+        "team": "KALLO FC",
+        "odds": 3.51,
+        "suspended": false
+      },
+      {
+        "team": "HARVEY FREKES",
+        "odds": 3.51,
+        "suspended": false
+      },
+      {
+        "team": "NANISTATE",
+        "odds": 3.65,
+        "suspended": false
+      },
+      {
+        "team": "JARVIS ZEBRAS",
+        "odds": 3.81,
+        "suspended": false
+      },
+      {
+        "team": "JUAN EL MAGICO FC",
+        "odds": 3.82,
+        "suspended": false
+      },
+      {
         "team": "DW ABOUT IT FC",
-        "odds": 3.61,
+        "odds": 3.92,
+        "suspended": false
+      },
+      {
+        "team": "AFC BIG RED PORT",
+        "odds": 3.94,
         "suspended": false
       },
       {
         "team": "GIVE US WANG",
-        "odds": 3.71,
+        "odds": 4.25,
         "suspended": false
       },
       {
         "team": "SPOONERS FC",
-        "odds": 4.04,
+        "odds": 4.75,
         "suspended": false
       },
       {
         "team": "THE WAINE TRAIN",
-        "odds": 4.07,
-        "suspended": false
-      },
-      {
-        "team": "FULLY SCICLUNA",
-        "odds": 4.17,
+        "odds": 4.8,
         "suspended": false
       },
       {
         "team": "VICTORYRULES",
-        "odds": 4.23,
+        "odds": 4.89,
+        "suspended": false
+      },
+      {
+        "team": "FULLY SCICLUNA",
+        "odds": 4.92,
         "suspended": false
       },
       {
         "team": "BIG MAC FC",
-        "odds": 5.05,
+        "odds": 5.82,
         "suspended": false
       },
       {
         "team": "DINKIN CRFC",
-        "odds": 5.13,
+        "odds": 5.85,
         "suspended": false
       },
       {
         "team": "THE DRONE POLICE",
-        "odds": 5.39,
-        "suspended": false
-      },
-      {
-        "team": "THE GARUCCI-SHOW",
-        "odds": 6.0,
+        "odds": 6.53,
         "suspended": false
       },
       {
         "team": "ALBANIAN BOARS",
-        "odds": 6.03,
+        "odds": 6.56,
+        "suspended": false
+      },
+      {
+        "team": "THE GARUCCI-SHOW",
+        "odds": 6.88,
         "suspended": false
       },
       {
         "team": "LALAS LEVEN",
-        "odds": 6.16,
+        "odds": 7.33,
         "suspended": false
       },
       {
         "team": "CARNEGIE DACHSHUNDS",
-        "odds": 6.69,
-        "suspended": false
-      },
-      {
-        "team": "BALLERS",
-        "odds": 7.91,
-        "suspended": false
-      },
-      {
-        "team": "RICKY DIACO FC",
-        "odds": 8.54,
-        "suspended": false
-      },
-      {
-        "team": "TOP KUOLITY",
-        "odds": 8.71,
-        "suspended": false
-      },
-      {
-        "team": "MANCHESTHAIR UTD",
-        "odds": 9.78,
-        "suspended": false
-      },
-      {
-        "team": "ROTORUA UNITED",
-        "odds": 11.83,
-        "suspended": false
-      },
-      {
-        "team": "MONGREL GARDEN",
-        "odds": 15.79,
-        "suspended": false
-      },
-      {
-        "team": "FOR VUCK'S SAKE FC",
-        "odds": 16.91,
-        "suspended": false
-      },
-      {
-        "team": "CASUAL APPROACH",
-        "odds": 17.26,
-        "suspended": false
-      },
-      {
-        "team": "JUSTICEFORMOON FC",
-        "odds": 17.37,
-        "suspended": false
-      },
-      {
-        "team": "DEER PARK UNITED",
-        "odds": 17.47,
-        "suspended": false
-      },
-      {
-        "team": "LOAVES & FISHES",
-        "odds": 17.69,
-        "suspended": false
-      },
-      {
-        "team": "3DOGS",
-        "odds": 18.26,
-        "suspended": false
-      },
-      {
-        "team": "INTER MILANOVIC",
-        "odds": 19.05,
-        "suspended": false
-      },
-      {
-        "team": "AARONGURDWOODREICH",
-        "odds": 20.7,
-        "suspended": false
-      },
-      {
-        "team": "SHAQNADO 2: RETURN OF THE SHAQ",
-        "odds": 21.89,
-        "suspended": false
-      },
-      {
-        "team": "GARRY WALLAH UNITED",
-        "odds": 22.15,
-        "suspended": false
-      },
-      {
-        "team": "GOT WOUD?",
-        "odds": 22.5,
-        "suspended": false
-      },
-      {
-        "team": "RUBY FC",
-        "odds": 22.59,
-        "suspended": false
-      },
-      {
-        "team": "DRUMMOYNE TERRIERS",
-        "odds": 22.86,
-        "suspended": false
-      },
-      {
-        "team": "CONCEICAO",
-        "odds": 22.86,
-        "suspended": false
-      },
-      {
-        "team": "GARNCELONA",
-        "odds": 23.13,
-        "suspended": false
-      },
-      {
-        "team": "DADDY VALKANIS & SONS",
-        "odds": 23.32,
+        "odds": 7.96,
         "suspended": false
       },
       {
         "team": "SILVO'S SQUAD",
-        "odds": 23.81,
+        "odds": 8.39,
+        "suspended": false
+      },
+      {
+        "team": "RICKY DIACO FC",
+        "odds": 8.96,
+        "suspended": false
+      },
+      {
+        "team": "BALLERS",
+        "odds": 9.16,
+        "suspended": false
+      },
+      {
+        "team": "CONCEICAO",
+        "odds": 9.84,
+        "suspended": false
+      },
+      {
+        "team": "AARONGURDWOODREICH",
+        "odds": 10.11,
         "suspended": false
       },
       {
         "team": "E/MELB SUCCULENT CHINESE MEAL",
-        "odds": 24.01,
+        "odds": 10.19,
         "suspended": false
       },
       {
-        "team": "VICTORY",
-        "odds": 24.32,
+        "team": "RUBY FC",
+        "odds": 10.3,
         "suspended": false
       },
       {
-        "team": "KRANSKY FC",
-        "odds": 24.63,
+        "team": "MONGREL GARDEN",
+        "odds": 10.45,
         "suspended": false
       },
       {
-        "team": "RIO'S RHINOS",
-        "odds": 24.74,
+        "team": "FOR VUCK'S SAKE FC",
+        "odds": 10.5,
         "suspended": false
       },
       {
-        "team": "PAIN IN DIAS",
-        "odds": 25.06,
+        "team": "TOP KUOLITY",
+        "odds": 10.62,
         "suspended": false
       },
       {
-        "team": "MACCA'S STARS",
-        "odds": 25.17,
+        "team": "LOAVES & FISHES",
+        "odds": 10.72,
         "suspended": false
       },
       {
-        "team": "SK STURM MELBOURNE",
-        "odds": 25.97,
+        "team": "MANCHESTHAIR UTD",
+        "odds": 11.43,
         "suspended": false
       },
       {
         "team": "THE BEAU-CHAMPS",
-        "odds": 26.95,
-        "suspended": false
-      },
-      {
-        "team": "X2 STRANGE",
-        "odds": 33.42,
+        "odds": 12.16,
         "suspended": false
       },
       {
         "team": "BORATVERYNICE",
-        "odds": 34.01,
+        "odds": 12.87,
         "suspended": false
       },
       {
-        "team": "GALUCTASARY",
-        "odds": 47.62,
+        "team": "DADDY VALKANIS & SONS",
+        "odds": 15.87,
         "suspended": false
       },
       {
-        "team": "QUINTASENTIAL FC",
-        "odds": 47.62,
+        "team": "ROTORUA UNITED",
+        "odds": 16.42,
         "suspended": false
       },
       {
-        "team": "SABITEURS",
-        "odds": 54.95,
+        "team": "KRANSKY FC",
+        "odds": 16.52,
         "suspended": false
       },
       {
-        "team": "SYDNEY OLEEE",
-        "odds": 95.24,
+        "team": "SHAQNADO 2: RETURN OF THE SHAQ",
+        "odds": 17.37,
+        "suspended": false
+      },
+      {
+        "team": "GARNCELONA",
+        "odds": 17.42,
+        "suspended": false
+      },
+      {
+        "team": "GOT WOUD?",
+        "odds": 17.58,
+        "suspended": false
+      },
+      {
+        "team": "PAIN IN DIAS",
+        "odds": 17.75,
+        "suspended": false
+      },
+      {
+        "team": "SK STURM MELBOURNE",
+        "odds": 18.2,
+        "suspended": false
+      },
+      {
+        "team": "DRUMMOYNE TERRIERS",
+        "odds": 18.8,
+        "suspended": false
+      },
+      {
+        "team": "GARRY WALLAH UNITED",
+        "odds": 20.34,
         "suspended": false
       },
       {
         "team": "PAW PATROL UNITED",
-        "odds": 102.04,
+        "odds": 20.34,
+        "suspended": false
+      },
+      {
+        "team": "3DOGS",
+        "odds": 21.4,
         "suspended": false
       },
       {
         "team": "TBCFC",
-        "odds": 154.44,
+        "odds": 22.15,
+        "suspended": false
+      },
+      {
+        "team": "CASUAL APPROACH",
+        "odds": 22.68,
+        "suspended": false
+      },
+      {
+        "team": "DEER PARK UNITED",
+        "odds": 23.04,
+        "suspended": false
+      },
+      {
+        "team": "SYDNEY OLEEE",
+        "odds": 23.32,
+        "suspended": false
+      },
+      {
+        "team": "JUSTICEFORMOON FC",
+        "odds": 23.91,
         "suspended": false
       },
       {
         "team": "BREXIT LADS",
-        "odds": 285.71,
+        "odds": 24.74,
+        "suspended": false
+      },
+      {
+        "team": "INTER MILANOVIC",
+        "odds": 25.17,
+        "suspended": false
+      },
+      {
+        "team": "MACCA'S STARS",
+        "odds": 25.62,
+        "suspended": false
+      },
+      {
+        "team": "RIO'S RHINOS",
+        "odds": 31.23,
         "suspended": false
       },
       {
         "team": "PAYNE IN THE NECK FC",
-        "odds": 519.48,
+        "odds": 31.92,
+        "suspended": false
+      },
+      {
+        "team": "SABITEURS",
+        "odds": 34.63,
+        "suspended": false
+      },
+      {
+        "team": "VICTORY",
+        "odds": 35.06,
+        "suspended": false
+      },
+      {
+        "team": "QUINTASENTIAL FC",
+        "odds": 36.63,
+        "suspended": false
+      },
+      {
+        "team": "GALUCTASARY",
+        "odds": 50.57,
+        "suspended": false
+      },
+      {
+        "team": "X2 STRANGE",
+        "odds": 53.4,
         "suspended": false
       }
     ],
     "reach_sf_pct": [
       {
         "team": "SILVERMAN'S XI",
-        "odds": 4.4,
+        "odds": 4.57,
         "suspended": false
       },
       {
         "team": "FROGBERT FOOTBALL",
-        "odds": 4.69,
+        "odds": 4.9,
         "suspended": false
       },
       {
         "team": "STAIRWAY TO EVANS",
-        "odds": 4.71,
+        "odds": 4.97,
         "suspended": false
       },
       {
         "team": "BC UNITED ZEBRAS",
-        "odds": 5.12,
-        "suspended": false
-      },
-      {
-        "team": "HARVEY FREKES",
-        "odds": 5.47,
-        "suspended": false
-      },
-      {
-        "team": "KALLO FC",
-        "odds": 5.48,
-        "suspended": false
-      },
-      {
-        "team": "JUAN EL MAGICO FC",
-        "odds": 5.79,
+        "odds": 5.57,
         "suspended": false
       },
       {
         "team": "ALASKAN BULL WORMS",
-        "odds": 5.85,
-        "suspended": false
-      },
-      {
-        "team": "JARVIS ZEBRAS",
-        "odds": 5.87,
+        "odds": 5.81,
         "suspended": false
       },
       {
         "team": "SAUCE FC",
-        "odds": 5.87,
+        "odds": 5.96,
+        "suspended": false
+      },
+      {
+        "team": "HARVEY FREKES",
+        "odds": 5.99,
+        "suspended": false
+      },
+      {
+        "team": "KALLO FC",
+        "odds": 6.0,
+        "suspended": false
+      },
+      {
+        "team": "JUAN EL MAGICO FC",
+        "odds": 6.38,
         "suspended": false
       },
       {
         "team": "NANISTATE",
-        "odds": 6.07,
-        "suspended": false
-      },
-      {
-        "team": "AFC BIG RED PORT",
-        "odds": 6.16,
+        "odds": 6.42,
         "suspended": false
       },
       {
         "team": "DW ABOUT IT FC",
-        "odds": 6.52,
+        "odds": 6.62,
+        "suspended": false
+      },
+      {
+        "team": "JARVIS ZEBRAS",
+        "odds": 6.67,
+        "suspended": false
+      },
+      {
+        "team": "AFC BIG RED PORT",
+        "odds": 6.87,
         "suspended": false
       },
       {
         "team": "GIVE US WANG",
-        "odds": 6.61,
+        "odds": 7.47,
         "suspended": false
       },
       {
         "team": "SPOONERS FC",
-        "odds": 7.52,
-        "suspended": false
-      },
-      {
-        "team": "FULLY SCICLUNA",
-        "odds": 7.98,
-        "suspended": false
-      },
-      {
-        "team": "THE WAINE TRAIN",
-        "odds": 7.99,
+        "odds": 8.85,
         "suspended": false
       },
       {
         "team": "VICTORYRULES",
-        "odds": 8.22,
+        "odds": 8.94,
+        "suspended": false
+      },
+      {
+        "team": "THE WAINE TRAIN",
+        "odds": 9.29,
+        "suspended": false
+      },
+      {
+        "team": "FULLY SCICLUNA",
+        "odds": 9.34,
         "suspended": false
       },
       {
         "team": "BIG MAC FC",
-        "odds": 10.13,
+        "odds": 11.83,
         "suspended": false
       },
       {
         "team": "DINKIN CRFC",
-        "odds": 10.43,
+        "odds": 11.88,
         "suspended": false
       },
       {
         "team": "THE DRONE POLICE",
-        "odds": 11.43,
+        "odds": 13.77,
         "suspended": false
       },
       {
         "team": "ALBANIAN BOARS",
-        "odds": 12.87,
+        "odds": 14.01,
         "suspended": false
       },
       {
         "team": "THE GARUCCI-SHOW",
-        "odds": 13.11,
+        "odds": 15.87,
         "suspended": false
       },
       {
         "team": "LALAS LEVEN",
-        "odds": 13.94,
-        "suspended": false
-      },
-      {
-        "team": "CARNEGIE DACHSHUNDS",
-        "odds": 14.69,
-        "suspended": false
-      },
-      {
-        "team": "BALLERS",
-        "odds": 18.92,
-        "suspended": false
-      },
-      {
-        "team": "TOP KUOLITY",
-        "odds": 21.24,
-        "suspended": false
-      },
-      {
-        "team": "RICKY DIACO FC",
-        "odds": 21.65,
-        "suspended": false
-      },
-      {
-        "team": "MANCHESTHAIR UTD",
-        "odds": 25.51,
-        "suspended": false
-      },
-      {
-        "team": "ROTORUA UNITED",
-        "odds": 31.23,
-        "suspended": false
-      },
-      {
-        "team": "FOR VUCK'S SAKE FC",
-        "odds": 50.13,
-        "suspended": false
-      },
-      {
-        "team": "MONGREL GARDEN",
-        "odds": 53.91,
-        "suspended": false
-      },
-      {
-        "team": "DEER PARK UNITED",
-        "odds": 54.95,
-        "suspended": false
-      },
-      {
-        "team": "CASUAL APPROACH",
-        "odds": 57.14,
-        "suspended": false
-      },
-      {
-        "team": "JUSTICEFORMOON FC",
-        "odds": 61.44,
-        "suspended": false
-      },
-      {
-        "team": "AARONGURDWOODREICH",
-        "odds": 64.21,
-        "suspended": false
-      },
-      {
-        "team": "LOAVES & FISHES",
-        "odds": 64.21,
-        "suspended": false
-      },
-      {
-        "team": "INTER MILANOVIC",
-        "odds": 66.45,
-        "suspended": false
-      },
-      {
-        "team": "SHAQNADO 2: RETURN OF THE SHAQ",
-        "odds": 76.19,
-        "suspended": false
-      },
-      {
-        "team": "3DOGS",
-        "odds": 78.28,
-        "suspended": false
-      },
-      {
-        "team": "DRUMMOYNE TERRIERS",
-        "odds": 79.37,
-        "suspended": false
-      },
-      {
-        "team": "DADDY VALKANIS & SONS",
-        "odds": 80.48,
-        "suspended": false
-      },
-      {
-        "team": "PAIN IN DIAS",
-        "odds": 81.63,
-        "suspended": false
-      },
-      {
-        "team": "GARNCELONA",
-        "odds": 81.63,
-        "suspended": false
-      },
-      {
-        "team": "GARRY WALLAH UNITED",
-        "odds": 82.82,
-        "suspended": false
-      },
-      {
-        "team": "RIO'S RHINOS",
-        "odds": 85.29,
-        "suspended": false
-      },
-      {
-        "team": "CONCEICAO",
-        "odds": 87.91,
-        "suspended": false
-      },
-      {
-        "team": "E/MELB SUCCULENT CHINESE MEAL",
-        "odds": 90.7,
-        "suspended": false
-      },
-      {
-        "team": "RUBY FC",
-        "odds": 90.7,
-        "suspended": false
-      },
-      {
-        "team": "GOT WOUD?",
-        "odds": 92.17,
-        "suspended": false
-      },
-      {
-        "team": "KRANSKY FC",
-        "odds": 92.17,
-        "suspended": false
-      },
-      {
-        "team": "THE BEAU-CHAMPS",
-        "odds": 95.24,
-        "suspended": false
-      },
-      {
-        "team": "VICTORY",
-        "odds": 103.9,
-        "suspended": false
-      },
-      {
-        "team": "MACCA'S STARS",
-        "odds": 107.82,
-        "suspended": false
-      },
-      {
-        "team": "SK STURM MELBOURNE",
-        "odds": 112.04,
+        "odds": 16.28,
         "suspended": false
       },
       {
         "team": "SILVO'S SQUAD",
-        "odds": 112.04,
+        "odds": 19.44,
+        "suspended": false
+      },
+      {
+        "team": "CARNEGIE DACHSHUNDS",
+        "odds": 20.48,
+        "suspended": false
+      },
+      {
+        "team": "RICKY DIACO FC",
+        "odds": 22.5,
+        "suspended": false
+      },
+      {
+        "team": "CONCEICAO",
+        "odds": 22.59,
+        "suspended": false
+      },
+      {
+        "team": "BALLERS",
+        "odds": 22.86,
+        "suspended": false
+      },
+      {
+        "team": "TOP KUOLITY",
+        "odds": 25.86,
+        "suspended": false
+      },
+      {
+        "team": "E/MELB SUCCULENT CHINESE MEAL",
+        "odds": 25.97,
+        "suspended": false
+      },
+      {
+        "team": "AARONGURDWOODREICH",
+        "odds": 26.58,
+        "suspended": false
+      },
+      {
+        "team": "MONGREL GARDEN",
+        "odds": 26.83,
+        "suspended": false
+      },
+      {
+        "team": "RUBY FC",
+        "odds": 26.83,
+        "suspended": false
+      },
+      {
+        "team": "FOR VUCK'S SAKE FC",
+        "odds": 26.95,
         "suspended": false
       },
       {
         "team": "BORATVERYNICE",
-        "odds": 114.29,
+        "odds": 30.08,
         "suspended": false
       },
       {
-        "team": "QUINTASENTIAL FC",
-        "odds": 173.16,
+        "team": "MANCHESTHAIR UTD",
+        "odds": 30.89,
         "suspended": false
       },
       {
-        "team": "X2 STRANGE",
-        "odds": 184.33,
+        "team": "LOAVES & FISHES",
+        "odds": 31.57,
         "suspended": false
       },
       {
-        "team": "GALUCTASARY",
-        "odds": 190.48,
+        "team": "THE BEAU-CHAMPS",
+        "odds": 32.1,
+        "suspended": false
+      },
+      {
+        "team": "GOT WOUD?",
+        "odds": 46.84,
+        "suspended": false
+      },
+      {
+        "team": "DADDY VALKANIS & SONS",
+        "odds": 47.62,
+        "suspended": false
+      },
+      {
+        "team": "ROTORUA UNITED",
+        "odds": 49.26,
+        "suspended": false
+      },
+      {
+        "team": "GARNCELONA",
+        "odds": 49.26,
+        "suspended": false
+      },
+      {
+        "team": "SHAQNADO 2: RETURN OF THE SHAQ",
+        "odds": 51.48,
+        "suspended": false
+      },
+      {
+        "team": "SK STURM MELBOURNE",
+        "odds": 53.4,
+        "suspended": false
+      },
+      {
+        "team": "KRANSKY FC",
+        "odds": 57.14,
+        "suspended": false
+      },
+      {
+        "team": "PAIN IN DIAS",
+        "odds": 58.31,
+        "suspended": false
+      },
+      {
+        "team": "GARRY WALLAH UNITED",
+        "odds": 60.79,
+        "suspended": false
+      },
+      {
+        "team": "DRUMMOYNE TERRIERS",
+        "odds": 62.11,
+        "suspended": false
+      },
+      {
+        "team": "3DOGS",
+        "odds": 63.49,
+        "suspended": false
+      },
+      {
+        "team": "JUSTICEFORMOON FC",
+        "odds": 74.21,
+        "suspended": false
+      },
+      {
+        "team": "CASUAL APPROACH",
+        "odds": 75.19,
+        "suspended": false
+      },
+      {
+        "team": "TBCFC",
+        "odds": 78.28,
+        "suspended": false
+      },
+      {
+        "team": "DEER PARK UNITED",
+        "odds": 79.37,
+        "suspended": false
+      },
+      {
+        "team": "PAW PATROL UNITED",
+        "odds": 84.03,
+        "suspended": false
+      },
+      {
+        "team": "MACCA'S STARS",
+        "odds": 86.58,
+        "suspended": false
+      },
+      {
+        "team": "INTER MILANOVIC",
+        "odds": 90.7,
+        "suspended": false
+      },
+      {
+        "team": "BREXIT LADS",
+        "odds": 93.68,
+        "suspended": false
+      },
+      {
+        "team": "SYDNEY OLEEE",
+        "odds": 93.68,
         "suspended": false
       },
       {
         "team": "SABITEURS",
-        "odds": 219.78,
+        "odds": 100.25,
+        "suspended": false
+      },
+      {
+        "team": "RIO'S RHINOS",
+        "odds": 112.04,
+        "suspended": false
+      },
+      {
+        "team": "QUINTASENTIAL FC",
+        "odds": 112.04,
+        "suspended": false
+      },
+      {
+        "team": "PAYNE IN THE NECK FC",
+        "odds": 126.98,
+        "suspended": false
+      },
+      {
+        "team": "VICTORY",
+        "odds": 129.87,
+        "suspended": false
+      },
+      {
+        "team": "GALUCTASARY",
+        "odds": 158.73,
+        "suspended": false
+      },
+      {
+        "team": "X2 STRANGE",
+        "odds": 248.45,
+        "suspended": false
+      }
+    ],
+    "reach_final_pct": [
+      {
+        "team": "SILVERMAN'S XI",
+        "odds": 7.81,
+        "suspended": false
+      },
+      {
+        "team": "FROGBERT FOOTBALL",
+        "odds": 7.84,
+        "suspended": false
+      },
+      {
+        "team": "STAIRWAY TO EVANS",
+        "odds": 8.39,
+        "suspended": false
+      },
+      {
+        "team": "BC UNITED ZEBRAS",
+        "odds": 9.14,
+        "suspended": false
+      },
+      {
+        "team": "KALLO FC",
+        "odds": 10.04,
+        "suspended": false
+      },
+      {
+        "team": "ALASKAN BULL WORMS",
+        "odds": 10.04,
+        "suspended": false
+      },
+      {
+        "team": "SAUCE FC",
+        "odds": 10.64,
+        "suspended": false
+      },
+      {
+        "team": "HARVEY FREKES",
+        "odds": 10.7,
+        "suspended": false
+      },
+      {
+        "team": "NANISTATE",
+        "odds": 11.57,
+        "suspended": false
+      },
+      {
+        "team": "JUAN EL MAGICO FC",
+        "odds": 11.83,
+        "suspended": false
+      },
+      {
+        "team": "JARVIS ZEBRAS",
+        "odds": 12.13,
+        "suspended": false
+      },
+      {
+        "team": "AFC BIG RED PORT",
+        "odds": 12.26,
+        "suspended": false
+      },
+      {
+        "team": "DW ABOUT IT FC",
+        "odds": 12.81,
+        "suspended": false
+      },
+      {
+        "team": "GIVE US WANG",
+        "odds": 13.94,
+        "suspended": false
+      },
+      {
+        "team": "VICTORYRULES",
+        "odds": 17.47,
+        "suspended": false
+      },
+      {
+        "team": "SPOONERS FC",
+        "odds": 17.53,
+        "suspended": false
+      },
+      {
+        "team": "FULLY SCICLUNA",
+        "odds": 18.43,
+        "suspended": false
+      },
+      {
+        "team": "THE WAINE TRAIN",
+        "odds": 19.31,
+        "suspended": false
+      },
+      {
+        "team": "DINKIN CRFC",
+        "odds": 24.63,
+        "suspended": false
+      },
+      {
+        "team": "BIG MAC FC",
+        "odds": 26.21,
+        "suspended": false
+      },
+      {
+        "team": "ALBANIAN BOARS",
+        "odds": 29.92,
+        "suspended": false
+      },
+      {
+        "team": "THE DRONE POLICE",
+        "odds": 30.89,
+        "suspended": false
+      },
+      {
+        "team": "THE GARUCCI-SHOW",
+        "odds": 35.06,
+        "suspended": false
+      },
+      {
+        "team": "LALAS LEVEN",
+        "odds": 35.49,
+        "suspended": false
+      },
+      {
+        "team": "CARNEGIE DACHSHUNDS",
+        "odds": 48.84,
+        "suspended": false
+      },
+      {
+        "team": "SILVO'S SQUAD",
+        "odds": 52.91,
+        "suspended": false
+      },
+      {
+        "team": "BALLERS",
+        "odds": 56.02,
+        "suspended": false
+      },
+      {
+        "team": "RICKY DIACO FC",
+        "odds": 58.91,
+        "suspended": false
+      },
+      {
+        "team": "AARONGURDWOODREICH",
+        "odds": 62.11,
+        "suspended": false
+      },
+      {
+        "team": "CONCEICAO",
+        "odds": 62.11,
+        "suspended": false
+      },
+      {
+        "team": "BORATVERYNICE",
+        "odds": 71.43,
+        "suspended": false
+      },
+      {
+        "team": "TOP KUOLITY",
+        "odds": 73.26,
+        "suspended": false
+      },
+      {
+        "team": "E/MELB SUCCULENT CHINESE MEAL",
+        "odds": 74.21,
+        "suspended": false
+      },
+      {
+        "team": "RUBY FC",
+        "odds": 74.21,
+        "suspended": false
+      },
+      {
+        "team": "FOR VUCK'S SAKE FC",
+        "odds": 76.19,
+        "suspended": false
+      },
+      {
+        "team": "MONGREL GARDEN",
+        "odds": 77.22,
+        "suspended": false
+      },
+      {
+        "team": "THE BEAU-CHAMPS",
+        "odds": 81.63,
+        "suspended": false
+      },
+      {
+        "team": "LOAVES & FISHES",
+        "odds": 85.29,
+        "suspended": false
+      },
+      {
+        "team": "MANCHESTHAIR UTD",
+        "odds": 87.91,
+        "suspended": false
+      },
+      {
+        "team": "ROTORUA UNITED",
+        "odds": 139.37,
+        "suspended": false
+      },
+      {
+        "team": "GOT WOUD?",
+        "odds": 139.37,
+        "suspended": false
+      },
+      {
+        "team": "KRANSKY FC",
+        "odds": 146.52,
+        "suspended": false
+      },
+      {
+        "team": "DADDY VALKANIS & SONS",
+        "odds": 168.07,
+        "suspended": false
+      },
+      {
+        "team": "SHAQNADO 2: RETURN OF THE SHAQ",
+        "odds": 173.16,
+        "suspended": false
+      },
+      {
+        "team": "SK STURM MELBOURNE",
+        "odds": 197.04,
+        "suspended": false
+      },
+      {
+        "team": "GARRY WALLAH UNITED",
+        "odds": 211.64,
+        "suspended": false
+      },
+      {
+        "team": "GARNCELONA",
+        "odds": 211.64,
+        "suspended": false
+      },
+      {
+        "team": "3DOGS",
+        "odds": 228.57,
+        "suspended": false
+      },
+      {
+        "team": "DRUMMOYNE TERRIERS",
+        "odds": 238.1,
+        "suspended": false
+      },
+      {
+        "team": "TBCFC",
+        "odds": 248.45,
+        "suspended": false
+      },
+      {
+        "team": "BREXIT LADS",
+        "odds": 259.74,
+        "suspended": false
+      },
+      {
+        "team": "DEER PARK UNITED",
+        "odds": 272.11,
+        "suspended": false
+      },
+      {
+        "team": "PAIN IN DIAS",
+        "odds": 272.11,
+        "suspended": false
+      },
+      {
+        "team": "INTER MILANOVIC",
+        "odds": 300.75,
+        "suspended": false
+      },
+      {
+        "team": "CASUAL APPROACH",
+        "odds": 300.75,
+        "suspended": false
+      },
+      {
+        "team": "SABITEURS",
+        "odds": 317.46,
+        "suspended": false
+      },
+      {
+        "team": "MACCA'S STARS",
+        "odds": 317.46,
+        "suspended": false
+      },
+      {
+        "team": "JUSTICEFORMOON FC",
+        "odds": 380.95,
+        "suspended": false
+      },
+      {
+        "team": "PAW PATROL UNITED",
+        "odds": 380.95,
         "suspended": false
       },
       {
@@ -4996,294 +5318,17 @@
         "suspended": false
       },
       {
-        "team": "PAW PATROL UNITED",
-        "odds": 816.33,
-        "suspended": false
-      },
-      {
-        "team": "TBCFC",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "BREXIT LADS",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "PAYNE IN THE NECK FC",
-        "odds": 1001,
-        "suspended": false
-      }
-    ],
-    "reach_final_pct": [
-      {
-        "team": "SILVERMAN'S XI",
-        "odds": 7.27,
-        "suspended": false
-      },
-      {
-        "team": "STAIRWAY TO EVANS",
-        "odds": 7.94,
-        "suspended": false
-      },
-      {
-        "team": "FROGBERT FOOTBALL",
-        "odds": 8.07,
-        "suspended": false
-      },
-      {
-        "team": "BC UNITED ZEBRAS",
-        "odds": 9.16,
-        "suspended": false
-      },
-      {
-        "team": "HARVEY FREKES",
-        "odds": 9.62,
-        "suspended": false
-      },
-      {
-        "team": "KALLO FC",
-        "odds": 9.72,
-        "suspended": false
-      },
-      {
-        "team": "SAUCE FC",
-        "odds": 10.28,
-        "suspended": false
-      },
-      {
-        "team": "JARVIS ZEBRAS",
-        "odds": 10.66,
-        "suspended": false
-      },
-      {
-        "team": "ALASKAN BULL WORMS",
-        "odds": 10.7,
-        "suspended": false
-      },
-      {
-        "team": "NANISTATE",
-        "odds": 10.82,
-        "suspended": false
-      },
-      {
-        "team": "JUAN EL MAGICO FC",
-        "odds": 11.1,
-        "suspended": false
-      },
-      {
-        "team": "AFC BIG RED PORT",
-        "odds": 11.29,
-        "suspended": false
-      },
-      {
-        "team": "DW ABOUT IT FC",
-        "odds": 12.29,
-        "suspended": false
-      },
-      {
-        "team": "GIVE US WANG",
-        "odds": 13.17,
-        "suspended": false
-      },
-      {
-        "team": "SPOONERS FC",
-        "odds": 13.77,
-        "suspended": false
-      },
-      {
-        "team": "VICTORYRULES",
-        "odds": 15.53,
-        "suspended": false
-      },
-      {
-        "team": "THE WAINE TRAIN",
-        "odds": 15.83,
-        "suspended": false
-      },
-      {
-        "team": "FULLY SCICLUNA",
-        "odds": 16.81,
-        "suspended": false
-      },
-      {
-        "team": "DINKIN CRFC",
-        "odds": 21.89,
-        "suspended": false
-      },
-      {
-        "team": "BIG MAC FC",
-        "odds": 23.71,
-        "suspended": false
-      },
-      {
-        "team": "THE DRONE POLICE",
-        "odds": 24.74,
-        "suspended": false
-      },
-      {
-        "team": "ALBANIAN BOARS",
-        "odds": 29.01,
-        "suspended": false
-      },
-      {
-        "team": "THE GARUCCI-SHOW",
-        "odds": 30.56,
-        "suspended": false
-      },
-      {
-        "team": "LALAS LEVEN",
-        "odds": 30.89,
-        "suspended": false
-      },
-      {
-        "team": "CARNEGIE DACHSHUNDS",
-        "odds": 35.49,
-        "suspended": false
-      },
-      {
-        "team": "BALLERS",
-        "odds": 44.99,
-        "suspended": false
-      },
-      {
-        "team": "TOP KUOLITY",
-        "odds": 58.91,
-        "suspended": false
-      },
-      {
-        "team": "RICKY DIACO FC",
-        "odds": 70.55,
-        "suspended": false
-      },
-      {
-        "team": "MANCHESTHAIR UTD",
-        "odds": 71.43,
-        "suspended": false
-      },
-      {
-        "team": "ROTORUA UNITED",
-        "odds": 86.58,
-        "suspended": false
-      },
-      {
-        "team": "FOR VUCK'S SAKE FC",
-        "odds": 150.38,
-        "suspended": false
-      },
-      {
-        "team": "MONGREL GARDEN",
-        "odds": 178.57,
-        "suspended": false
-      },
-      {
-        "team": "JUSTICEFORMOON FC",
-        "odds": 184.33,
-        "suspended": false
-      },
-      {
-        "team": "CASUAL APPROACH",
-        "odds": 197.04,
-        "suspended": false
-      },
-      {
-        "team": "LOAVES & FISHES",
-        "odds": 238.1,
-        "suspended": false
-      },
-      {
-        "team": "DEER PARK UNITED",
-        "odds": 259.74,
-        "suspended": false
-      },
-      {
-        "team": "INTER MILANOVIC",
-        "odds": 285.71,
-        "suspended": false
-      },
-      {
-        "team": "DRUMMOYNE TERRIERS",
-        "odds": 285.71,
-        "suspended": false
-      },
-      {
-        "team": "SHAQNADO 2: RETURN OF THE SHAQ",
-        "odds": 300.75,
-        "suspended": false
-      },
-      {
-        "team": "3DOGS",
-        "odds": 317.46,
-        "suspended": false
-      },
-      {
-        "team": "AARONGURDWOODREICH",
-        "odds": 317.46,
-        "suspended": false
-      },
-      {
-        "team": "GARNCELONA",
-        "odds": 317.46,
-        "suspended": false
-      },
-      {
-        "team": "DADDY VALKANIS & SONS",
-        "odds": 317.46,
-        "suspended": false
-      },
-      {
-        "team": "CONCEICAO",
-        "odds": 336.13,
-        "suspended": false
-      },
-      {
-        "team": "GARRY WALLAH UNITED",
-        "odds": 357.14,
-        "suspended": false
-      },
-      {
-        "team": "PAIN IN DIAS",
-        "odds": 357.14,
-        "suspended": false
-      },
-      {
         "team": "RIO'S RHINOS",
-        "odds": 380.95,
-        "suspended": false
-      },
-      {
-        "team": "E/MELB SUCCULENT CHINESE MEAL",
-        "odds": 380.95,
-        "suspended": false
-      },
-      {
-        "team": "KRANSKY FC",
-        "odds": 380.95,
-        "suspended": false
-      },
-      {
-        "team": "SILVO'S SQUAD",
-        "odds": 408.16,
-        "suspended": false
-      },
-      {
-        "team": "BORATVERYNICE",
-        "odds": 476.19,
-        "suspended": false
-      },
-      {
-        "team": "GOT WOUD?",
-        "odds": 476.19,
-        "suspended": false
-      },
-      {
-        "team": "RUBY FC",
         "odds": 571.43,
         "suspended": false
       },
       {
-        "team": "THE BEAU-CHAMPS",
+        "team": "PAYNE IN THE NECK FC",
+        "odds": 571.43,
+        "suspended": false
+      },
+      {
+        "team": "VICTORY",
         "odds": 634.92,
         "suspended": false
       },
@@ -5293,225 +5338,255 @@
         "suspended": false
       },
       {
-        "team": "MACCA'S STARS",
-        "odds": 714.29,
-        "suspended": false
-      },
-      {
         "team": "QUINTASENTIAL FC",
         "odds": 714.29,
         "suspended": false
       },
       {
-        "team": "VICTORY",
-        "odds": 816.33,
-        "suspended": false
-      },
-      {
-        "team": "SK STURM MELBOURNE",
-        "odds": 816.33,
-        "suspended": false
-      },
-      {
-        "team": "TBCFC",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "BREXIT LADS",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
         "team": "GALUCTASARY",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "PAW PATROL UNITED",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "SYDNEY OLEEE",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "PAYNE IN THE NECK FC",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "SABITEURS",
-        "odds": 1001,
+        "odds": 952.38,
         "suspended": false
       }
     ],
     "win_pct": [
       {
+        "team": "FROGBERT FOOTBALL",
+        "odds": 13.05,
+        "suspended": false
+      },
+      {
         "team": "SILVERMAN'S XI",
-        "odds": 12.67,
+        "odds": 13.9,
         "suspended": false
       },
       {
         "team": "STAIRWAY TO EVANS",
-        "odds": 12.96,
-        "suspended": false
-      },
-      {
-        "team": "FROGBERT FOOTBALL",
-        "odds": 13.38,
+        "odds": 13.97,
         "suspended": false
       },
       {
         "team": "BC UNITED ZEBRAS",
-        "odds": 15.12,
-        "suspended": false
-      },
-      {
-        "team": "HARVEY FREKES",
-        "odds": 17.53,
+        "odds": 17.01,
         "suspended": false
       },
       {
         "team": "KALLO FC",
-        "odds": 17.64,
+        "odds": 18.03,
         "suspended": false
       },
       {
         "team": "SAUCE FC",
-        "odds": 18.14,
-        "suspended": false
-      },
-      {
-        "team": "NANISTATE",
-        "odds": 18.49,
+        "odds": 18.43,
         "suspended": false
       },
       {
         "team": "ALASKAN BULL WORMS",
-        "odds": 20.05,
+        "odds": 18.98,
         "suspended": false
       },
       {
-        "team": "JARVIS ZEBRAS",
-        "odds": 21.01,
+        "team": "HARVEY FREKES",
+        "odds": 20.26,
         "suspended": false
       },
       {
-        "team": "AFC BIG RED PORT",
-        "odds": 21.32,
+        "team": "NANISTATE",
+        "odds": 20.41,
         "suspended": false
       },
       {
         "team": "JUAN EL MAGICO FC",
-        "odds": 22.68,
+        "odds": 21.24,
+        "suspended": false
+      },
+      {
+        "team": "JARVIS ZEBRAS",
+        "odds": 22.95,
         "suspended": false
       },
       {
         "team": "DW ABOUT IT FC",
-        "odds": 25.51,
+        "odds": 24.95,
+        "suspended": false
+      },
+      {
+        "team": "AFC BIG RED PORT",
+        "odds": 25.4,
         "suspended": false
       },
       {
         "team": "GIVE US WANG",
-        "odds": 26.7,
-        "suspended": false
-      },
-      {
-        "team": "SPOONERS FC",
-        "odds": 30.89,
-        "suspended": false
-      },
-      {
-        "team": "THE WAINE TRAIN",
-        "odds": 35.27,
+        "odds": 28.15,
         "suspended": false
       },
       {
         "team": "VICTORYRULES",
-        "odds": 35.49,
+        "odds": 34.63,
+        "suspended": false
+      },
+      {
+        "team": "SPOONERS FC",
+        "odds": 34.63,
+        "suspended": false
+      },
+      {
+        "team": "THE WAINE TRAIN",
+        "odds": 39.68,
         "suspended": false
       },
       {
         "team": "FULLY SCICLUNA",
-        "odds": 39.96,
-        "suspended": false
-      },
-      {
-        "team": "DINKIN CRFC",
-        "odds": 49.26,
-        "suspended": false
-      },
-      {
-        "team": "THE DRONE POLICE",
-        "odds": 60.15,
+        "odds": 40.82,
         "suspended": false
       },
       {
         "team": "BIG MAC FC",
-        "odds": 62.79,
+        "odds": 54.95,
+        "suspended": false
+      },
+      {
+        "team": "DINKIN CRFC",
+        "odds": 57.14,
+        "suspended": false
+      },
+      {
+        "team": "THE DRONE POLICE",
+        "odds": 68.85,
         "suspended": false
       },
       {
         "team": "ALBANIAN BOARS",
-        "odds": 66.45,
-        "suspended": false
-      },
-      {
-        "team": "LALAS LEVEN",
         "odds": 69.69,
         "suspended": false
       },
       {
+        "team": "LALAS LEVEN",
+        "odds": 89.29,
+        "suspended": false
+      },
+      {
         "team": "THE GARUCCI-SHOW",
-        "odds": 75.19,
+        "odds": 89.29,
+        "suspended": false
+      },
+      {
+        "team": "SILVO'S SQUAD",
+        "odds": 116.62,
         "suspended": false
       },
       {
         "team": "CARNEGIE DACHSHUNDS",
-        "odds": 96.85,
+        "odds": 126.98,
         "suspended": false
       },
       {
         "team": "BALLERS",
-        "odds": 146.52,
-        "suspended": false
-      },
-      {
-        "team": "TOP KUOLITY",
-        "odds": 158.73,
+        "odds": 142.86,
         "suspended": false
       },
       {
         "team": "RICKY DIACO FC",
-        "odds": 173.16,
+        "odds": 146.52,
         "suspended": false
       },
       {
-        "team": "MANCHESTHAIR UTD",
-        "odds": 228.57,
+        "team": "AARONGURDWOODREICH",
+        "odds": 158.73,
         "suspended": false
       },
       {
-        "team": "ROTORUA UNITED",
-        "odds": 300.75,
+        "team": "CONCEICAO",
+        "odds": 178.57,
+        "suspended": false
+      },
+      {
+        "team": "BORATVERYNICE",
+        "odds": 190.48,
+        "suspended": false
+      },
+      {
+        "team": "TOP KUOLITY",
+        "odds": 204.08,
+        "suspended": false
+      },
+      {
+        "team": "E/MELB SUCCULENT CHINESE MEAL",
+        "odds": 204.08,
+        "suspended": false
+      },
+      {
+        "team": "THE BEAU-CHAMPS",
+        "odds": 211.64,
+        "suspended": false
+      },
+      {
+        "team": "LOAVES & FISHES",
+        "odds": 219.78,
         "suspended": false
       },
       {
         "team": "FOR VUCK'S SAKE FC",
-        "odds": 408.16,
+        "odds": 248.45,
+        "suspended": false
+      },
+      {
+        "team": "MANCHESTHAIR UTD",
+        "odds": 272.11,
         "suspended": false
       },
       {
         "team": "MONGREL GARDEN",
-        "odds": 476.19,
+        "odds": 272.11,
         "suspended": false
       },
       {
-        "team": "CASUAL APPROACH",
-        "odds": 816.33,
+        "team": "RUBY FC",
+        "odds": 285.71,
+        "suspended": false
+      },
+      {
+        "team": "KRANSKY FC",
+        "odds": 408.16,
+        "suspended": false
+      },
+      {
+        "team": "SK STURM MELBOURNE",
+        "odds": 519.48,
+        "suspended": false
+      },
+      {
+        "team": "DADDY VALKANIS & SONS",
+        "odds": 519.48,
+        "suspended": false
+      },
+      {
+        "team": "ROTORUA UNITED",
+        "odds": 571.43,
+        "suspended": false
+      },
+      {
+        "team": "GOT WOUD?",
+        "odds": 571.43,
+        "suspended": false
+      },
+      {
+        "team": "3DOGS",
+        "odds": 634.92,
+        "suspended": false
+      },
+      {
+        "team": "GARNCELONA",
+        "odds": 634.92,
+        "suspended": false
+      },
+      {
+        "team": "SHAQNADO 2: RETURN OF THE SHAQ",
+        "odds": 634.92,
+        "suspended": false
+      },
+      {
+        "team": "DRUMMOYNE TERRIERS",
+        "odds": 634.92,
         "suspended": false
       },
       {
@@ -5520,7 +5595,12 @@
         "suspended": false
       },
       {
-        "team": "JUSTICEFORMOON FC",
+        "team": "INTER MILANOVIC",
+        "odds": 952.38,
+        "suspended": false
+      },
+      {
+        "team": "CASUAL APPROACH",
         "odds": 952.38,
         "suspended": false
       },
@@ -5530,8 +5610,13 @@
         "suspended": false
       },
       {
-        "team": "INTER MILANOVIC",
-        "odds": 1001,
+        "team": "PAIN IN DIAS",
+        "odds": 952.38,
+        "suspended": false
+      },
+      {
+        "team": "MACCA'S STARS",
+        "odds": 952.38,
         "suspended": false
       },
       {
@@ -5540,12 +5625,12 @@
         "suspended": false
       },
       {
-        "team": "3DOGS",
+        "team": "X2 STRANGE",
         "odds": 1001,
         "suspended": false
       },
       {
-        "team": "X2 STRANGE",
+        "team": "JUSTICEFORMOON FC",
         "odds": 1001,
         "suspended": false
       },
@@ -5560,57 +5645,7 @@
         "suspended": false
       },
       {
-        "team": "BORATVERYNICE",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "MACCA'S STARS",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "AARONGURDWOODREICH",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
         "team": "BREXIT LADS",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "LOAVES & FISHES",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "GOT WOUD?",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "GALUCTASARY",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "SK STURM MELBOURNE",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "DRUMMOYNE TERRIERS",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "E/MELB SUCCULENT CHINESE MEAL",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "CONCEICAO",
         "odds": 1001,
         "suspended": false
       },
@@ -5620,37 +5655,12 @@
         "suspended": false
       },
       {
-        "team": "SYDNEY OLEEE",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "THE BEAU-CHAMPS",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
         "team": "PAYNE IN THE NECK FC",
         "odds": 1001,
         "suspended": false
       },
       {
-        "team": "SILVO'S SQUAD",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "PAIN IN DIAS",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "GARNCELONA",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "SHAQNADO 2: RETURN OF THE SHAQ",
+        "team": "GALUCTASARY",
         "odds": 1001,
         "suspended": false
       },
@@ -5665,17 +5675,7 @@
         "suspended": false
       },
       {
-        "team": "RUBY FC",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "DADDY VALKANIS & SONS",
-        "odds": 1001,
-        "suspended": false
-      },
-      {
-        "team": "KRANSKY FC",
+        "team": "SYDNEY OLEEE",
         "odds": 1001,
         "suspended": false
       }

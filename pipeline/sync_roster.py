@@ -1,3 +1,4 @@
+from team_strength_tiers import load_tier_centres
 """
 sync_roster.py -- the single, robust process for any roster change: a new
 team joining, a rename, a departure, or a charity-promotion backfill.
@@ -428,8 +429,10 @@ def sync_futures_divisions(new_roster, team_coeffs, scale, history, data_dir, dr
             current = renorm
         return current
 
+    tier_centres = load_tier_centres(data_dir, admin_teams or [])
     rows, _ = simulate_division_futures(new_roster, team_coeffs, scale, history, [],
-        n_sim=n_sim, seed=7, team_ids={t['name']: str(t['id']) for t in (admin_teams or [])})
+        n_sim=n_sim, seed=7, team_ids={t['name']: str(t['id']) for t in (admin_teams or [])},
+        tier_centres=tier_centres)
     by_div = {}
     for r in rows:
         by_div.setdefault(r['division'], []).append(r)
@@ -498,7 +501,7 @@ def sync_futures_divisions(new_roster, team_coeffs, scale, history, data_dir, dr
     futures['roddy'], futures['fa_cup_markets'], draw = regenerate_roddy_and_cup(
         field_roster if field_roster is not None else new_roster,
         team_coeffs, scale, history, n_sim=n_sim, seed=seed,
-        roddy_adjustments=roddy_adjustments, roddy_ability_model=roddy_ability_model, official_cup_draw=official_cup_draw)
+        roddy_adjustments=roddy_adjustments, roddy_ability_model=roddy_ability_model, official_cup_draw=official_cup_draw, tier_centres=tier_centres)
     json.dump(futures, open(os.path.join(draft_dir, 'futures.json'), 'w'))
     json.dump(draw, open(os.path.join(draft_dir, 'fa_cup_draw.json'), 'w'))
     return futures

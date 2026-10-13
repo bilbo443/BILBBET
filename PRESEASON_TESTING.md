@@ -835,3 +835,25 @@ Borat proxy price publication:
 - Roddy and other division/ECL prices preserved.
 - Subjective median Division 2 proxy; verified history still unavailable.
 - Promotion suspensions retained; accepted bets retain original odds.
+
+
+Shared Division 3 strength tiers:
+- 28 teams matched by permanent ID to subjective A/B/C/D strength centres.
+- Original coefficients and histories remain intact.
+- Simulation recentres historical/fallback scores; previous subjective bonuses do not stack.
+- Shared centres apply to division, Roddy and FA Cup simulations.
+- Weekly division refresh reads the same tier settings.
+- Division results gradually replace the tier centre over ten scored rounds.
+- Roddy/cup remain preseason simulations; results-aware recalculation needs follow-up.
+- Draft prices require review before publication.
+- Corrected conference allocations must be published with matching division prices.
+
+
+Shared-tier publication:
+- Corrected Division 3 allocations published, 14 teams per conference.
+- Reviewed tier-based Division 3, Roddy and FA Cup prices published.
+- Subjective tier centres replace earlier bonuses during simulation.
+- Division 1, Division 2 and ECL futures preserved.
+- Unfinished leading-at/special holds and promotion suspensions retained.
+- Official preliminary pairings retained; Round of 64 draw still pending.
+- Existing accepted bets retain original odds; no account credits applied.

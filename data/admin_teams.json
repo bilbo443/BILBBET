@@ -85,7 +85,7 @@
     "player": "DAVE",
     "year_entered": null,
     "prev_names": null,
-    "status": "DIVISION 3A"
+    "status": "DIVISION 3B"
   },
   {
     "id": "012",
@@ -373,7 +373,7 @@
     "player": "BRAYDEN",
     "year_entered": "2023/24",
     "prev_names": null,
-    "status": "DIVISION 3A"
+    "status": "DIVISION 3B"
   },
   {
     "id": "048",
@@ -421,7 +421,7 @@
     "player": "CORIN",
     "year_entered": "2024/25",
     "prev_names": null,
-    "status": "DIVISION 3A"
+    "status": "DIVISION 3B"
   },
   {
     "id": "054",
@@ -461,7 +461,7 @@
     "player": "LIAM",
     "year_entered": "2024/25",
     "prev_names": "BUSH PIGS, LIMSIM UNITED",
-    "status": "DIVISION 3B"
+    "status": "DIVISION 3A"
   },
   {
     "id": "059",
@@ -645,7 +645,7 @@
     "player": "GUY",
     "year_entered": "2025/26",
     "prev_names": "PAYNE IN THE NECK",
-    "status": "DIVISION 3B"
+    "status": "DIVISION 3A"
   },
   {
     "id": "082",
@@ -749,7 +749,7 @@
     "player": "JEREMY",
     "year_entered": "2026/27",
     "prev_names": "JEREMY",
-    "status": "DIVISION 3B"
+    "status": "DIVISION 3A"
   },
   {
     "id": "096",
@@ -781,7 +781,7 @@
     "player": "BRAZ",
     "year_entered": "2026/27",
     "prev_names": "BRANDON'S MATE, FROG'S MATE",
-    "status": "DIVISION 3A"
+    "status": "DIVISION 3B"
   },
   {
     "id": "100",
@@ -789,7 +789,7 @@
     "player": "JYE",
     "year_entered": "2026/27",
     "prev_names": "JYE",
-    "status": "DIVISION 3B"
+    "status": "DIVISION 3A"
   },
   {
     "id": "101",
@@ -797,7 +797,7 @@
     "player": "ALEX",
     "year_entered": "2026/27",
     "prev_names": "ALEX",
-    "status": "DIVISION 3B"
+    "status": "DIVISION 3A"
   },
   {
     "id": "102",
@@ -837,6 +837,6 @@
     "player": "HARPER",
     "year_entered": "2026/27",
     "prev_names": null,
-    "status": "DIVISION 3A"
+    "status": "DIVISION 3B"
   }
 ]

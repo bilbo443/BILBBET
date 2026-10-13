@@ -1,3 +1,4 @@
+from team_strength_tiers import load_tier_centres
 """
 Simulation adapter -- the piece that was deliberately left unbuilt in the
 first pass of Layer 3.
@@ -205,7 +206,7 @@ def season_schedule(div, teams):
     return round_robin_schedule(teams, TOTAL_ROUNDS)
 
 
-def simulate_division_futures(new_divs, team_coeffs, scale, history, extracted_results, n_sim=N_SIM, seed=7, team_ids=None):
+def simulate_division_futures(new_divs, team_coeffs, scale, history, extracted_results, n_sim=N_SIM, seed=7, team_ids=None, tier_centres=None):
     team_ids = team_ids or {}
     identity = lambda name: str(team_ids.get(name, name))
     new_divs = {div: sorted(teams, key=identity) for div, teams in sorted(new_divs.items())}
@@ -229,6 +230,17 @@ def simulate_division_futures(new_divs, team_coeffs, scale, history, extracted_r
             own_values = history.get(t, div_pool[div])
             if t in history:
                 own_values = shrink_values_toward_pool(own_values, div_pool[div], shrink)
+            if t in (tier_centres or {}):
+                # Use the tier centre instead of the damped fallback mean.
+                original_values = np.asarray(history.get(t, div_pool[div]), dtype=float)
+                target = float(tier_centres[t])
+                records = [r for r in extracted_results if r['team'] == t]
+                played = [s for r in records for s in r['scores_by_round'] if s is not None]
+                if played:
+                    weight = min(len(played) / 10.0, 1.0)
+                    target = (1-weight)*target + weight*float(np.mean(played))
+                own_values = original_values - np.mean(original_values) + target
+                shift = 0.0
             random_seed = int.from_bytes(hashlib.sha256(
                 json.dumps([seed, div, identity(t)]).encode()).digest()[:8], 'big')
             samplers[t] = make_sampler(own_values, shift, np.random.default_rng(random_seed))
@@ -335,5 +347,6 @@ def regenerate_division_futures(extracted_results, coeffs_path='data/team_market
     registry = json.loads(registry_path.read_text()) if registry_path.exists() else []
     team_ids = {t['name']: str(t['id']) for t in registry}
     rows, adjustments = simulate_division_futures(new_divs, team_coeffs, scale, history,
-        extracted_results, seed=7, team_ids=team_ids)
+        extracted_results, seed=7, team_ids=team_ids,
+        tier_centres=load_tier_centres(Path(divs_path).parent, registry))
     return {'division_rows': rows, 'live_adjustments_applied': adjustments}
