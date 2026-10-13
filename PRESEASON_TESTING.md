@@ -857,3 +857,13 @@ Shared-tier publication:
 - Unfinished leading-at/special holds and promotion suspensions retained.
 - Official preliminary pairings retained; Round of 64 draw still pending.
 - Existing accepted bets retain original odds; no account credits applied.
+
+
+H2H tier integration:
+- Frontend H2H and cup samplers use the shared ID-based strength centres.
+- Original score variation retained; old shifts/fallback blend do not stack.
+- Covers all 28 tier-rated teams, including Borat v Galuctasary.
+- Existing H2H opponent-specific edge adjustments remain in place.
+- Original histories, account balances and accepted bet odds unchanged.
+- Admin trusted-price sync required after deployment.
+- Review after live scores arrive; frontend H2H tier centres currently remain fixed.

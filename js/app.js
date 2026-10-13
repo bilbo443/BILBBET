@@ -94,7 +94,7 @@
     return null;
   }
   async function loadAllData(){
-    const files = ['futures','h2h_history','h2h_divisions','h2h_shift','h2h_cup_shift','h2h_variance_widen','h2h_schedule','leading_at','special_markets','h2h_record','cup_calendar','carry_balances','round_dates','div23_schedule_exceptions','real_results','aleague_round_projection','roster_rules'];
+    const files = ['futures','h2h_history','h2h_divisions','h2h_shift','h2h_cup_shift','h2h_variance_widen','h2h_schedule','leading_at','special_markets','h2h_record','cup_calendar','carry_balances','round_dates','div23_schedule_exceptions','real_results','aleague_round_projection','roster_rules','team_strength_tiers'];
     const failures = [];
     const results = await Promise.all(files.map(async name => {
       const path = './data/' + name + '.json';
@@ -1070,6 +1070,25 @@
   let allPool = [];
   for(const t in H2H_HISTORY){ allPool = allPool.concat(H2H_HISTORY[t]); }
   const leagueSampler = makeShiftedSampler(allPool, 0);
+  // Shared subjective strength centres; original histories stay intact.
+  const tierH2HSamplers = {};
+  const tierSettings = DATA.team_strength_tiers;
+  if(tierSettings && tierSettings.enabled){
+    if(tierSettings.season !== '2026-27') throw new Error('Review strength tiers for this season');
+    if(!Array.isArray(DATA.admin_teams)) throw new Error('Team registry is required for strength tiers');
+    const registryById = new Map(DATA.admin_teams.map(t => [String(t.id).padStart(3,'0'), t]));
+    for(const [id, entry] of Object.entries(tierSettings.teams || {})){
+      const team = registryById.get(String(id).padStart(3,'0'));
+      if(!team) throw new Error('Unknown strength tier team ID '+id);
+      const values = H2H_HISTORY[team.name];
+      const target = Number(tierSettings.weekly_score_anchors[entry.tier]);
+      if(!Array.isArray(values) || !values.length || !values.every(Number.isFinite) || !Number.isFinite(target))
+        throw new Error('Invalid strength inputs for '+team.name);
+      const mean = values.reduce((sum,v)=>sum+v,0)/values.length;
+      // Replaces previous shifts and fallback blending for tier-rated teams.
+      tierH2HSamplers[team.name] = makeShiftedSampler(values, target-mean);
+    }
+  }
   const teamInfo = {};
   for(const div in H2H_DIVISIONS){
     const widePool = divSampler[div] ? (H2H_DIVISIONS[div].reduce((acc,t)=>H2H_HISTORY[t]?acc.concat(H2H_HISTORY[t]):acc, [])) : allPool;
@@ -1085,6 +1104,7 @@
     }
   }
   function sampleTeam(team, n){
+    if(tierH2HSamplers[team]) return tierH2HSamplers[team](n);
     const info = teamInfo[team];
     const out = new Array(n);
     for(let i=0;i<n;i++){ out[i] = (info.own && Math.random()<info.w) ? info.own(1)[0] : info.baseline(1)[0]; }
@@ -1113,6 +1133,7 @@
     }
   }
   function sampleTeamForCup(team, n){
+    if(tierH2HSamplers[team]) return tierH2HSamplers[team](n);
     const info = teamInfoCup[team];
     if(!info) return sampleTeam(team, n); // fall back gracefully for a team with no cup shift entry
     const out = new Array(n);
