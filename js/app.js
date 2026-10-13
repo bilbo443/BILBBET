@@ -1820,6 +1820,87 @@
       <div class="bb-card" style="padding:0;overflow:hidden;margin-bottom:16px;">${commissionerRows}</div>`;
   }
 
+
+  const openingHubRanges = {};
+  const openingHubCupMarkets = {};
+
+  function renderOpeningRoundHub(){
+    const div = 'ELIZA CUP (D1)';
+    const round = state.currentRound;
+    const preliminary = (state.cupFixtures['FA CUP'] || [])
+      .filter(f => Number(f.round) === 1);
+    const expected = [
+      ['BORATVERYNICE','GALUCTASARY'],
+      ['SABITEURS','QUINTASENTIAL FC']
+    ];
+    const cupCards = round === 1 ? expected.map(([a,b]) => {
+      const f = preliminary.find(f =>
+        (f.teamA === a && f.teamB === b) ||
+        (f.teamA === b && f.teamB === a));
+      return `<div class="bb-card" style="margin-bottom:8px;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-weight:600;">
+          ${teamLogo(a,24)}${esc(a)}
+          <span style="color:#9a9a9a;">vs</span>
+          ${teamLogo(b,24)}${esc(b)}
+        </div>
+        <p style="color:#9a9a9a;margin:8px 0;">GW1 · Winner advances</p>
+        ${f ? `<button class="bb-btn ghost" data-opening-cup="${esc(a)}|${esc(b)}">View match odds</button>`
+            : `<span style="color:#9a9a9a;">Match market awaiting admin fixture entry.</span>`}
+      </div>`;
+    }).join('') : `<div class="bb-card">The preliminary round has passed. Check FA Cup for the next confirmed draw.</div>`;
+
+    const teams = [...(H2H_DIVISIONS[div] || [])].sort((a,b)=>a.localeCompare(b));
+    const rows = teams.map(team => {
+      if(!openingHubRanges[team]){
+        const values = sampleTeam(team,5000).sort((a,b)=>a-b);
+        openingHubRanges[team] = [
+          Math.round(percentile(values,.25)),
+          Math.round(percentile(values,.75))
+        ];
+      }
+      const range = openingHubRanges[team];
+      const market = computeVsLeagueMedianMarket(team,round);
+      const featured = round === state.currentRound &&
+        mrMedianSpecialTeam(div,round) === team &&
+        MR_MEDIAN_SPECIAL_DIVISIONS.includes(div);
+      const special = featuredMedianFor(div,team,round);
+      const odds = featured
+        ? (special ? {odds:special.odds,suspended:false} : {suspended:true})
+        : toOdds(market.aWinPct);
+      const label = 'R'+round+': '+team+' to beat the league median'
+        + (special ? ' (Special, boosted)' : '');
+      return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border-bottom:1px solid #3d3d3d;">
+        <div style="min-width:0;">
+          <div style="display:flex;align-items:center;gap:8px;font-weight:600;">${teamLogo(team,22)}${esc(team)}</div>
+          <div style="color:#9a9a9a;font-size:14px;margin-top:4px;">Projected middle score range: ${range[0]}–${range[1]}</div>
+          <div style="color:#9a9a9a;font-size:14px;">Beat the Division 1 median</div>
+        </div>
+        <div style="width:100px;flex-shrink:0;">
+          ${priceOnlyButton('H2H_MEDIAN|'+team+'|R'+round,label,odds)}
+        </div>
+      </div>`;
+    }).join('');
+
+    return `<section style="margin:20px 0;">
+      <h3>FA Cup · Preliminary round</h3>
+      <p style="color:#9a9a9a;">Four teams. Two places in the Round of 64.</p>
+      ${cupCards}
+      <p style="color:#9a9a9a;font-size:14px;">The two winners join the other 62 teams for GW2. Round of 64 pairings await the official draw.</p>
+    </section>
+    <section style="margin:24px 0;">
+      <h3>Division 1 · Round ${round} form guide</h3>
+      <p style="color:#9a9a9a;">${state.h2hRealScheduleConfirmed
+        ? 'Explore the teams and median markets, or view the confirmed matchups.'
+        : 'The official matchups arrive at lockout. Until then, explore projected score ranges, back a team to beat the Division 1 median, or browse season futures.'}</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+        <button class="bb-btn ghost" data-opening-guide="median">Round ${round} median markets</button>
+        <button class="bb-btn ghost" data-opening-guide="futures">Division 1 futures</button>
+      </div>
+      <div class="bb-card" style="padding:0;overflow:hidden;">${rows}</div>
+      <p style="color:#9a9a9a;font-size:14px;">Ranges show the middle 50% of modelled scores, not guarantees. Team names and crests may take a little time to reflect platform updates.</p>
+    </section>`;
+  }
+
   function renderHomeTab(){
     const fixtures = FIXTURES_ARE_PLACEHOLDER ? [] : (state.featuredFixturesData || []).filter(homeFixtureReleased);
     const fixturesLoading = !FIXTURES_ARE_PLACEHOLDER && state.featuredFixturesData === null;
@@ -1883,7 +1964,7 @@
       ${curtainDown() ? '' : `
       ${renderRoundCountdown()}
       ${renderHomeDigest()}
-      ${renderJoinMarkets()}
+      ${renderOpeningRoundHub()}
       <div class="bb-card" style="background:linear-gradient(135deg,#2a2410,#1a1a1a);border-color:#4a3a10;margin-bottom:16px;text-align:center;padding:1.25rem;">
         <div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);letter-spacing:0.08em;color:#ffdd00;text-transform:uppercase;font-weight:700;">This week's boosted odds</div>
         <div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-top:4px;">Every pick below is +${Math.round((FEATURED_BOOST_MULTIPLIER-1)*100)}% on the normal price \u2014 just for being featured.</div>
@@ -7872,6 +7953,37 @@
       const f = state.cupFixtures[compKey][parseInt(idx,10)];
       state.cupFixtureMarket = computeH2HMarket(f.teamA, f.teamB, state.currentRound);
       state.cupFixtureMarketStage = f.stage || null;
+      render();
+    });
+
+    document.querySelectorAll('[data-opening-guide]').forEach(el => el.onclick = () => {
+      state.cupFixtureMarket = null;
+      if(el.dataset.openingGuide === 'futures'){
+        state.activeTab = 'FUTURES';
+        state.futuresSubTab = 'ELIZA CUP (D1)';
+        state.futureMarketTab = 'win_div_pct';
+      } else {
+        state.activeTab = 'H2H';
+        state.h2hSubTab = 'ELIZA CUP (D1)';
+        state.h2hRound = state.currentRound;
+        state.h2hFixtureMarket = null;
+      }
+      render();
+    });
+    document.querySelectorAll('[data-opening-cup]').forEach(el => el.onclick = () => {
+      const [a,b] = el.dataset.openingCup.split('|');
+      const f = (state.cupFixtures['FA CUP'] || []).find(f =>
+        Number(f.round) === 1 &&
+        ((f.teamA === a && f.teamB === b) || (f.teamA === b && f.teamB === a)));
+      if(!f) return;
+      const key = f.teamA+'|'+f.teamB+'|R1';
+      if(!openingHubCupMarkets[key])
+        openingHubCupMarkets[key] = computeH2HMarket(f.teamA,f.teamB,1);
+      state.activeTab = 'FUTURES';
+      state.futuresSubTab = 'FA CUP';
+      state.futureMarketTab = 'fixtures';
+      state.cupFixtureMarket = openingHubCupMarkets[key];
+      state.cupFixtureMarketStage = 'GW1 · Preliminary Round';
       render();
     });
     const backCupBtn = $('#back-to-cup-fixtures'); if(backCupBtn) backCupBtn.onclick = () => { state.cupFixtureMarket = null; state.cupFixtureMarketStage = null; render(); };

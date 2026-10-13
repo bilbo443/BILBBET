@@ -867,3 +867,14 @@ H2H tier integration:
 - Original histories, account balances and accepted bet odds unchanged.
 - Admin trusted-price sync required after deployment.
 - Review after live scores arrive; frontend H2H tier centres currently remain fixed.
+
+
+Home opening-round hubs:
+- Race to Join cards removed from Home only; Admin and records retained.
+- Official GW1 preliminary pairings link to existing cup markets.
+- Buttons require matching admin-entered Round 1 fixtures.
+- Division 1 form guide lists all 14 teams alphabetically.
+- Median buttons reuse existing market IDs and featured-price rules.
+- No provisional Division 1 opponents presented as confirmed fixtures.
+- Existing lockout, market holds and server price checks remain effective.
+- Projected score ranges cached per page load; not guaranteed results.
