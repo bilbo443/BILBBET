@@ -913,3 +913,11 @@ Confirmed conference promotion rules:
 - Neutral 1.00 tipping values are used pending simulated promotion prices.
 - Promotion betting remains suspended.
 - Installation does not alter saved picks, balances or accepted bets.
+
+
+FA Cup preliminary betting repair:
+- Official GW1 pairs bypass provisional league-H2H and Division 3 roster holds.
+- Matching saved FA Cup admin fixtures are required.
+- Unconfirmed league matches remain blocked.
+- Lockouts, category pauses and server checks remain effective.
+- Accepted bets and balances unchanged.

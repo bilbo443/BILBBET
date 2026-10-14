@@ -94,7 +94,7 @@
     return null;
   }
   async function loadAllData(){
-    const files = ['futures','h2h_history','h2h_divisions','h2h_shift','h2h_cup_shift','h2h_variance_widen','h2h_schedule','leading_at','special_markets','h2h_record','cup_calendar','carry_balances','round_dates','div23_schedule_exceptions','real_results','aleague_round_projection','roster_rules','team_strength_tiers'];
+    const files = ['futures','h2h_history','h2h_divisions','h2h_shift','h2h_cup_shift','h2h_variance_widen','h2h_schedule','leading_at','special_markets','h2h_record','cup_calendar','carry_balances','round_dates','div23_schedule_exceptions','real_results','aleague_round_projection','roster_rules','team_strength_tiers','official_fa_cup_draw'];
     const failures = [];
     const results = await Promise.all(files.map(async name => {
       const path = './data/' + name + '.json';
@@ -502,7 +502,25 @@
     return state.closeScope === 'all';
   }
 
+  function confirmedPreliminaryPick(id){
+    const parts = id.split('|');
+    if(parts.length !== 5 || parts[0] !== 'H2H') return false;
+    const [,kind,roundTag,a,b] = parts;
+    if(!['res-a','res-b','hcap-a-fav','hcap-a-dog','hcap-b-fav','hcap-b-dog'].includes(kind)) return false;
+    if(!/^R\d+$/.test(roundTag)) return false;
+    const official = DATA.official_fa_cup_draw;
+    if(!official || official.season !== '2026-27') return false;
+    const round = Number(roundTag.slice(1));
+    if(round !== Number(official.preliminary_round)) return false;
+    const samePair = pair => Array.isArray(pair) && pair.length === 2 &&
+      ((pair[0] === a && pair[1] === b) || (pair[0] === b && pair[1] === a));
+    if(!(official.preliminary || []).some(samePair)) return false;
+    return (state.cupFixtures['FA CUP'] || []).some(f =>
+      Number(f.round) === round && samePair([f.teamA,f.teamB]));
+  }
+
   function finalRosterMarketHeld(id){
+    if(confirmedPreliminaryPick(id)) return false;
     if(!ROSTER_RULES.final_roster_market_hold) return false;
     const parts = id.split('|');
     if(ROSTER_RULES.competition_futures_ready && ['FUT','FACUP','ECL'].includes(parts[0])) return false;
@@ -519,7 +537,7 @@
       return !m||joinMarketBlocked(m)||!m.contenders.some(c=>c.id===teamId&&!c.joined);
     }
     if(finalRosterMarketHeld(id)) return true;
-    if(id.startsWith('H2H|') && (FIXTURES_ARE_PLACEHOLDER || !state.h2hRealScheduleConfirmed)) return true;
+    if(id.startsWith('H2H|') && !confirmedPreliminaryPick(id) && (FIXTURES_ARE_PLACEHOLDER || !state.h2hRealScheduleConfirmed)) return true;
     if(partialRelease() && !(ROSTER_RULES.competition_futures_ready && ['FUT','FACUP','ECL'].includes(id.split('|')[0])) && !(id.startsWith('FUT|RODDY|') && ROSTER_RULES.roddy_markets_ready)){
       const parts = id.split('|');
       if(parts.some(part => part.startsWith('DIVISION 3') ||
