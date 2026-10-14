@@ -921,3 +921,13 @@ FA Cup preliminary betting repair:
 - Unconfirmed league matches remain blocked.
 - Lockouts, category pauses and server checks remain effective.
 - Accepted bets and balances unchanged.
+
+
+Future FA Cup fixture release:
+- Admin-saved fixtures qualify when their round is scheduled in the cup calendar
+  or through an admin calendar override.
+- GW1 additionally requires the official preliminary pairings.
+- Future draws require no new frontend release patch.
+- Unscheduled rounds, missing fixtures and inactive teams remain blocked.
+- Round opening, category pauses, lockouts and server checks remain effective.
+- This change does not automatically advance or reopen rounds.

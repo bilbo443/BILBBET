@@ -502,25 +502,32 @@
     return state.closeScope === 'all';
   }
 
-  function confirmedPreliminaryPick(id){
+  function confirmedCupFixturePick(id){
     const parts = id.split('|');
     if(parts.length !== 5 || parts[0] !== 'H2H') return false;
     const [,kind,roundTag,a,b] = parts;
     if(!['res-a','res-b','hcap-a-fav','hcap-a-dog','hcap-b-fav','hcap-b-dog'].includes(kind)) return false;
-    if(!/^R\d+$/.test(roundTag)) return false;
-    const official = DATA.official_fa_cup_draw;
-    if(!official || official.season !== '2026-27') return false;
+    if(!/^R\d+$/.test(roundTag) || a === b) return false;
     const round = Number(roundTag.slice(1));
-    if(round !== Number(official.preliminary_round)) return false;
+    const active = new Set((DATA.admin_teams || [])
+      .filter(t => ![null,undefined,'','INACTIVE'].includes(t.status))
+      .map(t => t.name));
+    if(!active.has(a) || !active.has(b)) return false;
+    if(!getCupRoundInfo('FA CUP',round)) return false;
     const samePair = pair => Array.isArray(pair) && pair.length === 2 &&
       ((pair[0] === a && pair[1] === b) || (pair[0] === b && pair[1] === a));
-    if(!(official.preliminary || []).some(samePair)) return false;
+    const official = DATA.official_fa_cup_draw;
+    if(round === 1){
+      if(!official || official.season !== '2026-27' ||
+         Number(official.preliminary_round) !== 1 ||
+         !(official.preliminary || []).some(samePair)) return false;
+    }
     return (state.cupFixtures['FA CUP'] || []).some(f =>
       Number(f.round) === round && samePair([f.teamA,f.teamB]));
   }
 
   function finalRosterMarketHeld(id){
-    if(confirmedPreliminaryPick(id)) return false;
+    if(confirmedCupFixturePick(id)) return false;
     if(!ROSTER_RULES.final_roster_market_hold) return false;
     const parts = id.split('|');
     if(ROSTER_RULES.competition_futures_ready && ['FUT','FACUP','ECL'].includes(parts[0])) return false;
@@ -537,7 +544,7 @@
       return !m||joinMarketBlocked(m)||!m.contenders.some(c=>c.id===teamId&&!c.joined);
     }
     if(finalRosterMarketHeld(id)) return true;
-    if(id.startsWith('H2H|') && !confirmedPreliminaryPick(id) && (FIXTURES_ARE_PLACEHOLDER || !state.h2hRealScheduleConfirmed)) return true;
+    if(id.startsWith('H2H|') && !confirmedCupFixturePick(id) && (FIXTURES_ARE_PLACEHOLDER || !state.h2hRealScheduleConfirmed)) return true;
     if(partialRelease() && !(ROSTER_RULES.competition_futures_ready && ['FUT','FACUP','ECL'].includes(id.split('|')[0])) && !(id.startsWith('FUT|RODDY|') && ROSTER_RULES.roddy_markets_ready)){
       const parts = id.split('|');
       if(parts.some(part => part.startsWith('DIVISION 3') ||
