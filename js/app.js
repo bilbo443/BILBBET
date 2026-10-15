@@ -475,7 +475,9 @@
   // round directly (e.g. to decide whether to show a market's full list at
   // all) rather than one specific pick.
   function submissionClockClosed(){
-    // A deliberate reopen after this round's automatic close remains valid.
+    if(Number(state.currentRound) === 1 &&
+       Date.now() >= Date.parse('2026-10-16T19:55:00+11:00')) return true;
+    // Other rounds retain their existing deliberate-reopen behaviour.
     return scheduledCloseDue() && state.lastAutoClosedRound !== state.currentRound;
   }
   async function refreshSubmissionControls(){
@@ -877,6 +879,8 @@
   // house rule, the round's first match is assumed to kick off at 7:00pm
   // Sydney time, DST-adjusted for that specific date.
   function sydneyKickoffUTC(dateStr){
+    if(dateStr === '2026-10-16')
+      return new Date('2026-10-16T19:55:00+11:00');
     const offset = sydneyOffsetHours(dateStr);
     const utcHour = 19 - offset; // 7pm Sydney is always still the same UTC calendar date, since the offset (10-11h) never pushes it past midnight backward
     return new Date(dateStr + 'T' + String(utcHour).padStart(2,'0') + ':00:00Z');
@@ -4663,7 +4667,7 @@
           <span style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">Round ${state.currentRound} betting is currently ${state.roundBettingOpen?'open':`closed (${state.closeScope==='all'?'entire betting markets':'H2H only'})`}.</span>
         </div>
         <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin:0 0 10px;">
-          ${ROUND_DATES[state.currentRound] ? `Scheduled kickoff per the 26/27 calendar: ${esc(ROUND_DATES[state.currentRound])}, assumed 7:00pm Sydney time (no exact kickoff times are given, so the round's first match is assumed to start then). Betting auto-closes the first time the site's loaded on or after that moment, if nobody's closed it already.` : `No scheduled date on file for this round -- auto-close won't trigger, close it manually when needed.`}
+          ${ROUND_DATES[state.currentRound] ? `Scheduled betting deadline per the 26/27 calendar: ${esc(ROUND_DATES[state.currentRound])}, ${Number(state.currentRound) === 1 ? '7:55pm AEDT' : '7:00pm Sydney time'} (no exact kickoff times are given, so the round's first match is assumed to start then). Betting auto-closes the first time the site's loaded on or after that moment, if nobody's closed it already.` : `No scheduled date on file for this round -- auto-close won't trigger, close it manually when needed.`}
           Auto-close only ever fires this way for this round once; reopening it manually will stick.
         </p>
         <div style="margin-bottom:8px;">
@@ -6930,8 +6934,7 @@
   function nextLockTimestamp(){
     const kickoffStr = ROUND_DATES[String(state.currentRound)];
     if(!kickoffStr) return null;
-    const [y,m,d] = kickoffStr.split('-').map(Number);
-    return new Date(y, m-1, d, 19, 45, 0, 0).getTime();
+    return sydneyKickoffUTC(kickoffStr).getTime();
   }
   function formatCountdown(ms){
     if(ms <= 0) return 'Locked';

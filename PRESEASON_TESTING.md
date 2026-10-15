@@ -931,3 +931,12 @@ Future FA Cup fixture release:
 - Unscheduled rounds, missing fixtures and inactive teams remain blocked.
 - Round opening, category pauses, lockouts and server checks remain effective.
 - This change does not automatically advance or reopen rounds.
+
+
+GW1 exact lockout:
+- Friday 16 October 2026, 19:55 AEDT / 08:55 UTC.
+- Countdown uses Sydney time rather than the viewer's local timezone.
+- Frontend betting/tipping submission clock enforces the firm GW1 deadline.
+- Supabase round_closed separately updated and verified.
+- Earlier manual reopening cannot bypass the GW1 deadline.
+- Future rounds retain existing deadlines pending confirmation.
