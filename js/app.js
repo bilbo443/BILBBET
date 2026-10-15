@@ -444,12 +444,23 @@
         f.round === round &&
         ((f.teamA === teamA && f.teamB === teamB) ||
          (f.teamA === teamB && f.teamB === teamA)));
-      if(!scheduledFinal) return null;
+      const scheduledCup = (state.cupFixtures['FA CUP'] || []).some(f =>
+        Number(f.round) === round &&
+        ((resolveTeamName(f.teamA) === teamA && resolveTeamName(f.teamB) === teamB) ||
+         (resolveTeamName(f.teamA) === teamB && resolveTeamName(f.teamB) === teamA)));
+      if(!scheduledFinal && !scheduledCup) return null;
     }
     const scoreA = fixtureScore(teamA, teamB, round);
     const scoreB = fixtureScore(teamB, teamA, round);
     if(scoreA == null || scoreB == null) return null; // that round hasn't actually been played yet
-    if(scoreA === scoreB) return null; // a genuine draw -- no clear "to win" suggestion, needs a human call
+    if(scoreA === scoreB){
+      const cupMatch = (state.cupFixtures['FA CUP'] || []).some(f =>
+        Number(f.round) === round &&
+        ((resolveTeamName(f.teamA) === teamA && resolveTeamName(f.teamB) === teamB) ||
+         (resolveTeamName(f.teamA) === teamB && resolveTeamName(f.teamB) === teamA)));
+      if(cupMatch && ['res-a','res-b'].includes(side)) return 'VOID';
+      return null; // Other tied markets require their own settlement rules.
+    }
     const aWon = scoreA > scoreB;
     if(side === 'res-a') return aWon ? 'WON' : 'LOST';
     if(side === 'res-b') return aWon ? 'LOST' : 'WON';

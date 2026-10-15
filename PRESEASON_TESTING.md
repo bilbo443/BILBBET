@@ -960,3 +960,15 @@ Launch market release, 16 October 2026:
 - Promotion betting remains suspended; provisional H2H controls retained.
 - Settlement remains manual; tied outcomes require review.
 - Existing accepted prices, balances and saved tips unchanged.
+
+
+FA Cup tied-score settlement:
+- Saved cup fixtures can produce suggestions during conference no-fixture weeks.
+- Existing two-way cup match winner selections suggest VOID on tied scores.
+- Decisive scores suggest the appropriate WON/LOST result.
+- Missing scores and unentered no-fixture matches remain unresolved.
+- Handicaps remain manual; do not void automatically merely because scores tie.
+- Season cup futures remain pending until the relevant outcome is known.
+- Separate match-advancement markets, if added, must void on tied scores.
+- No three-way draw market is introduced by this change.
+- Suggestions require admin confirmation; installation performs no settlement.
