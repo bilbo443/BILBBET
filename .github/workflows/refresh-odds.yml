@@ -29,7 +29,7 @@ name: Weekly Odds Refresh (auto, with manual override)
 # result, and doesn't need a human gatekeeper to stay safe.
 on:
   schedule:
-    - cron: '0 5 * * 1'  # ~3pm Monday AEST / ~4pm Monday AEDT -- adjust to your own timezone
+    - cron: '0 22 * * *'  # 9am AEDT / 8am AEST; calendar gate below
   workflow_dispatch:
     inputs:
       sheet_url:
@@ -53,7 +53,24 @@ permissions:
   pull-requests: write
 
 jobs:
+  calendar:
+    runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ steps.calendar.outputs.ready }}
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Check final-fixture calendar
+        id: calendar
+        run: python pipeline/results_schedule_gate.py
+
   refresh:
+    needs: calendar
+    if: needs.calendar.outputs.ready == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Check out repo

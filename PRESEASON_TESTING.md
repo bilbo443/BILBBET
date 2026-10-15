@@ -972,3 +972,23 @@ FA Cup tied-score settlement:
 - Separate match-advancement markets, if added, must void on tied scores.
 - No three-way draw market is introduced by this change.
 - Suggestions require admin confirmation; installation performs no settlement.
+
+
+Fixture-aware automated results checks:
+- data/round_results_schedule.json records first/final fixture and next-morning check dates.
+- Scheduled refresh gate runs daily at 22:00 UTC: 9am AEDT / 8am AEST.
+- Refresh runs only on the listed morning after the final fixture.
+- GW6 checks 7 December; GW16 checks 22 February, not their first Mondays.
+- Extended rounds 8, 9, 12, 13 and 24 use their actual final listed dates.
+- Manual workflow runs remain available for late sheet updates or retries.
+- Scheduled checks produce review drafts; they do not confirm final scores or settle bets.
+- A late/postponed match requires updating the results schedule before its check.
+- Betting lockout dates/times and account balances are not changed by this update.
+
+
+Fixture amendment:
+- Adelaide United v Brisbane Roar moved from GW1 to GW7.
+- New fixture: Tuesday 15 December 2026, 19:30; kickoff timezone to confirm.
+- GW1 results check remains Monday 19 October.
+- GW7 results check moves to Wednesday 16 December.
+- Review GW1/GW7 bye and double-match projections separately.
