@@ -757,12 +757,12 @@
   "002": "jarvis-zebras.png",
   "003": "nukeforrest-nukes.png",
   "004": "lindon-chevella-fc.png",
-  "005": "the-maltese-knights.png",
+  "005": "tbcfc.png",
   "006": "spooners-fc.png",
   "007": "stairway-to-evans.png",
   "009": "zen-garden-c-f.png",
   "011": "for-vuck-s-sake-fc.png",
-  "012": "garry-wallah-united-fc.png",
+  "012": "garry-wallah-united.png",
   "018": "casual-approach.png",
   "019": "kallo-fc.png",
   "020": "sauce-fc.png",
@@ -789,7 +789,7 @@
   "057": "brexit-lads.png",
   "063": "jerry-the-painter.png",
   "064": "lalas-leven.png",
-  "065": "loaves-and-fishes.png",
+  "065": "loaves-fishes.png",
   "066": "lolley-pop-man.png",
   "067": "manchesthair-utd.png",
   "068": "royal-kc-united-fc.png",
@@ -813,7 +813,7 @@
   "102": "succulent-chinese-meal.png",
   "103": "ruby-fc.png"
 };
-  const TEAM_LOGO_ASSET_VERSION = '7a3feb1ec786';
+  const TEAM_LOGO_ASSET_VERSION = 'c2e764f43388';
   function teamLogo(name, size){
     const key = String(name).toLowerCase().replace(/[^a-z0-9]/g, '');
     const teams = DATA.admin_teams || [];
