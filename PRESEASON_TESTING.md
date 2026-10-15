@@ -992,3 +992,12 @@ Fixture amendment:
 - GW1 results check remains Monday 19 October.
 - GW7 results check moves to Wednesday 16 December.
 - Review GW1/GW7 bye and double-match projections separately.
+
+
+Logo mapping refresh:
+- Match current team filenames first, then valid existing ID mappings/aliases.
+- Normalize ID padding and punctuation for matching.
+- Numbered duplicate uploads require review; never selected automatically.
+- Asset content version refreshes browser caches after image replacements.
+- No logo images deleted; no player identity, pricing or balance changes.
+- Rerun the mapping refresh after adding or replacing team PNG files.

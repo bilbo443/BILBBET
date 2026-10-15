@@ -808,10 +808,12 @@
   "088": "the-drone-police.png",
   "089": "ballers.png",
   "091": "GALUCTASARY.png",
+  "092": "sk-sturm-melbourne.png",
   "096": "garncelona.png",
   "102": "succulent-chinese-meal.png",
   "103": "ruby-fc.png"
 };
+  const TEAM_LOGO_ASSET_VERSION = '7a3feb1ec786';
   function teamLogo(name, size){
     const key = String(name).toLowerCase().replace(/[^a-z0-9]/g, '');
     const teams = DATA.admin_teams || [];
@@ -826,9 +828,9 @@
       );
     }
     const file = matches.length === 1
-      ? TEAM_LOGO_FILES_BY_ID[String(matches[0].id)] : null;
+      ? TEAM_LOGO_FILES_BY_ID[String(matches[0].id).padStart(3,'0')] : null;
     return logoBadge('team', name, size, file
-      ? 'assets/logos/teams/' + encodeURIComponent(file)
+      ? 'assets/logos/teams/' + encodeURIComponent(file) + '?v=' + TEAM_LOGO_ASSET_VERSION
       : 'assets/logos/teams/' + logoSlug(resolveLogoName(name)) + '.png');
   }
   // Visual-only logo alias, kept as a general-purpose escape hatch -- e.g.
