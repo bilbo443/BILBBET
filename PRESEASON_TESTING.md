@@ -950,3 +950,13 @@ Launch market release, 16 October 2026:
 - Promotion betting remains suspended; provisional H2H controls retained.
 - Settlement remains manual; tied outcomes require review.
 - Existing accepted prices, balances and saved tips unchanged.
+
+
+Launch market release, 16 October 2026:
+- Regenerated division/Roddy leading-at and charity/philanthropy markets.
+- Current 66-team roster, corrected conferences and shared strength tiers used.
+- Leading-at now simulates cumulative standings at the specified round.
+- Unrelated specials preserved; final-roster hold removed.
+- Promotion betting remains suspended; provisional H2H controls retained.
+- Settlement remains manual; tied outcomes require review.
+- Existing accepted prices, balances and saved tips unchanged.
