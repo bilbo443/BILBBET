@@ -940,3 +940,13 @@ GW1 exact lockout:
 - Supabase round_closed separately updated and verified.
 - Earlier manual reopening cannot bypass the GW1 deadline.
 - Future rounds retain existing deadlines pending confirmation.
+
+
+Launch market release, 16 October 2026:
+- Regenerated division/Roddy leading-at and charity/philanthropy markets.
+- Current 66-team roster, corrected conferences and shared strength tiers used.
+- Leading-at now simulates cumulative standings at the specified round.
+- Unrelated specials preserved; final-roster hold removed.
+- Promotion betting remains suspended; provisional H2H controls retained.
+- Settlement remains manual; tied outcomes require review.
+- Existing accepted prices, balances and saved tips unchanged.

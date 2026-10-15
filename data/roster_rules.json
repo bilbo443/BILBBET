@@ -11,7 +11,7 @@
     "16": 8
   },
   "promotion_rules_confirmed": true,
-  "final_roster_market_hold": true,
+  "final_roster_market_hold": false,
   "roddy_markets_ready": true,
   "competition_futures_ready": true,
   "promotion_rules": {
