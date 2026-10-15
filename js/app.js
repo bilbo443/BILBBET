@@ -790,7 +790,7 @@
   "063": "jerry-the-painter.png",
   "064": "lalas-leven.png",
   "065": "loaves-fishes.png",
-  "066": "lolley-pop-man.png",
+  "066": "sydney-oleee.png",
   "067": "manchesthair-utd.png",
   "068": "royal-kc-united-fc.png",
   "069": "silverman-s-xi.png",
@@ -813,7 +813,7 @@
   "102": "succulent-chinese-meal.png",
   "103": "ruby-fc.png"
 };
-  const TEAM_LOGO_ASSET_VERSION = 'c2e764f43388';
+  const TEAM_LOGO_ASSET_VERSION = '407905333255';
   function teamLogo(name, size){
     const key = String(name).toLowerCase().replace(/[^a-z0-9]/g, '');
     const teams = DATA.admin_teams || [];
