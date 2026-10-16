@@ -1001,3 +1001,11 @@ Logo mapping refresh:
 - Asset content version refreshes browser caches after image replacements.
 - No logo images deleted; no player identity, pricing or balance changes.
 - Rerun the mapping refresh after adding or replacing team PNG files.
+
+
+Official Division 1 GW1 draw imported from platform screenshot.
+- Only Division 1 Round 1 is confirmed.
+- Official fixtures displayed in H2H and Home.
+- Other division/round schedules remain provisional.
+- Existing median tips, accepted bets and balances unchanged.
+- Firm 19:55 AEDT GW1 deadline retained.

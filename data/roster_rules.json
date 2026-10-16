@@ -39,5 +39,10 @@
     }
   },
   "promotion_final_place_fallback": "Highest regular-season H2H table team in the same conference not already automatically promoted.",
-  "promotion_betting_ready": false
+  "promotion_betting_ready": false,
+  "confirmed_division_fixture_rounds": {
+    "ELIZA CUP (D1)": [
+      1
+    ]
+  }
 }

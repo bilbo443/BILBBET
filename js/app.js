@@ -539,6 +539,31 @@
       Number(f.round) === round && samePair([f.teamA,f.teamB]));
   }
 
+  function divisionFixtureConfirmed(div, round){
+    return (ROSTER_RULES.confirmed_division_fixture_rounds?.[div] || [])
+      .includes(Number(round));
+  }
+  function confirmedLeagueFixturePick(id){
+    const parts = id.split('|');
+    if(parts.length !== 5 || parts[0] !== 'H2H') return false;
+    const round = Number(String(parts[2]).replace(/^R/,''));
+    return Object.keys(H2H_DIVISIONS).some(div =>
+      divisionFixtureConfirmed(div,round) &&
+      (H2H_SCHEDULE[div]?.[round-1] || []).some(([a,b]) =>
+        (a===parts[3] && b===parts[4]) ||
+        (a===parts[4] && b===parts[3])));
+  }
+  function renderConfirmedHomeFixtures(){
+    const div = 'ELIZA CUP (D1)';
+    if(!divisionFixtureConfirmed(div,state.currentRound)) return '';
+    const previous = state.h2hRound;
+    state.h2hRound = state.currentRound;
+    try{
+      return '<section style="margin:20px 0;"><h3>Division 1 · Official Round '
+        +state.currentRound+' fixtures</h3>'+renderFixtureList(div)+'</section>';
+    }finally{state.h2hRound=previous;}
+  }
+
   function finalRosterMarketHeld(id){
     if(confirmedCupFixturePick(id)) return false;
     if(!ROSTER_RULES.final_roster_market_hold) return false;
@@ -557,7 +582,7 @@
       return !m||joinMarketBlocked(m)||!m.contenders.some(c=>c.id===teamId&&!c.joined);
     }
     if(finalRosterMarketHeld(id)) return true;
-    if(id.startsWith('H2H|') && !confirmedCupFixturePick(id) && (FIXTURES_ARE_PLACEHOLDER || !state.h2hRealScheduleConfirmed)) return true;
+    if(id.startsWith('H2H|') && !confirmedCupFixturePick(id) && !confirmedLeagueFixturePick(id) && (FIXTURES_ARE_PLACEHOLDER || !state.h2hRealScheduleConfirmed)) return true;
     if(partialRelease() && !(ROSTER_RULES.competition_futures_ready && ['FUT','FACUP','ECL'].includes(id.split('|')[0])) && !(id.startsWith('FUT|RODDY|') && ROSTER_RULES.roddy_markets_ready)){
       const parts = id.split('|');
       if(parts.some(part => part.startsWith('DIVISION 3') ||
@@ -2020,6 +2045,7 @@
       ${curtainDown() ? '' : `
       ${renderRoundCountdown()}
       ${renderHomeDigest()}
+      ${renderConfirmedHomeFixtures()}
       ${renderOpeningRoundHub()}
       <div class="bb-card" style="background:linear-gradient(135deg,#2a2410,#1a1a1a);border-color:#4a3a10;margin-bottom:16px;text-align:center;padding:1.25rem;">
         <div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);letter-spacing:0.08em;color:#ffdd00;text-transform:uppercase;font-weight:700;">This week's boosted odds</div>
@@ -2980,7 +3006,9 @@
       // precedence over the projected schedule for that specific slot.
       const useOverride = !forTipping && round === 1 && div.indexOf('ELIZA') !== -1 &&
         state.r1FixtureOverride && state.r1FixtureOverride.length;
-      const pairs = useOverride
+      const pairs = divisionFixtureConfirmed(div,round)
+        ? (H2H_SCHEDULE[div]?.[Number(round)-1] || [])
+        : useOverride
         ? state.r1FixtureOverride.map(f => [f.teamA, f.teamB])
         : (!forTipping && round === 1 && div === 'ELIZA CUP (D1)' ? [] : getTippableFixtures(div, round));
       fixtureMarketCache[key] = pairs.map(([a,b]) => {
@@ -3760,7 +3788,7 @@
     // round is actually played: pays out only on a genuine win, nothing
     // for a draw or loss. Custom Matchup is unaffected by this and stays
     // open the whole time, since the punter picks the opponent themselves.
-    if(!state.h2hRealScheduleConfirmed || FIXTURES_ARE_PLACEHOLDER){
+    if(!divisionFixtureConfirmed(div,state.h2hRound) && (!state.h2hRealScheduleConfirmed || FIXTURES_ARE_PLACEHOLDER)){
       const teams = H2H_DIVISIONS[div] || [];
       return `<div class="bb-card" style="background:#173326;border:1px solid #348255;margin-bottom:12px;">
           <p style="margin:0;color:#c8ebd0;font-size:clamp(16px, calc(16px + 0.4vw), 19px);">The fantasy platform publishes Round ${state.h2hRound} matchups after lockout. For now, these offers back a team to win its round against whoever it faces; they settle on the team's actual result. You can also pick a team to beat its division's median.</p>
@@ -7168,7 +7196,7 @@
     const record=(id,odds,label)=>{
       odds=Number(odds);
       if(!Number.isFinite(odds)||odds<=0||isPickBlocked(id))return;
-      if(id.startsWith('H2H|') && EARLY_DIV12_RELEASE && (FIXTURES_ARE_PLACEHOLDER||!state.h2hRealScheduleConfirmed))return;
+      if(id.startsWith('H2H|') && !confirmedLeagueFixturePick(id) && !confirmedCupFixturePick(id) && EARLY_DIV12_RELEASE && (FIXTURES_ARE_PLACEHOLDER||!state.h2hRealScheduleConfirmed))return;
       const old=rows.get(id);
       if(old){
         if(!old.prices.includes(odds))old.prices.push(odds);
@@ -7297,7 +7325,7 @@
         if(!availableDivision(div))continue;
         htmlPrices(renderFixtureList(div));
         htmlPrices(renderBeatMedianSection(div,state.currentRound));
-        if(!FIXTURES_ARE_PLACEHOLDER&&state.h2hRealScheduleConfirmed){
+        if(divisionFixtureConfirmed(div,state.currentRound) || (!FIXTURES_ARE_PLACEHOLDER&&state.h2hRealScheduleConfirmed)){
           for(const m of getFixtureMarkets(div,state.currentRound))htmlPrices(renderH2HMarket(m));
         }
         for(const round of Object.keys(LEADING_AT[div]||{})){
