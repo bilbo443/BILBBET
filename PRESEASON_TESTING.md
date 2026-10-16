@@ -1009,3 +1009,14 @@ Official Division 1 GW1 draw imported from platform screenshot.
 - Other division/round schedules remain provisional.
 - Existing median tips, accepted bets and balances unchanged.
 - Firm 19:55 AEDT GW1 deadline retained.
+
+
+Official Division 1 season schedule:
+- Imported all 26 rounds from the supplied Eliza Cup fixture CSV.
+- Seven matches and 14 distinct teams per round; every pairing occurs twice.
+- Existing GW1 pairings preserved.
+- Division 1 fixture confirmation applies to rounds 1–26 only.
+- Future Division 1 fixture tipping uses the confirmed draw.
+- GW1 median tips, accepted bets, scores and balances unchanged.
+- Other divisions retain their existing confirmation status.
+- Simulation engines still need checking against the official fixture order.

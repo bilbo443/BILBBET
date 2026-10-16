@@ -3114,7 +3114,7 @@
     }
     if(hasNoFixtures(key, round)) return [];
     // Do not attach index-based tips to an unconfirmed matchup.
-    if(FIXTURES_ARE_PLACEHOLDER && round > 1) return [];
+    if(FIXTURES_ARE_PLACEHOLDER && round > 1 && !divisionFixtureConfirmed(key,round)) return [];
     return (H2H_SCHEDULE[key] && H2H_SCHEDULE[key][round-1]) || [];
   }
 
@@ -3224,7 +3224,7 @@
         <div class="bb-tab ${state.tippingSubTab==='PRIZES'?'active':''}" data-tippingtab="PRIZES" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;">Prizes</div>
       </div>`;
     const intro = `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:10px;">Free to play, but topping it pays real clams \u2014 see the Prizes tab for the full breakdown. Correct tips score two ways: a straight tally, and what a 1-clam bet on that tip would have paid (upsets are worth more). A drawn fixture pays half credit either way \u2014 half the tally, half the odds \u2014 and never counts against a perfect round. Nothing saves until you hit Confirm, and you can come back and change your tips right up until this round locks.</p>` +
-      (FIXTURES_ARE_PLACEHOLDER && round !== 1 ? `<div class="bb-card" style="background:#173326;border:1px solid #348255;margin-bottom:10px;padding:10px 12px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#c8ebd0;">Regular division tipping opens when the official fixture draw is published after lockout. Pre-season predictions and available cup tips remain open.</div>` : '') +
+      (FIXTURES_ARE_PLACEHOLDER && round !== 1 && !divisionFixtureConfirmed('ELIZA CUP (D1)',round) ? `<div class="bb-card" style="background:#173326;border:1px solid #348255;margin-bottom:10px;padding:10px 12px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#c8ebd0;">Regular division tipping opens when the official fixture draw is published after lockout. Pre-season predictions and available cup tips remain open.</div>` : '') +
       (round === 1 && state.round1LegacyTips ? `<div class="bb-card" style="background:#3a3320;margin-bottom:10px;padding:10px 12px;color:#e0d090;">Your earlier Round 1 fixture tips are saved separately. They do not count for Mr Median. Please select and confirm your Round 1 tips again.</div>` : '');
 
     if(state.tippingSubTab === 'PRESEASON'){
@@ -3319,7 +3319,7 @@
     const pendingCount = Object.keys(state.tippingPending).length;
 
     if(!divsWithFixtures.length){
-      const waitingForDraw = FIXTURES_ARE_PLACEHOLDER && round > 1 && activeSection.divs.some(d => FUTURE_DIVS.includes(d));
+      const waitingForDraw = FIXTURES_ARE_PLACEHOLDER && round > 1 && activeSection.divs.some(d => FUTURE_DIVS.includes(d) && !divisionFixtureConfirmed(d,round));
       const noFixtureNotice = waitingForDraw
         ? 'Division tips will open when the official fixture draw is published. Any earlier provisional tips must be checked and confirmed again.'
         : 'No ' + activeSection.label + ' fixtures scheduled this round.';
@@ -6685,7 +6685,7 @@
     if(!await refreshSubmissionControls()) return;
     if(isRoundBlocked(state.tippingRound)){ alert('This round has locked. Your changes were not submitted.'); render(); return; }
     if(FIXTURES_ARE_PLACEHOLDER && state.tippingRound > 1 &&
-      Object.keys(state.tippingPending).some(k => FUTURE_DIVS.includes(k.split('|')[0]))){
+      Object.keys(state.tippingPending).some(k => FUTURE_DIVS.includes(k.split('|')[0]) && !divisionFixtureConfirmed(k.split('|')[0],state.tippingRound))){
       alert('Division fixture tips are waiting for the official draw. Please confirm them once the fixtures are published.');
       return;
     }
