@@ -1030,3 +1030,12 @@ Bet placement feedback:
 - Another placement is blocked while the receipt is displayed.
 - Existing database idempotency and request recovery retained.
 - No existing bets, balances or settlement logic changed.
+
+
+Results-check time updated:
+- Refresh scheduled for 12:30pm Australia/Sydney on each results-check date.
+- Separate UTC triggers handle AEDT/AEST; seasonal gate selects one refresh.
+- Early checks remain blocked; delayed GitHub runs are allowed.
+- Split-round and amended GW7 completion dates retained.
+- Manual runs remain available.
+- Timing does not establish that scores are final; review before rewards/settlement.

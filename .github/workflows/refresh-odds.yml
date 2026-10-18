@@ -29,7 +29,8 @@ name: Weekly Odds Refresh (auto, with manual override)
 # result, and doesn't need a human gatekeeper to stay safe.
 on:
   schedule:
-    - cron: '0 22 * * *'  # 9am AEDT / 8am AEST; calendar gate below
+    - cron: '30 1 * * *'  # 12:30pm AEDT
+    - cron: '30 2 * * *'  # 12:30pm AEST; seasonal gate prevents duplicate refresh
   workflow_dispatch:
     inputs:
       sheet_url:
