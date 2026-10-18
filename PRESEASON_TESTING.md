@@ -1020,3 +1020,13 @@ Official Division 1 season schedule:
 - GW1 median tips, accepted bets, scores and balances unchanged.
 - Other divisions retain their existing confirmation status.
 - Simulation engines still need checking against the official fixture order.
+
+
+Bet placement feedback:
+- Persistent modal receipt appears only after server confirmation.
+- Covers single/multi bets, batches of singles and recovered submissions.
+- Shows stake, returned balance and submission reference.
+- Processing label and submission lock start before asynchronous checks.
+- Another placement is blocked while the receipt is displayed.
+- Existing database idempotency and request recovery retained.
+- No existing bets, balances or settlement logic changed.

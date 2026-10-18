@@ -8565,6 +8565,79 @@
     document.querySelectorAll('[data-delete-novelty]').forEach(el => el.onclick = () => deleteNoveltyItem(el.dataset.deleteNovelty));
   }
 
+
+  function placementReceiptSummary(request, data){
+    const bets = request.bets || [];
+    return {
+      count: bets.length,
+      stake: Math.round(bets.reduce((sum,b)=>sum+Number(b.stake),0)*100)/100,
+      balance: Number.isFinite(Number(data.user.balance)) ? Number(data.user.balance) : null,
+      reference: String(request.id)
+    };
+  }
+  function placementButtonsBusy(busy){
+    for(const id of ['place-bet','place-singles']){
+      const button = document.getElementById(id);
+      if(!button) continue;
+      if(busy){
+        if(!button.dataset.receiptIdleLabel)
+          button.dataset.receiptIdleLabel=button.textContent;
+        button.disabled=true;
+        button.textContent='Processing…';
+        button.setAttribute('aria-busy','true');
+      }else{
+        if(button.dataset.receiptIdleLabel)
+          button.textContent=button.dataset.receiptIdleLabel;
+        button.disabled=false;
+        button.removeAttribute('aria-busy');
+      }
+    }
+  }
+  function showPlacementReceipt(request,data,recovered){
+    const summary=placementReceiptSummary(request,data);
+    const existing=document.getElementById('bilbbet-placement-receipt');
+    if(existing) existing.remove();
+    const dialog=document.createElement('dialog');
+    dialog.id='bilbbet-placement-receipt';
+    dialog.setAttribute('aria-labelledby','placement-receipt-title');
+    dialog.style.cssText='box-sizing:border-box;width:calc(100% - 32px);max-width:420px;max-height:90vh;overflow:auto;border:2px solid #4ecb91;border-radius:16px;padding:24px;background:#14281f;color:#fff;box-shadow:0 20px 80px #0009;font-family:system-ui,sans-serif;';
+    dialog.innerHTML=`
+      <style>#bilbbet-placement-receipt::backdrop{background:rgba(0,0,0,.78)}</style>
+      <div aria-hidden="true" style="font-size:44px;color:#72e9a7;text-align:center;">✓</div>
+      <h2 id="placement-receipt-title" style="font-size:26px;line-height:1.2;text-align:center;margin:8px 0 12px;">${recovered?'Your bet is confirmed':'Bet placed successfully'}</h2>
+      <p style="text-align:center;line-height:1.5;">${summary.count===1?'Your bet has been accepted.':summary.count+' bets have been accepted.'} ${recovered?'This is your earlier submission. No second stake was deducted.':'Your stake has been deducted. You do not need to submit again.'}</p>
+      <div style="background:#0c1913;border-radius:10px;padding:14px;line-height:1.8;">
+        <div>Accepted stake: <strong>${esc(fmt(summary.stake))} clams</strong></div>
+        ${summary.balance!==null?`<div>Balance: <strong>${esc(fmt(summary.balance))} clams</strong></div>`:''}
+        <div style="font-size:12px;color:#bad0c2;overflow-wrap:anywhere;">Reference: ${esc(summary.reference)}</div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:20px;">
+        <button class="bb-btn" data-receipt-bets style="flex:1;min-width:120px;">View My Bets</button>
+        <button class="bb-btn ghost" data-receipt-close style="flex:1;min-width:120px;">Got it</button>
+      </div>`;
+    document.body.appendChild(dialog);
+    const dismiss=()=>{dialog.close();dialog.remove();};
+    dialog.querySelector('[data-receipt-close]').onclick=dismiss;
+    dialog.querySelector('[data-receipt-bets]').onclick=()=>{
+      dismiss();
+      state.activeTab='MY BETS';
+      state.myBets=null;
+      render();
+      loadMyBets();
+    };
+    dialog.addEventListener('cancel',event=>{
+      event.preventDefault();
+      dismiss();
+    });
+    if(typeof dialog.showModal==='function'){
+      dialog.showModal();
+      dialog.querySelector('[data-receipt-bets]').focus();
+    }else{
+      dialog.remove();
+      alert('BET PLACED SUCCESSFULLY. '+summary.count+' bet(s) accepted. Stake: '+fmt(summary.stake)+' clams. Check My Bets. Do not submit again.');
+    }
+  }
+
   function pendingPlacementKey(){ return 'bilbbet_pending_placement_' + state.user.username.toLowerCase(); }
   async function sendPlacementRequest(request, recoverOnly = false){
     if(!supabaseClient) throw new Error('The live connection is required to place a bet.');
@@ -8579,7 +8652,11 @@
     }
     if(!data?.user || !Array.isArray(data.bets)) throw new Error('Submission response was incomplete. Retry to check the same submission.');
     sessionStorage.removeItem(request.storageKey);
-    if(state.user && state.user.username.toLowerCase() === request.username.toLowerCase()) state.user = data.user;
+    if(state.user && state.user.username.toLowerCase() === request.username.toLowerCase()){
+      state.user = data.user;
+      state.myBets = null;
+      showPlacementReceipt(request,data,recoverOnly);
+    }
     return data;
   }
   async function recoverPendingPlacement(){
@@ -8593,7 +8670,7 @@
       const submitted = new Set(request.bets.flatMap(b => b.selections.map(s => s.id)));
       state.slip = state.slip.filter(s => !submitted.has(s.id));
       await loadMyBets();
-      alert('Your earlier submission is confirmed. No second stake was deducted.');
+      // Confirmed server receipt is already displayed.
     } finally { state.betSubmissionInProgress = false; }
     return true;
   }
@@ -8611,7 +8688,9 @@
 
   async function placeBet(){
     if(!state.user){ alert('You must log in first to place a bet.'); state.loginModalOpen=true; render(); return; }
-    if(state.betSubmissionInProgress) return;
+    if(state.betSubmissionInProgress || document.getElementById('bilbbet-placement-receipt')) return;
+    state.betSubmissionInProgress=true;
+    placementButtonsBusy(true);
     try {
       if(await recoverPendingPlacement()) return;
       if(!await refreshSubmissionControls()) return;
@@ -8632,14 +8711,16 @@
       await submitBetsAtomically([bet]);
       state.slip = state.slip.filter(s => !selectedItems.includes(s));
       state.stake=50; state.useBoost=false; render();
-      alert('Bet placed: ' + stake + ' clams to win ' + fmt(bet.potentialReturn) + ' clams.');
+      // Success receipt appears after server confirmation.
     } catch(e){ alert(e.message || 'Submission not confirmed. Check My Bets, then retry the same submission.'); }
-    finally { state.betSubmissionInProgress=false; }
+    finally { state.betSubmissionInProgress=false; placementButtonsBusy(false); }
   }
 
   async function placeBetsAsSingles(){
     if(!state.user){ alert('You must log in first to place a bet.'); state.loginModalOpen=true; render(); return; }
-    if(state.betSubmissionInProgress) return;
+    if(state.betSubmissionInProgress || document.getElementById('bilbbet-placement-receipt')) return;
+    state.betSubmissionInProgress=true;
+    placementButtonsBusy(true);
     try {
       if(await recoverPendingPlacement()) return;
       if(!await refreshSubmissionControls()) return;
@@ -8660,9 +8741,9 @@
       state.betSubmissionInProgress=true;
       await submitBetsAtomically(bets);
       state.slip=state.slip.filter(s => !selectedItems.includes(s)); state.stake=50; render();
-      alert('Placed ' + bets.length + ' single bets for ' + fmt(total) + ' clams.');
+      // Receipt covers the accepted singles batch.
     } catch(e){ alert(e.message || 'Submission not confirmed. Check My Bets, then retry the same submission.'); }
-    finally { state.betSubmissionInProgress=false; }
+    finally { state.betSubmissionInProgress=false; placementButtonsBusy(false); }
   }
 
   async function doLogin(){
