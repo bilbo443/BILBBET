@@ -1049,3 +1049,10 @@ Home and leading-at clarification:
 - Median offers and trusted server prices explicitly refreshed.
 - Precomputed futures, leading-at and fixed specials require simulation refresh.
 - Existing deadlines and submission restrictions retained.
+
+
+Home Division 1 cleanup:
+- Removed the dedicated Division 1 official-fixture block from Home.
+- Division 1 can still appear among boosted featured offers.
+- Full Division 1 fixtures remain in H2H.
+- Cup hub, betting controls, prices and existing bets unchanged.

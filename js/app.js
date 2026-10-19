@@ -553,17 +553,6 @@
         (a===parts[3] && b===parts[4]) ||
         (a===parts[4] && b===parts[3])));
   }
-  function renderConfirmedHomeFixtures(){
-    const div = 'ELIZA CUP (D1)';
-    if(!divisionFixtureConfirmed(div,state.currentRound)) return '';
-    const previous = state.h2hRound;
-    state.h2hRound = state.currentRound;
-    try{
-      return '<section style="margin:20px 0;"><h3>Division 1 · Official Round '
-        +state.currentRound+' fixtures</h3>'+renderFixtureList(div)+'</section>';
-    }finally{state.h2hRound=previous;}
-  }
-
   function finalRosterMarketHeld(id){
     if(confirmedCupFixturePick(id)) return false;
     if(!ROSTER_RULES.final_roster_market_hold) return false;
@@ -2009,7 +1998,6 @@
       ${curtainDown() ? '' : `
       ${renderRoundCountdown()}
       ${renderHomeDigest()}
-      ${renderConfirmedHomeFixtures()}
       ${renderOpeningRoundHub()}
       <div class="bb-card" style="background:linear-gradient(135deg,#2a2410,#1a1a1a);border-color:#4a3a10;margin-bottom:16px;text-align:center;padding:1.25rem;">
         <div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);letter-spacing:0.08em;color:#ffdd00;text-transform:uppercase;font-weight:700;">This week's boosted odds</div>
