@@ -1888,50 +1888,111 @@
 
   const openingHubCupMarkets = {};
 
+
+  function selectCupPortalFeatures(fixtures,ranks,played,keyFor){
+    const candidates=fixtures.map(f=>({
+      f,key:keyFor(f),meetings:played(f),
+      gap:ranks.has(f.teamA)&&ranks.has(f.teamB)
+        ?Math.abs(ranks.get(f.teamA)-ranks.get(f.teamB)):null
+    }));
+    const chosen=new Map();
+    const add=(candidate,reason)=>{
+      if(!candidate)return;
+      if(!chosen.has(candidate.key))
+        chosen.set(candidate.key,{...candidate,reasons:[]});
+      chosen.get(candidate.key).reasons.push(reason);
+    };
+    const closest=candidates.filter(c=>c.gap!==null)
+      .sort((a,b)=>a.gap-b.gap||b.meetings-a.meetings||a.key.localeCompare(b.key))[0];
+    add(closest,'Closest in the published Roddy standings');
+    const history=candidates.filter(c=>c.meetings>0)
+      .sort((a,b)=>b.meetings-a.meetings||(a.gap??Infinity)-(b.gap??Infinity)||a.key.localeCompare(b.key))[0];
+    add(history,'Most recorded historical meetings');
+    if(!chosen.size){
+      for(const candidate of [...candidates]
+        .sort((a,b)=>a.key.localeCompare(b.key)).slice(0,2))
+        add(candidate,'Confirmed cup fixture');
+    }
+    return [...chosen.values()];
+  }
   function renderOpeningRoundHub(){
-    const div = 'ELIZA CUP (D1)';
-    const round = state.currentRound;
-    const preliminary = (state.cupFixtures['FA CUP'] || [])
-      .filter(f => Number(f.round) === 1);
-    const expected = [
-      ['BORATVERYNICE','GALUCTASARY'],
-      ['SABITEURS','QUINTASENTIAL FC']
-    ];
-    const cupCards = round === 1 ? expected.map(([a,b]) => {
-      const f = preliminary.find(f =>
-        (f.teamA === a && f.teamB === b) ||
-        (f.teamA === b && f.teamB === a));
-      let priceSummary = '';
-      if(f){
-        const key = f.teamA+'|'+f.teamB+'|R1';
-        if(!openingHubCupMarkets[key])
-          openingHubCupMarkets[key] = computeH2HMarket(f.teamA,f.teamB,1);
-        const market = openingHubCupMarkets[key];
-        const first = toOdds(market.aWinPct);
-        const second = toOdds(market.bWinPct);
-        priceSummary = `<div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0;">
-          <span class="bb-pill">${esc(f.teamA)}: ${first.suspended ? 'Unavailable' : formatOdds(first.odds)}</span>
-          <span class="bb-pill">${esc(f.teamB)}: ${second.suspended ? 'Unavailable' : formatOdds(second.odds)}</span>
-        </div>`;
+    const entered=(state.cupFixtures['FA CUP'] || []).filter(f=>
+      Number.isInteger(Number(f.round))&&Number(f.round)>=state.currentRound);
+    const rounds=[...new Set(entered.map(f=>Number(f.round)))].sort((a,b)=>a-b);
+    const round=rounds.find(r=>!isRoundBlocked(r)) ?? rounds[0] ?? null;
+    const portalButton=`<button class="bb-btn ghost" data-cup-portal-all>Open FA Cup hub</button>`;
+    if(round===null)return `<section style="margin:20px 0;">
+      <h3>FA Cup · Featured matches</h3>
+      <div class="bb-card"><p>The next official draw is on its way. Featured matches will appear when the fixtures are entered.</p>${portalButton}</div>
+    </section>`;
+
+    const fixtures=entered.filter(f=>Number(f.round)===round);
+    const names=[...new Set(Object.values(H2H_DIVISIONS).flat())];
+    const totals=new Map(names.map(t=>[t,0]));
+    const complete=[];
+    for(let r=1;r<round;r++){
+      if(names.every(t=>Number.isFinite(REAL_RESULTS[resolveTeamName(t)]?.[r-1]))){
+        complete.push(r);
+        for(const t of names)
+          totals.set(t,totals.get(t)+REAL_RESULTS[resolveTeamName(t)][r-1]);
       }
-      return `<div class="bb-card" style="margin-bottom:8px;">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-weight:600;">
-          ${teamLogo(a,24)}${esc(a)}
+    }
+    const ranks=new Map();
+    if(complete.length){
+      const ordered=[...names].sort((a,b)=>
+        totals.get(b)-totals.get(a)||a.localeCompare(b));
+      let rank=1;
+      ordered.forEach((team,i)=>{
+        if(i&&totals.get(team)!==totals.get(ordered[i-1]))rank=i+1;
+        ranks.set(team,rank);
+      });
+    }
+
+    const ids=new Map((DATA.admin_teams || []).map(t=>
+      [t.name,String(t.id).padStart(3,'0')]));
+    const keyFor=f=>[
+      ids.get(f.teamA)||f.teamA,
+      ids.get(f.teamB)||f.teamB
+    ].sort().join('|');
+    const played=f=>Number(
+      getH2HRecord(resolveTeamName(f.teamA),resolveTeamName(f.teamB))?.rec?.played
+    )||0;
+    const featured=selectCupPortalFeatures(fixtures,ranks,played,keyFor);
+    const stage=getCupRoundInfo('FA CUP',round)?.stage || 'Official draw';
+
+    const cards=featured.map(({f,reasons,meetings})=>{
+      const key=f.teamA+'|'+f.teamB+'|R'+round;
+      if(!openingHubCupMarkets[key])
+        openingHubCupMarkets[key]=computeH2HMarket(f.teamA,f.teamB,round);
+      const market=openingHubCupMarkets[key];
+      const prices=[
+        ['a',f.teamA,market.aWinPct],
+        ['b',f.teamB,market.bWinPct]
+      ].map(([side,team,pct])=>{
+        const model=toOdds(pct);
+        const id='H2H|res-'+side+'|R'+round+'|'+f.teamA+'|'+f.teamB;
+        return `<span class="bb-pill">${esc(team)}: ${model.suspended?'Unavailable':formatOdds(trustedOdds(id,model.odds))}</span>`;
+      }).join(' ');
+      const standings=ranks.has(f.teamA)&&ranks.has(f.teamB)
+        ?`Roddy positions: ${ranks.get(f.teamA)} and ${ranks.get(f.teamB)}.`:'';
+      return `<div class="bb-card" style="margin-bottom:10px;">
+        <div style="color:#8fd6af;font-size:14px;margin-bottom:8px;">${reasons.map(esc).join(' · ')}</div>
+        <div style="font-weight:600;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          ${teamLogo(f.teamA,24)}${esc(f.teamA)}
           <span style="color:#9a9a9a;">vs</span>
-          ${teamLogo(b,24)}${esc(b)}
+          ${teamLogo(f.teamB,24)}${esc(f.teamB)}
         </div>
-        <p style="color:#9a9a9a;margin:8px 0;">GW1 · Winner advances</p>
-        ${priceSummary}
-        ${f ? `<button class="bb-btn ghost" data-opening-cup="${esc(a)}|${esc(b)}">View match odds</button>`
-            : `<span style="color:#9a9a9a;">Match market awaiting admin fixture entry.</span>`}
+        <p style="color:#9a9a9a;font-size:14px;">${esc(standings)} ${meetings?meetings+' recorded meeting'+(meetings===1?'':'s')+'.':''}</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0;">${prices}</div>
+        <button class="bb-btn ghost" data-cup-portal-fixture="${esc(round+'|'+f.teamA+'|'+f.teamB)}">View match market</button>
       </div>`;
-    }).join('') : `<div class="bb-card">The preliminary round has passed. Check FA Cup for the next confirmed draw.</div>`;
+    }).join('');
 
     return `<section style="margin:20px 0;">
-      <h3>FA Cup · Preliminary round</h3>
-      <p style="color:#9a9a9a;">Four teams. Two places in the Round of 64.</p>
-      ${cupCards}
-      <p style="color:#9a9a9a;font-size:14px;">The two winners join the other 62 teams for GW2. Round of 64 pairings await the official draw.</p>
+      <h3>FA Cup · Featured matches</h3>
+      <p style="color:#9a9a9a;">Round ${round} · ${esc(stage)}${isRoundBlocked(round)?' · Betting closed':''}</p>
+      ${cards}${portalButton}
+      <p style="font-size:13px;color:#9a9a9a;">${complete.length?'Roddy comparison uses published scores from rounds '+complete.join(', ')+'.':'Roddy comparison starts once a prior round has scores for every team.'} Historical meetings use Bilbbet’s recorded H2H history. Features are not boosted unless separately labelled.</p>
     </section>`;
   }
 
@@ -7289,9 +7350,14 @@
         state.leadingAtRound=Number(round);
         htmlPrices(renderLeadingAtMarket('RODDY'));
       }
-      for(const c of Object.values(state.cupFixtures||{})){
+      for(const [comp,c] of Object.entries(state.cupFixtures||{})){
         for(const f of c||[]){
-          if(f.round===state.currentRound)htmlPrices(renderH2HMarket(computeH2HMarket(f.teamA,f.teamB,state.currentRound)));
+          if(Number(f.round)>=state.currentRound && getCupRoundInfo(comp,Number(f.round))){
+            const key=f.teamA+'|'+f.teamB+'|R'+Number(f.round);
+            if(!openingHubCupMarkets[key])
+              openingHubCupMarkets[key]=computeH2HMarket(f.teamA,f.teamB,Number(f.round));
+            htmlPrices(renderH2HMarket(openingHubCupMarkets[key]));
+          }
         }
       }
       for(const list of Object.values(state.playoffFixtures||{})){
@@ -8029,20 +8095,29 @@
       }
       render();
     });
-    document.querySelectorAll('[data-opening-cup]').forEach(el => el.onclick = () => {
-      const [a,b] = el.dataset.openingCup.split('|');
-      const f = (state.cupFixtures['FA CUP'] || []).find(f =>
-        Number(f.round) === 1 &&
-        ((f.teamA === a && f.teamB === b) || (f.teamA === b && f.teamB === a)));
-      if(!f) return;
-      const key = f.teamA+'|'+f.teamB+'|R1';
+    document.querySelectorAll('[data-cup-portal-all]').forEach(el=>el.onclick=()=>{
+      state.activeTab='FUTURES';
+      state.futuresSubTab='FA CUP';
+      state.futureMarketTab='fixtures';
+      state.cupFixtureMarket=null;
+      state.cupFixtureMarketStage=null;
+      render();
+    });
+    document.querySelectorAll('[data-cup-portal-fixture]').forEach(el=>el.onclick=()=>{
+      const [tag,a,b]=el.dataset.cupPortalFixture.split('|');
+      const round=Number(tag);
+      const f=(state.cupFixtures['FA CUP'] || []).find(f=>
+        Number(f.round)===round&&f.teamA===a&&f.teamB===b);
+      if(!f)return;
+      const key=a+'|'+b+'|R'+round;
       if(!openingHubCupMarkets[key])
-        openingHubCupMarkets[key] = computeH2HMarket(f.teamA,f.teamB,1);
-      state.activeTab = 'FUTURES';
-      state.futuresSubTab = 'FA CUP';
-      state.futureMarketTab = 'fixtures';
-      state.cupFixtureMarket = openingHubCupMarkets[key];
-      state.cupFixtureMarketStage = 'GW1 · Preliminary Round';
+        openingHubCupMarkets[key]=computeH2HMarket(a,b,round);
+      state.activeTab='FUTURES';
+      state.futuresSubTab='FA CUP';
+      state.futureMarketTab='fixtures';
+      state.cupFixtureMarket=openingHubCupMarkets[key];
+      state.cupFixtureMarketStage='Round '+round+' · '+
+        (f.stage || getCupRoundInfo('FA CUP',round)?.stage || 'FA Cup');
       render();
     });
     document.querySelectorAll('[data-preseason-remove-saved]').forEach(el => el.onclick = () => {

@@ -1056,3 +1056,13 @@ Home Division 1 cleanup:
 - Division 1 can still appear among boosted featured offers.
 - Full Division 1 fixtures remain in H2H.
 - Cup hub, betting controls, prices and existing bets unchanged.
+
+
+FA Cup Home portal:
+- Features current/next entered draw, not hardcoded preliminary matches.
+- Selects closest published Roddy positions and most recorded H2H meetings.
+- One match qualifying twice appears once with both reasons.
+- Missing rankings/history use clearly labelled confirmed-fixture fallbacks.
+- Ranking uses prior rounds with published scores for every active team.
+- Scheduled upcoming cup fixtures included in trusted quote collection.
+- No automatic boosts, deadline changes or settlement changes.
