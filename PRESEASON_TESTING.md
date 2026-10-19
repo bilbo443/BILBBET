@@ -1039,3 +1039,13 @@ Results-check time updated:
 - Split-round and amended GW7 completion dates retained.
 - Manual runs remain available.
 - Timing does not establish that scores are final; review before rewards/settlement.
+
+
+Home and leading-at clarification:
+- Leading-at means cumulative standings after all matches in the nominated round.
+- Market IDs and existing accepted prices unchanged; no bets resettled.
+- Division 1 Home form guide removed; official fixtures and cup hub retained.
+- Home refresh clears match, median, interim-win and cup caches.
+- Median offers and trusted server prices explicitly refreshed.
+- Precomputed futures, leading-at and fixed specials require simulation refresh.
+- Existing deadlines and submission restrictions retained.

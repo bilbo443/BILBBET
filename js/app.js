@@ -1436,7 +1436,7 @@
     if(round !== state.currentRound || state.homeMedianSpecialsRound !== round) return null;
     return (state.homeMedianSpecialsData || []).find(s => s.div === div && s.team === team) || null;
   }
-  async function loadFeaturedMedianSpecials(round){
+  async function loadFeaturedMedianSpecials(round, force=false){
     // Save one price per season, round and roster.
     const signature = MR_MEDIAN_SPECIAL_DIVISIONS.map(div =>
       div + ':' + (H2H_DIVISIONS[div] || []).join(',')).join('|');
@@ -1446,9 +1446,11 @@
     const valid = Array.isArray(specials) && new Set(specials.map(s => s.div)).size === specials.length &&
       specials.every(s => expected.some(([div, team]) => div === s.div && team === s.team) &&
         Number.isFinite(s.baseOdds) && s.baseOdds > 1 && Number.isFinite(s.odds) && s.odds > 1);
-    if(!valid){
+    if(force || !valid){
       specials = computeMrMedianSpecials(round);
       const wrote = await sset(key, specials);
+      if(force && (!wrote || state.storageDegraded))
+        throw new Error('Could not save refreshed median offers.');
       if(!wrote || state.storageDegraded) specials = [];
       else specials = await sget(key) || [];
     }
@@ -1542,10 +1544,15 @@
 
   function homeFixtureReleased(p){
     // The cache is shared by Admin and public visitors.
-    return !EARLY_DIV12_RELEASE || EARLY_DIVISIONS.includes(p.division);
+    return !!p && (p.isCup || availableDivision(p.division));
+  }
+  function homeFixturesReady(round){
+    return FUTURE_DIVS.some(div=>divisionFixtureConfirmed(div,round)) ||
+      Object.values(state.cupFixtures || {}).some(list=>(list || []).some(f=>Number(f.round)===Number(round))) ||
+      (!FIXTURES_ARE_PLACEHOLDER && state.h2hRealScheduleConfirmed);
   }
   function computeFeaturedFixtures(){
-    if(FIXTURES_ARE_PLACEHOLDER) return []; // Never offer an unconfirmed pairing.
+    if(!homeFixturesReady(state.currentRound)) return [];
     const round = state.currentRound;
     const roundTag = 'R' + round;
     const MAX_TOTAL = 10, MAX_PER_DIV = 2;
@@ -1584,7 +1591,7 @@
     // not just the same underlying data.
     for(const div of FUTURE_DIVS){
       if(selected.length >= MAX_TOTAL) break;
-      if((EARLY_DIV12_RELEASE && !EARLY_DIVISIONS.includes(div)) || hasNoFixtures(div, round)) continue; // only released divisions enter the shared home cache
+      if(!availableDivision(div) || hasNoFixtures(div,round) || (!divisionFixtureConfirmed(div,round) && (FIXTURES_ARE_PLACEHOLDER || !state.h2hRealScheduleConfirmed))) continue;
       const alreadyInDiv = selected.filter(s => s.division === div).length;
       let remaining = MAX_PER_DIV - alreadyInDiv;
       if(remaining <= 0) continue;
@@ -1701,42 +1708,44 @@
   // recompute against the current code, without needing direct database
   // access to do it.
   async function refreshFeaturedFixtures(){
-    state.refreshingFeatured = true;
-    state.refreshedFeaturedInfo = '';
+    if(!state.user?.isAdmin || state.refreshingFeatured) return;
+    const round=state.currentRound;
+    state.refreshingFeatured=true;
+    state.refreshedFeaturedInfo='';
     render();
-    const featuredKey = 'bilbbet2_featured_fixtures_R' + state.currentRound;
-    // Directly overwrite with a freshly computed value (a plain sset/upsert)
-    // rather than delete-then-let-loadHomeStats-recompute. Found via testing:
-    // a delete under Supabase RLS can silently affect zero rows if the
-    // project's delete policy is missing (no error, no fallback, the stale
-    // row just stays exactly as it was) -- overwriting directly sidesteps
-    // that dependency entirely, since sset/upsert is already proven solid
-    // everywhere else in this app.
-    const fresh = computeFeaturedFixtures();
-    const wrote = FIXTURES_ARE_PLACEHOLDER ? true : await sset(featuredKey, fresh);
-    state.featuredFixturesData = fresh;
-
-    // Best-value-winner uses the identical "compute once per round, lock
-    // it in" pattern as featured fixtures -- same risk of a future logic
-    // fix not reaching an already-cached round, so it gets refreshed here
-    // too rather than needing its own separate button and its own
-    // separate bug report down the line.
-    let bvwWrote = true;
-    const prevRound = state.currentRound - 1;
-    if(prevRound >= 1){
-      const bvwKey = 'bilbbet2_best_value_winner_R' + prevRound;
-      const freshBvw = computeBestValueWinner() || { none: true };
-      bvwWrote = await sset(bvwKey, freshBvw);
-      state.homeBestValueWinner = freshBvw.none ? null : freshBvw;
+    try{
+      for(const cache of [
+        fixtureMarketCache,medianPriceCache,
+        winAnyOpponentCache,openingHubCupMarkets
+      ]){
+        for(const key of Object.keys(cache)) delete cache[key];
+      }
+      state.cupFixtureMarket=null;
+      state.h2hFixtureMarket=null;
+      await loadFeaturedMedianSpecials(round,true);
+      if(state.currentRound!==round)
+        throw new Error('Round changed. Refresh the selected round again.');
+      const fresh=computeFeaturedFixtures();
+      if(!await sset('bilbbet2_featured_fixtures_R'+round,fresh))
+        throw new Error('Could not save refreshed featured fixtures.');
+      state.featuredFixturesData=fresh;
+      const previous=round-1;
+      if(previous>=1){
+        const winner=computeBestValueWinner() || {none:true};
+        if(!await sset('bilbbet2_best_value_winner_R'+previous,winner))
+          throw new Error('Could not save the previous-round highlight.');
+        state.homeBestValueWinner=winner.none?null:winner;
+      }
+      if(priceSyncRunning) await priceSyncRunning;
+      await syncTrustedPrices(true);
+      state.refreshedFeaturedInfo='Home match and median offers refreshed and server prices synced. Season futures, leading-at and fixed specials still use the published simulation files.';
+    }catch(error){
+      state.refreshedFeaturedInfo='Refresh not completed: '+error.message;
+    }finally{
+      state.refreshingFeatured=false;
+      render();
     }
-
-    state.refreshingFeatured = false;
-    state.refreshedFeaturedInfo = (wrote && bvwWrote)
-      ? `\u2713 Refreshed just now \u2014 ${fresh.length} featured pick(s) now showing for Round ${state.currentRound}.`
-      : `\u26a0 Recomputed locally, but saving it failed \u2014 other visitors may still see the old picks until this succeeds.`;
-    render();
   }
-
   // Public highlights include only released markets.
   function homeBetIsReleased(bet){
     if(!partialRelease()) return true;
@@ -1756,7 +1765,7 @@
     const prevRound = round - 1;
 
     const featuredKey = 'bilbbet2_featured_fixtures_R' + round;
-    let featured = FIXTURES_ARE_PLACEHOLDER ? [] : await sget(featuredKey);
+    let featured = homeFixturesReady(round) ? await sget(featuredKey) : [];
     // Diagnostic logging -- temporary, kept until the "featured match
     // changes on every app.js update" report is pinned down. Check the
     // browser console (F12) next time this reproduces: if "FOUND stored
@@ -1765,7 +1774,7 @@
     // "NO stored value, computing fresh" right after an app.js upload,
     // that's the actual smoking gun and narrows this down precisely.
     console.log('[featured-fixtures debug] round=' + round, featured ? 'FOUND stored value' : 'NO stored value, computing fresh');
-    if(!featured && !FIXTURES_ARE_PLACEHOLDER){
+    if(!featured && homeFixturesReady(round)){
       featured = computeFeaturedFixtures();
       const wrote = await sset(featuredKey, featured);
       console.log('[featured-fixtures debug] wrote fresh value, sset returned:', wrote);
@@ -1888,7 +1897,6 @@
   }
 
 
-  const openingHubRanges = {};
   const openingHubCupMarkets = {};
 
   function renderOpeningRoundHub(){
@@ -1930,61 +1938,17 @@
       </div>`;
     }).join('') : `<div class="bb-card">The preliminary round has passed. Check FA Cup for the next confirmed draw.</div>`;
 
-    const teams = [...(H2H_DIVISIONS[div] || [])].sort((a,b)=>a.localeCompare(b));
-    const rows = teams.map(team => {
-      if(!openingHubRanges[team]){
-        const values = sampleTeam(team,5000).sort((a,b)=>a-b);
-        openingHubRanges[team] = [
-          Math.round(percentile(values,.25)),
-          Math.round(percentile(values,.75))
-        ];
-      }
-      const range = openingHubRanges[team];
-      const market = computeVsLeagueMedianMarket(team,round);
-      const featured = round === state.currentRound &&
-        mrMedianSpecialTeam(div,round) === team &&
-        MR_MEDIAN_SPECIAL_DIVISIONS.includes(div);
-      const special = featuredMedianFor(div,team,round);
-      const odds = featured
-        ? (special ? {odds:special.odds,suspended:false} : {suspended:true})
-        : toOdds(market.aWinPct);
-      const label = 'R'+round+': '+team+' to beat the league median'
-        + (special ? ' (Special, boosted)' : '');
-      return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border-bottom:1px solid #3d3d3d;">
-        <div style="min-width:0;">
-          <div style="display:flex;align-items:center;gap:8px;font-weight:600;">${teamLogo(team,22)}${esc(team)}</div>
-          <div style="color:#9a9a9a;font-size:14px;margin-top:4px;">Projected middle score range: ${range[0]}–${range[1]}</div>
-          <div style="color:#9a9a9a;font-size:14px;">Beat the Division 1 median</div>
-        </div>
-        <div style="width:100px;flex-shrink:0;">
-          ${priceOnlyButton('H2H_MEDIAN|'+team+'|R'+round,label,odds)}
-        </div>
-      </div>`;
-    }).join('');
-
     return `<section style="margin:20px 0;">
       <h3>FA Cup · Preliminary round</h3>
       <p style="color:#9a9a9a;">Four teams. Two places in the Round of 64.</p>
       ${cupCards}
       <p style="color:#9a9a9a;font-size:14px;">The two winners join the other 62 teams for GW2. Round of 64 pairings await the official draw.</p>
-    </section>
-    <section style="margin:24px 0;">
-      <h3>Division 1 · Round ${round} form guide</h3>
-      <p style="color:#9a9a9a;">${state.h2hRealScheduleConfirmed
-        ? 'Explore the teams and median markets, or view the confirmed matchups.'
-        : 'The official matchups arrive at lockout. Until then, explore projected score ranges, back a team to beat the Division 1 median, or browse season futures.'}</p>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
-        <button class="bb-btn ghost" data-opening-guide="median">Round ${round} median markets</button>
-        <button class="bb-btn ghost" data-opening-guide="futures">Division 1 futures</button>
-      </div>
-      <div class="bb-card" style="padding:0;overflow:hidden;">${rows}</div>
-      <p style="color:#9a9a9a;font-size:14px;">Ranges show the middle 50% of modelled scores, not guarantees. Team names and crests may take a little time to reflect platform updates.</p>
     </section>`;
   }
 
   function renderHomeTab(){
-    const fixtures = FIXTURES_ARE_PLACEHOLDER ? [] : (state.featuredFixturesData || []).filter(homeFixtureReleased);
-    const fixturesLoading = !FIXTURES_ARE_PLACEHOLDER && state.featuredFixturesData === null;
+    const fixtures = homeFixturesReady(state.currentRound) ? (state.featuredFixturesData || []).filter(homeFixtureReleased) : [];
+    const fixturesLoading = homeFixturesReady(state.currentRound) && state.featuredFixturesData === null;
     const futures = computeFeaturedFutures();
 
     const fixtureCards = fixtures.length ? fixtures.map(p => `
@@ -2712,7 +2676,7 @@
       ).map(([key,label]) =>
         `<div class="bb-tab ${state.futureMarketTab===key?'active':''}" data-marketkey="${key}" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;">${esc(label)}</div>`
       ).join('') +
-      `<div class="bb-tab ${state.futureMarketTab==='leading_at'?'active':''}" data-marketkey="leading_at" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;">To Be Leading At&hellip;</div>` +
+      `<div class="bb-tab ${state.futureMarketTab==='leading_at'?'active':''}" data-marketkey="leading_at" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;">Leader After Round&hellip;</div>` +
       '</div>';
   }
   function roddyMarketTabs(){
@@ -2720,7 +2684,7 @@
       Object.entries(FUTURES.roddy_labels).map(([key,label]) =>
         `<div class="bb-tab ${state.futureMarketTab===key?'active':''}" data-marketkey="${key}" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;">${esc(label)}</div>`
       ).join('') +
-      `<div class="bb-tab ${state.futureMarketTab==='leading_at'?'active':''}" data-marketkey="leading_at" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;">To Be Leading At&hellip;</div>` +
+      `<div class="bb-tab ${state.futureMarketTab==='leading_at'?'active':''}" data-marketkey="leading_at" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;">Leader After Round&hellip;</div>` +
       '</div>';
   }
 
@@ -2731,7 +2695,7 @@
         <span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">Round</span>
         <select class="bb-select" id="leadingat-round" style="width:170px;">${roundOptions(state.leadingAtRound)}</select>
       </div>
-      <p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:10px;">Who's on top of the table after this specific round, not who wins the season.</p>`;
+      <p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:10px;">Settles on the standings at the END of the selected round, including all matches and scores belonging to that round. It does not mean the start of the round. Split rounds must finish before settlement.</p>`;
     if(isRoundBlocked(round)){
       const msg = round < state.currentRound
         ? '\u{1F512} This round has already been played &mdash; betting closed.'
@@ -2752,7 +2716,7 @@
       }
       const selId = tagPrefix + '|' + o.team;
       const selected = state.slip.some(s=>s.id===selId);
-      return `<div class="bb-outcome ${selected?'selected':''}" data-pick="${esc(selId)}" data-team="${esc(o.team)}" data-odds="${o.odds}" data-label="${esc(o.team)} leading R${round} (${scopeKey==='RODDY'?'Roddy':scopeKey.replace(' (D1)','')})">
+      return `<div class="bb-outcome ${selected?'selected':''}" data-pick="${esc(selId)}" data-team="${esc(o.team)}" data-odds="${o.odds}" data-label="${esc(o.team)} leading after Round ${round} (${scopeKey==='RODDY'?'Roddy':scopeKey.replace(' (D1)','')})">
         <span>${esc(o.team)}</span><span class="bb-odds">${formatOdds(o.odds)}</span></div>`;
     }).join('');
     return picker + list;
@@ -4658,8 +4622,8 @@
         <span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;display:block;margin-top:8px;">Rounds before this are greyed out everywhere as already played. Changing this reopens betting fresh.</span>
       </div>
       <div class="bb-card" style="margin-bottom:1.5rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-        <span style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);color:#9a9a9a;">Home tab's featured picks are computed once per round and then locked in -- if the selection logic changes, an already-computed round won't pick up the fix on its own.</span>
-        <button class="bb-btn ghost" id="refresh-featured-fixtures" ${state.refreshingFeatured?'disabled':''}>${state.refreshingFeatured?'Refreshing\u2026':'Force recompute for Round '+state.currentRound}</button>
+        <span style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);color:#9a9a9a;">Refreshes Home match and median offers and their server quotes. Precomputed futures, leading-at and fixed specials require a separate simulation refresh.</span>
+        <button class="bb-btn ghost" id="refresh-featured-fixtures" ${state.refreshingFeatured?'disabled':''}>${state.refreshingFeatured?'Refreshing\u2026':'Refresh Home offers for Round '+state.currentRound}</button>
         ${state.refreshedFeaturedInfo ? `<span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#8fc98f;width:100%;">${esc(state.refreshedFeaturedInfo)}</span>` : ''}
       </div>
       <h3>End of season</h3>
@@ -6254,7 +6218,7 @@
   // single source of truth both the slip-limit check and the boost-
   // eligibility check below key off of.
   function isFeaturedPick(pickId){
-    const fixtures = FIXTURES_ARE_PLACEHOLDER ? [] : (state.featuredFixturesData || []).filter(homeFixtureReleased);
+    const fixtures = homeFixturesReady(state.currentRound) ? (state.featuredFixturesData || []).filter(homeFixtureReleased) : [];
     if(fixtures.some(p => p.id === pickId)) return true;
     const futures = computeFeaturedFutures();
     if(futures.some(p => p.id === pickId)) return true;
@@ -7167,13 +7131,13 @@
     );
     return Array.from(new Uint8Array(digest),byte=>byte.toString(16).padStart(2,'0')).join('');
   }
-  async function syncPricesIfNeeded(){
+  async function syncPricesIfNeeded(force=false){
     if(!state.user?.isAdmin)return;
     if(!await refreshSubmissionControls())throw new Error('Could not refresh price controls.');
     await loadFeaturedMedianSpecials(state.currentRound);
     const fingerprint=await priceSyncFingerprint();
     const cached=await secureRpc('bilbbet_price_sync_status');
-    if(cached.fingerprint===fingerprint && Number(cached.round)===state.currentRound){
+    if(!force && cached.fingerprint===fingerprint && Number(cached.round)===state.currentRound){
       await loadTrustedPrices();
       return {reused:true};
     }
@@ -7182,9 +7146,9 @@
     return {reused:false,count};
   }
   let priceSyncRunning=null;
-  async function syncTrustedPrices(){
+  async function syncTrustedPrices(force=false){
     if(priceSyncRunning)return priceSyncRunning;
-    priceSyncRunning=syncPricesIfNeeded();
+    priceSyncRunning=syncPricesIfNeeded(force);
     try{return await priceSyncRunning;}
     finally{priceSyncRunning=null;}
   }
