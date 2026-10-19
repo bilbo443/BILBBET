@@ -300,6 +300,13 @@ def check_whole_league_prices(path, roster, label, section):
     if not isinstance(markets, dict) or not markets:
         return [f'{label}: {section or "market"} is missing']
     expected = {normalize_name(t): t for teams in roster.values() for t in teams}
+    if section == 'fa_cup_markets':
+        cup_state_path = Path(path).with_name('official_fa_cup_draw.json')
+        if cup_state_path.exists():
+            cup_state = json.loads(cup_state_path.read_text())
+            if cup_state.get('preliminary_results_final'):
+                eliminated = {normalize_name(t) for t in cup_state.get('eliminated_teams', [])}
+                expected = {key: value for key, value in expected.items() if key not in eliminated}
     by_difference = {}
     for market, rows in markets.items():
         if not isinstance(rows, list):

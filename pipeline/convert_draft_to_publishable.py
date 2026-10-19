@@ -167,9 +167,24 @@ def convert_draft_to_publishable(draft_path, live_futures_path, out_path):
             for key, rows in markets.items():
                 if key not in converted_divisions.get(div, {}):
                     markets[key] = reconcile(rows, expected)
+        cup_eliminated = set()
+        cup_state_path = os.path.join(os.path.dirname(live_futures_path), 'official_fa_cup_draw.json')
+        if os.path.exists(cup_state_path):
+            cup_state = json.load(open(cup_state_path))
+            if cup_state.get('preliminary_results_final'):
+                cup_eliminated = set(cup_state.get('eliminated_teams', []))
         for section in ('roddy', 'fa_cup_markets'):
+            expected = active - cup_eliminated if section == 'fa_cup_markets' else active
             for key, rows in publishable.get(section, {}).items():
-                publishable[section][key] = reconcile(rows, active)
+                stale_cup_field = section == 'fa_cup_markets' and any(
+                    aliases.get(r['team'], r['team']) in cup_eliminated for r in rows)
+                if section == 'fa_cup_markets':
+                    rows = [r for r in rows if aliases.get(r['team'], r['team']) not in cup_eliminated]
+                converted = reconcile(rows, expected)
+                if stale_cup_field:
+                    for row in converted:
+                        row['suspended'] = True
+                publishable[section][key] = converted
 
     # Older published promotion rows reflect a cross-conference finals model.
     for div, markets in publishable.get('divisions', {}).items():

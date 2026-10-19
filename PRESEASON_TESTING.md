@@ -1066,3 +1066,12 @@ FA Cup Home portal:
 - Ranking uses prior rounds with published scores for every active team.
 - Scheduled upcoming cup fixtures included in trusted quote collection.
 - No automatic boosts, deadline changes or settlement changes.
+
+
+Confirmed preliminary outcomes:
+- Boratverynice and Quintasential FC advance.
+- Galuctasary and Sabiteurs excluded from new FA Cup futures.
+- Exact scores remain separate from confirmed advancement.
+- Cup simulation, weekly conversion and sweep recognise 64 survivors.
+- Division/Roddy participation and existing bets remain intact.
+- Result suggestions use confirmed winners; payments still require Admin confirmation.

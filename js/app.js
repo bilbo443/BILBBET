@@ -429,6 +429,18 @@
     const round = parseInt(parts[2].replace('R',''), 10);
     const teamA = resolveTeamName(parts[3]), teamB = resolveTeamName(parts[4]);
     if(!teamA || !teamB || isNaN(round)) return null;
+    const cupOutcome = DATA.official_fa_cup_draw;
+    if(cupOutcome?.preliminary_results_final &&
+       Number(cupOutcome.preliminary_round) === round &&
+       ['res-a','res-b'].includes(side)){
+      const matchIndex = (cupOutcome.preliminary || []).findIndex(([a,b]) =>
+        (sameTeam(a,teamA)&&sameTeam(b,teamB)) ||
+        (sameTeam(a,teamB)&&sameTeam(b,teamA)));
+      if(matchIndex >= 0){
+        const winner = cupOutcome.preliminary_winners[matchIndex];
+        return sameTeam(side==='res-a'?teamA:teamB,winner) ? 'WON' : 'LOST';
+      }
+    }
     // Defensive: a no-fixture round (e.g. Division 2/3's Round 1) should
     // never have a real result to suggest -- the bet-placement path
     // already prevents such a bet from existing in the first place, but
@@ -565,6 +577,9 @@
     return parts.some(part => part.startsWith('DIVISION 3') || pool.includes(resolveTeamName(part)));
   }
   function isPickBlocked(id){
+    if(id.startsWith('FACUP|') &&
+       (DATA.official_fa_cup_draw?.eliminated_teams || [])
+         .some(team=>sameTeam(team,id.split('|')[2]))) return true;
     if(id.startsWith('JOIN|')){
       const [,code,teamId]=id.split('|');
       const m=joinMarkets.find(m=>m.code===code);
@@ -7254,7 +7269,7 @@
         const places=(p.type==='ecl'?ECL_PLACES:FA_CUP_PLACES)[p.marketKey];
         if(places!==undefined){
           q.places=places;
-          q.teams=p.type==='ecl'?ECL_TOTAL_ENTRANTS:TOTAL_TEAMS;
+          q.teams=p.type==='ecl'?ECL_TOTAL_ENTRANTS:(FUTURES.fa_cup_markets?.win_pct?.length || TOTAL_TEAMS);
           q.pool=p.type+'|'+p.marketKey;
           q.team=p.team;
         }

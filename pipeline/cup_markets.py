@@ -95,8 +95,23 @@ def regenerate_roddy_and_cup(roster, coeffs, scale, history, n_sim=6000, seed=11
     def round_matches(field):
         np.random.shuffle(field)
         return [play(field[i], field[i+1]) for i in range(0, len(field), 2)]
+    confirmed_winners = []
+    eliminated = set()
+    if official_cup_draw is not None and official_cup_draw.get('preliminary_results_final'):
+        confirmed_winners = official_cup_draw.get('preliminary_winners', [])
+        if len(confirmed_winners) != len(draw['preliminary']):
+            raise ValueError('Confirmed preliminary winners are incomplete')
+        for pair, winner in zip(draw['preliminary'], confirmed_winners):
+            if winner not in pair:
+                raise ValueError('Preliminary winner does not match its fixture')
+            eliminated.update(t for t in pair if t != winner)
+        if eliminated != set(official_cup_draw.get('eliminated_teams', [])):
+            raise ValueError('Eliminated cup field does not match confirmed results')
+        draw['preliminary_winners'] = confirmed_winners
+        draw['eliminated_teams'] = sorted(eliminated)
     for _ in range(n_sim):
-        prelim = {('PRELIM', i): play(a, b)
+        prelim = {('PRELIM', i): (
+                    confirmed_winners[i] if confirmed_winners else play(a, b))
                   for i, (a, b) in enumerate(draw['preliminary'])}
         if official_cup_draw is not None:
             # Future pairings are simulated afresh, never published as official.
@@ -113,6 +128,6 @@ def regenerate_roddy_and_cup(roster, coeffs, scale, history, n_sim=6000, seed=11
                 reached[t][stage] += 1
             field = round_matches(field)
         reached[field[0]]['win'] += 1
-    cup = {market: market_rows({t: 100 * reached[t][stage]/n_sim for t in teams})
+    cup = {market: market_rows({t: 100 * reached[t][stage]/n_sim for t in teams if t not in eliminated})
            for market, stage in FA_MARKETS.items()}
     return roddy, cup, draw
