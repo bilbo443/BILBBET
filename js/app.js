@@ -428,7 +428,10 @@
     const side = parts[1]; // 'res-a' or 'res-b'
     const round = parseInt(parts[2].replace('R',''), 10);
     const teamA = resolveTeamName(parts[3]), teamB = resolveTeamName(parts[4]);
-    if(!teamA || !teamB || isNaN(round)) return null;
+    if(!teamA || !teamB || !Number.isInteger(round) || round<1 || round>26) return null;
+    // A scheduled round is not a result. Ignore accidentally populated future scores.
+    const kickoffDate=ROUND_DATES[round];
+    if(!kickoffDate || Date.now()<sydneyKickoffUTC(kickoffDate)) return null;
     const cupOutcome = DATA.official_fa_cup_draw;
     if(cupOutcome?.preliminary_results_final &&
        Number(cupOutcome.preliminary_round) === round &&
@@ -464,7 +467,7 @@
     }
     const scoreA = fixtureScore(teamA, teamB, round);
     const scoreB = fixtureScore(teamB, teamA, round);
-    if(scoreA == null || scoreB == null) return null; // that round hasn't actually been played yet
+    if(!Number.isFinite(scoreA) || !Number.isFinite(scoreB)) return null; // no usable result for this round
     if(scoreA === scoreB){
       const cupMatch = (state.cupFixtures['FA CUP'] || []).some(f =>
         Number(f.round) === round &&
@@ -477,6 +480,11 @@
     if(side === 'res-a') return aWon ? 'WON' : 'LOST';
     if(side === 'res-b') return aWon ? 'LOST' : 'WON';
     return null;
+  }
+  function betHasReviewableResult(bet){
+    if((bet.status||'PENDING')!=='PENDING' || !Array.isArray(bet.selections)) return false;
+    return bet.selections.some(selection =>
+      !selection.result && computeSuggestedResult(selection.id)!==null);
   }
   // Derives the pausable "category" (a whole market, not one team's row in
   // it) from a pick ID. FUT|division|marketKey|team -> division|marketKey.
@@ -2861,8 +2869,7 @@
       if(info && !(state.cupFixtures[comp]||[]).length) return true;
     }
     if(!state.roundBettingOpen) return true;
-    const hasResolvable = (state.adminBets||[]).some(b => (b.status||'PENDING')==='PENDING' && b.selections.length===1 &&
-      (() => { const r = getPickRound(b.selections[0].id); return r !== null && r <= state.currentRound; })());
+    const hasResolvable = (state.adminBets||[]).some(betHasReviewableResult);
     if(hasResolvable) return true;
     const hasPendingSuggestions = (state.suggestions||[]).some(s => s.status === 'PENDING_REVIEW');
     if(hasPendingSuggestions) return true;
@@ -4711,10 +4718,8 @@
     // fixture in a particular playoff week, so its absence is not an alert.
     const flagFixtures = ['FA CUP','ECL'].some(comp =>
       getCupRoundInfo(comp, state.currentRound) && !(state.cupFixtures[comp]||[]).length);
-    const resolvableSingles = bets.filter(b => (b.status||'PENDING')==='PENDING' && b.selections.length===1 &&
-      (() => { const r = getPickRound(b.selections[0].id); return r !== null && r <= state.currentRound; })());
-    const readyCount = bets.filter(b => (b.status||'PENDING')==='PENDING' &&
-      b.selections.some((s,i) => (b.selections.length===1 || !s.result) && computeSuggestedResult(s.id))).length;
+    const resolvableSingles = bets.filter(b => b.selections.length===1 && betHasReviewableResult(b));
+    const readyCount = bets.filter(b => betHasReviewableResult(b)).length;
     const flagBets = resolvableSingles.length > 0 || readyCount > 0;
     const flagSpecials = (state.suggestions||[]).filter(s => s.status === 'PENDING_REVIEW').length > 0;
     const flagPunters = pending.length > 0;
@@ -4963,10 +4968,9 @@
     const BETS_HTML = `\n      <h3>Resolve outstanding bets</h3>
       <div class="bb-card" style="margin-bottom:1.5rem;">
         ${(() => {
-          const resolvable = bets.filter(b => (b.status||'PENDING')==='PENDING' && b.selections.length===1 &&
-            (() => { const r = getPickRound(b.selections[0].id); return r !== null && r <= state.currentRound; })());
-          if(!resolvable.length) return `<p style="color:#9a9a9a;font-size:clamp(18px, calc(18px + 0.4vw), 21px);margin:0;">Nothing waiting on a result for this round or earlier.</p>`;
-          return `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-top:0;">Single-selection bets on Round ${state.currentRound} or earlier, still pending. Multi-leg bets aren't shown here -- resolve those individually in the table below once every leg's known.</p>` +
+          const resolvable = bets.filter(b => b.selections.length===1 && betHasReviewableResult(b));
+          if(!resolvable.length) return `<p style="color:#9a9a9a;font-size:clamp(18px, calc(18px + 0.4vw), 21px);margin:0;">No unresolved singles have a result available to review yet.</p>`;
+          return `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-top:0;">Pending singles with a result available to review. Upcoming bets stay in the table below without an action flag. Confirm that scores are final before settling; multi-leg bets are reviewed individually below.</p>` +
             resolvable.map(b => `
               <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #2a2a2a;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">
                 <span>${esc(b.username)} \u2014 ${esc(betSelectionLabel(b.selections[0]))} <span style="color:#8a8a8a;">(stake ${fmt(b.stake)}, odds ${formatOdds(b.selections[0].odds)})</span></span>
@@ -5012,8 +5016,7 @@
         return filterBar + `
       <button class="bb-btn ghost" id="export-bets-csv" style="margin-bottom:10px;padding:6px 12px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Export to CSV</button>
       ${(() => {
-        const readyCount = filteredBets.filter(b => (b.status||'PENDING')==='PENDING' &&
-          b.selections.some((s,i) => (b.selections.length===1 || !s.result) && computeSuggestedResult(s.id))).length;
+        const readyCount = filteredBets.filter(b => betHasReviewableResult(b)).length;
         return readyCount ? `<p style="color:#ffdd00;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:8px;">\u26a1 ${readyCount} bet(s) below have a real result available and are ready to review -- highlighted first.</p>` : '';
       })()}
       <div class="bb-card" style="padding:0;overflow-x:auto;">
@@ -5044,12 +5047,12 @@
               // Default order (no column explicitly chosen): bets with a
               // real result ready to review bubble to the top, otherwise
               // newest first -- same behaviour this table always had.
-              const aReady = (a.status||'PENDING')==='PENDING' && a.selections.some((s,i) => (a.selections.length===1 || !s.result) && computeSuggestedResult(s.id));
-              const bReady = (b.status||'PENDING')==='PENDING' && b.selections.some((s,i) => (b.selections.length===1 || !s.result) && computeSuggestedResult(s.id));
+              const aReady = betHasReviewableResult(a);
+              const bReady = betHasReviewableResult(b);
               if(aReady !== bReady) return aReady ? -1 : 1;
               return b.timestamp - a.timestamp;
             }).map(b => {
-              const betReady = (b.status||'PENDING')==='PENDING' && b.selections.some((s,i) => (b.selections.length===1 || !s.result) && computeSuggestedResult(s.id));
+              const betReady = betHasReviewableResult(b);
               return `
               <tr${betReady ? ' style="background:#3a3210;"' : ''}>
                 <td>${fmtDate(b.timestamp)}</td>
