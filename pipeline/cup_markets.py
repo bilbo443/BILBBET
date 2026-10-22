@@ -77,14 +77,12 @@ def regenerate_roddy_and_cup(roster, coeffs, scale, history, n_sim=6000, seed=11
                 or len(set(participants)) != 4
                 or not set(participants).issubset(teams)):
             raise ValueError('Official preliminary draw does not match the field')
-        if official_cup_draw.get('r64_draw_confirmed'):
-            raise ValueError('Confirmed Round of 64 needs a separate draw update')
         draw = {
             'preliminary': pairs,
             'preliminary_byes': [t for t in teams if t not in participants],
-            'r64_matches': [],
+            'r64_matches': official_cup_draw.get('r64_matches', []) if official_cup_draw.get('r64_draw_confirmed') else [],
             'r32_byes': [],
-            'r64_draw_confirmed': False
+            'r64_draw_confirmed': bool(official_cup_draw.get('r64_draw_confirmed'))
         }
     reached = {t: {stage: 0 for stage in FA_MARKETS.values()} for t in teams}
     def play(a, b):
@@ -109,6 +107,16 @@ def regenerate_roddy_and_cup(roster, coeffs, scale, history, n_sim=6000, seed=11
             raise ValueError('Eliminated cup field does not match confirmed results')
         draw['preliminary_winners'] = confirmed_winners
         draw['eliminated_teams'] = sorted(eliminated)
+    if draw.get('r64_draw_confirmed'):
+        official_pairs = draw['r64_matches']
+        if not confirmed_winners:
+            raise ValueError('Confirmed Round of 64 requires final preliminary winners')
+        if (len(official_pairs) != 32
+                or any(not isinstance(pair, list) or len(pair) != 2 for pair in official_pairs)):
+            raise ValueError('Confirmed Round of 64 requires 32 pairs')
+        entrants = [team for pair in official_pairs for team in pair]
+        if len(set(entrants)) != 64 or set(entrants) != set(teams) - eliminated:
+            raise ValueError('Confirmed Round of 64 must contain each survivor exactly once')
     for _ in range(n_sim):
         prelim = {('PRELIM', i): (
                     confirmed_winners[i] if confirmed_winners else play(a, b))
@@ -118,7 +126,8 @@ def regenerate_roddy_and_cup(roster, coeffs, scale, history, n_sim=6000, seed=11
             r64_field = list(draw['preliminary_byes']) + list(prelim.values())
             if len(r64_field) != 64:
                 raise ValueError('Official preliminary must produce 64 survivors')
-            field = round_matches(r64_field)
+            field = ([play(a, b) for a, b in draw['r64_matches']]
+                     if draw.get('r64_draw_confirmed') else round_matches(r64_field))
         else:
             field = list(draw['r32_byes'])
             field += [play(prelim.get(a, a), prelim.get(b, b))
