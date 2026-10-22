@@ -62,6 +62,15 @@
 .bb-tab.active.div-ecl{background:var(--div-ecl);color:#fff;border-color:var(--bb-border-light);}
 .bb-tab.active.div-roddy{background:var(--div-roddy);color:#1b1b1b;border-color:var(--div-roddy);}
 .bb-outcome{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border-radius:8px;border:1px solid var(--bb-border);cursor:pointer;margin-bottom:6px;gap:10px;}
+/* Native outcome buttons need the same dark surface as div-based markets. */
+button.bb-outcome{
+  appearance:none;
+  -webkit-appearance:none;
+  background:var(--bb-card-bg);
+  color:var(--bb-text);
+  font:inherit;
+  box-shadow:none;
+}
 /* The market/team-name label is always the first child of a .bb-outcome
    row, with the odds figure (.bb-odds, below) as the second. Flex children
    don't shrink below their content's natural unwrapped width by default,
