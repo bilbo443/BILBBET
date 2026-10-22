@@ -2798,33 +2798,89 @@
     const labels = FUTURES[labelsKey];
     const isEcl = labelsKey === 'ecl_labels';
     return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">' +
-      `<div class="bb-tab ${state.futureMarketTab==='fixtures'?'active':''}" data-marketkey="fixtures" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;">Current fixtures</div>` +
+      `<div class="bb-tab ${state.futureMarketTab==='fixtures'?'active':''}" data-marketkey="fixtures" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;">Fixtures</div>` +
       (isEcl ? `<div class="bb-tab ${state.futureMarketTab==='groups'?'active':''}" data-marketkey="groups" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;">Groups</div>` : '') +
       Object.entries(labels).map(([key,label]) =>
         `<div class="bb-tab ${state.futureMarketTab===key?'active':''}" data-marketkey="${key}" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;">${esc(label)}</div>`
       ).join('') + '</div>';
   }
 
+  function cupFixtureRoundView(fixtures, currentRound, selectedRound){
+    const valid=fixtures.map((fixture,index)=>({fixture,index}))
+      .filter(({fixture:f})=>Number.isInteger(Number(f.round))&&Number(f.round)>=1&&Number(f.round)<=26);
+    const rounds=[...new Set(valid.map(({fixture:f})=>Number(f.round)))].sort((a,b)=>a-b);
+    const selected=Number(selectedRound);
+    const round=rounds.includes(selected)?selected:
+      rounds.find(r=>r>=Number(currentRound))??rounds.at(-1)??null;
+    return {rounds,round,fixtures:valid.filter(({fixture:f})=>Number(f.round)===round)};
+  }
+  function getCupFixtureMarket(f){
+    const round=Number(f.round);
+    const key=f.teamA+'|'+f.teamB+'|R'+round;
+    if(!openingHubCupMarkets[key])
+      openingHubCupMarkets[key]=computeH2HMarket(f.teamA,f.teamB,round);
+    return openingHubCupMarkets[key];
+  }
+  function cupFixtureWinPrices(f){
+    const prefix='H2H|',suffix='|R'+Number(f.round)+'|'+f.teamA+'|'+f.teamB;
+    const a=trustedPrices.get(prefix+'res-a'+suffix),b=trustedPrices.get(prefix+'res-b'+suffix);
+    // Normal browsing needs no new simulation when the price board already has both sides.
+    if(Number.isFinite(Number(a?.odds))&&Number(a.odds)>0&&Number.isFinite(Number(b?.odds))&&Number(b.odds)>0)
+      return {a:{odds:Number(a.odds),suspended:false},b:{odds:Number(b.odds),suspended:false}};
+    const market=getCupFixtureMarket(f);
+    return {a:toOdds(market.aWinPct),b:toOdds(market.bWinPct)};
+  }
+  function openCupFixture(compKey,index){
+    const f=(state.cupFixtures[compKey]||[])[Number(index)];
+    if(!f || !Number.isInteger(Number(f.round))) return;
+    state.cupFixtureRounds ||= {};
+    state.cupFixtureRounds[compKey]=Number(f.round);
+    state.cupFixtureMarket=getCupFixtureMarket(f);
+    state.cupFixtureMarketStage='GW'+Number(f.round)+' · '+
+      (f.stage||getCupRoundInfo(compKey,Number(f.round))?.stage||compKey);
+    render();
+  }
   function renderCupFixtures(compKey){
-    const fixtures = state.cupFixtures[compKey] || [];
+    const fixtures=state.cupFixtures[compKey]||[];
     if(state.cupFixtureMarket){
-      return `<button class="bb-btn ghost" id="back-to-cup-fixtures" style="margin-bottom:10px;">&larr; Back to fixtures</button>` +
-        (state.cupFixtureMarketStage ? `<p style="color:#ffdd00;font-weight:600;margin-bottom:6px;">${esc(state.cupFixtureMarketStage)}</p>` : '') +
+      return `<button class="bb-btn ghost" id="back-to-cup-fixtures" style="margin-bottom:10px;">&larr; Back to fixtures</button>`+
+        (state.cupFixtureMarketStage?`<p style="color:#ffdd00;font-weight:600;margin-bottom:6px;">${esc(state.cupFixtureMarketStage)}</p>`:'')+
         renderH2HMarket(state.cupFixtureMarket);
     }
-    const roundInfo = getCupRoundInfo(compKey, state.currentRound);
-    const calendarNote = roundInfo
-      ? `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:10px;">Round ${state.currentRound}, per the 26/27 calendar${roundInfo.overridden?' (admin override)':''}: <strong style="color:#ffdd00;">${esc(roundInfo.stage)}</strong>.</p>`
-      : `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:10px;">Round ${state.currentRound} isn't a scheduled ${esc(compKey)} round on the 26/27 calendar.</p>`;
-    if(!fixtures.length){
-      return calendarNote + `<div class="bb-card" style="text-align:center;padding:2rem 1rem;color:#9a9a9a;">No fixtures scheduled yet.</div>`;
-    }
-    return calendarNote + '<div class="bb-card" style="padding:0;overflow:hidden;">' +
-      fixtures.map((f,i) => `<div data-cupfixture="${esc(compKey)}|${i}" style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;cursor:pointer;${i<fixtures.length-1?'border-bottom:1px solid #3d3d3d;':''}">
-        <span>${f.stage ? `<span style="color:#ffdd00;font-weight:600;">${esc(f.stage)}:</span> ` : ''}${esc(f.teamA)} <span style="color:#9a9a9a;">vs</span> ${esc(f.teamB)}</span>
-        <span class="bb-btn ghost" style="padding:5px 12px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">View market</span>
-      </div>`).join('') + '</div>' +
-      `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-top:10px;">Odds here use the same head-to-head model as the division matches -- cup-specific pricing (rewarding spike ability for the FA Cup, tough-opposition form for the ECL) isn't wired in yet.</p>`;
+    const view=cupFixtureRoundView(fixtures,state.currentRound,state.cupFixtureRounds?.[compKey]);
+    if(view.round===null)return `<div class="bb-card" style="text-align:center;padding:2rem 1rem;color:#9a9a9a;">No fixtures scheduled yet.</div>`;
+    const stageFor=round=>fixtures.find(f=>Number(f.round)===round&&f.stage)?.stage||getCupRoundInfo(compKey,round)?.stage||'Cup fixtures';
+    const roundTabs=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;" role="group" aria-label="Cup rounds">`+
+      view.rounds.map(round=>`<button type="button" class="bb-tab ${round===view.round?'active':''}" data-cup-round="${esc(compKey)}|${round}" aria-pressed="${round===view.round}" style="padding:9px 12px;text-align:left;color:inherit;font:inherit;border:1px solid ${round===view.round?'#4a9166':'#3d3d3d'};border-radius:8px;background:${round===view.round?'#263d32':'transparent'};">
+        ${esc(stageFor(round))}<span style="display:block;font-size:13px;opacity:0.75;margin-top:3px;">GW${round}${round<state.currentRound?' · Past round':''}</span>
+      </button>`).join('')+'</div>';
+    const closed=isRoundBlocked(view.round);
+    const heading=`<div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+      <h3 style="margin:0;">${esc(stageFor(view.round))}</h3>
+      <span style="color:#9a9a9a;">GW${view.round} · ${view.fixtures.length} match${view.fixtures.length===1?'':'es'}${closed?' · Betting closed':''}</span></div>`;
+    const cards=view.fixtures.map(({fixture:f,index},position)=>{
+      const prices=closed?null:cupFixtureWinPrices(f);
+      const outcome=(side,team)=>{
+        const id='H2H|res-'+side+'|R'+view.round+'|'+f.teamA+'|'+f.teamB;
+        const info=prices?.[side];
+        const blocked=closed||!info||info.suspended||isPickBlocked(id);
+        const price=info&&!info.suspended?trustedOdds(id,info.odds):null;
+        const selected=state.slip.some(s=>s.id===id);
+        return `<button type="button" class="bb-outcome ${selected?'selected':''}" ${blocked?'disabled':`data-pick="${esc(id)}" data-label="${esc('R'+view.round+': '+team+' to win')}" data-odds="${price}"`}
+          style="display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:10px;width:100%;min-width:0;padding:12px;text-align:left;color:inherit;${blocked?'cursor:default;opacity:0.7;':''}">
+          <span style="display:flex;gap:7px;align-items:center;font-weight:600;min-height:44px;min-width:0;overflow-wrap:anywhere;">${teamLogo(team,24)}<span>${esc(team)}</span></span>
+          <span class="bb-odds" style="font-size:25px;line-height:1.2;">${closed?'Closed':price===null?'Unavailable':formatOdds(price)}</span>
+        </button>`;
+      };
+      return `<div class="bb-card" style="padding:14px;margin-bottom:12px;">
+        <div style="color:#9a9a9a;font-size:13px;margin-bottom:9px;">Match ${position+1}</div>
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;">${outcome('a',f.teamA)}${outcome('b',f.teamB)}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:10px;">
+          <span style="color:#9a9a9a;font-size:13px;">${closed?'Past or locked fixture':'Match win odds'}</span>
+          <button type="button" class="bb-btn ghost" data-cupfixture="${esc(compKey)}|${index}" style="padding:6px 10px;">Match details</button>
+        </div></div>`;
+    }).join('');
+    return roundTabs+heading+cards;
   }
 
   const PLAYOFF_DIVS = ['DIVISION 2A','DIVISION 2B',...DIV3_CONFERENCES]
@@ -8168,12 +8224,17 @@
       render();
     });
     const backBtn = $('#back-to-fixtures'); if(backBtn) backBtn.onclick = () => { state.h2hFixtureMarket=null; render(); };
-    document.querySelectorAll('[data-cupfixture]').forEach(el => el.onclick = () => {
-      const [compKey, idx] = el.dataset.cupfixture.split('|');
-      const f = state.cupFixtures[compKey][parseInt(idx,10)];
-      state.cupFixtureMarket = computeH2HMarket(f.teamA, f.teamB, state.currentRound);
-      state.cupFixtureMarketStage = f.stage || null;
+    document.querySelectorAll('[data-cup-round]').forEach(el=>el.onclick=()=>{
+      const [compKey,tag]=el.dataset.cupRound.split('|');
+      state.cupFixtureRounds ||= {};
+      state.cupFixtureRounds[compKey]=Number(tag);
+      state.cupFixtureMarket=null;
+      state.cupFixtureMarketStage=null;
       render();
+    });
+    document.querySelectorAll('[data-cupfixture]').forEach(el=>el.onclick=()=>{
+      const [compKey,index]=el.dataset.cupfixture.split('|');
+      openCupFixture(compKey,Number(index));
     });
 
     document.querySelectorAll('[data-opening-guide]').forEach(el => el.onclick = () => {
@@ -8194,6 +8255,8 @@
       state.activeTab='FUTURES';
       state.futuresSubTab='FA CUP';
       state.futureMarketTab='fixtures';
+      state.cupFixtureRounds ||= {};
+      state.cupFixtureRounds['FA CUP']=state.currentRound;
       state.cupFixtureMarket=null;
       state.cupFixtureMarketStage=null;
       render();
@@ -8210,6 +8273,8 @@
       state.activeTab='FUTURES';
       state.futuresSubTab='FA CUP';
       state.futureMarketTab='fixtures';
+      state.cupFixtureRounds ||= {};
+      state.cupFixtureRounds['FA CUP']=round;
       state.cupFixtureMarket=openingHubCupMarkets[key];
       state.cupFixtureMarketStage='Round '+round+' · '+
         (f.stage || getCupRoundInfo('FA CUP',round)?.stage || 'FA Cup');
