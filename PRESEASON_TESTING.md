@@ -1075,3 +1075,13 @@ Confirmed preliminary outcomes:
 - Cup simulation, weekly conversion and sweep recognise 64 survivors.
 - Division/Roddy participation and existing bets remain intact.
 - Result suggestions use confirmed winners; payments still require Admin confirmation.
+
+Cash out, 22 October 2026:
+- Ordinary pending singles only; no multis, boosts or bonus/free bets.
+- Server-valued 30-second offers, exact trusted quote required, current board/round required.
+- Suspended at scheduled lockout even after deliberate betting reopen.
+- Account/bet locks, one transaction on retry, original accepted bet retained.
+- CASHED_OUT is final and cannot be reset or settled again.
+- My Bets confirmation, paid return, net totals and archive cash-out records added.
+- Database tests passed in a rolled-back synthetic transaction. JavaScript syntax and isolated UI checks required before enabling.
+- Install supabase/cashout-singles.sql first; feature remains disabled until explicit enable. See supabase/CASHOUT.md.

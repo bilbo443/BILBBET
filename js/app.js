@@ -3909,13 +3909,13 @@
 
   function statusPill(status){
     const colors = { PENDING: ['#efece3','#9a9a9a'], WON: ['#e1efe9','#2d6a44'], LOST: ['#f3ded9','#a3402f'],
-      VOID: ['#e8e4d8','#8a8a8a'], OPEN: ['#4a3a10','#ffdd00'] };
+      VOID: ['#e8e4d8','#8a8a8a'], CASHED_OUT: ['#d5eee8','#206b56'], OPEN: ['#4a3a10','#ffdd00'] };
     const [bg,fg] = colors[status] || colors.PENDING;
-    return `<span class="bb-pill" style="background:${bg};color:${fg};">${status.toLowerCase()}</span>`;
+    return `<span class="bb-pill" style="background:${bg};color:${fg};">${status.toLowerCase().replaceAll('_',' ')}</span>`;
   }
 
   const TX_TYPE_LABELS = {
-    BET_PLACED: '\u{1F3B2}', BET_STATUS_CHANGE: '\u2696\uFE0F', TIP_REWARD: '\u{1F3AF}',
+    CASH_OUT: '\u{1F4B0}', BET_PLACED: '\u{1F3B2}', BET_STATUS_CHANGE: '\u2696\uFE0F', TIP_REWARD: '\u{1F3AF}',
     REGISTRATION_BONUS: '\u{1F381}', ADMIN_ADJUSTMENT: '\u{1F6E0}\uFE0F',
     TIER_REWARD: '\u{1F3C6}', PRESEASON_PICK_REWARD: '\u{1F52E}',
   };
@@ -3934,6 +3934,72 @@
             <span style="font-weight:600;color:${tx.amount>=0?'#7fbf8f':'#e08a8a'};white-space:nowrap;margin-left:8px;">${tx.amount>=0?'+':''}${fmt(tx.amount)}</span>
           </div>`).join('')}
       </div>`;
+  }
+
+
+  let cashoutBusy = false;
+  function renderCashoutControl(b){
+    if(b.status==='CASHED_OUT') return `<div style="margin-top:8px;">Paid ${fmt(displayedBetReturn(b))} clams</div>`;
+    if((b.status||'PENDING')!=='PENDING' || b.selections?.length!==1 || b.boosted || b.boostRound!=null ||
+       b.featuredPickRound!=null || b.freeBet || b.bonusBet || b.isFreeBet || b.nearMissBonusAwarded || b.selections[0].result) return '';
+    return `<div style="margin-top:8px;"><button class="bb-btn ghost" data-cashout="${esc(b.id)}" style="padding:6px 10px;">Check cash out</button></div>`;
+  }
+  async function openCashout(betId){
+    if(cashoutBusy || document.getElementById('cashout-dialog') || !state.user) return;
+    const username = state.user.username;
+    cashoutBusy = true;
+    try{
+      const offer = await secureRpc('bilbbet_cashout_offer',{p_bet_id:betId});
+      if(!state.user || state.user.username!==username) return;
+      if(!offer.available){ alert(offer.message || 'Cash out is unavailable right now.'); return; }
+      const bet = (state.myBets||[]).find(b=>b.id===betId);
+      const dialog = document.createElement('dialog');
+      dialog.id='cashout-dialog';
+      dialog.style.cssText='max-width:420px;width:calc(100% - 40px);background:#17251f;color:#fff;border:1px solid #4a9166;border-radius:12px;padding:24px;';
+      dialog.innerHTML=`<h3 style="margin-top:0;">Cash out this bet?</h3>
+        <p>${esc(bet?.selections?.[0]?.label || 'Selected single bet')}</p>
+        <p style="font-size:28px;font-weight:700;">${fmt(Number(offer.amount))} clams</p>
+        <p>This closes your whole bet permanently. You receive this amount instead of any future winnings.</p>
+        <p id="cashout-countdown" aria-live="polite"></p>
+        <p id="cashout-error" role="alert"></p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;"><button class="bb-btn" id="cashout-accept">Accept cash out</button>
+        <button class="bb-btn ghost" id="cashout-cancel">Keep bet</button></div>`;
+      document.body.appendChild(dialog);
+      const accept=dialog.querySelector('#cashout-accept'),cancel=dialog.querySelector('#cashout-cancel');
+      let accepting=false;
+      const tick=()=>{
+        const left=Math.max(0,Math.ceil((Date.parse(offer.expiresAt)-Date.now())/1000));
+        dialog.querySelector('#cashout-countdown').textContent=left?`Offer expires in ${left} seconds.`:'Offer expired. Close and request a new offer.';
+        accept.disabled=accepting || left===0;
+      };
+      const timer=setInterval(tick,1000); tick();
+      dialog.addEventListener('close',()=>{clearInterval(timer);dialog.remove();},{once:true});
+      dialog.addEventListener('cancel',event=>{if(accepting)event.preventDefault();});
+      cancel.onclick=()=>dialog.close();
+      accept.onclick=async()=>{
+        if(accepting) return;
+        accepting=true;accept.disabled=true;cancel.disabled=true;accept.textContent='Processing…';
+        try{
+          const result=await secureRpc('bilbbet_cashout_accept',{p_bet_id:betId,p_offer_id:offer.offerId});
+          if(!result?.bet || !result?.user || result.bet.status!=='CASHED_OUT') throw new Error('Unexpected response. Check My Bets before retrying.');
+          if(state.user?.username===username){
+            state.user=result.user;state.myBets=null;state.txHistory=null;
+            dialog.close();render();
+            alert(`Cash out confirmed: ${fmt(Number(result.bet.cashOut.amount))} clams credited. This bet is now closed.`);
+            await loadMyBets().catch(()=>alert('Cash out was confirmed, but the bet list could not refresh. Reload My Bets.'));
+          }else dialog.close();
+        }catch(error){
+          clearInterval(timer);
+          dialog.querySelector('#cashout-error').textContent=error.message+' Check My Bets before requesting another offer.';
+          cancel.disabled=false;cancel.textContent='Close and check My Bets';
+          cancel.onclick=async()=>{dialog.close();if(state.user?.username===username){state.myBets=null;render();await loadMyBets();}};
+          accept.textContent='Check My Bets';accept.disabled=true;
+        }
+      };
+      if(typeof dialog.showModal==='function') dialog.showModal();
+      else{dialog.remove();clearInterval(timer);alert('Please use a browser that supports cash-out confirmations.');}
+    }catch(error){alert(error.message);}
+    finally{cashoutBusy=false;}
   }
 
   function renderMyBetsTab(){
@@ -3961,7 +4027,7 @@
           <div><div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">Won</div><div style="font-size:clamp(21px, calc(21px + 0.4vw), 24px);font-weight:600;color:#4a9166;">${h.winningBets}</div></div>
           <div><div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">Lost</div><div style="font-size:clamp(21px, calc(21px + 0.4vw), 24px);font-weight:600;color:#a3402f;">${h.losingBets}</div></div>
           <div><div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">Void</div><div style="font-size:clamp(21px, calc(21px + 0.4vw), 24px);font-weight:600;">${h.voidBets}</div></div>
-          <div><div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">Net</div><div style="font-size:clamp(21px, calc(21px + 0.4vw), 24px);font-weight:600;">${(h.winnings-h.losses)>=0?'+':''}${fmt(h.winnings-h.losses)}</div></div>
+          <div><div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">Net</div><div style="font-size:clamp(21px, calc(21px + 0.4vw), 24px);font-weight:600;">${(h.winnings-h.losses+(h.cashOutReturn||0)-(h.cashOutStake||0))>=0?'+':''}${fmt(h.winnings-h.losses+(h.cashOutReturn||0)-(h.cashOutStake||0))}</div></div>
         </div>
       </div>` : '';
     const legacyBox = (state.user.legacyBestBets && state.user.legacyBestBets.length) ? `
@@ -3980,9 +4046,11 @@
     const won = bets.filter(b=>b.status==='WON').length;
     const lost = bets.filter(b=>b.status==='LOST').length;
     const voided = bets.filter(b=>b.status==='VOID').length;
+    const cashedOut = bets.filter(b=>b.status==='CASHED_OUT').length;
     const netFromSettled = bets.reduce((s,b)=>{
       if(b.status==='WON') return s + (displayedBetReturn(b) - b.stake);
       if(b.status==='LOST') return s - b.stake;
+      if(b.status==='CASHED_OUT') return s + displayedBetReturn(b) - b.stake;
       return s;   // PENDING and VOID both net to 0 -- VOID refunds the stake, nothing gained or lost
     }, 0);
     return prefsCard + txCard + careerBox + legacyBox + `
@@ -3991,6 +4059,7 @@
         <div><div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">Won</div><div style="font-size:clamp(21px, calc(21px + 0.4vw), 24px);font-weight:600;color:#4a9166;">${won}</div></div>
         <div><div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">Lost</div><div style="font-size:clamp(21px, calc(21px + 0.4vw), 24px);font-weight:600;color:#a3402f;">${lost}</div></div>
         <div><div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">Voided</div><div style="font-size:clamp(21px, calc(21px + 0.4vw), 24px);font-weight:600;">${voided}</div></div>
+        <div><div style="color:#9a9a9a;">Cashed out</div><div style="font-size:24px;font-weight:600;">${cashedOut}</div></div>
         <div><div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">Net (settled bets)</div><div style="font-size:clamp(21px, calc(21px + 0.4vw), 24px);font-weight:600;">${netFromSettled>=0?'+':''}${fmt(netFromSettled)}</div></div>
       </div>
       <div class="bb-card" style="padding:0;overflow-x:auto;">
@@ -4004,14 +4073,14 @@
                 <td>${fmt(b.stake)}</td>
                 <td>${b.combinedOdds.toFixed(2)}</td>
                 <td>${fmt(displayedBetReturn(b))}</td>
-                <td>${statusPill(b.status || 'PENDING')}</td>
+                <td>${statusPill(b.status || 'PENDING')}${renderCashoutControl(b)}</td>
               </tr>`).join('')}
           </tbody>
         </table>
       </div>
       <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-top:10px;">
-        Every bet here is recorded as <strong>pending</strong> until the 26/27 season actually plays out and results come in &mdash;
-        this table is the template that will populate with won/lost once there's a way to resolve markets against real results.
+        Cash out is available for eligible ordinary singles before lockout when a current price is available.
+        An accepted cash out closes the bet permanently. Offers expire after 30 seconds.
       </p>`;
   }
 
@@ -4902,8 +4971,8 @@
               <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #2a2a2a;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">
                 <span>${esc(b.username)} \u2014 ${esc(betSelectionLabel(b.selections[0]))} <span style="color:#8a8a8a;">(stake ${fmt(b.stake)}, odds ${formatOdds(b.selections[0].odds)})</span></span>
                 <span style="display:flex;gap:4px;">
-                  <button class="bb-btn ghost" data-setstatus="${b.id}|WON" style="padding:4px 8px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);">Won</button>
-                  <button class="bb-btn ghost" data-setstatus="${b.id}|LOST" style="padding:4px 8px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);">Lost</button>
+                  <button class="bb-btn ghost" ${b.status==='CASHED_OUT'?'disabled':''} data-setstatus="${b.id}|WON" style="padding:4px 8px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);">Won</button>
+                  <button class="bb-btn ghost" ${b.status==='CASHED_OUT'?'disabled':''} data-setstatus="${b.id}|LOST" style="padding:4px 8px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);">Lost</button>
                 </span>
               </div>`).join('');
         })()}
@@ -5003,10 +5072,10 @@
                 <td>${fmt(displayedBetReturn(b))}</td>
                 <td>${statusPill(b.status || 'PENDING')}${b.nearMissBonusAwarded?' <span class="bb-pill" style="background:#4a3a10;color:#ffdd00;display:inline-flex;align-items:center;white-space:nowrap;line-height:1.4;padding:4px 10px;margin:4px 0;vertical-align:middle;">bonus paid</span>':''}</td>
                 <td style="display:flex;gap:4px;flex-wrap:wrap;">
-                  <button class="bb-btn ghost" data-setstatus="${b.id}|WON" style="padding:4px 8px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);${b.selections.length===1&&computeSuggestedResult(b.selections[0].id)==='WON'?'border-color:#ffdd00;':''}">Won</button>
-                  <button class="bb-btn ghost" data-setstatus="${b.id}|LOST" style="padding:4px 8px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);${b.selections.length===1&&computeSuggestedResult(b.selections[0].id)==='LOST'?'border-color:#ffdd00;':''}">Lost</button>
-                  <button class="bb-btn ghost" data-setstatus="${b.id}|VOID" style="padding:4px 8px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);">Kick (void)</button>
-                  <button class="bb-btn ghost" data-setstatus="${b.id}|PENDING" style="padding:4px 8px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);">Reset</button>
+                  <button class="bb-btn ghost" ${b.status==='CASHED_OUT'?'disabled':''} data-setstatus="${b.id}|WON" style="padding:4px 8px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);${b.selections.length===1&&computeSuggestedResult(b.selections[0].id)==='WON'?'border-color:#ffdd00;':''}">Won</button>
+                  <button class="bb-btn ghost" ${b.status==='CASHED_OUT'?'disabled':''} data-setstatus="${b.id}|LOST" style="padding:4px 8px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);${b.selections.length===1&&computeSuggestedResult(b.selections[0].id)==='LOST'?'border-color:#ffdd00;':''}">Lost</button>
+                  <button class="bb-btn ghost" ${b.status==='CASHED_OUT'?'disabled':''} data-setstatus="${b.id}|VOID" style="padding:4px 8px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);">Kick (void)</button>
+                  <button class="bb-btn ghost" ${b.status==='CASHED_OUT'?'disabled':''} data-setstatus="${b.id}|PENDING" style="padding:4px 8px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);">Reset</button>
                 </td>
               </tr>`;
             }).join('')}
@@ -5197,6 +5266,9 @@
       winnings: won.reduce((s,b)=>s+displayedBetReturn(b), 0),
       losingBets: lost.length,
       losses: lost.reduce((s,b)=>s+b.stake, 0),
+      cashOutBets: settled.filter(b=>b.status==='CASHED_OUT').length,
+      cashOutReturn: settled.filter(b=>b.status==='CASHED_OUT').reduce((sum,b)=>sum+displayedBetReturn(b),0),
+      cashOutStake: settled.filter(b=>b.status==='CASHED_OUT').reduce((sum,b)=>sum+b.stake,0),
       voidBets: voided.length,
       voidReturn: voided.reduce((s,b)=>s+b.stake, 0),
     };
@@ -5207,6 +5279,9 @@
     const prior = u.historicalRecord || { totalBets:0, winningBets:0, winnings:0, losingBets:0, losses:0, voidBets:0, voidReturn:0 };
     u.historicalRecord = {
       totalBets: prior.totalBets + seasonSummary.totalBets,
+      cashOutBets: (prior.cashOutBets||0)+seasonSummary.cashOutBets,
+      cashOutReturn: (prior.cashOutReturn||0)+seasonSummary.cashOutReturn,
+      cashOutStake: (prior.cashOutStake||0)+seasonSummary.cashOutStake,
       winningBets: prior.winningBets + seasonSummary.winningBets,
       winnings: prior.winnings + seasonSummary.winnings,
       losingBets: prior.losingBets + seasonSummary.losingBets,
@@ -5703,6 +5778,7 @@
   function displayedBetReturn(bet){
     if(typeof bet.actualReturn === 'number') return bet.actualReturn;
     const status = bet.status || 'PENDING';
+    if(status === 'CASHED_OUT') return Number(bet.cashOut?.amount || 0);
     if(status === 'VOID') return bet.stake;
     if(status === 'LOST') return 0;
     if(!Array.isArray(bet.selections)) return bet.potentialReturn;
@@ -7170,6 +7246,7 @@
   async function priceSyncFingerprint(){
     const data=Object.fromEntries(Object.entries(DATA).filter(([key])=>!['real_results','carry_balances'].includes(key)));
     const input={
+      priceModelVersion:'cashout-singles-v1',
       season:seasonKeyPart(),round:state.currentRound,data,
       controls:{
         cupFixtures:state.cupFixtures,
@@ -8163,6 +8240,7 @@
       render();
     });
     const backPlayoffBtn = $('#back-to-playoff-fixtures'); if(backPlayoffBtn) backPlayoffBtn.onclick = () => { state.playoffFixtureMarket = null; state.playoffFixtureMarketStage = null; render(); };
+    document.querySelectorAll('[data-cashout]').forEach(el => el.onclick = () => openCashout(el.dataset.cashout));
     document.querySelectorAll('[data-pick]').forEach(el => el.onclick = () => {
       if(!state.user){
         alert('You must log in first to place a bet.');
