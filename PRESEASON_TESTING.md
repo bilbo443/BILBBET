@@ -1093,3 +1093,15 @@ Admin result flags, 22 October 2026:
 - Official confirmed preliminary outcomes remain reviewable; already graded legs and cashed-out/settled bets do not generate flags.
 - Manual resolution controls remain available. A suggestion still requires admin confirmation that scores are final.
 - No bets, scores, balances or settlement results modified. Tests: node tests/result-flags.test.cjs; node --check js/app.js.
+
+
+FA Cup Round of 64 review, 22 October 2026:
+- All 32 home/away pairs matched the published CSV columns C/K and the supplied draw image.
+- Exactly 64 unique survivors; Galuctasary and Sabiteurs remain eliminated.
+- Confirmed Round of 64 pairings now drive cup simulation; later draws remain unknown.
+- Prepared six cup futures markets only. Published Roddy, division and ECL prices preserved.
+- reports/fa-cup-r64-odds-review.csv contains unboosted match-win prices and draw probabilities, not advancement prices.
+- supabase/import-fa-cup-r64.sql is a review-only import for the 32 GW2 fixtures and an exact-pair server guard; it preserves preliminary/ECL fixtures, closes no markets and issues no payouts.
+- After approval/merge, run that SQL as a whole, refresh the app as admin and refresh Home offers to publish current quotes. Verify 32 fixtures before accepting bets.
+- Tests: python3 tests/test_fa_cup_r64.py; duplicate/eliminated/incomplete fields rejected; fixed pairings control R32 survival; repeatable cup trials.
+- No database changes, live publication, settlements or balance adjustments were made while preparing this review.
