@@ -1105,3 +1105,12 @@ FA Cup Round of 64 review, 22 October 2026:
 - After approval/merge, run that SQL as a whole, refresh the app as admin and refresh Home offers to publish current quotes. Verify 32 fixtures before accepting bets.
 - Tests: python3 tests/test_fa_cup_r64.py; duplicate/eliminated/incomplete fields rejected; fixed pairings control R32 survival; repeatable cup trials.
 - No database changes, live publication, settlements or balance adjustments were made while preparing this review.
+
+
+Cup fixture layout, 23 October 2026:
+- Separate saved gameweek/stage tabs default to the current or next available draw; past preliminaries remain accessible without mixing into Round of 64 cards.
+- All match cards show both teams' unboosted win prices, crests, selectable outcomes and a separate Match details button.
+- Current trusted board prices are reused directly without recalculating every match. Cached model values are the existing fallback and shared with match details/Home.
+- Closed past-round cards cannot add selections; detailed markets now use the fixture's saved round rather than the current round.
+- Original fixture indices, market IDs, prices, accepted bets, balances and settlement data are retained.
+- Tests: node tests/cup-fixture-layout.test.cjs; node --check js/app.js; git diff --check. No SQL migration required.
