@@ -1085,3 +1085,11 @@ Cash out, 22 October 2026:
 - My Bets confirmation, paid return, net totals and archive cash-out records added.
 - Database tests passed in a rolled-back synthetic transaction. JavaScript syntax and isolated UI checks required before enabling.
 - Install supabase/cashout-singles.sql first; feature remains disabled until explicit enable. See supabase/CASHOUT.md.
+
+Admin result flags, 22 October 2026:
+- A pending single no longer needs attention merely because its round equals the current round.
+- Header badge, Bets badge, outstanding singles list, review counts, row highlighting and ordering use one unresolved-result predicate.
+- Upcoming round scores cannot create settlement suggestions before scheduled kickoff; missing/non-finite scores remain pending.
+- Official confirmed preliminary outcomes remain reviewable; already graded legs and cashed-out/settled bets do not generate flags.
+- Manual resolution controls remain available. A suggestion still requires admin confirmation that scores are final.
+- No bets, scores, balances or settlement results modified. Tests: node tests/result-flags.test.cjs; node --check js/app.js.
