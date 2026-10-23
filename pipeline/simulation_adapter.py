@@ -1,3 +1,4 @@
+from official_division_rotations import load_official_rotations
 from team_strength_tiers import load_tier_centres
 """
 Simulation adapter -- the piece that was deliberately left unbuilt in the
@@ -206,7 +207,7 @@ def season_schedule(div, teams):
     return round_robin_schedule(teams, TOTAL_ROUNDS)
 
 
-def simulate_division_futures(new_divs, team_coeffs, scale, history, extracted_results, n_sim=N_SIM, seed=7, team_ids=None, tier_centres=None):
+def simulate_division_futures(new_divs, team_coeffs, scale, history, extracted_results, n_sim=N_SIM, seed=7, team_ids=None, tier_centres=None, official_schedules=None):
     team_ids = team_ids or {}
     identity = lambda name: str(team_ids.get(name, name))
     new_divs = {div: sorted(teams, key=identity) for div, teams in sorted(new_divs.items())}
@@ -246,6 +247,7 @@ def simulate_division_futures(new_divs, team_coeffs, scale, history, extracted_r
             samplers[t] = make_sampler(own_values, shift, np.random.default_rng(random_seed))
 
     division_schedules = {div: season_schedule(div, teams) for div, teams in new_divs.items()}
+    division_schedules.update(official_schedules or {})
     rank_counts = {div: {t: np.zeros(len(teams), dtype=int) for t in teams} for div, teams in new_divs.items()}
 
     # Promotion awaits a confirmed conference finals bracket and allocation.
@@ -348,5 +350,6 @@ def regenerate_division_futures(extracted_results, coeffs_path='data/team_market
     team_ids = {t['name']: str(t['id']) for t in registry}
     rows, adjustments = simulate_division_futures(new_divs, team_coeffs, scale, history,
         extracted_results, seed=7, team_ids=team_ids,
-        tier_centres=load_tier_centres(Path(divs_path).parent, registry))
+        tier_centres=load_tier_centres(Path(divs_path).parent, registry),
+        official_schedules=load_official_rotations(Path(divs_path).parent, registry, new_divs))
     return {'division_rows': rows, 'live_adjustments_applied': adjustments}
