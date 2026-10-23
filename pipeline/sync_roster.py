@@ -81,6 +81,7 @@ import json
 import os
 from roster_format import validate_roster
 from cup_markets import regenerate_roddy_and_cup
+from official_division_rotations import load_official_rotations
 
 from simulation_adapter import season_schedule, simulate_division_futures, N_SIM
 from diff_report import pct_to_odds
@@ -219,6 +220,8 @@ def sync_h2h_schedule(new_roster, admin_teams, data_dir, draft_dir):
             new_schedule[div] = [[[relabel(a), relabel(b)] for a, b in rnd] for rnd in old_schedule[div]]
         else:
             new_schedule[div] = season_schedule(div, teams)
+    # Official organiser rotations take precedence over generic regeneration.
+    new_schedule.update(load_official_rotations(data_dir, admin_teams, new_roster))
     json.dump(new_schedule, open(os.path.join(draft_dir, 'h2h_schedule.json'), 'w'))
     return new_schedule
 
@@ -432,7 +435,8 @@ def sync_futures_divisions(new_roster, team_coeffs, scale, history, data_dir, dr
     tier_centres = load_tier_centres(data_dir, admin_teams or [])
     rows, _ = simulate_division_futures(new_roster, team_coeffs, scale, history, [],
         n_sim=n_sim, seed=7, team_ids={t['name']: str(t['id']) for t in (admin_teams or [])},
-        tier_centres=tier_centres)
+        tier_centres=tier_centres,
+        official_schedules=load_official_rotations(data_dir, admin_teams or [], new_roster))
     by_div = {}
     for r in rows:
         by_div.setdefault(r['division'], []).append(r)

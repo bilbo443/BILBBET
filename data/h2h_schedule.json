@@ -786,23 +786,179 @@
     [
       [
         "INTER MILANOVIC",
-        "THE DRONE POLICE"
+        "MANCHESTHAIR UTD"
       ],
       [
-        "VICTORY",
+        "THE WAINE TRAIN",
+        "AFC BIG RED PORT"
+      ],
+      [
+        "CARNEGIE DACHSHUNDS",
         "ROTORUA UNITED"
       ],
       [
+        "ALBANIAN BOARS",
+        "X2 STRANGE"
+      ],
+      [
         "3DOGS",
-        "CARNEGIE DACHSHUNDS"
+        "VICTORY"
+      ],
+      [
+        "LALAS LEVEN",
+        "THE DRONE POLICE"
+      ]
+    ],
+    [
+      [
+        "INTER MILANOVIC",
+        "THE WAINE TRAIN"
+      ],
+      [
+        "CARNEGIE DACHSHUNDS",
+        "MANCHESTHAIR UTD"
       ],
       [
         "ALBANIAN BOARS",
         "AFC BIG RED PORT"
       ],
       [
+        "3DOGS",
+        "ROTORUA UNITED"
+      ],
+      [
         "LALAS LEVEN",
         "X2 STRANGE"
+      ],
+      [
+        "THE DRONE POLICE",
+        "VICTORY"
+      ]
+    ],
+    [
+      [
+        "INTER MILANOVIC",
+        "CARNEGIE DACHSHUNDS"
+      ],
+      [
+        "ALBANIAN BOARS",
+        "THE WAINE TRAIN"
+      ],
+      [
+        "3DOGS",
+        "MANCHESTHAIR UTD"
+      ],
+      [
+        "LALAS LEVEN",
+        "AFC BIG RED PORT"
+      ],
+      [
+        "THE DRONE POLICE",
+        "ROTORUA UNITED"
+      ],
+      [
+        "VICTORY",
+        "X2 STRANGE"
+      ]
+    ],
+    [
+      [
+        "INTER MILANOVIC",
+        "ALBANIAN BOARS"
+      ],
+      [
+        "3DOGS",
+        "CARNEGIE DACHSHUNDS"
+      ],
+      [
+        "LALAS LEVEN",
+        "THE WAINE TRAIN"
+      ],
+      [
+        "THE DRONE POLICE",
+        "MANCHESTHAIR UTD"
+      ],
+      [
+        "VICTORY",
+        "AFC BIG RED PORT"
+      ],
+      [
+        "X2 STRANGE",
+        "ROTORUA UNITED"
+      ]
+    ],
+    [
+      [
+        "INTER MILANOVIC",
+        "3DOGS"
+      ],
+      [
+        "LALAS LEVEN",
+        "ALBANIAN BOARS"
+      ],
+      [
+        "THE DRONE POLICE",
+        "CARNEGIE DACHSHUNDS"
+      ],
+      [
+        "VICTORY",
+        "THE WAINE TRAIN"
+      ],
+      [
+        "X2 STRANGE",
+        "MANCHESTHAIR UTD"
+      ],
+      [
+        "ROTORUA UNITED",
+        "AFC BIG RED PORT"
+      ]
+    ],
+    [
+      [
+        "INTER MILANOVIC",
+        "LALAS LEVEN"
+      ],
+      [
+        "THE DRONE POLICE",
+        "3DOGS"
+      ],
+      [
+        "VICTORY",
+        "ALBANIAN BOARS"
+      ],
+      [
+        "X2 STRANGE",
+        "CARNEGIE DACHSHUNDS"
+      ],
+      [
+        "ROTORUA UNITED",
+        "THE WAINE TRAIN"
+      ],
+      [
+        "AFC BIG RED PORT",
+        "MANCHESTHAIR UTD"
+      ]
+    ],
+    [
+      [
+        "INTER MILANOVIC",
+        "THE DRONE POLICE"
+      ],
+      [
+        "VICTORY",
+        "LALAS LEVEN"
+      ],
+      [
+        "X2 STRANGE",
+        "3DOGS"
+      ],
+      [
+        "ROTORUA UNITED",
+        "ALBANIAN BOARS"
+      ],
+      [
+        "AFC BIG RED PORT",
+        "CARNEGIE DACHSHUNDS"
       ],
       [
         "MANCHESTHAIR UTD",
@@ -812,163 +968,19 @@
     [
       [
         "INTER MILANOVIC",
-        "ROTORUA UNITED"
-      ],
-      [
-        "THE DRONE POLICE",
-        "CARNEGIE DACHSHUNDS"
-      ],
-      [
-        "VICTORY",
-        "AFC BIG RED PORT"
-      ],
-      [
-        "3DOGS",
-        "X2 STRANGE"
-      ],
-      [
-        "ALBANIAN BOARS",
-        "THE WAINE TRAIN"
-      ],
-      [
-        "LALAS LEVEN",
-        "MANCHESTHAIR UTD"
-      ]
-    ],
-    [
-      [
-        "INTER MILANOVIC",
-        "CARNEGIE DACHSHUNDS"
-      ],
-      [
-        "ROTORUA UNITED",
-        "AFC BIG RED PORT"
-      ],
-      [
-        "THE DRONE POLICE",
-        "X2 STRANGE"
-      ],
-      [
-        "VICTORY",
-        "THE WAINE TRAIN"
-      ],
-      [
-        "3DOGS",
-        "MANCHESTHAIR UTD"
-      ],
-      [
-        "ALBANIAN BOARS",
-        "LALAS LEVEN"
-      ]
-    ],
-    [
-      [
-        "INTER MILANOVIC",
-        "AFC BIG RED PORT"
-      ],
-      [
-        "CARNEGIE DACHSHUNDS",
-        "X2 STRANGE"
-      ],
-      [
-        "ROTORUA UNITED",
-        "THE WAINE TRAIN"
-      ],
-      [
-        "THE DRONE POLICE",
-        "MANCHESTHAIR UTD"
-      ],
-      [
-        "VICTORY",
-        "LALAS LEVEN"
-      ],
-      [
-        "3DOGS",
-        "ALBANIAN BOARS"
-      ]
-    ],
-    [
-      [
-        "INTER MILANOVIC",
-        "X2 STRANGE"
-      ],
-      [
-        "AFC BIG RED PORT",
-        "THE WAINE TRAIN"
-      ],
-      [
-        "CARNEGIE DACHSHUNDS",
-        "MANCHESTHAIR UTD"
-      ],
-      [
-        "ROTORUA UNITED",
-        "LALAS LEVEN"
-      ],
-      [
-        "THE DRONE POLICE",
-        "ALBANIAN BOARS"
-      ],
-      [
-        "VICTORY",
-        "3DOGS"
-      ]
-    ],
-    [
-      [
-        "INTER MILANOVIC",
-        "THE WAINE TRAIN"
-      ],
-      [
-        "X2 STRANGE",
-        "MANCHESTHAIR UTD"
-      ],
-      [
-        "AFC BIG RED PORT",
-        "LALAS LEVEN"
-      ],
-      [
-        "CARNEGIE DACHSHUNDS",
-        "ALBANIAN BOARS"
-      ],
-      [
-        "ROTORUA UNITED",
-        "3DOGS"
-      ],
-      [
-        "THE DRONE POLICE",
-        "VICTORY"
-      ]
-    ],
-    [
-      [
-        "INTER MILANOVIC",
-        "MANCHESTHAIR UTD"
-      ],
-      [
-        "THE WAINE TRAIN",
-        "LALAS LEVEN"
-      ],
-      [
-        "X2 STRANGE",
-        "ALBANIAN BOARS"
-      ],
-      [
-        "AFC BIG RED PORT",
-        "3DOGS"
-      ],
-      [
-        "CARNEGIE DACHSHUNDS",
         "VICTORY"
       ],
       [
-        "ROTORUA UNITED",
+        "X2 STRANGE",
         "THE DRONE POLICE"
-      ]
-    ],
-    [
+      ],
       [
-        "INTER MILANOVIC",
+        "ROTORUA UNITED",
         "LALAS LEVEN"
+      ],
+      [
+        "AFC BIG RED PORT",
+        "3DOGS"
       ],
       [
         "MANCHESTHAIR UTD",
@@ -976,10 +988,16 @@
       ],
       [
         "THE WAINE TRAIN",
-        "3DOGS"
+        "CARNEGIE DACHSHUNDS"
+      ]
+    ],
+    [
+      [
+        "INTER MILANOVIC",
+        "X2 STRANGE"
       ],
       [
-        "X2 STRANGE",
+        "ROTORUA UNITED",
         "VICTORY"
       ],
       [
@@ -987,304 +1005,26 @@
         "THE DRONE POLICE"
       ],
       [
-        "CARNEGIE DACHSHUNDS",
-        "ROTORUA UNITED"
-      ]
-    ],
-    [
-      [
-        "INTER MILANOVIC",
-        "ALBANIAN BOARS"
-      ],
-      [
-        "LALAS LEVEN",
-        "3DOGS"
-      ],
-      [
         "MANCHESTHAIR UTD",
-        "VICTORY"
-      ],
-      [
-        "THE WAINE TRAIN",
-        "THE DRONE POLICE"
-      ],
-      [
-        "X2 STRANGE",
-        "ROTORUA UNITED"
-      ],
-      [
-        "AFC BIG RED PORT",
-        "CARNEGIE DACHSHUNDS"
-      ]
-    ],
-    [
-      [
-        "INTER MILANOVIC",
-        "3DOGS"
-      ],
-      [
-        "ALBANIAN BOARS",
-        "VICTORY"
-      ],
-      [
-        "LALAS LEVEN",
-        "THE DRONE POLICE"
-      ],
-      [
-        "MANCHESTHAIR UTD",
-        "ROTORUA UNITED"
-      ],
-      [
-        "THE WAINE TRAIN",
-        "CARNEGIE DACHSHUNDS"
-      ],
-      [
-        "X2 STRANGE",
-        "AFC BIG RED PORT"
-      ]
-    ],
-    [
-      [
-        "INTER MILANOVIC",
-        "VICTORY"
-      ],
-      [
-        "3DOGS",
-        "THE DRONE POLICE"
-      ],
-      [
-        "ALBANIAN BOARS",
-        "ROTORUA UNITED"
-      ],
-      [
-        "LALAS LEVEN",
-        "CARNEGIE DACHSHUNDS"
-      ],
-      [
-        "MANCHESTHAIR UTD",
-        "AFC BIG RED PORT"
-      ],
-      [
-        "THE WAINE TRAIN",
-        "X2 STRANGE"
-      ]
-    ],
-    [
-      [
-        "INTER MILANOVIC",
-        "THE DRONE POLICE"
-      ],
-      [
-        "VICTORY",
-        "ROTORUA UNITED"
-      ],
-      [
-        "3DOGS",
-        "CARNEGIE DACHSHUNDS"
-      ],
-      [
-        "ALBANIAN BOARS",
-        "AFC BIG RED PORT"
-      ],
-      [
-        "LALAS LEVEN",
-        "X2 STRANGE"
-      ],
-      [
-        "MANCHESTHAIR UTD",
-        "THE WAINE TRAIN"
-      ]
-    ],
-    [
-      [
-        "INTER MILANOVIC",
-        "ROTORUA UNITED"
-      ],
-      [
-        "THE DRONE POLICE",
-        "CARNEGIE DACHSHUNDS"
-      ],
-      [
-        "VICTORY",
-        "AFC BIG RED PORT"
-      ],
-      [
-        "3DOGS",
-        "X2 STRANGE"
-      ],
-      [
-        "ALBANIAN BOARS",
-        "THE WAINE TRAIN"
-      ],
-      [
-        "LALAS LEVEN",
-        "MANCHESTHAIR UTD"
-      ]
-    ],
-    [
-      [
-        "INTER MILANOVIC",
-        "CARNEGIE DACHSHUNDS"
-      ],
-      [
-        "ROTORUA UNITED",
-        "AFC BIG RED PORT"
-      ],
-      [
-        "THE DRONE POLICE",
-        "X2 STRANGE"
-      ],
-      [
-        "VICTORY",
-        "THE WAINE TRAIN"
-      ],
-      [
-        "3DOGS",
-        "MANCHESTHAIR UTD"
-      ],
-      [
-        "ALBANIAN BOARS",
         "LALAS LEVEN"
-      ]
-    ],
-    [
-      [
-        "INTER MILANOVIC",
-        "AFC BIG RED PORT"
-      ],
-      [
-        "CARNEGIE DACHSHUNDS",
-        "X2 STRANGE"
-      ],
-      [
-        "ROTORUA UNITED",
-        "THE WAINE TRAIN"
-      ],
-      [
-        "THE DRONE POLICE",
-        "MANCHESTHAIR UTD"
-      ],
-      [
-        "VICTORY",
-        "LALAS LEVEN"
-      ],
-      [
-        "3DOGS",
-        "ALBANIAN BOARS"
-      ]
-    ],
-    [
-      [
-        "INTER MILANOVIC",
-        "X2 STRANGE"
-      ],
-      [
-        "AFC BIG RED PORT",
-        "THE WAINE TRAIN"
-      ],
-      [
-        "CARNEGIE DACHSHUNDS",
-        "MANCHESTHAIR UTD"
-      ],
-      [
-        "ROTORUA UNITED",
-        "LALAS LEVEN"
-      ],
-      [
-        "THE DRONE POLICE",
-        "ALBANIAN BOARS"
-      ],
-      [
-        "VICTORY",
-        "3DOGS"
-      ]
-    ],
-    [
-      [
-        "INTER MILANOVIC",
-        "THE WAINE TRAIN"
-      ],
-      [
-        "X2 STRANGE",
-        "MANCHESTHAIR UTD"
-      ],
-      [
-        "AFC BIG RED PORT",
-        "LALAS LEVEN"
-      ],
-      [
-        "CARNEGIE DACHSHUNDS",
-        "ALBANIAN BOARS"
-      ],
-      [
-        "ROTORUA UNITED",
-        "3DOGS"
-      ],
-      [
-        "THE DRONE POLICE",
-        "VICTORY"
-      ]
-    ],
-    [
-      [
-        "INTER MILANOVIC",
-        "MANCHESTHAIR UTD"
-      ],
-      [
-        "THE WAINE TRAIN",
-        "LALAS LEVEN"
-      ],
-      [
-        "X2 STRANGE",
-        "ALBANIAN BOARS"
-      ],
-      [
-        "AFC BIG RED PORT",
-        "3DOGS"
-      ],
-      [
-        "CARNEGIE DACHSHUNDS",
-        "VICTORY"
-      ],
-      [
-        "ROTORUA UNITED",
-        "THE DRONE POLICE"
-      ]
-    ],
-    [
-      [
-        "INTER MILANOVIC",
-        "LALAS LEVEN"
-      ],
-      [
-        "MANCHESTHAIR UTD",
-        "ALBANIAN BOARS"
       ],
       [
         "THE WAINE TRAIN",
         "3DOGS"
       ],
       [
-        "X2 STRANGE",
-        "VICTORY"
-      ],
-      [
-        "AFC BIG RED PORT",
-        "THE DRONE POLICE"
-      ],
-      [
         "CARNEGIE DACHSHUNDS",
-        "ROTORUA UNITED"
+        "ALBANIAN BOARS"
       ]
     ],
     [
       [
         "INTER MILANOVIC",
-        "ALBANIAN BOARS"
+        "ROTORUA UNITED"
       ],
       [
-        "LALAS LEVEN",
-        "3DOGS"
+        "AFC BIG RED PORT",
+        "X2 STRANGE"
       ],
       [
         "MANCHESTHAIR UTD",
@@ -1295,12 +1035,142 @@
         "THE DRONE POLICE"
       ],
       [
-        "X2 STRANGE",
+        "CARNEGIE DACHSHUNDS",
+        "LALAS LEVEN"
+      ],
+      [
+        "ALBANIAN BOARS",
+        "3DOGS"
+      ]
+    ],
+    [
+      [
+        "INTER MILANOVIC",
+        "AFC BIG RED PORT"
+      ],
+      [
+        "MANCHESTHAIR UTD",
         "ROTORUA UNITED"
       ],
       [
-        "AFC BIG RED PORT",
+        "THE WAINE TRAIN",
+        "X2 STRANGE"
+      ],
+      [
+        "CARNEGIE DACHSHUNDS",
+        "VICTORY"
+      ],
+      [
+        "ALBANIAN BOARS",
+        "THE DRONE POLICE"
+      ],
+      [
+        "3DOGS",
+        "LALAS LEVEN"
+      ]
+    ],
+    [
+      [
+        "INTER MILANOVIC",
+        "MANCHESTHAIR UTD"
+      ],
+      [
+        "THE WAINE TRAIN",
+        "AFC BIG RED PORT"
+      ],
+      [
+        "CARNEGIE DACHSHUNDS",
+        "ROTORUA UNITED"
+      ],
+      [
+        "ALBANIAN BOARS",
+        "X2 STRANGE"
+      ],
+      [
+        "3DOGS",
+        "VICTORY"
+      ],
+      [
+        "LALAS LEVEN",
+        "THE DRONE POLICE"
+      ]
+    ],
+    [
+      [
+        "INTER MILANOVIC",
+        "THE WAINE TRAIN"
+      ],
+      [
+        "CARNEGIE DACHSHUNDS",
+        "MANCHESTHAIR UTD"
+      ],
+      [
+        "ALBANIAN BOARS",
+        "AFC BIG RED PORT"
+      ],
+      [
+        "3DOGS",
+        "ROTORUA UNITED"
+      ],
+      [
+        "LALAS LEVEN",
+        "X2 STRANGE"
+      ],
+      [
+        "THE DRONE POLICE",
+        "VICTORY"
+      ]
+    ],
+    [
+      [
+        "INTER MILANOVIC",
         "CARNEGIE DACHSHUNDS"
+      ],
+      [
+        "ALBANIAN BOARS",
+        "THE WAINE TRAIN"
+      ],
+      [
+        "3DOGS",
+        "MANCHESTHAIR UTD"
+      ],
+      [
+        "LALAS LEVEN",
+        "AFC BIG RED PORT"
+      ],
+      [
+        "THE DRONE POLICE",
+        "ROTORUA UNITED"
+      ],
+      [
+        "VICTORY",
+        "X2 STRANGE"
+      ]
+    ],
+    [
+      [
+        "INTER MILANOVIC",
+        "ALBANIAN BOARS"
+      ],
+      [
+        "3DOGS",
+        "CARNEGIE DACHSHUNDS"
+      ],
+      [
+        "LALAS LEVEN",
+        "THE WAINE TRAIN"
+      ],
+      [
+        "THE DRONE POLICE",
+        "MANCHESTHAIR UTD"
+      ],
+      [
+        "VICTORY",
+        "AFC BIG RED PORT"
+      ],
+      [
+        "X2 STRANGE",
+        "ROTORUA UNITED"
       ]
     ],
     [
@@ -1309,24 +1179,76 @@
         "3DOGS"
       ],
       [
-        "ALBANIAN BOARS",
-        "VICTORY"
-      ],
-      [
         "LALAS LEVEN",
-        "THE DRONE POLICE"
+        "ALBANIAN BOARS"
       ],
       [
-        "MANCHESTHAIR UTD",
-        "ROTORUA UNITED"
-      ],
-      [
-        "THE WAINE TRAIN",
+        "THE DRONE POLICE",
         "CARNEGIE DACHSHUNDS"
       ],
       [
+        "VICTORY",
+        "THE WAINE TRAIN"
+      ],
+      [
         "X2 STRANGE",
+        "MANCHESTHAIR UTD"
+      ],
+      [
+        "ROTORUA UNITED",
         "AFC BIG RED PORT"
+      ]
+    ],
+    [
+      [
+        "INTER MILANOVIC",
+        "LALAS LEVEN"
+      ],
+      [
+        "THE DRONE POLICE",
+        "3DOGS"
+      ],
+      [
+        "VICTORY",
+        "ALBANIAN BOARS"
+      ],
+      [
+        "X2 STRANGE",
+        "CARNEGIE DACHSHUNDS"
+      ],
+      [
+        "ROTORUA UNITED",
+        "THE WAINE TRAIN"
+      ],
+      [
+        "AFC BIG RED PORT",
+        "MANCHESTHAIR UTD"
+      ]
+    ],
+    [
+      [
+        "INTER MILANOVIC",
+        "THE DRONE POLICE"
+      ],
+      [
+        "VICTORY",
+        "LALAS LEVEN"
+      ],
+      [
+        "X2 STRANGE",
+        "3DOGS"
+      ],
+      [
+        "ROTORUA UNITED",
+        "ALBANIAN BOARS"
+      ],
+      [
+        "AFC BIG RED PORT",
+        "CARNEGIE DACHSHUNDS"
+      ],
+      [
+        "MANCHESTHAIR UTD",
+        "THE WAINE TRAIN"
       ]
     ],
     [
@@ -1335,24 +1257,102 @@
         "VICTORY"
       ],
       [
-        "3DOGS",
+        "X2 STRANGE",
         "THE DRONE POLICE"
       ],
       [
-        "ALBANIAN BOARS",
-        "ROTORUA UNITED"
+        "ROTORUA UNITED",
+        "LALAS LEVEN"
       ],
       [
-        "LALAS LEVEN",
-        "CARNEGIE DACHSHUNDS"
+        "AFC BIG RED PORT",
+        "3DOGS"
       ],
       [
         "MANCHESTHAIR UTD",
+        "ALBANIAN BOARS"
+      ],
+      [
+        "THE WAINE TRAIN",
+        "CARNEGIE DACHSHUNDS"
+      ]
+    ],
+    [
+      [
+        "INTER MILANOVIC",
+        "X2 STRANGE"
+      ],
+      [
+        "ROTORUA UNITED",
+        "VICTORY"
+      ],
+      [
+        "AFC BIG RED PORT",
+        "THE DRONE POLICE"
+      ],
+      [
+        "MANCHESTHAIR UTD",
+        "LALAS LEVEN"
+      ],
+      [
+        "THE WAINE TRAIN",
+        "3DOGS"
+      ],
+      [
+        "CARNEGIE DACHSHUNDS",
+        "ALBANIAN BOARS"
+      ]
+    ],
+    [
+      [
+        "INTER MILANOVIC",
+        "ROTORUA UNITED"
+      ],
+      [
+        "AFC BIG RED PORT",
+        "X2 STRANGE"
+      ],
+      [
+        "MANCHESTHAIR UTD",
+        "VICTORY"
+      ],
+      [
+        "THE WAINE TRAIN",
+        "THE DRONE POLICE"
+      ],
+      [
+        "CARNEGIE DACHSHUNDS",
+        "LALAS LEVEN"
+      ],
+      [
+        "ALBANIAN BOARS",
+        "3DOGS"
+      ]
+    ],
+    [
+      [
+        "INTER MILANOVIC",
         "AFC BIG RED PORT"
+      ],
+      [
+        "MANCHESTHAIR UTD",
+        "ROTORUA UNITED"
       ],
       [
         "THE WAINE TRAIN",
         "X2 STRANGE"
+      ],
+      [
+        "CARNEGIE DACHSHUNDS",
+        "VICTORY"
+      ],
+      [
+        "ALBANIAN BOARS",
+        "THE DRONE POLICE"
+      ],
+      [
+        "3DOGS",
+        "LALAS LEVEN"
       ]
     ],
     [],
@@ -1363,574 +1363,574 @@
     [],
     [
       [
-        "DINKIN CRFC",
-        "BALLERS"
-      ],
-      [
-        "SPOONERS FC",
-        "JUAN EL MAGICO FC"
-      ],
-      [
-        "CASUAL APPROACH",
-        "FULLY SCICLUNA"
-      ],
-      [
-        "JUSTICEFORMOON FC",
-        "THE GARUCCI-SHOW"
-      ],
-      [
-        "RIO'S RHINOS",
-        "DEER PARK UNITED"
-      ],
-      [
-        "RICKY DIACO FC",
-        "SILVERMAN'S XI"
-      ]
-    ],
-    [
-      [
-        "DINKIN CRFC",
-        "JUAN EL MAGICO FC"
-      ],
-      [
         "BALLERS",
-        "FULLY SCICLUNA"
-      ],
-      [
-        "SPOONERS FC",
-        "THE GARUCCI-SHOW"
-      ],
-      [
-        "CASUAL APPROACH",
-        "DEER PARK UNITED"
-      ],
-      [
-        "JUSTICEFORMOON FC",
-        "SILVERMAN'S XI"
-      ],
-      [
-        "RIO'S RHINOS",
-        "RICKY DIACO FC"
-      ]
-    ],
-    [
-      [
-        "DINKIN CRFC",
-        "FULLY SCICLUNA"
+        "JUSTICEFORMOON FC"
       ],
       [
         "JUAN EL MAGICO FC",
-        "THE GARUCCI-SHOW"
-      ],
-      [
-        "BALLERS",
         "DEER PARK UNITED"
       ],
       [
-        "SPOONERS FC",
+        "CASUAL APPROACH",
+        "RIO'S RHINOS"
+      ],
+      [
+        "FULLY SCICLUNA",
         "SILVERMAN'S XI"
       ],
       [
-        "CASUAL APPROACH",
-        "RICKY DIACO FC"
+        "DINKIN CRFC",
+        "SPOONERS FC"
       ],
       [
-        "JUSTICEFORMOON FC",
-        "RIO'S RHINOS"
+        "RICKY DIACO FC",
+        "THE GARUCCI-SHOW"
       ]
     ],
     [
       [
-        "DINKIN CRFC",
-        "THE GARUCCI-SHOW"
+        "BALLERS",
+        "JUAN EL MAGICO FC"
+      ],
+      [
+        "CASUAL APPROACH",
+        "JUSTICEFORMOON FC"
       ],
       [
         "FULLY SCICLUNA",
         "DEER PARK UNITED"
       ],
       [
-        "JUAN EL MAGICO FC",
-        "SILVERMAN'S XI"
-      ],
-      [
-        "BALLERS",
-        "RICKY DIACO FC"
-      ],
-      [
-        "SPOONERS FC",
+        "DINKIN CRFC",
         "RIO'S RHINOS"
       ],
       [
-        "CASUAL APPROACH",
-        "JUSTICEFORMOON FC"
+        "RICKY DIACO FC",
+        "SILVERMAN'S XI"
+      ],
+      [
+        "THE GARUCCI-SHOW",
+        "SPOONERS FC"
       ]
     ],
     [
       [
+        "BALLERS",
+        "CASUAL APPROACH"
+      ],
+      [
+        "FULLY SCICLUNA",
+        "JUAN EL MAGICO FC"
+      ],
+      [
         "DINKIN CRFC",
+        "JUSTICEFORMOON FC"
+      ],
+      [
+        "RICKY DIACO FC",
         "DEER PARK UNITED"
       ],
       [
         "THE GARUCCI-SHOW",
-        "SILVERMAN'S XI"
-      ],
-      [
-        "FULLY SCICLUNA",
-        "RICKY DIACO FC"
-      ],
-      [
-        "JUAN EL MAGICO FC",
         "RIO'S RHINOS"
       ],
       [
+        "SPOONERS FC",
+        "SILVERMAN'S XI"
+      ]
+    ],
+    [
+      [
         "BALLERS",
+        "FULLY SCICLUNA"
+      ],
+      [
+        "DINKIN CRFC",
+        "CASUAL APPROACH"
+      ],
+      [
+        "RICKY DIACO FC",
+        "JUAN EL MAGICO FC"
+      ],
+      [
+        "THE GARUCCI-SHOW",
         "JUSTICEFORMOON FC"
       ],
       [
         "SPOONERS FC",
-        "CASUAL APPROACH"
+        "DEER PARK UNITED"
+      ],
+      [
+        "SILVERMAN'S XI",
+        "RIO'S RHINOS"
       ]
     ],
     [
-      [
-        "DINKIN CRFC",
-        "SILVERMAN'S XI"
-      ],
-      [
-        "DEER PARK UNITED",
-        "RICKY DIACO FC"
-      ],
-      [
-        "THE GARUCCI-SHOW",
-        "RIO'S RHINOS"
-      ],
-      [
-        "FULLY SCICLUNA",
-        "JUSTICEFORMOON FC"
-      ],
-      [
-        "JUAN EL MAGICO FC",
-        "CASUAL APPROACH"
-      ],
       [
         "BALLERS",
-        "SPOONERS FC"
-      ]
-    ],
-    [
-      [
-        "DINKIN CRFC",
-        "RICKY DIACO FC"
+        "DINKIN CRFC"
       ],
       [
-        "SILVERMAN'S XI",
-        "RIO'S RHINOS"
-      ],
-      [
-        "DEER PARK UNITED",
-        "JUSTICEFORMOON FC"
+        "RICKY DIACO FC",
+        "FULLY SCICLUNA"
       ],
       [
         "THE GARUCCI-SHOW",
         "CASUAL APPROACH"
-      ],
-      [
-        "FULLY SCICLUNA",
-        "SPOONERS FC"
-      ],
-      [
-        "JUAN EL MAGICO FC",
-        "BALLERS"
-      ]
-    ],
-    [
-      [
-        "DINKIN CRFC",
-        "RIO'S RHINOS"
-      ],
-      [
-        "RICKY DIACO FC",
-        "JUSTICEFORMOON FC"
-      ],
-      [
-        "SILVERMAN'S XI",
-        "CASUAL APPROACH"
-      ],
-      [
-        "DEER PARK UNITED",
-        "SPOONERS FC"
-      ],
-      [
-        "THE GARUCCI-SHOW",
-        "BALLERS"
-      ],
-      [
-        "FULLY SCICLUNA",
-        "JUAN EL MAGICO FC"
-      ]
-    ],
-    [
-      [
-        "DINKIN CRFC",
-        "JUSTICEFORMOON FC"
-      ],
-      [
-        "RIO'S RHINOS",
-        "CASUAL APPROACH"
-      ],
-      [
-        "RICKY DIACO FC",
-        "SPOONERS FC"
-      ],
-      [
-        "SILVERMAN'S XI",
-        "BALLERS"
-      ],
-      [
-        "DEER PARK UNITED",
-        "JUAN EL MAGICO FC"
-      ],
-      [
-        "THE GARUCCI-SHOW",
-        "FULLY SCICLUNA"
-      ]
-    ],
-    [
-      [
-        "DINKIN CRFC",
-        "CASUAL APPROACH"
-      ],
-      [
-        "JUSTICEFORMOON FC",
-        "SPOONERS FC"
-      ],
-      [
-        "RIO'S RHINOS",
-        "BALLERS"
-      ],
-      [
-        "RICKY DIACO FC",
-        "JUAN EL MAGICO FC"
-      ],
-      [
-        "SILVERMAN'S XI",
-        "FULLY SCICLUNA"
-      ],
-      [
-        "DEER PARK UNITED",
-        "THE GARUCCI-SHOW"
-      ]
-    ],
-    [
-      [
-        "DINKIN CRFC",
-        "SPOONERS FC"
-      ],
-      [
-        "CASUAL APPROACH",
-        "BALLERS"
-      ],
-      [
-        "JUSTICEFORMOON FC",
-        "JUAN EL MAGICO FC"
-      ],
-      [
-        "RIO'S RHINOS",
-        "FULLY SCICLUNA"
-      ],
-      [
-        "RICKY DIACO FC",
-        "THE GARUCCI-SHOW"
-      ],
-      [
-        "SILVERMAN'S XI",
-        "DEER PARK UNITED"
-      ]
-    ],
-    [
-      [
-        "DINKIN CRFC",
-        "BALLERS"
       ],
       [
         "SPOONERS FC",
         "JUAN EL MAGICO FC"
       ],
       [
-        "CASUAL APPROACH",
-        "FULLY SCICLUNA"
-      ],
-      [
-        "JUSTICEFORMOON FC",
-        "THE GARUCCI-SHOW"
+        "SILVERMAN'S XI",
+        "JUSTICEFORMOON FC"
       ],
       [
         "RIO'S RHINOS",
         "DEER PARK UNITED"
-      ],
-      [
-        "RICKY DIACO FC",
-        "SILVERMAN'S XI"
       ]
     ],
     [
       [
-        "DINKIN CRFC",
-        "JUAN EL MAGICO FC"
+        "BALLERS",
+        "RICKY DIACO FC"
       ],
       [
-        "BALLERS",
-        "FULLY SCICLUNA"
+        "THE GARUCCI-SHOW",
+        "DINKIN CRFC"
       ],
       [
         "SPOONERS FC",
-        "THE GARUCCI-SHOW"
+        "FULLY SCICLUNA"
       ],
       [
-        "CASUAL APPROACH",
-        "DEER PARK UNITED"
-      ],
-      [
-        "JUSTICEFORMOON FC",
-        "SILVERMAN'S XI"
+        "SILVERMAN'S XI",
+        "CASUAL APPROACH"
       ],
       [
         "RIO'S RHINOS",
-        "RICKY DIACO FC"
+        "JUAN EL MAGICO FC"
+      ],
+      [
+        "DEER PARK UNITED",
+        "JUSTICEFORMOON FC"
       ]
     ],
     [
       [
-        "DINKIN CRFC",
+        "BALLERS",
+        "THE GARUCCI-SHOW"
+      ],
+      [
+        "SPOONERS FC",
+        "RICKY DIACO FC"
+      ],
+      [
+        "SILVERMAN'S XI",
+        "DINKIN CRFC"
+      ],
+      [
+        "RIO'S RHINOS",
         "FULLY SCICLUNA"
+      ],
+      [
+        "DEER PARK UNITED",
+        "CASUAL APPROACH"
+      ],
+      [
+        "JUSTICEFORMOON FC",
+        "JUAN EL MAGICO FC"
+      ]
+    ],
+    [
+      [
+        "BALLERS",
+        "SPOONERS FC"
+      ],
+      [
+        "SILVERMAN'S XI",
+        "THE GARUCCI-SHOW"
+      ],
+      [
+        "RIO'S RHINOS",
+        "RICKY DIACO FC"
+      ],
+      [
+        "DEER PARK UNITED",
+        "DINKIN CRFC"
+      ],
+      [
+        "JUSTICEFORMOON FC",
+        "FULLY SCICLUNA"
+      ],
+      [
+        "JUAN EL MAGICO FC",
+        "CASUAL APPROACH"
+      ]
+    ],
+    [
+      [
+        "BALLERS",
+        "SILVERMAN'S XI"
+      ],
+      [
+        "RIO'S RHINOS",
+        "SPOONERS FC"
+      ],
+      [
+        "DEER PARK UNITED",
+        "THE GARUCCI-SHOW"
+      ],
+      [
+        "JUSTICEFORMOON FC",
+        "RICKY DIACO FC"
+      ],
+      [
+        "JUAN EL MAGICO FC",
+        "DINKIN CRFC"
+      ],
+      [
+        "CASUAL APPROACH",
+        "FULLY SCICLUNA"
+      ]
+    ],
+    [
+      [
+        "BALLERS",
+        "RIO'S RHINOS"
+      ],
+      [
+        "DEER PARK UNITED",
+        "SILVERMAN'S XI"
+      ],
+      [
+        "JUSTICEFORMOON FC",
+        "SPOONERS FC"
       ],
       [
         "JUAN EL MAGICO FC",
         "THE GARUCCI-SHOW"
       ],
       [
+        "CASUAL APPROACH",
+        "RICKY DIACO FC"
+      ],
+      [
+        "FULLY SCICLUNA",
+        "DINKIN CRFC"
+      ]
+    ],
+    [
+      [
         "BALLERS",
         "DEER PARK UNITED"
+      ],
+      [
+        "JUSTICEFORMOON FC",
+        "RIO'S RHINOS"
+      ],
+      [
+        "JUAN EL MAGICO FC",
+        "SILVERMAN'S XI"
+      ],
+      [
+        "CASUAL APPROACH",
+        "SPOONERS FC"
+      ],
+      [
+        "FULLY SCICLUNA",
+        "THE GARUCCI-SHOW"
+      ],
+      [
+        "DINKIN CRFC",
+        "RICKY DIACO FC"
+      ]
+    ],
+    [
+      [
+        "BALLERS",
+        "JUSTICEFORMOON FC"
+      ],
+      [
+        "JUAN EL MAGICO FC",
+        "DEER PARK UNITED"
+      ],
+      [
+        "CASUAL APPROACH",
+        "RIO'S RHINOS"
+      ],
+      [
+        "FULLY SCICLUNA",
+        "SILVERMAN'S XI"
+      ],
+      [
+        "DINKIN CRFC",
+        "SPOONERS FC"
+      ],
+      [
+        "RICKY DIACO FC",
+        "THE GARUCCI-SHOW"
+      ]
+    ],
+    [
+      [
+        "BALLERS",
+        "JUAN EL MAGICO FC"
+      ],
+      [
+        "CASUAL APPROACH",
+        "JUSTICEFORMOON FC"
+      ],
+      [
+        "FULLY SCICLUNA",
+        "DEER PARK UNITED"
+      ],
+      [
+        "DINKIN CRFC",
+        "RIO'S RHINOS"
+      ],
+      [
+        "RICKY DIACO FC",
+        "SILVERMAN'S XI"
+      ],
+      [
+        "THE GARUCCI-SHOW",
+        "SPOONERS FC"
+      ]
+    ],
+    [
+      [
+        "BALLERS",
+        "CASUAL APPROACH"
+      ],
+      [
+        "FULLY SCICLUNA",
+        "JUAN EL MAGICO FC"
+      ],
+      [
+        "DINKIN CRFC",
+        "JUSTICEFORMOON FC"
+      ],
+      [
+        "RICKY DIACO FC",
+        "DEER PARK UNITED"
+      ],
+      [
+        "THE GARUCCI-SHOW",
+        "RIO'S RHINOS"
       ],
       [
         "SPOONERS FC",
         "SILVERMAN'S XI"
-      ],
-      [
-        "CASUAL APPROACH",
-        "RICKY DIACO FC"
-      ],
-      [
-        "JUSTICEFORMOON FC",
-        "RIO'S RHINOS"
       ]
     ],
     [
-      [
-        "DINKIN CRFC",
-        "THE GARUCCI-SHOW"
-      ],
-      [
-        "FULLY SCICLUNA",
-        "DEER PARK UNITED"
-      ],
-      [
-        "JUAN EL MAGICO FC",
-        "SILVERMAN'S XI"
-      ],
       [
         "BALLERS",
-        "RICKY DIACO FC"
+        "FULLY SCICLUNA"
       ],
-      [
-        "SPOONERS FC",
-        "RIO'S RHINOS"
-      ],
-      [
-        "CASUAL APPROACH",
-        "JUSTICEFORMOON FC"
-      ]
-    ],
-    [
       [
         "DINKIN CRFC",
-        "DEER PARK UNITED"
+        "CASUAL APPROACH"
+      ],
+      [
+        "RICKY DIACO FC",
+        "JUAN EL MAGICO FC"
       ],
       [
         "THE GARUCCI-SHOW",
-        "SILVERMAN'S XI"
-      ],
-      [
-        "FULLY SCICLUNA",
-        "RICKY DIACO FC"
-      ],
-      [
-        "JUAN EL MAGICO FC",
-        "RIO'S RHINOS"
-      ],
-      [
-        "BALLERS",
         "JUSTICEFORMOON FC"
       ],
       [
         "SPOONERS FC",
-        "CASUAL APPROACH"
+        "DEER PARK UNITED"
+      ],
+      [
+        "SILVERMAN'S XI",
+        "RIO'S RHINOS"
       ]
     ],
     [
       [
-        "DINKIN CRFC",
-        "SILVERMAN'S XI"
+        "BALLERS",
+        "DINKIN CRFC"
       ],
       [
-        "DEER PARK UNITED",
+        "RICKY DIACO FC",
+        "FULLY SCICLUNA"
+      ],
+      [
+        "THE GARUCCI-SHOW",
+        "CASUAL APPROACH"
+      ],
+      [
+        "SPOONERS FC",
+        "JUAN EL MAGICO FC"
+      ],
+      [
+        "SILVERMAN'S XI",
+        "JUSTICEFORMOON FC"
+      ],
+      [
+        "RIO'S RHINOS",
+        "DEER PARK UNITED"
+      ]
+    ],
+    [
+      [
+        "BALLERS",
         "RICKY DIACO FC"
       ],
       [
         "THE GARUCCI-SHOW",
-        "RIO'S RHINOS"
+        "DINKIN CRFC"
       ],
       [
-        "FULLY SCICLUNA",
-        "JUSTICEFORMOON FC"
+        "SPOONERS FC",
+        "FULLY SCICLUNA"
       ],
       [
-        "JUAN EL MAGICO FC",
+        "SILVERMAN'S XI",
         "CASUAL APPROACH"
       ],
+      [
+        "RIO'S RHINOS",
+        "JUAN EL MAGICO FC"
+      ],
+      [
+        "DEER PARK UNITED",
+        "JUSTICEFORMOON FC"
+      ]
+    ],
+    [
+      [
+        "BALLERS",
+        "THE GARUCCI-SHOW"
+      ],
+      [
+        "SPOONERS FC",
+        "RICKY DIACO FC"
+      ],
+      [
+        "SILVERMAN'S XI",
+        "DINKIN CRFC"
+      ],
+      [
+        "RIO'S RHINOS",
+        "FULLY SCICLUNA"
+      ],
+      [
+        "DEER PARK UNITED",
+        "CASUAL APPROACH"
+      ],
+      [
+        "JUSTICEFORMOON FC",
+        "JUAN EL MAGICO FC"
+      ]
+    ],
+    [
       [
         "BALLERS",
         "SPOONERS FC"
+      ],
+      [
+        "SILVERMAN'S XI",
+        "THE GARUCCI-SHOW"
+      ],
+      [
+        "RIO'S RHINOS",
+        "RICKY DIACO FC"
+      ],
+      [
+        "DEER PARK UNITED",
+        "DINKIN CRFC"
+      ],
+      [
+        "JUSTICEFORMOON FC",
+        "FULLY SCICLUNA"
+      ],
+      [
+        "JUAN EL MAGICO FC",
+        "CASUAL APPROACH"
       ]
     ],
     [
       [
-        "DINKIN CRFC",
+        "BALLERS",
+        "SILVERMAN'S XI"
+      ],
+      [
+        "RIO'S RHINOS",
+        "SPOONERS FC"
+      ],
+      [
+        "DEER PARK UNITED",
+        "THE GARUCCI-SHOW"
+      ],
+      [
+        "JUSTICEFORMOON FC",
         "RICKY DIACO FC"
       ],
       [
-        "SILVERMAN'S XI",
+        "JUAN EL MAGICO FC",
+        "DINKIN CRFC"
+      ],
+      [
+        "CASUAL APPROACH",
+        "FULLY SCICLUNA"
+      ]
+    ],
+    [
+      [
+        "BALLERS",
         "RIO'S RHINOS"
       ],
       [
         "DEER PARK UNITED",
-        "JUSTICEFORMOON FC"
+        "SILVERMAN'S XI"
       ],
       [
-        "THE GARUCCI-SHOW",
-        "CASUAL APPROACH"
-      ],
-      [
-        "FULLY SCICLUNA",
+        "JUSTICEFORMOON FC",
         "SPOONERS FC"
       ],
       [
         "JUAN EL MAGICO FC",
-        "BALLERS"
-      ]
-    ],
-    [
-      [
-        "DINKIN CRFC",
-        "RIO'S RHINOS"
-      ],
-      [
-        "RICKY DIACO FC",
-        "JUSTICEFORMOON FC"
-      ],
-      [
-        "SILVERMAN'S XI",
-        "CASUAL APPROACH"
-      ],
-      [
-        "DEER PARK UNITED",
-        "SPOONERS FC"
-      ],
-      [
-        "THE GARUCCI-SHOW",
-        "BALLERS"
-      ],
-      [
-        "FULLY SCICLUNA",
-        "JUAN EL MAGICO FC"
-      ]
-    ],
-    [
-      [
-        "DINKIN CRFC",
-        "JUSTICEFORMOON FC"
-      ],
-      [
-        "RIO'S RHINOS",
-        "CASUAL APPROACH"
-      ],
-      [
-        "RICKY DIACO FC",
-        "SPOONERS FC"
-      ],
-      [
-        "SILVERMAN'S XI",
-        "BALLERS"
-      ],
-      [
-        "DEER PARK UNITED",
-        "JUAN EL MAGICO FC"
-      ],
-      [
-        "THE GARUCCI-SHOW",
-        "FULLY SCICLUNA"
-      ]
-    ],
-    [
-      [
-        "DINKIN CRFC",
-        "CASUAL APPROACH"
-      ],
-      [
-        "JUSTICEFORMOON FC",
-        "SPOONERS FC"
-      ],
-      [
-        "RIO'S RHINOS",
-        "BALLERS"
-      ],
-      [
-        "RICKY DIACO FC",
-        "JUAN EL MAGICO FC"
-      ],
-      [
-        "SILVERMAN'S XI",
-        "FULLY SCICLUNA"
-      ],
-      [
-        "DEER PARK UNITED",
         "THE GARUCCI-SHOW"
-      ]
-    ],
-    [
-      [
-        "DINKIN CRFC",
-        "SPOONERS FC"
       ],
       [
         "CASUAL APPROACH",
-        "BALLERS"
+        "RICKY DIACO FC"
+      ],
+      [
+        "FULLY SCICLUNA",
+        "DINKIN CRFC"
+      ]
+    ],
+    [
+      [
+        "BALLERS",
+        "DEER PARK UNITED"
       ],
       [
         "JUSTICEFORMOON FC",
-        "JUAN EL MAGICO FC"
+        "RIO'S RHINOS"
       ],
       [
-        "RIO'S RHINOS",
-        "FULLY SCICLUNA"
+        "JUAN EL MAGICO FC",
+        "SILVERMAN'S XI"
       ],
       [
-        "RICKY DIACO FC",
+        "CASUAL APPROACH",
+        "SPOONERS FC"
+      ],
+      [
+        "FULLY SCICLUNA",
         "THE GARUCCI-SHOW"
       ],
       [
-        "SILVERMAN'S XI",
-        "DEER PARK UNITED"
+        "DINKIN CRFC",
+        "RICKY DIACO FC"
       ]
     ],
     [],
@@ -1941,285 +1941,83 @@
     [],
     [
       [
-        "TBCFC",
-        "E/MELB SUCCULENT CHINESE MEAL"
-      ],
-      [
-        "GARRY WALLAH UNITED",
-        "SABITEURS"
-      ],
-      [
-        "BORATVERYNICE",
-        "QUINTASENTIAL FC"
-      ],
-      [
-        "BREXIT LADS",
-        "PAIN IN DIAS"
-      ],
-      [
         "PAW PATROL UNITED",
-        "SK STURM MELBOURNE"
+        "TBCFC"
       ],
       [
         "LOAVES & FISHES",
-        "GALUCTASARY"
+        "PAIN IN DIAS"
       ],
       [
         "GOT WOUD?",
-        "PAYNE IN THE NECK FC"
-      ]
-    ],
-    [
+        "BORATVERYNICE"
+      ],
       [
-        "TBCFC",
+        "GALUCTASARY",
+        "GARRY WALLAH UNITED"
+      ],
+      [
+        "SK STURM MELBOURNE",
+        "QUINTASENTIAL FC"
+      ],
+      [
+        "BREXIT LADS",
         "SABITEURS"
       ],
       [
         "E/MELB SUCCULENT CHINESE MEAL",
-        "QUINTASENTIAL FC"
-      ],
-      [
-        "GARRY WALLAH UNITED",
-        "PAIN IN DIAS"
-      ],
-      [
-        "BORATVERYNICE",
-        "SK STURM MELBOURNE"
-      ],
-      [
-        "BREXIT LADS",
-        "GALUCTASARY"
-      ],
-      [
-        "PAW PATROL UNITED",
         "PAYNE IN THE NECK FC"
-      ],
-      [
-        "LOAVES & FISHES",
-        "GOT WOUD?"
       ]
     ],
     [
-      [
-        "TBCFC",
-        "QUINTASENTIAL FC"
-      ],
-      [
-        "SABITEURS",
-        "PAIN IN DIAS"
-      ],
-      [
-        "E/MELB SUCCULENT CHINESE MEAL",
-        "SK STURM MELBOURNE"
-      ],
-      [
-        "GARRY WALLAH UNITED",
-        "GALUCTASARY"
-      ],
-      [
-        "BORATVERYNICE",
-        "PAYNE IN THE NECK FC"
-      ],
-      [
-        "BREXIT LADS",
-        "GOT WOUD?"
-      ],
       [
         "PAW PATROL UNITED",
         "LOAVES & FISHES"
-      ]
-    ],
-    [
-      [
-        "TBCFC",
-        "PAIN IN DIAS"
       ],
       [
-        "QUINTASENTIAL FC",
-        "SK STURM MELBOURNE"
-      ],
-      [
-        "SABITEURS",
-        "GALUCTASARY"
-      ],
-      [
-        "E/MELB SUCCULENT CHINESE MEAL",
-        "PAYNE IN THE NECK FC"
-      ],
-      [
-        "GARRY WALLAH UNITED",
-        "GOT WOUD?"
-      ],
-      [
-        "BORATVERYNICE",
-        "LOAVES & FISHES"
-      ],
-      [
-        "BREXIT LADS",
-        "PAW PATROL UNITED"
-      ]
-    ],
-    [
-      [
-        "TBCFC",
-        "SK STURM MELBOURNE"
-      ],
-      [
-        "PAIN IN DIAS",
-        "GALUCTASARY"
-      ],
-      [
-        "QUINTASENTIAL FC",
-        "PAYNE IN THE NECK FC"
-      ],
-      [
-        "SABITEURS",
-        "GOT WOUD?"
-      ],
-      [
-        "E/MELB SUCCULENT CHINESE MEAL",
-        "LOAVES & FISHES"
-      ],
-      [
-        "GARRY WALLAH UNITED",
-        "PAW PATROL UNITED"
-      ],
-      [
-        "BORATVERYNICE",
-        "BREXIT LADS"
-      ]
-    ],
-    [
-      [
-        "TBCFC",
-        "GALUCTASARY"
-      ],
-      [
-        "SK STURM MELBOURNE",
-        "PAYNE IN THE NECK FC"
-      ],
-      [
-        "PAIN IN DIAS",
-        "GOT WOUD?"
-      ],
-      [
-        "QUINTASENTIAL FC",
-        "LOAVES & FISHES"
-      ],
-      [
-        "SABITEURS",
-        "PAW PATROL UNITED"
-      ],
-      [
-        "E/MELB SUCCULENT CHINESE MEAL",
-        "BREXIT LADS"
-      ],
-      [
-        "GARRY WALLAH UNITED",
-        "BORATVERYNICE"
-      ]
-    ],
-    [
-      [
-        "TBCFC",
-        "PAYNE IN THE NECK FC"
+        "GOT WOUD?",
+        "TBCFC"
       ],
       [
         "GALUCTASARY",
-        "GOT WOUD?"
+        "PAIN IN DIAS"
       ],
       [
         "SK STURM MELBOURNE",
-        "LOAVES & FISHES"
-      ],
-      [
-        "PAIN IN DIAS",
-        "PAW PATROL UNITED"
-      ],
-      [
-        "QUINTASENTIAL FC",
-        "BREXIT LADS"
-      ],
-      [
-        "SABITEURS",
         "BORATVERYNICE"
       ],
       [
-        "E/MELB SUCCULENT CHINESE MEAL",
+        "BREXIT LADS",
         "GARRY WALLAH UNITED"
-      ]
-    ],
-    [
+      ],
       [
-        "TBCFC",
-        "GOT WOUD?"
+        "E/MELB SUCCULENT CHINESE MEAL",
+        "QUINTASENTIAL FC"
       ],
       [
         "PAYNE IN THE NECK FC",
-        "LOAVES & FISHES"
-      ],
-      [
-        "GALUCTASARY",
-        "PAW PATROL UNITED"
-      ],
-      [
-        "SK STURM MELBOURNE",
-        "BREXIT LADS"
-      ],
-      [
-        "PAIN IN DIAS",
-        "BORATVERYNICE"
-      ],
-      [
-        "QUINTASENTIAL FC",
-        "GARRY WALLAH UNITED"
-      ],
-      [
-        "SABITEURS",
-        "E/MELB SUCCULENT CHINESE MEAL"
-      ]
-    ],
-    [
-      [
-        "TBCFC",
-        "LOAVES & FISHES"
-      ],
-      [
-        "GOT WOUD?",
-        "PAW PATROL UNITED"
-      ],
-      [
-        "PAYNE IN THE NECK FC",
-        "BREXIT LADS"
-      ],
-      [
-        "GALUCTASARY",
-        "BORATVERYNICE"
-      ],
-      [
-        "SK STURM MELBOURNE",
-        "GARRY WALLAH UNITED"
-      ],
-      [
-        "PAIN IN DIAS",
-        "E/MELB SUCCULENT CHINESE MEAL"
-      ],
-      [
-        "QUINTASENTIAL FC",
         "SABITEURS"
       ]
     ],
     [
       [
-        "TBCFC",
-        "PAW PATROL UNITED"
+        "PAW PATROL UNITED",
+        "GOT WOUD?"
       ],
       [
-        "LOAVES & FISHES",
-        "BREXIT LADS"
+        "GALUCTASARY",
+        "LOAVES & FISHES"
       ],
       [
-        "GOT WOUD?",
+        "SK STURM MELBOURNE",
+        "TBCFC"
+      ],
+      [
+        "BREXIT LADS",
+        "PAIN IN DIAS"
+      ],
+      [
+        "E/MELB SUCCULENT CHINESE MEAL",
         "BORATVERYNICE"
       ],
       [
@@ -2227,153 +2025,43 @@
         "GARRY WALLAH UNITED"
       ],
       [
-        "GALUCTASARY",
-        "E/MELB SUCCULENT CHINESE MEAL"
-      ],
-      [
-        "SK STURM MELBOURNE",
-        "SABITEURS"
-      ],
-      [
-        "PAIN IN DIAS",
+        "SABITEURS",
         "QUINTASENTIAL FC"
       ]
     ],
     [
       [
-        "TBCFC",
-        "BREXIT LADS"
-      ],
-      [
         "PAW PATROL UNITED",
-        "BORATVERYNICE"
-      ],
-      [
-        "LOAVES & FISHES",
-        "GARRY WALLAH UNITED"
-      ],
-      [
-        "GOT WOUD?",
-        "E/MELB SUCCULENT CHINESE MEAL"
-      ],
-      [
-        "PAYNE IN THE NECK FC",
-        "SABITEURS"
-      ],
-      [
-        "GALUCTASARY",
-        "QUINTASENTIAL FC"
-      ],
-      [
-        "SK STURM MELBOURNE",
-        "PAIN IN DIAS"
-      ]
-    ],
-    [
-      [
-        "TBCFC",
-        "BORATVERYNICE"
-      ],
-      [
-        "BREXIT LADS",
-        "GARRY WALLAH UNITED"
-      ],
-      [
-        "PAW PATROL UNITED",
-        "E/MELB SUCCULENT CHINESE MEAL"
-      ],
-      [
-        "LOAVES & FISHES",
-        "SABITEURS"
-      ],
-      [
-        "GOT WOUD?",
-        "QUINTASENTIAL FC"
-      ],
-      [
-        "PAYNE IN THE NECK FC",
-        "PAIN IN DIAS"
-      ],
-      [
-        "GALUCTASARY",
-        "SK STURM MELBOURNE"
-      ]
-    ],
-    [
-      [
-        "TBCFC",
-        "GARRY WALLAH UNITED"
-      ],
-      [
-        "BORATVERYNICE",
-        "E/MELB SUCCULENT CHINESE MEAL"
-      ],
-      [
-        "BREXIT LADS",
-        "SABITEURS"
-      ],
-      [
-        "PAW PATROL UNITED",
-        "QUINTASENTIAL FC"
-      ],
-      [
-        "LOAVES & FISHES",
-        "PAIN IN DIAS"
-      ],
-      [
-        "GOT WOUD?",
-        "SK STURM MELBOURNE"
-      ],
-      [
-        "PAYNE IN THE NECK FC",
-        "GALUCTASARY"
-      ]
-    ],
-    [
-      [
-        "TBCFC",
-        "E/MELB SUCCULENT CHINESE MEAL"
-      ],
-      [
-        "GARRY WALLAH UNITED",
-        "SABITEURS"
-      ],
-      [
-        "BORATVERYNICE",
-        "QUINTASENTIAL FC"
-      ],
-      [
-        "BREXIT LADS",
-        "PAIN IN DIAS"
-      ],
-      [
-        "PAW PATROL UNITED",
-        "SK STURM MELBOURNE"
-      ],
-      [
-        "LOAVES & FISHES",
         "GALUCTASARY"
       ],
       [
-        "GOT WOUD?",
-        "PAYNE IN THE NECK FC"
-      ]
-    ],
-    [
+        "SK STURM MELBOURNE",
+        "GOT WOUD?"
+      ],
       [
-        "TBCFC",
-        "SABITEURS"
+        "BREXIT LADS",
+        "LOAVES & FISHES"
       ],
       [
         "E/MELB SUCCULENT CHINESE MEAL",
-        "QUINTASENTIAL FC"
+        "TBCFC"
       ],
       [
-        "GARRY WALLAH UNITED",
+        "PAYNE IN THE NECK FC",
         "PAIN IN DIAS"
       ],
       [
-        "BORATVERYNICE",
+        "SABITEURS",
+        "BORATVERYNICE"
+      ],
+      [
+        "QUINTASENTIAL FC",
+        "GARRY WALLAH UNITED"
+      ]
+    ],
+    [
+      [
+        "PAW PATROL UNITED",
         "SK STURM MELBOURNE"
       ],
       [
@@ -2381,8 +2069,140 @@
         "GALUCTASARY"
       ],
       [
+        "E/MELB SUCCULENT CHINESE MEAL",
+        "GOT WOUD?"
+      ],
+      [
+        "PAYNE IN THE NECK FC",
+        "LOAVES & FISHES"
+      ],
+      [
+        "SABITEURS",
+        "TBCFC"
+      ],
+      [
+        "QUINTASENTIAL FC",
+        "PAIN IN DIAS"
+      ],
+      [
+        "GARRY WALLAH UNITED",
+        "BORATVERYNICE"
+      ]
+    ],
+    [
+      [
+        "PAW PATROL UNITED",
+        "BREXIT LADS"
+      ],
+      [
+        "E/MELB SUCCULENT CHINESE MEAL",
+        "SK STURM MELBOURNE"
+      ],
+      [
+        "PAYNE IN THE NECK FC",
+        "GALUCTASARY"
+      ],
+      [
+        "SABITEURS",
+        "GOT WOUD?"
+      ],
+      [
+        "QUINTASENTIAL FC",
+        "LOAVES & FISHES"
+      ],
+      [
+        "GARRY WALLAH UNITED",
+        "TBCFC"
+      ],
+      [
+        "BORATVERYNICE",
+        "PAIN IN DIAS"
+      ]
+    ],
+    [
+      [
+        "PAW PATROL UNITED",
+        "E/MELB SUCCULENT CHINESE MEAL"
+      ],
+      [
+        "PAYNE IN THE NECK FC",
+        "BREXIT LADS"
+      ],
+      [
+        "SABITEURS",
+        "SK STURM MELBOURNE"
+      ],
+      [
+        "QUINTASENTIAL FC",
+        "GALUCTASARY"
+      ],
+      [
+        "GARRY WALLAH UNITED",
+        "GOT WOUD?"
+      ],
+      [
+        "BORATVERYNICE",
+        "LOAVES & FISHES"
+      ],
+      [
+        "PAIN IN DIAS",
+        "TBCFC"
+      ]
+    ],
+    [
+      [
         "PAW PATROL UNITED",
         "PAYNE IN THE NECK FC"
+      ],
+      [
+        "SABITEURS",
+        "E/MELB SUCCULENT CHINESE MEAL"
+      ],
+      [
+        "QUINTASENTIAL FC",
+        "BREXIT LADS"
+      ],
+      [
+        "GARRY WALLAH UNITED",
+        "SK STURM MELBOURNE"
+      ],
+      [
+        "BORATVERYNICE",
+        "GALUCTASARY"
+      ],
+      [
+        "PAIN IN DIAS",
+        "GOT WOUD?"
+      ],
+      [
+        "TBCFC",
+        "LOAVES & FISHES"
+      ]
+    ],
+    [
+      [
+        "PAW PATROL UNITED",
+        "SABITEURS"
+      ],
+      [
+        "QUINTASENTIAL FC",
+        "PAYNE IN THE NECK FC"
+      ],
+      [
+        "GARRY WALLAH UNITED",
+        "E/MELB SUCCULENT CHINESE MEAL"
+      ],
+      [
+        "BORATVERYNICE",
+        "BREXIT LADS"
+      ],
+      [
+        "PAIN IN DIAS",
+        "SK STURM MELBOURNE"
+      ],
+      [
+        "TBCFC",
+        "GALUCTASARY"
       ],
       [
         "LOAVES & FISHES",
@@ -2391,212 +2211,392 @@
     ],
     [
       [
+        "PAW PATROL UNITED",
+        "QUINTASENTIAL FC"
+      ],
+      [
+        "GARRY WALLAH UNITED",
+        "SABITEURS"
+      ],
+      [
+        "BORATVERYNICE",
+        "PAYNE IN THE NECK FC"
+      ],
+      [
+        "PAIN IN DIAS",
+        "E/MELB SUCCULENT CHINESE MEAL"
+      ],
+      [
+        "TBCFC",
+        "BREXIT LADS"
+      ],
+      [
+        "LOAVES & FISHES",
+        "SK STURM MELBOURNE"
+      ],
+      [
+        "GOT WOUD?",
+        "GALUCTASARY"
+      ]
+    ],
+    [
+      [
+        "PAW PATROL UNITED",
+        "GARRY WALLAH UNITED"
+      ],
+      [
+        "BORATVERYNICE",
+        "QUINTASENTIAL FC"
+      ],
+      [
+        "PAIN IN DIAS",
+        "SABITEURS"
+      ],
+      [
+        "TBCFC",
+        "PAYNE IN THE NECK FC"
+      ],
+      [
+        "LOAVES & FISHES",
+        "E/MELB SUCCULENT CHINESE MEAL"
+      ],
+      [
+        "GOT WOUD?",
+        "BREXIT LADS"
+      ],
+      [
+        "GALUCTASARY",
+        "SK STURM MELBOURNE"
+      ]
+    ],
+    [
+      [
+        "PAW PATROL UNITED",
+        "BORATVERYNICE"
+      ],
+      [
+        "PAIN IN DIAS",
+        "GARRY WALLAH UNITED"
+      ],
+      [
         "TBCFC",
         "QUINTASENTIAL FC"
       ],
       [
-        "SABITEURS",
-        "PAIN IN DIAS"
+        "LOAVES & FISHES",
+        "SABITEURS"
       ],
       [
-        "E/MELB SUCCULENT CHINESE MEAL",
-        "SK STURM MELBOURNE"
-      ],
-      [
-        "GARRY WALLAH UNITED",
-        "GALUCTASARY"
-      ],
-      [
-        "BORATVERYNICE",
+        "GOT WOUD?",
         "PAYNE IN THE NECK FC"
       ],
       [
-        "BREXIT LADS",
-        "GOT WOUD?"
+        "GALUCTASARY",
+        "E/MELB SUCCULENT CHINESE MEAL"
       ],
+      [
+        "SK STURM MELBOURNE",
+        "BREXIT LADS"
+      ]
+    ],
+    [
       [
         "PAW PATROL UNITED",
-        "LOAVES & FISHES"
-      ]
-    ],
-    [
-      [
-        "TBCFC",
         "PAIN IN DIAS"
       ],
       [
-        "QUINTASENTIAL FC",
-        "SK STURM MELBOURNE"
+        "TBCFC",
+        "BORATVERYNICE"
       ],
       [
-        "SABITEURS",
-        "GALUCTASARY"
+        "LOAVES & FISHES",
+        "GARRY WALLAH UNITED"
       ],
       [
-        "E/MELB SUCCULENT CHINESE MEAL",
+        "GOT WOUD?",
+        "QUINTASENTIAL FC"
+      ],
+      [
+        "GALUCTASARY",
+        "SABITEURS"
+      ],
+      [
+        "SK STURM MELBOURNE",
         "PAYNE IN THE NECK FC"
-      ],
-      [
-        "GARRY WALLAH UNITED",
-        "GOT WOUD?"
-      ],
-      [
-        "BORATVERYNICE",
-        "LOAVES & FISHES"
       ],
       [
         "BREXIT LADS",
-        "PAW PATROL UNITED"
-      ]
-    ],
-    [
-      [
-        "TBCFC",
-        "SK STURM MELBOURNE"
-      ],
-      [
-        "PAIN IN DIAS",
-        "GALUCTASARY"
-      ],
-      [
-        "QUINTASENTIAL FC",
-        "PAYNE IN THE NECK FC"
-      ],
-      [
-        "SABITEURS",
-        "GOT WOUD?"
-      ],
-      [
-        "E/MELB SUCCULENT CHINESE MEAL",
-        "LOAVES & FISHES"
-      ],
-      [
-        "GARRY WALLAH UNITED",
-        "PAW PATROL UNITED"
-      ],
-      [
-        "BORATVERYNICE",
-        "BREXIT LADS"
-      ]
-    ],
-    [
-      [
-        "TBCFC",
-        "GALUCTASARY"
-      ],
-      [
-        "SK STURM MELBOURNE",
-        "PAYNE IN THE NECK FC"
-      ],
-      [
-        "PAIN IN DIAS",
-        "GOT WOUD?"
-      ],
-      [
-        "QUINTASENTIAL FC",
-        "LOAVES & FISHES"
-      ],
-      [
-        "SABITEURS",
-        "PAW PATROL UNITED"
-      ],
-      [
-        "E/MELB SUCCULENT CHINESE MEAL",
-        "BREXIT LADS"
-      ],
-      [
-        "GARRY WALLAH UNITED",
-        "BORATVERYNICE"
-      ]
-    ],
-    [
-      [
-        "TBCFC",
-        "PAYNE IN THE NECK FC"
-      ],
-      [
-        "GALUCTASARY",
-        "GOT WOUD?"
-      ],
-      [
-        "SK STURM MELBOURNE",
-        "LOAVES & FISHES"
-      ],
-      [
-        "PAIN IN DIAS",
-        "PAW PATROL UNITED"
-      ],
-      [
-        "QUINTASENTIAL FC",
-        "BREXIT LADS"
-      ],
-      [
-        "SABITEURS",
-        "BORATVERYNICE"
-      ],
-      [
-        "E/MELB SUCCULENT CHINESE MEAL",
-        "GARRY WALLAH UNITED"
-      ]
-    ],
-    [
-      [
-        "TBCFC",
-        "GOT WOUD?"
-      ],
-      [
-        "PAYNE IN THE NECK FC",
-        "LOAVES & FISHES"
-      ],
-      [
-        "GALUCTASARY",
-        "PAW PATROL UNITED"
-      ],
-      [
-        "SK STURM MELBOURNE",
-        "BREXIT LADS"
-      ],
-      [
-        "PAIN IN DIAS",
-        "BORATVERYNICE"
-      ],
-      [
-        "QUINTASENTIAL FC",
-        "GARRY WALLAH UNITED"
-      ],
-      [
-        "SABITEURS",
         "E/MELB SUCCULENT CHINESE MEAL"
       ]
     ],
     [
       [
-        "TBCFC",
+        "PAW PATROL UNITED",
+        "TBCFC"
+      ],
+      [
+        "LOAVES & FISHES",
+        "PAIN IN DIAS"
+      ],
+      [
+        "GOT WOUD?",
+        "BORATVERYNICE"
+      ],
+      [
+        "GALUCTASARY",
+        "GARRY WALLAH UNITED"
+      ],
+      [
+        "SK STURM MELBOURNE",
+        "QUINTASENTIAL FC"
+      ],
+      [
+        "BREXIT LADS",
+        "SABITEURS"
+      ],
+      [
+        "E/MELB SUCCULENT CHINESE MEAL",
+        "PAYNE IN THE NECK FC"
+      ]
+    ],
+    [
+      [
+        "PAW PATROL UNITED",
         "LOAVES & FISHES"
       ],
       [
         "GOT WOUD?",
-        "PAW PATROL UNITED"
+        "TBCFC"
+      ],
+      [
+        "GALUCTASARY",
+        "PAIN IN DIAS"
+      ],
+      [
+        "SK STURM MELBOURNE",
+        "BORATVERYNICE"
+      ],
+      [
+        "BREXIT LADS",
+        "GARRY WALLAH UNITED"
+      ],
+      [
+        "E/MELB SUCCULENT CHINESE MEAL",
+        "QUINTASENTIAL FC"
+      ],
+      [
+        "PAYNE IN THE NECK FC",
+        "SABITEURS"
+      ]
+    ],
+    [
+      [
+        "PAW PATROL UNITED",
+        "GOT WOUD?"
+      ],
+      [
+        "GALUCTASARY",
+        "LOAVES & FISHES"
+      ],
+      [
+        "SK STURM MELBOURNE",
+        "TBCFC"
+      ],
+      [
+        "BREXIT LADS",
+        "PAIN IN DIAS"
+      ],
+      [
+        "E/MELB SUCCULENT CHINESE MEAL",
+        "BORATVERYNICE"
+      ],
+      [
+        "PAYNE IN THE NECK FC",
+        "GARRY WALLAH UNITED"
+      ],
+      [
+        "SABITEURS",
+        "QUINTASENTIAL FC"
+      ]
+    ],
+    [
+      [
+        "PAW PATROL UNITED",
+        "GALUCTASARY"
+      ],
+      [
+        "SK STURM MELBOURNE",
+        "GOT WOUD?"
+      ],
+      [
+        "BREXIT LADS",
+        "LOAVES & FISHES"
+      ],
+      [
+        "E/MELB SUCCULENT CHINESE MEAL",
+        "TBCFC"
+      ],
+      [
+        "PAYNE IN THE NECK FC",
+        "PAIN IN DIAS"
+      ],
+      [
+        "SABITEURS",
+        "BORATVERYNICE"
+      ],
+      [
+        "QUINTASENTIAL FC",
+        "GARRY WALLAH UNITED"
+      ]
+    ],
+    [
+      [
+        "PAW PATROL UNITED",
+        "SK STURM MELBOURNE"
+      ],
+      [
+        "BREXIT LADS",
+        "GALUCTASARY"
+      ],
+      [
+        "E/MELB SUCCULENT CHINESE MEAL",
+        "GOT WOUD?"
+      ],
+      [
+        "PAYNE IN THE NECK FC",
+        "LOAVES & FISHES"
+      ],
+      [
+        "SABITEURS",
+        "TBCFC"
+      ],
+      [
+        "QUINTASENTIAL FC",
+        "PAIN IN DIAS"
+      ],
+      [
+        "GARRY WALLAH UNITED",
+        "BORATVERYNICE"
+      ]
+    ],
+    [
+      [
+        "PAW PATROL UNITED",
+        "BREXIT LADS"
+      ],
+      [
+        "E/MELB SUCCULENT CHINESE MEAL",
+        "SK STURM MELBOURNE"
+      ],
+      [
+        "PAYNE IN THE NECK FC",
+        "GALUCTASARY"
+      ],
+      [
+        "SABITEURS",
+        "GOT WOUD?"
+      ],
+      [
+        "QUINTASENTIAL FC",
+        "LOAVES & FISHES"
+      ],
+      [
+        "GARRY WALLAH UNITED",
+        "TBCFC"
+      ],
+      [
+        "BORATVERYNICE",
+        "PAIN IN DIAS"
+      ]
+    ],
+    [
+      [
+        "PAW PATROL UNITED",
+        "E/MELB SUCCULENT CHINESE MEAL"
       ],
       [
         "PAYNE IN THE NECK FC",
         "BREXIT LADS"
       ],
       [
-        "GALUCTASARY",
-        "BORATVERYNICE"
+        "SABITEURS",
+        "SK STURM MELBOURNE"
       ],
       [
-        "SK STURM MELBOURNE",
-        "GARRY WALLAH UNITED"
+        "QUINTASENTIAL FC",
+        "GALUCTASARY"
+      ],
+      [
+        "GARRY WALLAH UNITED",
+        "GOT WOUD?"
+      ],
+      [
+        "BORATVERYNICE",
+        "LOAVES & FISHES"
       ],
       [
         "PAIN IN DIAS",
+        "TBCFC"
+      ]
+    ],
+    [
+      [
+        "PAW PATROL UNITED",
+        "PAYNE IN THE NECK FC"
+      ],
+      [
+        "SABITEURS",
         "E/MELB SUCCULENT CHINESE MEAL"
       ],
       [
         "QUINTASENTIAL FC",
+        "BREXIT LADS"
+      ],
+      [
+        "GARRY WALLAH UNITED",
+        "SK STURM MELBOURNE"
+      ],
+      [
+        "BORATVERYNICE",
+        "GALUCTASARY"
+      ],
+      [
+        "PAIN IN DIAS",
+        "GOT WOUD?"
+      ],
+      [
+        "TBCFC",
+        "LOAVES & FISHES"
+      ]
+    ],
+    [
+      [
+        "PAW PATROL UNITED",
         "SABITEURS"
+      ],
+      [
+        "QUINTASENTIAL FC",
+        "PAYNE IN THE NECK FC"
+      ],
+      [
+        "GARRY WALLAH UNITED",
+        "E/MELB SUCCULENT CHINESE MEAL"
+      ],
+      [
+        "BORATVERYNICE",
+        "BREXIT LADS"
+      ],
+      [
+        "PAIN IN DIAS",
+        "SK STURM MELBOURNE"
+      ],
+      [
+        "TBCFC",
+        "GALUCTASARY"
+      ],
+      [
+        "LOAVES & FISHES",
+        "GOT WOUD?"
       ]
     ],
     [],
@@ -2607,431 +2607,315 @@
     [],
     [
       [
-        "FOR VUCK'S SAKE FC",
-        "CONCEICAO"
-      ],
-      [
-        "MONGREL GARDEN",
-        "KRANSKY FC"
-      ],
-      [
-        "MACCA'S STARS",
-        "DADDY VALKANIS & SONS"
-      ],
-      [
-        "AARONGURDWOODREICH",
-        "RUBY FC"
-      ],
-      [
-        "SYDNEY OLEEE",
-        "DRUMMOYNE TERRIERS"
-      ],
-      [
-        "THE BEAU-CHAMPS",
-        "SHAQNADO 2: RETURN OF THE SHAQ"
-      ],
-      [
-        "SILVO'S SQUAD",
-        "GARNCELONA"
-      ]
-    ],
-    [
-      [
-        "FOR VUCK'S SAKE FC",
-        "KRANSKY FC"
-      ],
-      [
-        "CONCEICAO",
-        "DADDY VALKANIS & SONS"
-      ],
-      [
-        "MONGREL GARDEN",
-        "RUBY FC"
-      ],
-      [
-        "MACCA'S STARS",
-        "DRUMMOYNE TERRIERS"
-      ],
-      [
-        "AARONGURDWOODREICH",
-        "SHAQNADO 2: RETURN OF THE SHAQ"
-      ],
-      [
-        "SYDNEY OLEEE",
-        "GARNCELONA"
-      ],
-      [
-        "THE BEAU-CHAMPS",
-        "SILVO'S SQUAD"
-      ]
-    ],
-    [
-      [
-        "FOR VUCK'S SAKE FC",
-        "DADDY VALKANIS & SONS"
-      ],
-      [
-        "KRANSKY FC",
-        "RUBY FC"
-      ],
-      [
-        "CONCEICAO",
-        "DRUMMOYNE TERRIERS"
-      ],
-      [
-        "MONGREL GARDEN",
-        "SHAQNADO 2: RETURN OF THE SHAQ"
-      ],
-      [
-        "MACCA'S STARS",
-        "GARNCELONA"
-      ],
-      [
-        "AARONGURDWOODREICH",
-        "SILVO'S SQUAD"
-      ],
-      [
-        "SYDNEY OLEEE",
-        "THE BEAU-CHAMPS"
-      ]
-    ],
-    [
-      [
-        "FOR VUCK'S SAKE FC",
-        "RUBY FC"
-      ],
-      [
-        "DADDY VALKANIS & SONS",
-        "DRUMMOYNE TERRIERS"
-      ],
-      [
-        "KRANSKY FC",
-        "SHAQNADO 2: RETURN OF THE SHAQ"
-      ],
-      [
-        "CONCEICAO",
-        "GARNCELONA"
-      ],
-      [
-        "MONGREL GARDEN",
-        "SILVO'S SQUAD"
-      ],
-      [
-        "MACCA'S STARS",
-        "THE BEAU-CHAMPS"
-      ],
-      [
-        "AARONGURDWOODREICH",
-        "SYDNEY OLEEE"
-      ]
-    ],
-    [
-      [
-        "FOR VUCK'S SAKE FC",
-        "DRUMMOYNE TERRIERS"
-      ],
-      [
-        "RUBY FC",
-        "SHAQNADO 2: RETURN OF THE SHAQ"
-      ],
-      [
-        "DADDY VALKANIS & SONS",
-        "GARNCELONA"
-      ],
-      [
-        "KRANSKY FC",
-        "SILVO'S SQUAD"
-      ],
-      [
-        "CONCEICAO",
-        "THE BEAU-CHAMPS"
-      ],
-      [
-        "MONGREL GARDEN",
-        "SYDNEY OLEEE"
-      ],
-      [
-        "MACCA'S STARS",
-        "AARONGURDWOODREICH"
-      ]
-    ],
-    [
-      [
-        "FOR VUCK'S SAKE FC",
-        "SHAQNADO 2: RETURN OF THE SHAQ"
-      ],
-      [
         "DRUMMOYNE TERRIERS",
-        "GARNCELONA"
-      ],
-      [
-        "RUBY FC",
-        "SILVO'S SQUAD"
-      ],
-      [
-        "DADDY VALKANIS & SONS",
-        "THE BEAU-CHAMPS"
-      ],
-      [
-        "KRANSKY FC",
-        "SYDNEY OLEEE"
-      ],
-      [
-        "CONCEICAO",
-        "AARONGURDWOODREICH"
-      ],
-      [
-        "MONGREL GARDEN",
-        "MACCA'S STARS"
-      ]
-    ],
-    [
-      [
-        "FOR VUCK'S SAKE FC",
-        "GARNCELONA"
+        "MONGREL GARDEN"
       ],
       [
         "SHAQNADO 2: RETURN OF THE SHAQ",
         "SILVO'S SQUAD"
       ],
       [
-        "DRUMMOYNE TERRIERS",
-        "THE BEAU-CHAMPS"
-      ],
-      [
-        "RUBY FC",
-        "SYDNEY OLEEE"
-      ],
-      [
-        "DADDY VALKANIS & SONS",
-        "AARONGURDWOODREICH"
-      ],
-      [
-        "KRANSKY FC",
-        "MACCA'S STARS"
-      ],
-      [
-        "CONCEICAO",
-        "MONGREL GARDEN"
-      ]
-    ],
-    [
-      [
-        "FOR VUCK'S SAKE FC",
-        "SILVO'S SQUAD"
-      ],
-      [
-        "GARNCELONA",
-        "THE BEAU-CHAMPS"
-      ],
-      [
-        "SHAQNADO 2: RETURN OF THE SHAQ",
-        "SYDNEY OLEEE"
-      ],
-      [
-        "DRUMMOYNE TERRIERS",
-        "AARONGURDWOODREICH"
-      ],
-      [
-        "RUBY FC",
-        "MACCA'S STARS"
-      ],
-      [
-        "DADDY VALKANIS & SONS",
-        "MONGREL GARDEN"
-      ],
-      [
-        "KRANSKY FC",
-        "CONCEICAO"
-      ]
-    ],
-    [
-      [
-        "FOR VUCK'S SAKE FC",
-        "THE BEAU-CHAMPS"
-      ],
-      [
-        "SILVO'S SQUAD",
-        "SYDNEY OLEEE"
-      ],
-      [
-        "GARNCELONA",
-        "AARONGURDWOODREICH"
-      ],
-      [
-        "SHAQNADO 2: RETURN OF THE SHAQ",
-        "MACCA'S STARS"
-      ],
-      [
-        "DRUMMOYNE TERRIERS",
-        "MONGREL GARDEN"
-      ],
-      [
-        "RUBY FC",
-        "CONCEICAO"
-      ],
-      [
-        "DADDY VALKANIS & SONS",
-        "KRANSKY FC"
-      ]
-    ],
-    [
-      [
-        "FOR VUCK'S SAKE FC",
-        "SYDNEY OLEEE"
-      ],
-      [
-        "THE BEAU-CHAMPS",
-        "AARONGURDWOODREICH"
-      ],
-      [
-        "SILVO'S SQUAD",
-        "MACCA'S STARS"
-      ],
-      [
-        "GARNCELONA",
-        "MONGREL GARDEN"
-      ],
-      [
-        "SHAQNADO 2: RETURN OF THE SHAQ",
-        "CONCEICAO"
-      ],
-      [
-        "DRUMMOYNE TERRIERS",
-        "KRANSKY FC"
-      ],
-      [
-        "RUBY FC",
-        "DADDY VALKANIS & SONS"
-      ]
-    ],
-    [
-      [
-        "FOR VUCK'S SAKE FC",
-        "AARONGURDWOODREICH"
-      ],
-      [
-        "SYDNEY OLEEE",
-        "MACCA'S STARS"
-      ],
-      [
-        "THE BEAU-CHAMPS",
-        "MONGREL GARDEN"
-      ],
-      [
-        "SILVO'S SQUAD",
-        "CONCEICAO"
-      ],
-      [
-        "GARNCELONA",
-        "KRANSKY FC"
-      ],
-      [
-        "SHAQNADO 2: RETURN OF THE SHAQ",
-        "DADDY VALKANIS & SONS"
-      ],
-      [
-        "DRUMMOYNE TERRIERS",
-        "RUBY FC"
-      ]
-    ],
-    [
-      [
-        "FOR VUCK'S SAKE FC",
-        "MACCA'S STARS"
-      ],
-      [
         "AARONGURDWOODREICH",
-        "MONGREL GARDEN"
-      ],
-      [
-        "SYDNEY OLEEE",
-        "CONCEICAO"
+        "MACCA'S STARS"
       ],
       [
         "THE BEAU-CHAMPS",
         "KRANSKY FC"
       ],
       [
-        "SILVO'S SQUAD",
+        "GARNCELONA",
+        "FOR VUCK'S SAKE FC"
+      ],
+      [
+        "CONCEICAO",
         "DADDY VALKANIS & SONS"
       ],
       [
-        "GARNCELONA",
+        "SYDNEY OLEEE",
         "RUBY FC"
-      ],
-      [
-        "SHAQNADO 2: RETURN OF THE SHAQ",
-        "DRUMMOYNE TERRIERS"
       ]
     ],
     [
       [
-        "FOR VUCK'S SAKE FC",
+        "DRUMMOYNE TERRIERS",
+        "SHAQNADO 2: RETURN OF THE SHAQ"
+      ],
+      [
+        "AARONGURDWOODREICH",
         "MONGREL GARDEN"
       ],
       [
-        "MACCA'S STARS",
-        "CONCEICAO"
+        "THE BEAU-CHAMPS",
+        "SILVO'S SQUAD"
       ],
       [
-        "AARONGURDWOODREICH",
+        "GARNCELONA",
+        "MACCA'S STARS"
+      ],
+      [
+        "CONCEICAO",
         "KRANSKY FC"
       ],
       [
         "SYDNEY OLEEE",
+        "FOR VUCK'S SAKE FC"
+      ],
+      [
+        "RUBY FC",
         "DADDY VALKANIS & SONS"
-      ],
-      [
-        "THE BEAU-CHAMPS",
-        "RUBY FC"
-      ],
-      [
-        "SILVO'S SQUAD",
-        "DRUMMOYNE TERRIERS"
-      ],
-      [
-        "GARNCELONA",
-        "SHAQNADO 2: RETURN OF THE SHAQ"
       ]
     ],
     [
       [
-        "FOR VUCK'S SAKE FC",
-        "CONCEICAO"
-      ],
-      [
-        "MONGREL GARDEN",
-        "KRANSKY FC"
-      ],
-      [
-        "MACCA'S STARS",
-        "DADDY VALKANIS & SONS"
-      ],
-      [
-        "AARONGURDWOODREICH",
-        "RUBY FC"
-      ],
-      [
-        "SYDNEY OLEEE",
-        "DRUMMOYNE TERRIERS"
+        "DRUMMOYNE TERRIERS",
+        "AARONGURDWOODREICH"
       ],
       [
         "THE BEAU-CHAMPS",
         "SHAQNADO 2: RETURN OF THE SHAQ"
       ],
       [
-        "SILVO'S SQUAD",
-        "GARNCELONA"
+        "GARNCELONA",
+        "MONGREL GARDEN"
+      ],
+      [
+        "CONCEICAO",
+        "SILVO'S SQUAD"
+      ],
+      [
+        "SYDNEY OLEEE",
+        "MACCA'S STARS"
+      ],
+      [
+        "RUBY FC",
+        "KRANSKY FC"
+      ],
+      [
+        "DADDY VALKANIS & SONS",
+        "FOR VUCK'S SAKE FC"
       ]
     ],
     [
       [
-        "FOR VUCK'S SAKE FC",
-        "KRANSKY FC"
+        "DRUMMOYNE TERRIERS",
+        "THE BEAU-CHAMPS"
+      ],
+      [
+        "GARNCELONA",
+        "AARONGURDWOODREICH"
       ],
       [
         "CONCEICAO",
+        "SHAQNADO 2: RETURN OF THE SHAQ"
+      ],
+      [
+        "SYDNEY OLEEE",
+        "MONGREL GARDEN"
+      ],
+      [
+        "RUBY FC",
+        "SILVO'S SQUAD"
+      ],
+      [
+        "DADDY VALKANIS & SONS",
+        "MACCA'S STARS"
+      ],
+      [
+        "FOR VUCK'S SAKE FC",
+        "KRANSKY FC"
+      ]
+    ],
+    [
+      [
+        "DRUMMOYNE TERRIERS",
+        "GARNCELONA"
+      ],
+      [
+        "CONCEICAO",
+        "THE BEAU-CHAMPS"
+      ],
+      [
+        "SYDNEY OLEEE",
+        "AARONGURDWOODREICH"
+      ],
+      [
+        "RUBY FC",
+        "SHAQNADO 2: RETURN OF THE SHAQ"
+      ],
+      [
+        "DADDY VALKANIS & SONS",
+        "MONGREL GARDEN"
+      ],
+      [
+        "FOR VUCK'S SAKE FC",
+        "SILVO'S SQUAD"
+      ],
+      [
+        "KRANSKY FC",
+        "MACCA'S STARS"
+      ]
+    ],
+    [
+      [
+        "DRUMMOYNE TERRIERS",
+        "CONCEICAO"
+      ],
+      [
+        "SYDNEY OLEEE",
+        "GARNCELONA"
+      ],
+      [
+        "RUBY FC",
+        "THE BEAU-CHAMPS"
+      ],
+      [
+        "DADDY VALKANIS & SONS",
+        "AARONGURDWOODREICH"
+      ],
+      [
+        "FOR VUCK'S SAKE FC",
+        "SHAQNADO 2: RETURN OF THE SHAQ"
+      ],
+      [
+        "KRANSKY FC",
+        "MONGREL GARDEN"
+      ],
+      [
+        "MACCA'S STARS",
+        "SILVO'S SQUAD"
+      ]
+    ],
+    [
+      [
+        "DRUMMOYNE TERRIERS",
+        "SYDNEY OLEEE"
+      ],
+      [
+        "RUBY FC",
+        "CONCEICAO"
+      ],
+      [
+        "DADDY VALKANIS & SONS",
+        "GARNCELONA"
+      ],
+      [
+        "FOR VUCK'S SAKE FC",
+        "THE BEAU-CHAMPS"
+      ],
+      [
+        "KRANSKY FC",
+        "AARONGURDWOODREICH"
+      ],
+      [
+        "MACCA'S STARS",
+        "SHAQNADO 2: RETURN OF THE SHAQ"
+      ],
+      [
+        "SILVO'S SQUAD",
+        "MONGREL GARDEN"
+      ]
+    ],
+    [
+      [
+        "DRUMMOYNE TERRIERS",
+        "RUBY FC"
+      ],
+      [
+        "DADDY VALKANIS & SONS",
+        "SYDNEY OLEEE"
+      ],
+      [
+        "FOR VUCK'S SAKE FC",
+        "CONCEICAO"
+      ],
+      [
+        "KRANSKY FC",
+        "GARNCELONA"
+      ],
+      [
+        "MACCA'S STARS",
+        "THE BEAU-CHAMPS"
+      ],
+      [
+        "SILVO'S SQUAD",
+        "AARONGURDWOODREICH"
+      ],
+      [
+        "MONGREL GARDEN",
+        "SHAQNADO 2: RETURN OF THE SHAQ"
+      ]
+    ],
+    [
+      [
+        "DRUMMOYNE TERRIERS",
+        "DADDY VALKANIS & SONS"
+      ],
+      [
+        "FOR VUCK'S SAKE FC",
+        "RUBY FC"
+      ],
+      [
+        "KRANSKY FC",
+        "SYDNEY OLEEE"
+      ],
+      [
+        "MACCA'S STARS",
+        "CONCEICAO"
+      ],
+      [
+        "SILVO'S SQUAD",
+        "GARNCELONA"
+      ],
+      [
+        "MONGREL GARDEN",
+        "THE BEAU-CHAMPS"
+      ],
+      [
+        "SHAQNADO 2: RETURN OF THE SHAQ",
+        "AARONGURDWOODREICH"
+      ]
+    ],
+    [
+      [
+        "DRUMMOYNE TERRIERS",
+        "FOR VUCK'S SAKE FC"
+      ],
+      [
+        "KRANSKY FC",
+        "DADDY VALKANIS & SONS"
+      ],
+      [
+        "MACCA'S STARS",
+        "RUBY FC"
+      ],
+      [
+        "SILVO'S SQUAD",
+        "SYDNEY OLEEE"
+      ],
+      [
+        "MONGREL GARDEN",
+        "CONCEICAO"
+      ],
+      [
+        "SHAQNADO 2: RETURN OF THE SHAQ",
+        "GARNCELONA"
+      ],
+      [
+        "AARONGURDWOODREICH",
+        "THE BEAU-CHAMPS"
+      ]
+    ],
+    [
+      [
+        "DRUMMOYNE TERRIERS",
+        "KRANSKY FC"
+      ],
+      [
+        "MACCA'S STARS",
+        "FOR VUCK'S SAKE FC"
+      ],
+      [
+        "SILVO'S SQUAD",
         "DADDY VALKANIS & SONS"
       ],
       [
@@ -3039,230 +2923,346 @@
         "RUBY FC"
       ],
       [
-        "MACCA'S STARS",
-        "DRUMMOYNE TERRIERS"
+        "SHAQNADO 2: RETURN OF THE SHAQ",
+        "SYDNEY OLEEE"
       ],
       [
         "AARONGURDWOODREICH",
-        "SHAQNADO 2: RETURN OF THE SHAQ"
+        "CONCEICAO"
+      ],
+      [
+        "THE BEAU-CHAMPS",
+        "GARNCELONA"
+      ]
+    ],
+    [
+      [
+        "DRUMMOYNE TERRIERS",
+        "MACCA'S STARS"
+      ],
+      [
+        "SILVO'S SQUAD",
+        "KRANSKY FC"
+      ],
+      [
+        "MONGREL GARDEN",
+        "FOR VUCK'S SAKE FC"
+      ],
+      [
+        "SHAQNADO 2: RETURN OF THE SHAQ",
+        "DADDY VALKANIS & SONS"
+      ],
+      [
+        "AARONGURDWOODREICH",
+        "RUBY FC"
+      ],
+      [
+        "THE BEAU-CHAMPS",
+        "SYDNEY OLEEE"
+      ],
+      [
+        "GARNCELONA",
+        "CONCEICAO"
+      ]
+    ],
+    [
+      [
+        "DRUMMOYNE TERRIERS",
+        "SILVO'S SQUAD"
+      ],
+      [
+        "MONGREL GARDEN",
+        "MACCA'S STARS"
+      ],
+      [
+        "SHAQNADO 2: RETURN OF THE SHAQ",
+        "KRANSKY FC"
+      ],
+      [
+        "AARONGURDWOODREICH",
+        "FOR VUCK'S SAKE FC"
+      ],
+      [
+        "THE BEAU-CHAMPS",
+        "DADDY VALKANIS & SONS"
+      ],
+      [
+        "GARNCELONA",
+        "RUBY FC"
+      ],
+      [
+        "CONCEICAO",
+        "SYDNEY OLEEE"
+      ]
+    ],
+    [
+      [
+        "DRUMMOYNE TERRIERS",
+        "MONGREL GARDEN"
+      ],
+      [
+        "SHAQNADO 2: RETURN OF THE SHAQ",
+        "SILVO'S SQUAD"
+      ],
+      [
+        "AARONGURDWOODREICH",
+        "MACCA'S STARS"
+      ],
+      [
+        "THE BEAU-CHAMPS",
+        "KRANSKY FC"
+      ],
+      [
+        "GARNCELONA",
+        "FOR VUCK'S SAKE FC"
+      ],
+      [
+        "CONCEICAO",
+        "DADDY VALKANIS & SONS"
       ],
       [
         "SYDNEY OLEEE",
-        "GARNCELONA"
+        "RUBY FC"
+      ]
+    ],
+    [
+      [
+        "DRUMMOYNE TERRIERS",
+        "SHAQNADO 2: RETURN OF THE SHAQ"
+      ],
+      [
+        "AARONGURDWOODREICH",
+        "MONGREL GARDEN"
       ],
       [
         "THE BEAU-CHAMPS",
         "SILVO'S SQUAD"
+      ],
+      [
+        "GARNCELONA",
+        "MACCA'S STARS"
+      ],
+      [
+        "CONCEICAO",
+        "KRANSKY FC"
+      ],
+      [
+        "SYDNEY OLEEE",
+        "FOR VUCK'S SAKE FC"
+      ],
+      [
+        "RUBY FC",
+        "DADDY VALKANIS & SONS"
       ]
     ],
     [
       [
-        "FOR VUCK'S SAKE FC",
-        "DADDY VALKANIS & SONS"
+        "DRUMMOYNE TERRIERS",
+        "AARONGURDWOODREICH"
       ],
       [
-        "KRANSKY FC",
-        "RUBY FC"
-      ],
-      [
-        "CONCEICAO",
-        "DRUMMOYNE TERRIERS"
-      ],
-      [
-        "MONGREL GARDEN",
+        "THE BEAU-CHAMPS",
         "SHAQNADO 2: RETURN OF THE SHAQ"
       ],
       [
-        "MACCA'S STARS",
-        "GARNCELONA"
+        "GARNCELONA",
+        "MONGREL GARDEN"
       ],
       [
-        "AARONGURDWOODREICH",
+        "CONCEICAO",
         "SILVO'S SQUAD"
       ],
       [
         "SYDNEY OLEEE",
-        "THE BEAU-CHAMPS"
+        "MACCA'S STARS"
+      ],
+      [
+        "RUBY FC",
+        "KRANSKY FC"
+      ],
+      [
+        "DADDY VALKANIS & SONS",
+        "FOR VUCK'S SAKE FC"
       ]
     ],
     [
+      [
+        "DRUMMOYNE TERRIERS",
+        "THE BEAU-CHAMPS"
+      ],
+      [
+        "GARNCELONA",
+        "AARONGURDWOODREICH"
+      ],
+      [
+        "CONCEICAO",
+        "SHAQNADO 2: RETURN OF THE SHAQ"
+      ],
+      [
+        "SYDNEY OLEEE",
+        "MONGREL GARDEN"
+      ],
+      [
+        "RUBY FC",
+        "SILVO'S SQUAD"
+      ],
+      [
+        "DADDY VALKANIS & SONS",
+        "MACCA'S STARS"
+      ],
+      [
+        "FOR VUCK'S SAKE FC",
+        "KRANSKY FC"
+      ]
+    ],
+    [
+      [
+        "DRUMMOYNE TERRIERS",
+        "GARNCELONA"
+      ],
+      [
+        "CONCEICAO",
+        "THE BEAU-CHAMPS"
+      ],
+      [
+        "SYDNEY OLEEE",
+        "AARONGURDWOODREICH"
+      ],
+      [
+        "RUBY FC",
+        "SHAQNADO 2: RETURN OF THE SHAQ"
+      ],
+      [
+        "DADDY VALKANIS & SONS",
+        "MONGREL GARDEN"
+      ],
+      [
+        "FOR VUCK'S SAKE FC",
+        "SILVO'S SQUAD"
+      ],
+      [
+        "KRANSKY FC",
+        "MACCA'S STARS"
+      ]
+    ],
+    [
+      [
+        "DRUMMOYNE TERRIERS",
+        "CONCEICAO"
+      ],
+      [
+        "SYDNEY OLEEE",
+        "GARNCELONA"
+      ],
+      [
+        "RUBY FC",
+        "THE BEAU-CHAMPS"
+      ],
+      [
+        "DADDY VALKANIS & SONS",
+        "AARONGURDWOODREICH"
+      ],
+      [
+        "FOR VUCK'S SAKE FC",
+        "SHAQNADO 2: RETURN OF THE SHAQ"
+      ],
+      [
+        "KRANSKY FC",
+        "MONGREL GARDEN"
+      ],
+      [
+        "MACCA'S STARS",
+        "SILVO'S SQUAD"
+      ]
+    ],
+    [
+      [
+        "DRUMMOYNE TERRIERS",
+        "SYDNEY OLEEE"
+      ],
+      [
+        "RUBY FC",
+        "CONCEICAO"
+      ],
+      [
+        "DADDY VALKANIS & SONS",
+        "GARNCELONA"
+      ],
+      [
+        "FOR VUCK'S SAKE FC",
+        "THE BEAU-CHAMPS"
+      ],
+      [
+        "KRANSKY FC",
+        "AARONGURDWOODREICH"
+      ],
+      [
+        "MACCA'S STARS",
+        "SHAQNADO 2: RETURN OF THE SHAQ"
+      ],
+      [
+        "SILVO'S SQUAD",
+        "MONGREL GARDEN"
+      ]
+    ],
+    [
+      [
+        "DRUMMOYNE TERRIERS",
+        "RUBY FC"
+      ],
+      [
+        "DADDY VALKANIS & SONS",
+        "SYDNEY OLEEE"
+      ],
+      [
+        "FOR VUCK'S SAKE FC",
+        "CONCEICAO"
+      ],
+      [
+        "KRANSKY FC",
+        "GARNCELONA"
+      ],
+      [
+        "MACCA'S STARS",
+        "THE BEAU-CHAMPS"
+      ],
+      [
+        "SILVO'S SQUAD",
+        "AARONGURDWOODREICH"
+      ],
+      [
+        "MONGREL GARDEN",
+        "SHAQNADO 2: RETURN OF THE SHAQ"
+      ]
+    ],
+    [
+      [
+        "DRUMMOYNE TERRIERS",
+        "DADDY VALKANIS & SONS"
+      ],
       [
         "FOR VUCK'S SAKE FC",
         "RUBY FC"
       ],
       [
-        "DADDY VALKANIS & SONS",
-        "DRUMMOYNE TERRIERS"
-      ],
-      [
         "KRANSKY FC",
-        "SHAQNADO 2: RETURN OF THE SHAQ"
-      ],
-      [
-        "CONCEICAO",
-        "GARNCELONA"
-      ],
-      [
-        "MONGREL GARDEN",
-        "SILVO'S SQUAD"
-      ],
-      [
-        "MACCA'S STARS",
-        "THE BEAU-CHAMPS"
-      ],
-      [
-        "AARONGURDWOODREICH",
-        "SYDNEY OLEEE"
-      ]
-    ],
-    [
-      [
-        "FOR VUCK'S SAKE FC",
-        "DRUMMOYNE TERRIERS"
-      ],
-      [
-        "RUBY FC",
-        "SHAQNADO 2: RETURN OF THE SHAQ"
-      ],
-      [
-        "DADDY VALKANIS & SONS",
-        "GARNCELONA"
-      ],
-      [
-        "KRANSKY FC",
-        "SILVO'S SQUAD"
-      ],
-      [
-        "CONCEICAO",
-        "THE BEAU-CHAMPS"
-      ],
-      [
-        "MONGREL GARDEN",
         "SYDNEY OLEEE"
       ],
       [
         "MACCA'S STARS",
-        "AARONGURDWOODREICH"
-      ]
-    ],
-    [
-      [
-        "FOR VUCK'S SAKE FC",
-        "SHAQNADO 2: RETURN OF THE SHAQ"
-      ],
-      [
-        "DRUMMOYNE TERRIERS",
-        "GARNCELONA"
-      ],
-      [
-        "RUBY FC",
-        "SILVO'S SQUAD"
-      ],
-      [
-        "DADDY VALKANIS & SONS",
-        "THE BEAU-CHAMPS"
-      ],
-      [
-        "KRANSKY FC",
-        "SYDNEY OLEEE"
-      ],
-      [
-        "CONCEICAO",
-        "AARONGURDWOODREICH"
-      ],
-      [
-        "MONGREL GARDEN",
-        "MACCA'S STARS"
-      ]
-    ],
-    [
-      [
-        "FOR VUCK'S SAKE FC",
-        "GARNCELONA"
-      ],
-      [
-        "SHAQNADO 2: RETURN OF THE SHAQ",
-        "SILVO'S SQUAD"
-      ],
-      [
-        "DRUMMOYNE TERRIERS",
-        "THE BEAU-CHAMPS"
-      ],
-      [
-        "RUBY FC",
-        "SYDNEY OLEEE"
-      ],
-      [
-        "DADDY VALKANIS & SONS",
-        "AARONGURDWOODREICH"
-      ],
-      [
-        "KRANSKY FC",
-        "MACCA'S STARS"
-      ],
-      [
-        "CONCEICAO",
-        "MONGREL GARDEN"
-      ]
-    ],
-    [
-      [
-        "FOR VUCK'S SAKE FC",
-        "SILVO'S SQUAD"
-      ],
-      [
-        "GARNCELONA",
-        "THE BEAU-CHAMPS"
-      ],
-      [
-        "SHAQNADO 2: RETURN OF THE SHAQ",
-        "SYDNEY OLEEE"
-      ],
-      [
-        "DRUMMOYNE TERRIERS",
-        "AARONGURDWOODREICH"
-      ],
-      [
-        "RUBY FC",
-        "MACCA'S STARS"
-      ],
-      [
-        "DADDY VALKANIS & SONS",
-        "MONGREL GARDEN"
-      ],
-      [
-        "KRANSKY FC",
         "CONCEICAO"
-      ]
-    ],
-    [
-      [
-        "FOR VUCK'S SAKE FC",
-        "THE BEAU-CHAMPS"
       ],
       [
         "SILVO'S SQUAD",
-        "SYDNEY OLEEE"
+        "GARNCELONA"
       ],
       [
-        "GARNCELONA",
-        "AARONGURDWOODREICH"
+        "MONGREL GARDEN",
+        "THE BEAU-CHAMPS"
       ],
       [
         "SHAQNADO 2: RETURN OF THE SHAQ",
-        "MACCA'S STARS"
-      ],
-      [
-        "DRUMMOYNE TERRIERS",
-        "MONGREL GARDEN"
-      ],
-      [
-        "RUBY FC",
-        "CONCEICAO"
-      ],
-      [
-        "DADDY VALKANIS & SONS",
-        "KRANSKY FC"
+        "AARONGURDWOODREICH"
       ]
     ],
     [],
