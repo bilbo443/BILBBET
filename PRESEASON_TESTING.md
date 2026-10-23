@@ -1114,3 +1114,11 @@ Cup fixture layout, 23 October 2026:
 - Closed past-round cards cannot add selections; detailed markets now use the fixture's saved round rather than the current round.
 - Original fixture indices, market IDs, prices, accepted bets, balances and settlement data are retained.
 - Tests: node tests/cup-fixture-layout.test.cjs; node --check js/app.js; git diff --check. No SQL migration required.
+
+
+Official Division 2/3 rotations, 24 October 2026:
+- ID-based GW2 seeds follow the organiser screenshots: fixed top-left team, clockwise movement of all other slots.
+- Confirmed regular league window is GW2–23; GW1 and GW24–26 remain empty for these divisions. D1 fixtures are retained.
+- Roster refreshes preserve official rotations through renames and reject changed conference membership for review. Future division simulations use the same confirmed rotations.
+- Four rotation tests cover screenshot pairings, full cycles, round coverage, rename survival and membership changes.
+- Existing published futures, scores, accepted bets and balances are untouched. Server fixture allowlists and the trusted-price board require separate verification before declaring betting operational.
