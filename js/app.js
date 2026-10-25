@@ -289,6 +289,11 @@
     return aliases.length === 1 ? aliases[0].name : name;
   }
   function sameTeam(a,b){ return resolveTeamName(a) === resolveTeamName(b); }
+  function isOwnTeam(name){
+    const team = (DATA.admin_teams || []).find(t => sameTeam(t.name, name));
+    const id = state.user?.teamId;
+    return sameTeam(name, state.user?.username) || (id != null && team && String(team.id).padStart(3,'0') === String(id).padStart(3,'0'));
+  }
   function fixtureScore(team, opponent, round){
     team = resolveTeamName(team);
     opponent = resolveTeamName(opponent);
@@ -2988,7 +2993,10 @@
         <span style="display:flex;align-items:center;gap:8px;">${teamLogo(o.team,20)}${esc(o.team)}</span>
         <span class="bb-odds"${disp.title?` title="${esc(disp.title)}"`:''}>${disp.text}</span></div>`;
     }).join('');
-    return control + list;
+    const explanation = marketKey.includes('miss_top')
+      ? '<p style="color:#9a9a9a;">Miss top X means finishing X+1 or lower in the official final ranking. Miss top half means finishing outside the top half.</p>'
+      : '';
+    return explanation + control + list;
   }
 
   function renderH2HMarket(m){
@@ -5771,9 +5779,9 @@
     } else {
       return;
     }
-    const NEGATIVE_FUT_MARKETS = ['relegation_pct', 'wooden_spoon_pct', 'bottom3_pct', 'bottom_half_pct'];
+    const NEGATIVE_FUT_MARKETS = ['relegation_pct', 'wooden_spoon_pct', 'bottom3_pct', 'bottom_half_pct', 'miss_top3_pct', 'miss_top_half_pct', 'roddy_miss_top3_pct', 'roddy_miss_top5_pct', 'roddy_miss_top10_pct'];
     const excludeSelf = state.user && NEGATIVE_FUT_MARKETS.includes(state.futureMarketTab);
-    const eligible = (list||[]).filter(o => !o.suspended && !(excludeSelf && o.team === state.user.username));
+    const eligible = (list||[]).filter(o => !o.suspended && !(excludeSelf && isOwnTeam(o.team)));
     if(!eligible.length){ alert('Nothing to surprise you with here.'); return; }
     const pick = eligible[Math.floor(Math.random()*eligible.length)];
     const id = tagPrefix + pick.team;
@@ -6306,6 +6314,12 @@
   // wooden_spoon_pct/roddy_win_pct aren't listed here since those already
   // have exactly 1 place, handled separately via SINGLE_WINNER_FUT_MARKETS.
   function placesCountFor(div, marketKey){
+    const missed = /^((?:roddy_)?miss_top)(3|5|10|_half)_pct$/.exec(marketKey);
+    if(missed){
+      const size = div === 'RODDY' ? TOTAL_TEAMS : (H2H_DIVISIONS[div] || []).length;
+      const top = missed[2] === '_half' ? Math.floor(size/2) : Number(missed[2]);
+      return size ? size-top : null;
+    }
     switch(marketKey){
       case 'top3_pct': case 'bottom3_pct': case 'roddy_top3_pct': return 3;
       case 'roddy_top5_pct': return 5;
@@ -6422,7 +6436,7 @@
     // competition for a bigger payout here. Betting FOR your own team's
     // success is untouched by this: that aligns incentives rather than
     // conflicting with them, so it's not blocked.
-    const NEGATIVE_FUT_MARKETS = ['relegation_pct', 'wooden_spoon_pct', 'bottom3_pct', 'bottom_half_pct'];
+    const NEGATIVE_FUT_MARKETS = ['relegation_pct', 'wooden_spoon_pct', 'bottom3_pct', 'bottom_half_pct', 'miss_top3_pct', 'miss_top_half_pct', 'roddy_miss_top3_pct', 'roddy_miss_top5_pct', 'roddy_miss_top10_pct'];
     if(state.user && state.user.username){
       const myTeam = state.user.username;
       if(np.type === 'h2h' && (np.teamA === myTeam || np.teamB === myTeam)){
@@ -6431,7 +6445,7 @@
           return { reason:'self-interest', msg: "you can't bet against your own team \u2014 that market only allows backing your team to win" };
         }
       }
-      if(np.type === 'fut' && np.team === myTeam && NEGATIVE_FUT_MARKETS.includes(np.marketKey)){
+      if(np.type === 'fut' && isOwnTeam(np.team) && NEGATIVE_FUT_MARKETS.includes(np.marketKey)){
         return { reason:'self-interest', msg: "you can't bet on your own team for a negative outcome like this" };
       }
     }
@@ -6512,7 +6526,10 @@
       }
 
       // futures: same team, same division/scope, different market
-      if(np.type==='fut' && ep.type==='fut' && np.div===ep.div && np.team===ep.team && np.marketKey!==ep.marketKey){
+      if(np.type==='fut' && ep.type==='fut' && np.div===ep.div && sameTeam(np.team,ep.team) && np.marketKey!==ep.marketKey){
+        if(np.marketKey.includes('miss_top') || ep.marketKey.includes('miss_top')){
+          return {reason:'nested', msg:'finish-position bets on the same team cannot be combined; place them as separate singles'};
+        }
         const npChain = chainOf(np.marketKey), epChain = chainOf(ep.marketKey);
         if(npChain && epChain){
           if(npChain === epChain){
