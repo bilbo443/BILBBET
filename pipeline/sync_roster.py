@@ -433,7 +433,12 @@ def sync_futures_divisions(new_roster, team_coeffs, scale, history, data_dir, dr
         return current
 
     tier_centres = load_tier_centres(data_dir, admin_teams or [])
-    rows, _ = simulate_division_futures(new_roster, team_coeffs, scale, history, [],
+    score_path = os.path.join(data_dir, 'real_results.json')
+    scores = json.load(open(score_path)) if os.path.exists(score_path) else {}
+    if admin_teams is not None:
+        scores = rename(scores)
+    live_records = [{'team':t, 'scores_by_round':values} for t,values in scores.items()]
+    rows, _ = simulate_division_futures(new_roster, team_coeffs, scale, history, live_records,
         n_sim=n_sim, seed=7, team_ids={t['name']: str(t['id']) for t in (admin_teams or [])},
         tier_centres=tier_centres,
         official_schedules=load_official_rotations(data_dir, admin_teams or [], new_roster))
@@ -502,10 +507,14 @@ def sync_futures_divisions(new_roster, team_coeffs, scale, history, data_dir, dr
         official_cup_draw = json.load(open(official_path))
         if official_cup_draw.get('season') != '2026-27':
             raise ValueError('Review official cup draw for the current season')
+    roddy_path = os.path.join(data_dir, 'roddy_results.json')
+    roddy_scores = json.load(open(roddy_path)) if os.path.exists(roddy_path) else {}
+    if admin_teams is not None:
+        roddy_scores = rename(roddy_scores)
     futures['roddy'], futures['fa_cup_markets'], draw = regenerate_roddy_and_cup(
         field_roster if field_roster is not None else new_roster,
         team_coeffs, scale, history, n_sim=n_sim, seed=seed,
-        roddy_adjustments=roddy_adjustments, roddy_ability_model=roddy_ability_model, official_cup_draw=official_cup_draw, tier_centres=tier_centres)
+        roddy_adjustments=roddy_adjustments, roddy_ability_model=roddy_ability_model, official_cup_draw=official_cup_draw, tier_centres=tier_centres, live_results=roddy_scores)
     json.dump(futures, open(os.path.join(draft_dir, 'futures.json'), 'w'))
     json.dump(draw, open(os.path.join(draft_dir, 'fa_cup_draw.json'), 'w'))
     return futures
