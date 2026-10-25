@@ -21,7 +21,7 @@ def market_rows(pcts):
     return sorted(rows, key=lambda row: (row['suspended'], row['odds']))
 
 
-def regenerate_roddy_and_cup(roster, coeffs, scale, history, n_sim=6000, seed=11, roddy_adjustments=None, roddy_ability_model=None, official_cup_draw=None, tier_centres=None, live_results=None, apply_cup_results=True):
+def regenerate_roddy_and_cup(roster, coeffs, scale, history, n_sim=6000, seed=11, roddy_adjustments=None, roddy_ability_model=None, official_cup_draw=None, tier_centres=None, live_results=None, apply_cup_results=True, checkpoint_output=None):
     teams = [t for division in roster.values() for t in division]
     live_results = live_results or {}
     pool = [score for t in teams for score in history.get(t, [])] or [60]
@@ -63,14 +63,28 @@ def regenerate_roddy_and_cup(roster, coeffs, scale, history, n_sim=6000, seed=11
         ability_totals[team] = 26 * (
             mean + ability_rng.normal(0, sd, size=n_sim)
         )
+    checkpoint_counts = np.zeros((26,len(teams)),dtype=int) if checkpoint_output is not None else None
     for simulation in range(n_sim):
         totals = {}
+        progress = []
         for t in teams:
-            known = [v for v in live_results.get(t, []) if v is not None]
-            remaining = 26 - len(known)
-            totals[t] = sum(known) + samplers[t](remaining).sum()
-            if t in ability_totals:
-                totals[t] += ability_totals[t][simulation] * remaining / 26.0
+            known = list(live_results.get(t, [None]*26))
+            remaining = sum(v is None for v in known)
+            samples = samplers[t](remaining)
+            ability = ability_totals[t][simulation]/26.0 if t in ability_totals else 0.0
+            totals[t] = sum(v for v in known if v is not None) + samples.sum() + ability*remaining
+            if checkpoint_counts is not None:
+                sample_index = 0
+                weeks = []
+                for score in known:
+                    if score is None:
+                        score = samples[sample_index]+ability
+                        sample_index += 1
+                    weeks.append(score)
+                progress.append(np.cumsum(weeks))
+        if checkpoint_counts is not None:
+            leaders = np.argmax(np.asarray(progress),axis=0)
+            np.add.at(checkpoint_counts,(np.arange(26),leaders),1)
         for pos, team in enumerate(sorted(teams, key=lambda t: -totals[t])):
             positions[team][pos] += 1
     roddy = {market: market_rows({t: 100*count[:places].sum()/n_sim
@@ -80,6 +94,11 @@ def regenerate_roddy_and_cup(roster, coeffs, scale, history, n_sim=6000, seed=11
     for places in (3, 5, 10):
         roddy[f'roddy_miss_top{places}_pct'] = market_rows({
             t: 100 * count[places:].sum()/n_sim for t, count in positions.items()})
+
+    if checkpoint_output is not None:
+        checkpoint_output.update({str(r+1):market_rows({t:100*checkpoint_counts[r,i]/n_sim for i,t in enumerate(teams)})
+                                  for r in range(26)})
+        checkpoint_output['26'] = [dict(row) for row in roddy['roddy_win_pct']]
 
     samplers = samplers_for('fa_cup')
     draw = fa_cup_draw(teams, seed=seed)
