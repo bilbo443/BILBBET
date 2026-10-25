@@ -38,3 +38,27 @@ def load_official_rotations(data_dir, registry, roster):
             raise ValueError('Official division membership changed; review '+div+' before generating fixtures')
         result[div] = clockwise_schedule(named, int(cfg['start_round']), int(cfg['end_round']))
     return result
+
+
+def load_simulation_schedules(data_dir, registry, roster):
+    """Use the same official fixtures in forecasts and the public fixture list."""
+    result = load_official_rotations(data_dir, registry, roster)
+    data_dir = Path(data_dir)
+    rules_path = data_dir/'roster_rules.json'
+    schedule_path = data_dir/'h2h_schedule.json'
+    if rules_path.exists() and schedule_path.exists():
+        rules = json.loads(rules_path.read_text())
+        confirmed = rules.get('confirmed_division_fixture_rounds', {})
+        saved = json.loads(schedule_path.read_text())
+        for div in roster:
+            if div in result or div not in confirmed:
+                continue
+            weeks = saved.get(div, [])
+            if len(weeks)!=26: raise ValueError('Incomplete official season schedule: '+div)
+            for r in confirmed[div]:
+                pairs = weeks[int(r)-1]
+                flat = [team for pair in pairs for team in pair]
+                if len(flat)!=len(set(flat)) or set(flat)!=set(roster[div]):
+                    raise ValueError('Invalid official fixture round: '+div+' '+str(r))
+            result[div] = weeks
+    return result
