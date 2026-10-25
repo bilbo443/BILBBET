@@ -1134,17 +1134,41 @@
   // the same mechanism the Python simulation pipeline already uses for
   // division futures/Roddy/FA Cup -- brought here so H2H and ECL group
   // markets get the same treatment rather than only a corrected mean.
+  function seededH2HRng(key){
+    let seed = 2166136261;
+    for(const c of String(key)){ seed ^= c.charCodeAt(0); seed = Math.imul(seed,16777619); }
+    return () => {
+      seed += 0x6D2B79F5;
+      let value = seed;
+      value = Math.imul(value ^ value >>> 15, value | 1);
+      value ^= value + Math.imul(value ^ value >>> 7, value | 61);
+      return ((value ^ value >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  function h2hTeamIdentity(team){
+    const entry = (DATA.admin_teams || []).find(t => t.name === team);
+    return entry ? String(entry.id).padStart(3,'0') : team;
+  }
+
   function makeShiftedSampler(values, shift, widen, widePool){
     const shifted = values.map(v => Math.round(v + shift));
+    const poolRng = seededH2HRng(['h2h-wide-v2',values.length,shift,widen,widePool?.length || 0].join('|'));
     let pool = shifted;
     if(widen && widen > 0 && widePool && widePool.length){
       const nFromWide = Math.max(1, Math.min(Math.round(shifted.length * widen / Math.max(1-widen, 0.05)), widePool.length));
       const extra = [];
-      for(let i=0;i<nFromWide;i++){ extra.push(widePool[Math.floor(Math.random()*widePool.length)]); }
+      for(let i=0;i<nFromWide;i++){ extra.push(widePool[Math.floor(poolRng()*widePool.length)]); }
       pool = shifted.concat(extra);
     }
     const n = pool.length;
-    return function(count){ const out=new Array(count); for(let i=0;i<count;i++){ out[i]=pool[Math.floor(Math.random()*n)]; } return out; };
+    const sampler = function(count, random){
+      random = random || Math.random;
+      const out=new Array(count);
+      for(let i=0;i<count;i++){ out[i]=pool[Math.floor(random()*n)]; }
+      return out;
+    };
+    sampler.mean = pool.reduce((sum,value)=>sum+value,0)/n;
+    return sampler;
   }
   const divSampler = {};
   for(const div in H2H_DIVISIONS){
@@ -1188,12 +1212,38 @@
       }
     }
   }
-  function sampleTeam(team, n){
-    if(tierH2HSamplers[team]) return tierH2HSamplers[team](n);
+  const h2hFormCache = {};
+  function h2hFormAdjustment(team, round){
+    round = Number(round || state.currentRound);
+    const key = h2hTeamIdentity(team)+'|'+round;
+    if(h2hFormCache[key]) return h2hFormCache[key];
+    const source = Object.keys(DATA.roddy_results || {}).length ? DATA.roddy_results : REAL_RESULTS;
+    const active = Object.values(H2H_DIVISIONS).flat();
+    const played = [];
+    for(let i=0;i<Math.min(round-1,26);i++){
+      if(!ROUND_DATES[i+1] || Date.now()<sydneyKickoffUTC(ROUND_DATES[i+1])) continue;
+      if(active.every(t => Number.isFinite(source[t]?.[i]))) played.push(source[team]?.[i]);
+    }
     const info = teamInfo[team];
-    const out = new Array(n);
-    for(let i=0;i<n;i++){ out[i] = (info.own && Math.random()<info.w) ? info.own(1)[0] : info.baseline(1)[0]; }
-    return out;
+    const prior = tierH2HSamplers[team]?.mean ??
+      (info?.own ? info.w*info.own.mean+(1-info.w)*info.baseline.mean : info?.baseline.mean);
+    const mean = played.length ? played.reduce((sum,v)=>sum+v,0)/played.length : prior;
+    // Eight equivalent prior rounds: two results receive 20% weight.
+    const weight = played.length/(played.length+8);
+    const shift = Number.isFinite(prior) ? Math.max(-12,Math.min(12,weight*(mean-prior))) : 0;
+    return h2hFormCache[key] = {played:played.length,mean,prior,weight,shift};
+  }
+  function sampleTeam(team, n, random, round){
+    random = random || Math.random;
+    const info = teamInfo[team];
+    let out;
+    if(tierH2HSamplers[team]) out = tierH2HSamplers[team](n,random);
+    else {
+      out = new Array(n);
+      for(let i=0;i<n;i++) out[i] = (info.own && random()<info.w) ? info.own(1,random)[0] : info.baseline(1,random)[0];
+    }
+    const shift = h2hFormAdjustment(team,round).shift;
+    return shift ? out.map(value => Math.max(0,Math.round(value+shift))) : out;
   }
   // Parallel to teamInfo/sampleTeam above, but using the cup-specific shift
   // (built from the fa_cup/ecl coefficient -- roddy's base strength plus a
@@ -1278,11 +1328,11 @@
     nSims = nSims || 20000;
     const averageSamples = realTeam => {
       const teams = H2H_DIVISIONS[findTeamDivision(realTeam)] || [];
-      const draws = teams.map(t => sampleTeam(t, nSims));
+      const draws = teams.map(t => sampleTeam(t, nSims, seededH2HRng('h2h-v2|'+h2hTeamIdentity(t)), round));
       return Array.from({length:nSims}, (_,i) => draws.reduce((sum,row) => sum+row[i],0)/draws.length);
     };
-    let a = teamA === AVERAGE_TEAM ? averageSamples(teamB) : sampleTeam(teamA,nSims);
-    let b = teamB === AVERAGE_TEAM ? averageSamples(teamA) : sampleTeam(teamB,nSims);
+    let a = teamA === AVERAGE_TEAM ? averageSamples(teamB) : sampleTeam(teamA,nSims,seededH2HRng('h2h-v2|'+h2hTeamIdentity(teamA)),round);
+    let b = teamB === AVERAGE_TEAM ? averageSamples(teamA) : sampleTeam(teamB,nSims,seededH2HRng('h2h-v2|'+h2hTeamIdentity(teamB)),round);
     const edge = teamA === AVERAGE_TEAM || teamB === AVERAGE_TEAM
       ? {applied:false} : h2hEdgeBonus(teamA, teamB);
     if(edge.applied){
@@ -1318,14 +1368,15 @@
   // whether the team won their real match outright.
   const medianPriceCache={};
   function computeVsLeagueMedianMarket(team, round, nSims){
-    if(medianPriceCache[team])return {...medianPriceCache[team],round};
+    const cacheKey = team+'|'+round+'|'+(nSims || 20000);
+    if(medianPriceCache[cacheKey])return medianPriceCache[cacheKey];
     nSims = nSims || 20000;
     const div = findTeamDivision(team);
-    const a = sampleTeam(team, nSims);
-    const b = divSampler[div] ? divSampler[div](nSims) : sampleTeam(team, nSims);
+    const a = sampleTeam(team, nSims,seededH2HRng('median-v2|'+h2hTeamIdentity(team)),round);
+    const b = divSampler[div] ? divSampler[div](nSims,seededH2HRng('median-v2|'+div)) : sampleTeam(team,nSims,seededH2HRng('median-v2|fallback'),round);
     let aWin=0,bWin=0,draw=0;
     for(let i=0;i<nSims;i++){ if(a[i]>b[i]) aWin++; else if(b[i]>a[i]) bWin++; else draw++; }
-    return medianPriceCache[team]={ team, round, div, aWinPct:aWin/nSims*100, bWinPct:bWin/nSims*100, drawPct:draw/nSims*100 };
+    return medianPriceCache[cacheKey]={ team, round, div, aWinPct:aWin/nSims*100, bWinPct:bWin/nSims*100, drawPct:draw/nSims*100 };
   }
   const winAnyOpponentCache = {};
   // Interim market while the real H2H schedule isn't locked in yet (see
@@ -2142,7 +2193,7 @@
     const winCounts = {}, loseCounts = {};
     teams.forEach(t => { winCounts[t] = 0; loseCounts[t] = 0; });
     const samples = {};
-    teams.forEach(t => { samples[t] = sampleTeam(t, nSims); });
+    teams.forEach(t => { samples[t] = sampleTeam(t,nSims,seededH2HRng('round-special-v2|'+h2hTeamIdentity(t)),round); });
     for(let i=0;i<nSims;i++){
       let best=-Infinity, bestTeam=null, worst=Infinity, worstTeam=null;
       for(const t of teams){
@@ -7357,7 +7408,7 @@
   async function priceSyncFingerprint(){
     const data=Object.fromEntries(Object.entries(DATA).filter(([key])=>!['real_results','carry_balances'].includes(key)));
     const input={
-      priceModelVersion:'cashout-singles-v1',
+      priceModelVersion:'h2h-live-form-v2',
       season:seasonKeyPart(),round:state.currentRound,data,
       controls:{
         cupFixtures:state.cupFixtures,
