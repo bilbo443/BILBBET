@@ -134,7 +134,7 @@ jobs:
       - name: Select available draft files
         id: draft_paths
         run: |
-          python3 -c 'import os,glob; patterns="odds-draft-*.json extracted-*.json run-report-*.json futures-publishable.json futures.json fa_cup_draw.json h2h_divisions.json h2h_schedule.json team_market_coeffs.json roddy_history.json h2h_history.json h2h_shift.json h2h_cup_shift.json h2h_variance_widen.json carry_balances.json h2h_record.json real_results.json admin_teams.json".split(); paths=sorted({p for pattern in patterns for p in glob.glob("draft/"+pattern) if os.path.isfile(p)}); assert "draft/futures-publishable.json" in paths; open(os.environ["GITHUB_OUTPUT"],"a").write("paths<<DRAFT_PATHS\n"+"\n".join(paths)+"\nDRAFT_PATHS\n")'
+          python3 -c 'import os,glob; patterns="odds-draft-*.json roddy-results-*.json extracted-*.json run-report-*.json futures-publishable.json futures.json fa_cup_draw.json h2h_divisions.json h2h_schedule.json team_market_coeffs.json roddy_history.json h2h_history.json h2h_shift.json h2h_cup_shift.json h2h_variance_widen.json carry_balances.json h2h_record.json real_results.json admin_teams.json".split(); paths=sorted({p for pattern in patterns for p in glob.glob("draft/"+pattern) if os.path.isfile(p)}); assert "draft/futures-publishable.json" in paths; open(os.environ["GITHUB_OUTPUT"],"a").write("paths<<DRAFT_PATHS\n"+"\n".join(paths)+"\nDRAFT_PATHS\n")'
 
       - name: Open a PR with the draft odds
         if: success()
