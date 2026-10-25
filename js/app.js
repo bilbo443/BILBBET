@@ -2092,7 +2092,7 @@
           <div style="font-size:clamp(15px, calc(15px + 0.4vw), 18px);color:#6a6a6a;text-decoration:line-through;text-align:center;">${p.baseOdds.toFixed(2)}</div>
           ${priceOnlyButton(p.id, p.team + ' to win (boosted)', {odds:p.odds, suspended:false})}
         </div>
-      </div>`).join('') : `<div class="bb-card" style="text-align:center;padding:1.5rem;color:#9a9a9a;">${FIXTURES_ARE_PLACEHOLDER ? 'The official fixtures are still being confirmed. Featured odds are available below for futures and Mr Median.' : fixturesLoading ? 'Loading&hellip;' : "No featured fixtures this round yet \u2014 check back once the round's matches are set."}</div>`;
+      </div>`).join('') : `<div class="bb-card" style="text-align:center;padding:1.5rem;color:#9a9a9a;">${fixturesLoading ? 'Loading&hellip;' : 'No boosted fixtures published for this round yet.'}</div>`;
 
     const futureCards = futures.length ? futures.map(p => `
       <div class="bb-card bb-featured-card" style="display:flex;align-items:stretch;gap:12px;margin-bottom:8px;">
@@ -2146,7 +2146,8 @@
       </div>
       ${renderTippingNudgeCard()}
       ${renderPointProjection(state.currentRound)}
-      ${EMBED_MODE && FIXTURES_ARE_PLACEHOLDER ? '' : '<h3 style="margin-top:0;">Featured fixtures</h3>' + fixtureCards}
+      <h3 style="margin-top:0;">Boosty Boys · Featured fixtures</h3>
+      ${fixtureCards}
       <h3>Featured futures</h3>
       ${futureCards}
       <h3>Mr Median Special</h3>
@@ -2253,7 +2254,7 @@
       <div style="background:linear-gradient(145deg,#213825,#171e19);border:1px solid #4b7654;border-radius:12px;padding:18px 16px;margin-bottom:14px;color:#f4f6ed;">
         <div style="color:#bfe7ad;font-size:13px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;">Bilbbet · Round ${state.currentRound}</div>
         <div style="font-size:clamp(22px,5vw,27px);font-weight:800;line-height:1.18;margin:8px 0;">Welcome to this week's picks</div>
-        <p style="color:#d8e4d5;font-size:16px;line-height:1.45;margin:0 0 14px;">Explore the featured odds below. The fixture draw arrives after the fantasy platform's first lockout; until then, you can back teams to win their round or beat the median.</p>
+        <p style="color:#d8e4d5;font-size:16px;line-height:1.45;margin:0 0 14px;">Explore this week's Boosty Boys, featured futures and Mr Median offers below. Open Bilbbet to check the current price and make your pick.</p>
         <a href="https://bilbo443.github.io/BILBBET/" target="_blank" rel="noopener noreferrer"
            style="display:inline-block;background:#ffdd00;color:#1a1a1a;font-weight:800;font-size:16px;padding:10px 15px;border-radius:6px;text-decoration:none;">Open Bilbbet to make a pick &rarr;</a>
         <div style="color:#b9cbb6;font-size:13px;margin-top:10px;">Prices here are a preview. Check the current offer in Bilbbet before placing a bet.</div>
