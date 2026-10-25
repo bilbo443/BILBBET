@@ -1171,3 +1171,10 @@ Global H2H live-form update, 26 October 2026:
 - Price model version forces one normal administrator board refresh; existing bets retain accepted odds and no balances or settlements change. Refresh Home offers after deployment to replace stored promotional offers too.
 - At the production 20,000-simulation setting, Wang vs Stairway moves from approximately 2.47 with the historical-only model to 2.02 with form; Stairway remains approximately 1.87. This is a global-rule comparison, not a team-specific override.
 - Tests cover all 66 form adjustments, matched opposite orientations, repeated calculations, rename stability, historical-only fallback, partial/future exclusion and stable median prices. Existing futures-display and finish-market JavaScript checks also pass.
+
+
+Embedded Home Boosty Boys, 26 October 2026:
+- Removed the legacy EMBED_MODE/FIXTURES_ARE_PLACEHOLDER condition that hid featured weekly fixtures even after official fixtures were loaded.
+- The Eliza Cup Home portal now shows the same published boosted fixture cards, opponents and prices as Home, labelled Boosty Boys. Empty rounds show no invented offers.
+- Updated the embedded introduction to remove pre-lockout draw wording. The portal remains a read-only preview with links to Bilbbet.
+- Verified actual Home rendering in embed mode with the legacy flag enabled: boosted team/opponent/price visible, correct empty state; JavaScript syntax and diff checks passed. No odds, account or database changes; no admin price sync required.
