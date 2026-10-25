@@ -81,7 +81,7 @@ import json
 import os
 from roster_format import validate_roster
 from cup_markets import regenerate_roddy_and_cup
-from official_division_rotations import load_official_rotations
+from official_division_rotations import load_official_rotations, load_simulation_schedules
 
 from simulation_adapter import season_schedule, simulate_division_futures, N_SIM
 from diff_report import pct_to_odds
@@ -443,7 +443,7 @@ def sync_futures_divisions(new_roster, team_coeffs, scale, history, data_dir, dr
     rows, _ = simulate_division_futures(new_roster, team_coeffs, scale, history, live_records,
         n_sim=n_sim, seed=7, team_ids={t['name']: str(t['id']) for t in (admin_teams or [])},
         tier_centres=tier_centres,
-        official_schedules=load_official_rotations(data_dir, admin_teams or [], new_roster))
+        official_schedules=load_simulation_schedules(data_dir, admin_teams or [], new_roster))
     by_div = {}
     for r in rows:
         by_div.setdefault(r['division'], []).append(r)
