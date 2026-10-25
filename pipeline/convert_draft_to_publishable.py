@@ -112,6 +112,11 @@ def convert_draft_to_publishable(draft_path, live_futures_path, out_path):
         for key, market_rows in markets.items():
             publishable['divisions'][div][key] = market_rows
 
+    # Whole-league simulations are refreshed from their own validated score tables.
+    for section in ('roddy', 'fa_cup_markets'):
+        if section in draft:
+            publishable[section] = draft[section]
+
     # The simulation above only recalculates division markets. The remaining
     # markets are copied from live futures, so reconcile their identities with
     # the roster draft and suspend a copied market if its field has changed.
@@ -173,9 +178,13 @@ def convert_draft_to_publishable(draft_path, live_futures_path, out_path):
             cup_state = json.load(open(cup_state_path))
             if cup_state.get('preliminary_results_final'):
                 cup_eliminated = set(cup_state.get('eliminated_teams', []))
+            if cup_state.get('r64_results_final'):
+                cup_eliminated.update(t for pair in cup_state['r64_matches'] for t in pair if t not in cup_state['r64_winners'])
         for section in ('roddy', 'fa_cup_markets'):
             expected = active - cup_eliminated if section == 'fa_cup_markets' else active
             for key, rows in publishable.get(section, {}).items():
+                if section in draft:
+                    continue  # Already simulated on the validated current field.
                 stale_cup_field = section == 'fa_cup_markets' and any(
                     aliases.get(r['team'], r['team']) in cup_eliminated for r in rows)
                 if section == 'fa_cup_markets':
@@ -199,7 +208,7 @@ def convert_draft_to_publishable(draft_path, live_futures_path, out_path):
         for section in ('roddy', 'fa_cup_markets'):
             for key, market_rows in publishable.get(section, {}).items():
                 if market_rows and all(row.get('suspended') for row in market_rows):
-                    summary.append(f"{section} / {key}: copied odds suspended because the roster field changed; regenerate before offering this market")
+                    summary.append(f"{section} / {key}: completed outcome; no further betting" if section in draft else f"{section} / {key}: copied odds suspended because the roster field changed; regenerate before offering this market")
     for div, markets in converted_divisions.items():
         for key, market_rows in markets.items():
             n_suspended = sum(1 for e in market_rows if e['suspended'])
