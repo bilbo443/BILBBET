@@ -416,6 +416,8 @@ def sync_futures_divisions(new_roster, team_coeffs, scale, history, data_dir, dr
         markets.pop('relegation_pct' if div.startswith('DIVISION 3') else 'bottom3_pct', None)
     div_keys_count = lambda div: {
         'win_div_pct': 1, 'top3_pct': 3,
+        'miss_top3_pct': len(new_roster[div])-3,
+        'miss_top_half_pct': len(new_roster[div])-len(new_roster[div])//2,
         'top_half_pct': len(new_roster[div]) // 2, 'bottom_half_pct': len(new_roster[div]) // 2,
         'wooden_spoon_pct': 1,
         **({'bottom3_pct': 3} if div.startswith('DIVISION 3') else {'relegation_pct': 4 if div.startswith('ELIZA') else 3}),
