@@ -256,6 +256,13 @@ def simulate_division_futures(new_divs, team_coeffs, scale, history, extracted_r
             pts = {t: 0 for t in teams}
             sfor = {t: 0.0 for t in teams}
             team_round_scores = {t: samplers[t](TOTAL_ROUNDS) for t in teams}
+            # Completed scores are facts, not another Monte Carlo draw.
+            for record in extracted_results:
+                team = record['team']
+                if team in team_round_scores:
+                    for index, score in enumerate(record['scores_by_round']):
+                        if score is not None:
+                            team_round_scores[team][index] = float(score)
             for rnd_idx, pairs in enumerate(division_schedules[div]):
                 if any('AVERAGE TEAM' in pair for pair in pairs):
                     team_round_scores['AVERAGE TEAM'] = np.mean(
