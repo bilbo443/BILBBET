@@ -1134,3 +1134,14 @@ Live futures correction, 26 October 2026:
 - After deployment, normal admin price sync is required so newly submitted bets use the published updated prices.
 
 The final publication uses a fresh stable source CSV, with 30 GW2 one-point corrections since the reviewed 25 October extraction. All 66 league/Roddy GW2 scores agree, totals validate, and league/cup winners are unchanged. data/real_results.json is updated to the corrected values; accepted odds, balances and settlement records remain untouched.
+
+
+Finish/miss top-X futures, 26 October 2026:
+- Divisions offer Finish top 3 / Miss top 3 and Finish top half / Miss top half. Roddy offers both sides for top 3, top 5 and top 10.
+- Top X includes positions 1 through X; Miss top X means X+1 or lower in official final rankings. Future settlement remains manual until official final rankings are confirmed.
+- New probabilities complement the same rank simulation, before the ordinary 5% price margin; published rounded odds are not inverted. Existing prices and all FA Cup/ECL markets retained exactly.
+- Weekly and roster generation retain the new markets. Accepted market IDs and old labels remain valid.
+- Same-team finish markets involving a miss selection cannot be combined; own-team negative bets are blocked by linked internal ID on the server and the frontend.
+- Complementary place counts are N-X, including 63/61/56 for the 66-team Roddy. Those counts feed the existing multis adjustment.
+- Thirteen Python tests and targeted JavaScript tests pass; server owner authentication and price checks verified after the narrow placement-guard installation. No balances, accepted odds or settlements changed.
+- Normal administrator price-board sync is required after deployment to publish new quotes.
