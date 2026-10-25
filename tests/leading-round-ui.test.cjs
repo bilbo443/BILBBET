@@ -1,0 +1,10 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert');
+const s=fs.readFileSync('js/app.js','utf8');
+const code=s.slice(s.indexOf('  function leaderRoundComplete('),s.indexOf('  function renderLeadingAtMarket('));
+const ctx={DATA:{roddy_results:{A:[80,70,null],B:[60,50,null]}},REAL_RESULTS:{A:[null,70,null],B:[null,0,null]},H2H_DIVISIONS:{'DIVISION 2A':['A','B']}};
+vm.createContext(ctx);vm.runInContext(code,ctx);
+assert.equal(ctx.leaderRoundComplete('RODDY',2),true);
+assert.equal(ctx.leaderRoundComplete('RODDY',3),false);
+assert.equal(ctx.leaderRoundComplete('DIVISION 2A',2),true);
+assert.equal(ctx.leaderRoundComplete('DIVISION 2A',1),false);
+console.log('PASS: completed leader checkpoints closed, zero scores retained, future rounds open');

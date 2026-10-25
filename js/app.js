@@ -94,7 +94,7 @@
     return null;
   }
   async function loadAllData(){
-    const files = ['futures','h2h_history','h2h_divisions','h2h_shift','h2h_cup_shift','h2h_variance_widen','h2h_schedule','leading_at','special_markets','h2h_record','cup_calendar','carry_balances','round_dates','div23_schedule_exceptions','real_results','aleague_round_projection','roster_rules','team_strength_tiers','official_fa_cup_draw'];
+    const files = ['futures','h2h_history','h2h_divisions','h2h_shift','h2h_cup_shift','h2h_variance_widen','h2h_schedule','leading_at','special_markets','h2h_record','cup_calendar','carry_balances','round_dates','div23_schedule_exceptions','real_results','aleague_round_projection','roster_rules','team_strength_tiers','official_fa_cup_draw','roddy_results'];
     const failures = [];
     const results = await Promise.all(files.map(async name => {
       const path = './data/' + name + '.json';
@@ -2753,6 +2753,12 @@
       '</div>';
   }
 
+  function leaderRoundComplete(scopeKey, round){
+    const source = scopeKey === 'RODDY' ? (DATA.roddy_results || {}) : REAL_RESULTS;
+    const teams = scopeKey === 'RODDY' ? Object.keys(DATA.roddy_results || {}) : (H2H_DIVISIONS[scopeKey] || []);
+    return teams.length > 0 && teams.every(team => Number.isFinite(source[team]?.[round-1]));
+  }
+
   function renderLeadingAtMarket(scopeKey){
     // scopeKey is a division name, or 'RODDY' for the open-field standings
     const round = state.leadingAtRound;
@@ -2761,6 +2767,9 @@
         <select class="bb-select" id="leadingat-round" style="width:170px;">${roundOptions(state.leadingAtRound)}</select>
       </div>
       <p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:10px;">Settles on the standings at the END of the selected round, including all matches and scores belonging to that round. It does not mean the start of the round. Split rounds must finish before settlement.</p>`;
+    if(leaderRoundComplete(scopeKey,round)){
+      return picker + '<div class="bb-card">This round is complete. Leader-after-round betting is closed.</div>';
+    }
     if(isRoundBlocked(round)){
       const msg = round < state.currentRound
         ? '\u{1F512} This round has already been played &mdash; betting closed.'
@@ -6523,6 +6532,14 @@
       }
       if(ep.type==='leadat' && ep.round===26 && ep.scope==='RODDY' && np.marketKey==='roddy_win_pct' && ep.team===np.team){
         return { reason:'nested', msg: `leading the Roddy after round 26 IS winning the Roddy \u2014 backing both is the same outcome twice` };
+      }
+
+      // Final regular-table leadership is the same finishing-position event.
+      const finalRound = scope => scope.startsWith('DIVISION 2') || scope.startsWith('DIVISION 3') ? 23 : 26;
+      const lead = np.type === 'leadat' ? np : ep.type === 'leadat' ? ep : null;
+      const finish = np.type === 'fut' ? np : ep.type === 'fut' ? ep : null;
+      if(lead && finish && lead.round === finalRound(lead.scope) && lead.scope === finish.div && sameTeam(lead.team,finish.team)){
+        return {reason:'nested',msg:'the final table leader and this finish bet concern the same team outcome; place them separately'};
       }
 
       // futures: same team, same division/scope, different market

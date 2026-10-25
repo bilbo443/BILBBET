@@ -1,4 +1,4 @@
-from official_division_rotations import load_official_rotations
+from official_division_rotations import load_simulation_schedules
 from team_strength_tiers import load_tier_centres
 """
 Simulation adapter -- the piece that was deliberately left unbuilt in the
@@ -207,7 +207,7 @@ def season_schedule(div, teams):
     return round_robin_schedule(teams, TOTAL_ROUNDS)
 
 
-def simulate_division_futures(new_divs, team_coeffs, scale, history, extracted_results, n_sim=N_SIM, seed=7, team_ids=None, tier_centres=None, official_schedules=None):
+def simulate_division_futures(new_divs, team_coeffs, scale, history, extracted_results, n_sim=N_SIM, seed=7, team_ids=None, tier_centres=None, official_schedules=None, checkpoint_output=None):
     team_ids = team_ids or {}
     identity = lambda name: str(team_ids.get(name, name))
     new_divs = {div: sorted(teams, key=identity) for div, teams in sorted(new_divs.items())}
@@ -250,6 +250,9 @@ def simulate_division_futures(new_divs, team_coeffs, scale, history, extracted_r
     division_schedules.update(official_schedules or {})
     rank_counts = {div: {t: np.zeros(len(teams), dtype=int) for t in teams} for div, teams in new_divs.items()}
 
+    checkpoints = {div: {i+1: {t: 0 for t in teams} for i,pairs in enumerate(division_schedules[div]) if pairs}
+                   for div,teams in new_divs.items()} if checkpoint_output is not None else {}
+
     # Promotion awaits a confirmed conference finals bracket and allocation.
     for _ in range(n_sim):
         for div, teams in new_divs.items():
@@ -278,6 +281,9 @@ def simulate_division_futures(new_divs, team_coeffs, scale, history, extracted_r
                     else:
                         if a in pts: pts[a] += 1
                         if b in pts: pts[b] += 1
+                if checkpoint_output is not None and pairs:
+                    leader = min(teams, key=lambda t: (-pts[t], -sfor[t]))
+                    checkpoints[div][rnd_idx+1][leader] += 1
             ranking = sorted(teams, key=lambda t: (-pts[t], -sfor[t]))
             for pos, t in enumerate(ranking):
                 rank_counts[div][t][pos] += 1
@@ -307,6 +313,14 @@ def simulate_division_futures(new_divs, team_coeffs, scale, history, extracted_r
     for row in rows:
         row['miss_top3_pct'] = 100.0 - row['top3_pct']
         row['miss_top_half_pct'] = 100.0 - row['top_half_pct']
+    if checkpoint_output is not None:
+        for div, rounds in checkpoints.items():
+            checkpoint_output[div] = {str(r): [{'team':t, 'probability_pct':100*c/n_sim} for t,c in counts.items()]
+                                      for r,counts in rounds.items()}
+            # Final regular-table leadership is exactly the division-winner market.
+            last = str(max(rounds))
+            checkpoint_output[div][last] = [{'team':row['team'], 'probability_pct':row['win_div_pct']}
+                                            for row in rows if row['division']==div]
     return rows, adjustments
 
 
@@ -359,8 +373,10 @@ def regenerate_division_futures(extracted_results, coeffs_path='data/team_market
     registry_path = Path(divs_path).with_name('admin_teams.json')
     registry = json.loads(registry_path.read_text()) if registry_path.exists() else []
     team_ids = {t['name']: str(t['id']) for t in registry}
+    checkpoints = {}
     rows, adjustments = simulate_division_futures(new_divs, team_coeffs, scale, history,
         extracted_results, seed=7, team_ids=team_ids,
         tier_centres=load_tier_centres(Path(divs_path).parent, registry),
-        official_schedules=load_official_rotations(Path(divs_path).parent, registry, new_divs))
-    return {'division_rows': rows, 'live_adjustments_applied': adjustments}
+        official_schedules=load_simulation_schedules(Path(divs_path).parent, registry, new_divs),
+        checkpoint_output=checkpoints)
+    return {'division_rows': rows, 'live_adjustments_applied': adjustments, 'leading_at_probabilities':checkpoints}
