@@ -1162,3 +1162,12 @@ Futures implied-price display, 26 October 2026:
 - Implied percentage is 100 divided by the actual offered decimal price, including margin, with explanatory copy. It is not the simulation's raw probability. Futures now consistently display the offered price rather than team-specific novelty display multipliers.
 - Preference is stored locally per browser, with a safe default if storage is unavailable. Bet attributes, slips, accepted prices and price-board publication remain decimal and unchanged.
 - Trusted-price updates refresh both displayed probability and underlying decimal attributes correctly. Focused JavaScript tests and syntax check passed. This display change requires no database installation or admin price sync.
+
+
+Global H2H live-form update, 26 October 2026:
+- All teams use the same form rule: n/(n+8) weight on the difference between completed-score mean and the historical/tier prior, bounded to a 12-point weekly shift. Two completed rounds receive 20% weight. Original histories, coefficients, tier settings and rivalry edges remain intact.
+- Only complete Roddy score rounds before the priced fixture round and with passed kickoff dates qualify. Partial/current/future rounds and a stray future REAL_RESULTS value are excluded.
+- Wide-pool construction and H2H/median draws are seeded deterministically. Permanent IDs preserve seed identity through renames. Same input data produce identical prices across refreshes, reversed pairings and week changes with no new results.
+- Price model version forces one normal administrator board refresh; existing bets retain accepted odds and no balances or settlements change. Refresh Home offers after deployment to replace stored promotional offers too.
+- At the production 20,000-simulation setting, Wang vs Stairway moves from approximately 2.47 with the historical-only model to 2.02 with form; Stairway remains approximately 1.87. This is a global-rule comparison, not a team-specific override.
+- Tests cover all 66 form adjustments, matched opposite orientations, repeated calculations, rename stability, historical-only fallback, partial/future exclusion and stable median prices. Existing futures-display and finish-market JavaScript checks also pass.
