@@ -1145,3 +1145,13 @@ Finish/miss top-X futures, 26 October 2026:
 - Complementary place counts are N-X, including 63/61/56 for the 66-team Roddy. Those counts feed the existing multis adjustment.
 - Thirteen Python tests and targeted JavaScript tests pass; server owner authentication and price checks verified after the narrow placement-guard installation. No balances, accepted odds or settlements changed.
 - Normal administrator price-board sync is required after deployment to publish new quotes.
+
+
+Shared leader-after-round model, 26 October 2026:
+- Replaced static pre-season leader prices with checkpoints from the same season paths used for division and Roddy futures: actual completed scores, shared strength tiers/form adjustment and confirmed fixtures.
+- D1 forecast now uses its official full-season schedule; D2/D3 use the confirmed fixed-anchor rotations.
+- Division GW23 (D2/D3) or GW26 (D1) leader prices equal division-winner prices exactly; Roddy GW26 equals Roddy winner. Earlier checkpoints reflect cumulative standings at the END of the selected round.
+- Weekly refresh stages leading-at-publishable.json alongside futures; the review-only preparation command outputs the same snapshot. No random tie-break generator is used separately from futures.
+- Completed checkpoints are hidden from betting even if round controls are manually reopened. Final-checkpoint and finishing-position bets on the same team cannot be combined in a slip.
+- Fifteen Python tests and targeted JavaScript checks passed, including endpoint equality, no RNG perturbation, actual-result preservation and completed-round controls. FA Cup, ECL, Roddy prices and unrelated specials are retained. D1 prices update for its corrected official fixture schedule.
+- Existing accepted selections, odds, account balances, carry corrections and settlements are untouched; normal admin price sync is needed after deployment.
