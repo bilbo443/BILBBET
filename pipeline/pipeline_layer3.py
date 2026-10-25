@@ -257,6 +257,18 @@ def run_pipeline(url, roster_path, round_dates_path, draft_dir,
         write_run_report(draft_dir, run_id, result)
         return result
 
+    from live_futures import refresh_whole_league
+    source_dir = os.path.dirname(round_dates_path) or 'data'
+    registry = json.load(open(registry_path))
+    whole_league, roddy_scores = refresh_whole_league(
+        csv_path, source_dir, registry, roster_divs,
+        json.load(open(coeffs_path)), json.load(open(history_path)),
+        {r['team']:r['scores_by_round'] for r in results})
+    odds.update(whole_league)
+    with open(os.path.join(draft_dir, f'roddy-results-{run_id}.json'), 'w') as f:
+        json.dump(roddy_scores, f, indent=2)
+    step('Roddy and FA Cup futures refreshed using completed results')
+
     step("Simulation complete -- writing draft odds")
     odds_path = os.path.join(draft_dir, f'odds-draft-{run_id}.json')
     with open(odds_path, 'w') as f:

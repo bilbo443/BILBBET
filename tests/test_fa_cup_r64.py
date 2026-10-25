@@ -15,6 +15,8 @@ class ConfirmedDrawTests(unittest.TestCase):
         data = Path(__file__).resolve().parents[1] / 'data'
         self.roster = json.loads((data / 'h2h_divisions.json').read_text())
         self.official = json.loads((data / 'official_fa_cup_draw.json').read_text())
+        self.official.pop('r64_results_final', None)
+        self.official.pop('r64_winners', None)
         self.names = sorted(t for group in self.roster.values() for t in group)
         self.score = {name: i+1 for i, name in enumerate(self.names)}
         self.history = {name: [self.score[name]] for name in self.names}

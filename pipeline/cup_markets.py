@@ -21,8 +21,9 @@ def market_rows(pcts):
     return sorted(rows, key=lambda row: (row['suspended'], row['odds']))
 
 
-def regenerate_roddy_and_cup(roster, coeffs, scale, history, n_sim=6000, seed=11, roddy_adjustments=None, roddy_ability_model=None, official_cup_draw=None, tier_centres=None):
+def regenerate_roddy_and_cup(roster, coeffs, scale, history, n_sim=6000, seed=11, roddy_adjustments=None, roddy_ability_model=None, official_cup_draw=None, tier_centres=None, live_results=None, apply_cup_results=True):
     teams = [t for division in roster.values() for t in division]
+    live_results = live_results or {}
     pool = [score for t in teams for score in history.get(t, [])] or [60]
     def samplers_for(market):
         np.random.seed(seed)
@@ -36,6 +37,11 @@ def regenerate_roddy_and_cup(roster, coeffs, scale, history, n_sim=6000, seed=11
                 shift = scale * (coeffs.get(t, {}).get(market, 0.0)
                     + ((roddy_adjustments or {}).get(t, 0.0)
                        if market == 'roddy' and t not in (roddy_ability_model or {}) else 0.0))
+            played = [v for v in live_results.get(t, []) if v is not None]
+            if played:
+                # Gentle form update; actual season totals are retained separately.
+                weight = min(len(played) / 26.0, 0.5)
+                shift += weight * (float(np.mean(played)) - float(np.mean(values)) - shift)
             result[t] = make_sampler(values, shift)
         return result
 
@@ -58,9 +64,13 @@ def regenerate_roddy_and_cup(roster, coeffs, scale, history, n_sim=6000, seed=11
             mean + ability_rng.normal(0, sd, size=n_sim)
         )
     for simulation in range(n_sim):
-        totals = {t: samplers[t](26).sum()
-                  + (ability_totals[t][simulation] if t in ability_totals else 0)
-                  for t in teams}
+        totals = {}
+        for t in teams:
+            known = [v for v in live_results.get(t, []) if v is not None]
+            remaining = 26 - len(known)
+            totals[t] = sum(known) + samplers[t](remaining).sum()
+            if t in ability_totals:
+                totals[t] += ability_totals[t][simulation] * remaining / 26.0
         for pos, team in enumerate(sorted(teams, key=lambda t: -totals[t])):
             positions[team][pos] += 1
     roddy = {market: market_rows({t: 100*count[:places].sum()/n_sim
@@ -117,6 +127,21 @@ def regenerate_roddy_and_cup(roster, coeffs, scale, history, n_sim=6000, seed=11
         entrants = [team for pair in official_pairs for team in pair]
         if len(set(entrants)) != 64 or set(entrants) != set(teams) - eliminated:
             raise ValueError('Confirmed Round of 64 must contain each survivor exactly once')
+    r64_winners = []
+    if official_cup_draw is not None and official_cup_draw.get('r64_results_final'):
+        r64_winners = official_cup_draw.get('r64_winners', [])
+        if len(r64_winners) != 32 or any(w not in pair for w,pair in zip(r64_winners,draw['r64_matches'])):
+            raise ValueError('Incomplete official Round of 64 results')
+        eliminated.update(t for pair in draw['r64_matches'] for t in pair if t not in r64_winners)
+    if apply_cup_results and not r64_winners and draw.get('r64_draw_confirmed') and live_results:
+        ri = int(official_cup_draw['round_of_64_round']) - 1
+        pairs = draw['r64_matches']
+        values = [(live_results.get(a, [None]*26)[ri], live_results.get(b, [None]*26)[ri]) for a,b in pairs]
+        if all(a is not None and b is not None for a,b in values):
+            if any(a == b for a,b in values):
+                raise ValueError('Completed FA Cup round contains a draw; advancement needs organiser confirmation')
+            r64_winners = [pair[0] if scores[0] > scores[1] else pair[1] for pair,scores in zip(pairs,values)]
+            eliminated.update(t for pair in pairs for t in pair if t not in r64_winners)
     for _ in range(n_sim):
         prelim = {('PRELIM', i): (
                     confirmed_winners[i] if confirmed_winners else play(a, b))
@@ -126,7 +151,8 @@ def regenerate_roddy_and_cup(roster, coeffs, scale, history, n_sim=6000, seed=11
             r64_field = list(draw['preliminary_byes']) + list(prelim.values())
             if len(r64_field) != 64:
                 raise ValueError('Official preliminary must produce 64 survivors')
-            field = ([play(a, b) for a, b in draw['r64_matches']]
+            field = (list(r64_winners) if r64_winners else
+                     [play(a, b) for a, b in draw['r64_matches']]
                      if draw.get('r64_draw_confirmed') else round_matches(r64_field))
         else:
             field = list(draw['r32_byes'])
