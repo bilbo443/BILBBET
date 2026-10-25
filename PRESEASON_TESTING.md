@@ -1188,3 +1188,11 @@ Market coverage correction, 26 October 2026:
 - Home and embed buttons display the actual published quote and show pricing review for paused quotes. Publication uses raw model values, never stale trusted display prices.
 - Regression tests reproduce all four real failures, reverse-orientation hedges and complementary finish bets. Server synthetic rejection, live-board validation and preserved administrator authentication verified without impersonating a user or publishing a synthetic board.
 - After deployment, Refresh Home offers in the normal administrator session regenerates the corrected offers and safely replaces the temporary quote blocks.
+
+
+Punter Custom H2H CSV, 26 October 2026:
+- Custom matchup has a Download all matchup odds (CSV) button using the selected round, all visible configured teams, row home team / column away team and blank self-matchups.
+- Exports ordinary decimal win prices, without promotional boosts. Draws remain a separate outcome; this is not an advancement price or historical accepted-odds record.
+- Uses a snapshot of published ordinary prices where all three outcomes are present and consistent, otherwise uses the current seeded live-form model once per unordered pair. Paused/unsafe published pairs are labelled UNAVAILABLE; they are not silently recomputed.
+- Runs in batches with progress and cancellation; captures the selected round before starting. CSV escapes quotes/formula-like labels and preserves fractional odds floors instead of rounding to 1.00.
+- Tests cover 66-team dimensions, 2,145 unique pair calculations, both orientations, ordinary versus boosted quotes, paused prices, CSV escaping, cancellation and precision. No price publication, bets, balances or database changes.
