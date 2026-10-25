@@ -666,6 +666,7 @@
     futureMarketTab: FUTURE_DIVS.length ? Object.keys(FUTURES.market_labels)[0] : null,
     teamA:'', teamB:'', h2hRound:1, h2hMarket:null,
     h2hSubTab: FUTURE_DIVS[0], h2hFixtureMarket: null,
+    h2hCsvJob:null, h2hCsvMessage:'',
     futuresSubTab: FUTURE_DIVS[0],
     slip:[], stake:50, betMode:'multi', useBoost:false, showImpliedChance:false,
     myBets:null,
@@ -3165,6 +3166,69 @@
     return row(row1Items, !row2Items.length) + row(row2Items, true);
   }
 
+  function h2hCsvCell(value, label=false){
+    let text=String(value ?? '');
+    if(label && /^[=+@\-\t\r]/.test(text))text="'"+text;
+    return '"'+text.replace(/"/g,'""')+'"';
+  }
+  function h2hCsvOdds(value){
+    const price=Number(value);
+    return Math.abs(price-Math.round(price*100)/100)>1e-10 ? String(price) : price.toFixed(2);
+  }
+  function publishedH2HCsvPair(a,b,round,quotes){
+    const get=(side,reverseSide)=>quotes.get('H2H|'+side+'|R'+round+'|'+a+'|'+b) ||
+      quotes.get('H2H|'+reverseSide+'|R'+round+'|'+b+'|'+a);
+    const qa=get('res-a','res-b'),qb=get('res-b','res-a'),qd=get('res-draw','res-draw');
+    if([qa,qb,qd].some(q=>q?.bettable===false))return {a:'UNAVAILABLE',b:'UNAVAILABLE',source:'unavailable'};
+    if(!qa || !qb || !qd)return null;
+    const ordinary=q=>Number(q.baseOdds || Math.min(...(q.prices || [q.odds]).map(Number)));
+    const prices=[qa,qb,qd].map(ordinary);
+    if(prices.some(v=>!Number.isFinite(v)||v<1) || prices.reduce((sum,v)=>sum+1/v,0)<1)
+      return {a:'UNAVAILABLE',b:'UNAVAILABLE',source:'unavailable'};
+    return {a:h2hCsvOdds(prices[0]),b:h2hCsvOdds(prices[1]),source:'published'};
+  }
+  async function buildH2HMatrixCsv(teams,round,quotes,onProgress=()=>{},cancelled=()=>false){
+    const cells=teams.map(()=>teams.map(()=>''));
+    const total=teams.length*(teams.length-1)/2;
+    const counts={published:0,model:0,unavailable:0};let done=0;
+    for(let i=0;i<teams.length;i++)for(let j=i+1;j<teams.length;j++){
+      if(cancelled())throw new Error('Export cancelled');
+      let pair=publishedH2HCsvPair(teams[i],teams[j],round,quotes);
+      if(!pair){
+        const market=computeH2HMarket(teams[i],teams[j],round);
+        const a=toOdds(market.aWinPct),b=toOdds(market.bWinPct);
+        pair={a:a.suspended?'SUSPENDED':h2hCsvOdds(a.odds),b:b.suspended?'SUSPENDED':h2hCsvOdds(b.odds),source:'model'};
+      }
+      cells[i][j]=pair.a;cells[j][i]=pair.b;counts[pair.source]++;done++;
+      if(done%8===0 || done===total){onProgress(done,total);await new Promise(resolve=>setTimeout(resolve,0));}
+    }
+    if(cancelled())throw new Error('Export cancelled');
+    const header=[h2hCsvCell('Home / Away — Round '+round+' ordinary win odds',true),...teams.map(t=>h2hCsvCell(t,true))];
+    const lines=[header.join(','),...teams.map((team,i)=>[h2hCsvCell(team,true),...cells[i].map(v=>h2hCsvCell(v))].join(','))];
+    return {csv:'\uFEFF'+lines.join('\r\n')+'\r\n',counts,teams:teams.length};
+  }
+  async function exportCustomH2HCsv(){
+    if(state.h2hCsvJob)return;
+    const round=Number(state.h2hRound);
+    const teams=[...new Set(Object.entries(H2H_DIVISIONS).filter(([div])=>availableDivision(div)).flatMap(([,list])=>list))].filter(t=>t!==AVERAGE_TEAM).sort((a,b)=>a.localeCompare(b));
+    const quotes=new Map(trustedPrices);
+    const job={round,done:0,total:teams.length*(teams.length-1)/2,cancelled:false};
+    state.h2hCsvJob=job;state.h2hCsvMessage='';render();
+    try{
+      const result=await buildH2HMatrixCsv(teams,round,quotes,(done,total)=>{
+        job.done=done;job.total=total;
+        const progress=document.getElementById('h2h-csv-progress');
+        if(progress)progress.textContent='Preparing Round '+round+': '+done+' / '+total+' matchups';
+      },()=>job.cancelled);
+      const blob=new Blob([result.csv],{type:'text/csv;charset=utf-8;'});
+      const url=URL.createObjectURL(blob),link=document.createElement('a');
+      link.href=url;link.download='bilbbet-h2h-win-odds-R'+round+'.csv';document.body.appendChild(link);link.click();link.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),30000);
+      state.h2hCsvMessage='Download prepared: '+result.teams+' teams; '+result.counts.published+' published pairs, '+result.counts.model+' model-preview pairs, '+result.counts.unavailable+' unavailable pairs.';
+    }catch(e){state.h2hCsvMessage=e.message==='Export cancelled'?'Export cancelled.':'CSV export failed: '+e.message;}
+    finally{state.h2hCsvJob=null;render();}
+  }
+
   function h2hSubTabBar(){
     const renderItem = t => `<div class="bb-tab ${state.h2hSubTab===t?'active':''}" data-h2hsubtab="${esc(t)}" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;display:flex;align-items:center;gap:4px;">${subTabLogo(t)}${t==='CUSTOM MATCHUP'?'Custom matchup':(t==='PLAYOFFS'?'Playoffs':t.replace(' (D1)',''))}</div>`;
     return twoRowTabBar(FUTURE_DIVS.filter(availableDivision), partialRelease() ? [] : ['FA CUP', 'ECL', 'PLAYOFFS', 'CUSTOM MATCHUP'], renderItem);
@@ -4050,6 +4114,11 @@
         </div>
         ${state.teamA && state.teamB && state.teamA===state.teamB ? '<p style="color:#c0604f;font-size:clamp(18px, calc(18px + 0.4vw), 21px);margin:8px 0 0;">Pick two different teams.</p>' : ''}
         ${(state.teamA && !ALL_TEAMS.includes(state.teamA)) || (state.teamB && !ALL_TEAMS.includes(state.teamB)) ? '<p style="color:#c0604f;font-size:clamp(18px, calc(18px + 0.4vw), 21px);margin:8px 0 0;">No match for that team name \u2014 pick one from the suggestions as you type.</p>' : ''}
+      </div><div class="bb-card" style="margin-bottom:1rem;">
+        <button class="bb-btn ghost" id="export-custom-h2h-csv" ${state.h2hCsvJob?'disabled':''}>${state.h2hCsvJob?'Preparing CSV…':'Download all matchup odds (CSV)'}</button>
+        ${state.h2hCsvJob?'<button class="bb-btn ghost" id="cancel-h2h-csv" style="margin-left:8px;">Cancel</button>':''}
+        <p style="color:#9a9a9a;font-size:14px;">Row team to win against the column team, for the selected round. Ordinary decimal win odds, without boosts; a draw is a separate outcome. Published prices are used where available, otherwise current model previews. Self-matchups are blank; unavailable markets are labelled. This is not a record of historical accepted odds.</p>
+        <div id="h2h-csv-progress" role="status" style="color:#9a9a9a;font-size:14px;">${state.h2hCsvJob?'Preparing Round '+state.h2hCsvJob.round+': '+state.h2hCsvJob.done+' / '+state.h2hCsvJob.total+' matchups':esc(state.h2hCsvMessage)}</div>
       </div>${state.h2hMarket ? renderH2HMarket(state.h2hMarket) : ''}`;
     }
     if(state.h2hSubTab === 'FA CUP' || state.h2hSubTab === 'ECL'){
@@ -8659,6 +8728,8 @@
       updateRegistrationStatus(username, status);
     });
     const approveAllBtn = $('#approve-all-btn'); if(approveAllBtn) approveAllBtn.onclick = approveAllPending;
+    const customCsvBtn=$('#export-custom-h2h-csv');if(customCsvBtn)customCsvBtn.onclick=exportCustomH2HCsv;
+    const cancelCsvBtn=$('#cancel-h2h-csv');if(cancelCsvBtn)cancelCsvBtn.onclick=()=>{if(state.h2hCsvJob)state.h2hCsvJob.cancelled=true;};
     const exportCsvBtn = $('#export-bets-csv'); if(exportCsvBtn) exportCsvBtn.onclick = exportBetsToCSV;
     const adminBetsFilterUser = $('#admin-bets-filter-user');
     if(adminBetsFilterUser) adminBetsFilterUser.oninput = e => { state.adminBetsFilterUser = e.target.value; render(); };
