@@ -662,6 +662,7 @@
     screen:'main', user:null, error:'', info:'', loginModalOpen:false,
     username:'', pin:'', adminLoginMode:false, storageDegraded:false,
     activeTab:'HOME',
+    futuresPriceView: initialFuturesPriceView(),
     futureMarketTab: FUTURE_DIVS.length ? Object.keys(FUTURES.market_labels)[0] : null,
     teamA:'', teamB:'', h2hRound:1, h2hMarket:null,
     h2hSubTab: FUTURE_DIVS[0], h2hFixtureMarket: null,
@@ -2732,6 +2733,30 @@
   }
 
   const DIV3_TABS = DIV3_CONFERENCES;
+  function initialFuturesPriceView(){
+    try { return localStorage.getItem('bilbbet_futures_price_view') === 'implied' ? 'implied' : 'odds'; }
+    catch(e){ return 'odds'; }
+  }
+  function futuresPriceText(odds){
+    const value = Number(odds);
+    if(!Number.isFinite(value) || value < 1) return '—';
+    return state.futuresPriceView === 'implied' ? impliedChance(value) : formatOdds(value);
+  }
+  function futuresPriceSpan(odds){
+    return `<span class="bb-odds" data-futures-price title="Decimal odds: ${formatOdds(Number(odds))}">${futuresPriceText(odds)}</span>`;
+  }
+  function futuresPriceToggle(){
+    if(['fixtures','groups'].includes(state.futureMarketTab)) return '';
+    const implied = state.futuresPriceView === 'implied';
+    return `<div style="margin:10px 0 14px;">
+      <div role="group" aria-label="Futures price display" style="display:flex;gap:6px;">
+        <button type="button" class="bb-btn ${implied?'ghost':''}" data-futures-price-view="odds" aria-pressed="${!implied}">Odds</button>
+        <button type="button" class="bb-btn ${implied?'':'ghost'}" data-futures-price-view="implied" aria-pressed="${implied}">Implied %</button>
+      </div>
+      ${implied?'<p style="color:#9a9a9a;font-size:0.85em;margin:6px 0 0;">100 ÷ decimal odds, including the price margin. This is not the model’s raw probability. Bet slips use decimal odds.</p>':''}
+    </div>`;
+  }
+
   function futuresMarketTabs(){
     return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">' +
       Object.entries(FUTURES.market_labels).filter(([key]) =>
@@ -2791,7 +2816,7 @@
       const selId = tagPrefix + '|' + o.team;
       const selected = state.slip.some(s=>s.id===selId);
       return `<div class="bb-outcome ${selected?'selected':''}" data-pick="${esc(selId)}" data-team="${esc(o.team)}" data-odds="${o.odds}" data-label="${esc(o.team)} leading after Round ${round} (${scopeKey==='RODDY'?'Roddy':scopeKey.replace(' (D1)','')})">
-        <span>${esc(o.team)}</span><span class="bb-odds">${formatOdds(o.odds)}</span></div>`;
+        <span>${esc(o.team)}</span>${futuresPriceSpan(o.odds)}</div>`;
     }).join('');
     return picker + list;
   }
@@ -2969,7 +2994,7 @@
       }
       const selected = state.slip.some(s=>s.id===selId);
       return `<div class="bb-outcome ${selected?'selected':''}" data-pick="${esc(selId)}" data-team="${esc(o.team)}" data-odds="${o.odds}" data-label="${esc(o.team)}">
-        <span>${esc(o.team)}</span><span class="bb-odds">${formatOdds(o.odds)}</span></div>`;
+        <span>${esc(o.team)}</span>${futuresPriceSpan(o.odds)}</div>`;
     }).join('');
     return control + list;
   }
@@ -2997,10 +3022,9 @@
           <span class="bb-odds" style="color:#9a9a9a;">${categoryPaused && !o.suspended ? 'paused' : 'suspended'}</span></div>`;
       }
       const selected = state.slip.some(s=>s.id===selId);
-      const disp = displayOddsFor(o.team, o.odds);
       return `<div class="bb-outcome ${selected?'selected':''}" data-pick="${esc(selId)}" data-team="${esc(o.team)}" data-odds="${o.odds}" data-label="${esc(o.team)}">
         <span style="display:flex;align-items:center;gap:8px;">${teamLogo(o.team,20)}${esc(o.team)}</span>
-        <span class="bb-odds"${disp.title?` title="${esc(disp.title)}"`:''}>${disp.text}</span></div>`;
+        ${futuresPriceSpan(o.odds)}</div>`;
     }).join('');
     const explanation = marketKey.includes('miss_top')
       ? '<p style="color:#9a9a9a;">Miss top X means finishing X+1 or lower in the official final ranking. Miss top half means finishing outside the top half.</p>'
@@ -6194,22 +6218,22 @@
     } else if(state.activeTab === 'FUTURES'){
       const stripe = divisionHeaderBanner(state.futuresSubTab);
       if(state.futuresSubTab === 'RODDY'){
-        body = stripe + futuresSubTabBar() + roddyMarketTabs() + (state.futureMarketTab === 'leading_at'
+        body = stripe + futuresSubTabBar() + futuresPriceToggle() + roddyMarketTabs() + (state.futureMarketTab === 'leading_at'
           ? renderLeadingAtMarket('RODDY')
           : `<button class="bb-btn ghost" id="surprise-me-btn" style="margin-bottom:10px;padding:6px 12px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">\u{1F3B2} Surprise me</button>` + sectionRibbon() + `<div id="outcomes-list">${futuresOutcomesList('RODDY', state.futureMarketTab)}</div>`);
       } else if(state.futuresSubTab === 'FA CUP'){
-        body = stripe + futuresSubTabBar() + cupMarketTabs('fa_cup_labels') + sectionRibbon() +
+        body = stripe + futuresSubTabBar() + futuresPriceToggle() + cupMarketTabs('fa_cup_labels') + sectionRibbon() +
           (state.futureMarketTab === 'fixtures' ? renderCupFixtures('FA CUP') :
             `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:10px;">${FUTURES.fa_cup_markets?.win_pct?.length || TOTAL_TEAMS} current entrants. ${(FUTURES.fa_cup_markets?.win_pct?.length || TOTAL_TEAMS) > 64 ? 'An additional preliminary round is required; check the cup calendar and fixtures before betting.' : 'Round of 64 is the first scheduled cup stage.'} Futures must be regenerated after roster changes.</p>` +
             `<div id="outcomes-list">${cupOutcomesList('fa_cup_markets', state.futureMarketTab)}</div>`);
       } else if(state.futuresSubTab === 'ECL'){
-        body = stripe + futuresSubTabBar() + cupMarketTabs('ecl_labels') + sectionRibbon() +
+        body = stripe + futuresSubTabBar() + futuresPriceToggle() + cupMarketTabs('ecl_labels') + sectionRibbon() +
           (state.futureMarketTab === 'fixtures' ? renderCupFixtures('ECL') :
            state.futureMarketTab === 'groups' ? renderEclGroups() :
             `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:10px;">12 confirmed qualifiers for the 26/27 ECL, group draw not yet assigned (see the Groups tab). Stage odds below assume the field regardless of group -- they'll sharpen once groups are confirmed.</p>` +
             `<div id="outcomes-list">${cupOutcomesList('ecl_markets', state.futureMarketTab)}</div>`);
       } else {
-        body = stripe + futuresSubTabBar() + futuresMarketTabs() + (state.futureMarketTab === 'leading_at'
+        body = stripe + futuresSubTabBar() + futuresPriceToggle() + futuresMarketTabs() + (state.futureMarketTab === 'leading_at'
           ? renderLeadingAtMarket(state.futuresSubTab)
           : `<button class="bb-btn ghost" id="surprise-me-btn" style="margin-bottom:10px;padding:6px 12px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">\u{1F3B2} Surprise me</button>` + sectionRibbon() + `<div id="outcomes-list">${futuresOutcomesList(state.futuresSubTab, state.futureMarketTab)}</div>`);
       }
@@ -7311,6 +7335,12 @@
       if(!q)continue;
       const old=Number(el.dataset.odds),price=Number(q.odds);
       el.dataset.odds=String(price);
+      const futuresDisplay = el.querySelector('[data-futures-price]');
+      if(futuresDisplay){
+        futuresDisplay.textContent=futuresPriceText(price);
+        futuresDisplay.title='Decimal odds: '+formatOdds(price);
+        continue;
+      }
       if(old===price)continue;
       const walker=document.createTreeWalker(el,NodeFilter.SHOW_TEXT),nodes=[];
       while(walker.nextNode())nodes.push(walker.currentNode);
@@ -8165,6 +8195,11 @@
       if(state.activeTab === 'ADMIN'){ state.adminPunters = null; state.adminBets = null; render(); loadAdminData(); return; }
       if(state.activeTab === 'SPECIALS'){ state.novelty = null; state.suggestions = null; render(); loadNovelty(); loadSuggestions(); return; }
       if(state.activeTab === 'STATS'){ state.statsData = null; render(); loadStats(); return; }
+      render();
+    });
+    document.querySelectorAll('[data-futures-price-view]').forEach(el => el.onclick = () => {
+      state.futuresPriceView = el.dataset.futuresPriceView === 'implied' ? 'implied' : 'odds';
+      try { localStorage.setItem('bilbbet_futures_price_view', state.futuresPriceView); } catch(e){}
       render();
     });
     document.querySelectorAll('[data-marketkey]').forEach(el => el.onclick = () => { state.futureMarketTab = el.dataset.marketkey; state.cupFixtureMarket = null; render(); });

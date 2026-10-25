@@ -1,0 +1,23 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert');
+const s=fs.readFileSync('js/app.js','utf8');
+const pick=(start,end)=>s.slice(s.indexOf(start),s.indexOf(end,s.indexOf(start)));
+const ctx={state:{futuresPriceView:'implied',futureMarketTab:'top3_pct',roundBettingOpen:true,closeScope:'h2h',pausedCategories:{},slip:[]},formatOdds:n=>Number(n).toFixed(2),
+ localStorage:{getItem:()=>null},FUTURES:{divisions:{TEST:{top3_pct:[{team:'A',odds:4,suspended:false}]}}},categoryPauseControl:()=>'',teamLogo:()=>'',esc:String};
+vm.createContext(ctx);
+vm.runInContext(pick('  function impliedChance(','  // Selects this round')+pick('  function initialFuturesPriceView(','  function futuresMarketTabs(')+pick('  function futuresOutcomesList(','\n  function '),ctx);
+assert.equal(ctx.futuresPriceText(4),'25.0%');
+assert.equal(ctx.futuresPriceText(2),'50.0%');
+assert.equal(ctx.futuresPriceText(1001),'0.10%');
+assert.equal(ctx.futuresPriceText(null),'—');
+assert.equal(ctx.initialFuturesPriceView(),'odds');
+ctx.localStorage.getItem=()=>{throw new Error('blocked')};assert.equal(ctx.initialFuturesPriceView(),'odds');
+const html=ctx.futuresOutcomesList('TEST','top3_pct');
+assert(html.includes('data-odds="4"'));assert(html.includes('25.0%'));assert(html.includes('FUT|TEST|top3_pct|A'));
+ctx.state.futuresPriceView='odds';assert.equal(ctx.futuresPriceText(4),'4.00');
+ctx.state.futureMarketTab='fixtures';assert.equal(ctx.futuresPriceToggle(),'');
+ctx.state.futuresPriceView='implied';
+const display={textContent:'',title:''};const el={dataset:{pick:'FUT|TEST|top3_pct|A',odds:'4'},querySelector:()=>display};
+ctx.document={querySelectorAll:()=>[el]};ctx.trustedPrices=new Map([[el.dataset.pick,{odds:2}]]);
+vm.runInContext(pick('  function applyTrustedPrices(){','  async function priceSyncFingerprint('),ctx);
+ctx.applyTrustedPrices();assert.equal(display.textContent,'50.0%');assert.equal(el.dataset.odds,'2');
+console.log('PASS: implied conversion, preferences, raw bet attributes, fixture exclusion and trusted-price updates');
