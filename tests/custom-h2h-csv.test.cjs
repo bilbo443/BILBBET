@@ -4,6 +4,13 @@ let calls=0;const ctx={setTimeout:fn=>fn(),computeH2HMarket:(a,b,r)=>{calls++;as
 vm.createContext(ctx);vm.runInContext(s.slice(s.indexOf('  function h2hCsvCell('),s.indexOf('  function h2hSubTabBar(')),ctx);
 (async()=>{
  assert.equal(ctx.h2hCsvOdds(1.005),'1.005');
+ const summer=ctx.h2hCsvTimestamp(new Date('2026-10-25T23:15:30Z'));
+ assert.equal(summer.label,'2026-10-26 10:15:30 AEDT (Australia/Sydney)');
+ assert.equal(summer.filename,'20261026-101530-AEDT');
+ const winter=ctx.h2hCsvTimestamp(new Date('2026-06-01T00:00:00Z'));
+ assert.equal(winter.label,'2026-06-01 10:00:00 AEST (Australia/Sydney)');
+ const stamped=await ctx.buildH2HMatrixCsv(['A','B'],4,new Map(),()=>{},()=>false,summer);
+ assert(stamped.csv.includes(summer.label));assert.equal(stamped.snapshot.filename,summer.filename);calls=0;
  let result=await ctx.buildH2HMatrixCsv(['A','B','C'],4,new Map());assert.equal(calls,3);assert.equal(result.counts.model,3);
  let lines=result.csv.slice(1).trimEnd().split('\r\n');assert.equal(lines.length,4);assert(lines[1].startsWith('"A","","1.73","1.73"'));assert(lines[2].startsWith('"B","2.38","","1.73"'));
  const quotes=new Map([

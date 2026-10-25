@@ -1196,3 +1196,9 @@ Punter Custom H2H CSV, 26 October 2026:
 - Uses a snapshot of published ordinary prices where all three outcomes are present and consistent, otherwise uses the current seeded live-form model once per unordered pair. Paused/unsafe published pairs are labelled UNAVAILABLE; they are not silently recomputed.
 - Runs in batches with progress and cancellation; captures the selected round before starting. CSV escapes quotes/formula-like labels and preserves fractional odds floors instead of rounding to 1.00.
 - Tests cover 66-team dimensions, 2,145 unique pair calculations, both orientations, ordinary versus boosted quotes, paused prices, CSV escaping, cancellation and precision. No price publication, bets, balances or database changes.
+
+
+Custom H2H CSV timestamps, 26 October 2026:
+- Capture a single snapshot time when export starts and reuse it in the CSV header, filename and completion message. Sydney local time and daylight-saving abbreviation are explicit.
+- Filename example: bilbbet-h2h-win-odds-R3-20261026-101530-AEDT.csv. Matrix row/column layout is unchanged.
+- Existing export checks pass with additional fixed-date AEDT/AEST and UTC-to-local-date rollover checks. No price, bet, balance or database changes.

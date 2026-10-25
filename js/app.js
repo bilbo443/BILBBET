@@ -3171,6 +3171,17 @@
     if(label && /^[=+@\-\t\r]/.test(text))text="'"+text;
     return '"'+text.replace(/"/g,'""')+'"';
   }
+  function h2hCsvTimestamp(date=new Date()){
+    const parts=Object.fromEntries(new Intl.DateTimeFormat('en-AU',{
+      timeZone:'Australia/Sydney',year:'numeric',month:'2-digit',day:'2-digit',
+      hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23',timeZoneName:'short'
+    }).formatToParts(date).filter(p=>p.type!=='literal').map(p=>[p.type,p.value]));
+    const zone=parts.timeZoneName;
+    return {
+      label:parts.year+'-'+parts.month+'-'+parts.day+' '+parts.hour+':'+parts.minute+':'+parts.second+' '+zone+' (Australia/Sydney)',
+      filename:parts.year+parts.month+parts.day+'-'+parts.hour+parts.minute+parts.second+'-'+zone.replace(/[^A-Za-z0-9+-]/g,'')
+    };
+  }
   function h2hCsvOdds(value){
     const price=Number(value);
     return Math.abs(price-Math.round(price*100)/100)>1e-10 ? String(price) : price.toFixed(2);
@@ -3187,7 +3198,7 @@
       return {a:'UNAVAILABLE',b:'UNAVAILABLE',source:'unavailable'};
     return {a:h2hCsvOdds(prices[0]),b:h2hCsvOdds(prices[1]),source:'published'};
   }
-  async function buildH2HMatrixCsv(teams,round,quotes,onProgress=()=>{},cancelled=()=>false){
+  async function buildH2HMatrixCsv(teams,round,quotes,onProgress=()=>{},cancelled=()=>false,snapshot=h2hCsvTimestamp()){
     const cells=teams.map(()=>teams.map(()=>''));
     const total=teams.length*(teams.length-1)/2;
     const counts={published:0,model:0,unavailable:0};let done=0;
@@ -3203,15 +3214,16 @@
       if(done%8===0 || done===total){onProgress(done,total);await new Promise(resolve=>setTimeout(resolve,0));}
     }
     if(cancelled())throw new Error('Export cancelled');
-    const header=[h2hCsvCell('Home / Away — Round '+round+' ordinary win odds',true),...teams.map(t=>h2hCsvCell(t,true))];
+    const header=[h2hCsvCell('Home / Away — Round '+round+' ordinary win odds — Snapshot: '+snapshot.label,true),...teams.map(t=>h2hCsvCell(t,true))];
     const lines=[header.join(','),...teams.map((team,i)=>[h2hCsvCell(team,true),...cells[i].map(v=>h2hCsvCell(v))].join(','))];
-    return {csv:'\uFEFF'+lines.join('\r\n')+'\r\n',counts,teams:teams.length};
+    return {csv:'\uFEFF'+lines.join('\r\n')+'\r\n',counts,teams:teams.length,snapshot};
   }
   async function exportCustomH2HCsv(){
     if(state.h2hCsvJob)return;
     const round=Number(state.h2hRound);
     const teams=[...new Set(Object.entries(H2H_DIVISIONS).filter(([div])=>availableDivision(div)).flatMap(([,list])=>list))].filter(t=>t!==AVERAGE_TEAM).sort((a,b)=>a.localeCompare(b));
     const quotes=new Map(trustedPrices);
+    const snapshot=h2hCsvTimestamp();
     const job={round,done:0,total:teams.length*(teams.length-1)/2,cancelled:false};
     state.h2hCsvJob=job;state.h2hCsvMessage='';render();
     try{
@@ -3219,12 +3231,12 @@
         job.done=done;job.total=total;
         const progress=document.getElementById('h2h-csv-progress');
         if(progress)progress.textContent='Preparing Round '+round+': '+done+' / '+total+' matchups';
-      },()=>job.cancelled);
+      },()=>job.cancelled,snapshot);
       const blob=new Blob([result.csv],{type:'text/csv;charset=utf-8;'});
       const url=URL.createObjectURL(blob),link=document.createElement('a');
-      link.href=url;link.download='bilbbet-h2h-win-odds-R'+round+'.csv';document.body.appendChild(link);link.click();link.remove();
+      link.href=url;link.download='bilbbet-h2h-win-odds-R'+round+'-'+result.snapshot.filename+'.csv';document.body.appendChild(link);link.click();link.remove();
       setTimeout(()=>URL.revokeObjectURL(url),30000);
-      state.h2hCsvMessage='Download prepared: '+result.teams+' teams; '+result.counts.published+' published pairs, '+result.counts.model+' model-preview pairs, '+result.counts.unavailable+' unavailable pairs.';
+      state.h2hCsvMessage='Snapshot: '+result.snapshot.label+'. Download prepared: '+result.teams+' teams; '+result.counts.published+' published pairs, '+result.counts.model+' model-preview pairs, '+result.counts.unavailable+' unavailable pairs.';
     }catch(e){state.h2hCsvMessage=e.message==='Export cancelled'?'Export cancelled.':'CSV export failed: '+e.message;}
     finally{state.h2hCsvJob=null;render();}
   }
