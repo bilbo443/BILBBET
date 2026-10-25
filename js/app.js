@@ -2292,20 +2292,8 @@
   }
 
   function renderLaunchStatusBanner(){
-    if(curtainDown()){
-      return `<div style="background:#173326;color:#c8ebd0;padding:10px 14px;text-align:center;font-size:clamp(18px, calc(18px + 0.4vw), 21px);border-bottom:2px solid #348255;">
-        Election bets are live. Other markets open when their divisions are announced.
-      </div>`;
-    }
-    const drawPending = FIXTURES_ARE_PLACEHOLDER || !state.h2hRealScheduleConfirmed;
-    const fixtureNote = drawPending
-      ? 'The fantasy platform publishes the fixture draw after its first lockout. Until then, back a team to win its round against whoever it faces, or choose a Mr Median offer. Fixture-specific bets open when the official draw is confirmed.'
-      : 'Official fixture-specific bets are open.';
-    const releaseNote = partialRelease()
-      ? 'Division 1 and Division 2 markets and tips are live. Division 3 and whole-league markets are awaiting their settled rosters. '
-      : '';
     return `<div style="background:#173326;color:#c8ebd0;padding:10px 14px;text-align:center;font-size:clamp(18px, calc(18px + 0.4vw), 21px);border-bottom:2px solid #348255;">
-      ${releaseNote}${fixtureNote}
+      Official league fixtures are confirmed. View your division for matchups, odds and tipping. Cup fixtures are added after each draw; betting remains subject to round deadlines and market availability.
       <div style="font-size:0.85em;margin-top:5px;">Team name changes on the fantasy platform may take time to appear here. Check the listed team before placing a bet.</div>
     </div>`;
   }
