@@ -61,10 +61,11 @@ def refresh_whole_league(csv_path, data_dir, registry, roster, coeffs, history, 
     centres = load_tier_centres(data_dir, registry)
     official = read('official_fa_cup_draw')
     # Roddy and league scores have different GW1 coverage. Never substitute one table for the other.
+    checkpoints = {}
     roddy, _, _ = regenerate_roddy_and_cup(roster, coeffs['team_coeffs'], coeffs['scale'], history,
         n_sim=n_sim, seed=11, roddy_ability_model=ability, tier_centres=centres,
-        official_cup_draw=official, live_results=roddy_scores, apply_cup_results=False)
+        official_cup_draw=official, live_results=roddy_scores, apply_cup_results=False, checkpoint_output=checkpoints)
     _, cup, _ = regenerate_roddy_and_cup(roster, coeffs['team_coeffs'], coeffs['scale'], history,
         n_sim=n_sim, seed=11, roddy_ability_model=ability, tier_centres=centres,
         official_cup_draw=official, live_results=league_results)
-    return {'roddy':roddy, 'fa_cup_markets':cup}, roddy_scores
+    return {'roddy':roddy, 'fa_cup_markets':cup, 'roddy_leading_at':checkpoints}, roddy_scores
