@@ -1122,3 +1122,15 @@ Official Division 2/3 rotations, 24 October 2026:
 - Roster refreshes preserve official rotations through renames and reject changed conference membership for review. Future division simulations use the same confirmed rotations.
 - Four rotation tests cover screenshot pairings, full cycles, round coverage, rename survival and membership changes.
 - Existing published futures, scores, accepted bets and balances are untouched. Server fixture allowlists and the trusted-price board require separate verification before declaring betting operational.
+
+
+Live futures correction, 26 October 2026:
+- Division Monte Carlo simulations pin every reported round score before scoring actual confirmed fixtures. Completed league points are never replayed.
+- Roddy uses its separately labelled score table: all 66 teams have GW1/GW2 scores. League data alone had GW1 scores for D1 only. Unknown scores are never silently filled with zero.
+- Roddy sums actual totals and simulates only remaining rounds, with gentle existing-form blending. FA Cup uses recorded R64 winners and removes its 32 eliminated teams from current futures. Completed reach-R32 outcomes remain closed.
+- Weekly refresh now includes Roddy and FA Cup alongside divisions; converter carries regenerated sections through without applying stale-field holds. R64 outcomes and Roddy scores persist for routine roster refreshes.
+- ECL projections are retained; no ECL matches have been imported by this change. Later FA Cup draws remain organiser-controlled.
+- Eleven Python tests cover complete-result determinism, score-table validation, repeatability, cup draws requiring review, fixture identity and bracket validation. Current accepted odds, balances, carry corrections and bet settlements are untouched.
+- After deployment, normal admin price sync is required so newly submitted bets use the published updated prices.
+
+The final publication uses a fresh stable source CSV, with 30 GW2 one-point corrections since the reviewed 25 October extraction. All 66 league/Roddy GW2 scores agree, totals validate, and league/cup winners are unchanged. data/real_results.json is updated to the corrected values; accepted odds, balances and settlement records remain untouched.
