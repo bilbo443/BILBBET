@@ -303,7 +303,11 @@ def simulate_division_futures(new_divs, team_coeffs, scale, history, extracted_r
             if is_div3:
                 row['bottom3_pct'] = round(100 * counts[-3:].sum() / n_sim, 2)
             rows.append(row)
-    return stable_division_rows(rows), adjustments
+    rows = stable_division_rows(rows)
+    for row in rows:
+        row['miss_top3_pct'] = 100.0 - row['top3_pct']
+        row['miss_top_half_pct'] = 100.0 - row['top_half_pct']
+    return rows, adjustments
 
 
 

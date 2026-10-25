@@ -16,7 +16,7 @@ def market_rows(pcts):
     rows = []
     for team, pct in pcts.items():
         odds = pct_to_odds(pct)
-        rows.append({'team': team, 'odds': odds if odds is not None else 1001,
+        rows.append({'team': team, 'probability_pct': float(pct), 'odds': odds if odds is not None else 1001,
                      'suspended': odds is None})
     return sorted(rows, key=lambda row: (row['suspended'], row['odds']))
 
@@ -76,6 +76,10 @@ def regenerate_roddy_and_cup(roster, coeffs, scale, history, n_sim=6000, seed=11
     roddy = {market: market_rows({t: 100*count[:places].sum()/n_sim
                                   for t, count in positions.items()})
              for market, places in RODDY_MARKETS.items()}
+
+    for places in (3, 5, 10):
+        roddy[f'roddy_miss_top{places}_pct'] = market_rows({
+            t: 100 * count[places:].sum()/n_sim for t, count in positions.items()})
 
     samplers = samplers_for('fa_cup')
     draw = fa_cup_draw(teams, seed=seed)
