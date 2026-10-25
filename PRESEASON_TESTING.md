@@ -1155,3 +1155,10 @@ Shared leader-after-round model, 26 October 2026:
 - Completed checkpoints are hidden from betting even if round controls are manually reopened. Final-checkpoint and finishing-position bets on the same team cannot be combined in a slip.
 - Fifteen Python tests and targeted JavaScript checks passed, including endpoint equality, no RNG perturbation, actual-result preservation and completed-round controls. FA Cup, ECL, Roddy prices and unrelated specials are retained. D1 prices update for its corrected official fixture schedule.
 - Existing accepted selections, odds, account balances, carry corrections and settlements are untouched; normal admin price sync is needed after deployment.
+
+
+Futures implied-price display, 26 October 2026:
+- Added Odds / Implied % display controls for division, Roddy, leading-after-round and cup futures; fixture and group pages retain their existing presentation.
+- Implied percentage is 100 divided by the actual offered decimal price, including margin, with explanatory copy. It is not the simulation's raw probability. Futures now consistently display the offered price rather than team-specific novelty display multipliers.
+- Preference is stored locally per browser, with a safe default if storage is unavailable. Bet attributes, slips, accepted prices and price-board publication remain decimal and unchanged.
+- Trusted-price updates refresh both displayed probability and underlying decimal attributes correctly. Focused JavaScript tests and syntax check passed. This display change requires no database installation or admin price sync.
