@@ -1,0 +1,956 @@
+{
+  "division_rows": [
+    {
+      "division": "DIVISION 2A",
+      "team": "INTER MILANOVIC",
+      "win_div_pct": 1.0,
+      "top3_pct": 5.369821005966468,
+      "top_half_pct": 19.199680005333242,
+      "bottom_half_pct": 80.8013466891115,
+      "wooden_spoon_pct": 25.47254725472547,
+      "relegation_pct": 55.64814506183127
+    },
+    {
+      "division": "DIVISION 2A",
+      "team": "VICTORY",
+      "win_div_pct": 3.7,
+      "top3_pct": 15.069497683410553,
+      "top_half_pct": 38.09936501058315,
+      "bottom_half_pct": 61.90103168386141,
+      "wooden_spoon_pct": 10.23102310231023,
+      "relegation_pct": 31.918936035465485
+    },
+    {
+      "division": "DIVISION 2A",
+      "team": "3DOGS",
+      "win_div_pct": 2.57,
+      "top3_pct": 11.419619346021799,
+      "top_half_pct": 31.369477175380403,
+      "bottom_half_pct": 68.63114385239756,
+      "wooden_spoon_pct": 14.55145514551455,
+      "relegation_pct": 39.02869904336522
+    },
+    {
+      "division": "DIVISION 2A",
+      "team": "ALBANIAN BOARS",
+      "win_div_pct": 13.97,
+      "top3_pct": 38.64871170960968,
+      "top_half_pct": 68.11886468558856,
+      "bottom_half_pct": 31.88053134218904,
+      "wooden_spoon_pct": 2.43024302430243,
+      "relegation_pct": 11.819606013132896
+    },
+    {
+      "division": "DIVISION 2A",
+      "team": "LALAS LEVEN",
+      "win_div_pct": 10.4,
+      "top3_pct": 29.89900336655445,
+      "top_half_pct": 57.92903451609139,
+      "bottom_half_pct": 42.07070117835298,
+      "wooden_spoon_pct": 4.25042504250425,
+      "relegation_pct": 16.949435018832705
+    },
+    {
+      "division": "DIVISION 2A",
+      "team": "MANCHESTHAIR UTD",
+      "win_div_pct": 8.08,
+      "top3_pct": 26.82910569647678,
+      "top_half_pct": 54.099098348360855,
+      "bottom_half_pct": 45.90076501275022,
+      "wooden_spoon_pct": 5.45054505450545,
+      "relegation_pct": 20.31932268924369
+    },
+    {
+      "division": "DIVISION 2A",
+      "team": "THE WAINE TRAIN",
+      "win_div_pct": 13.15,
+      "top3_pct": 37.01876604113197,
+      "top_half_pct": 66.61888968517191,
+      "bottom_half_pct": 33.380556342605715,
+      "wooden_spoon_pct": 3.28032803280328,
+      "relegation_pct": 11.969601013299558
+    },
+    {
+      "division": "DIVISION 2A",
+      "team": "X2 STRANGE",
+      "win_div_pct": 2.47,
+      "top3_pct": 10.629645678477386,
+      "top_half_pct": 29.32951117481375,
+      "bottom_half_pct": 70.67117785296423,
+      "wooden_spoon_pct": 14.93149314931493,
+      "relegation_pct": 41.618612712909574
+    },
+    {
+      "division": "DIVISION 2A",
+      "team": "AFC BIG RED PORT",
+      "win_div_pct": 20.15,
+      "top3_pct": 48.92836905436486,
+      "top_half_pct": 76.61872302128296,
+      "bottom_half_pct": 23.380389673161222,
+      "wooden_spoon_pct": 1.47014701470147,
+      "relegation_pct": 7.449751674944169
+    },
+    {
+      "division": "DIVISION 2A",
+      "team": "CARNEGIE DACHSHUNDS",
+      "win_div_pct": 8.9,
+      "top3_pct": 26.81910602979901,
+      "top_half_pct": 54.819086348560845,
+      "bottom_half_pct": 45.18075301255022,
+      "wooden_spoon_pct": 5.38053805380538,
+      "relegation_pct": 20.179327355754808
+    },
+    {
+      "division": "DIVISION 2A",
+      "team": "ROTORUA UNITED",
+      "win_div_pct": 4.83,
+      "top3_pct": 17.969401019966,
+      "top_half_pct": 43.34927751204146,
+      "bottom_half_pct": 56.65094418240305,
+      "wooden_spoon_pct": 8.93089308930893,
+      "relegation_pct": 27.379087363754543
+    },
+    {
+      "division": "DIVISION 2A",
+      "team": "THE DRONE POLICE",
+      "win_div_pct": 10.78,
+      "top3_pct": 31.39895336822106,
+      "top_half_pct": 60.44899251679138,
+      "bottom_half_pct": 39.55065917765297,
+      "wooden_spoon_pct": 3.62036203620362,
+      "relegation_pct": 15.719476017466086
+    },
+    {
+      "division": "DIVISION 2B",
+      "team": "DINKIN CRFC",
+      "win_div_pct": 6.380000000000001,
+      "top3_pct": 20.93,
+      "top_half_pct": 46.43154771825727,
+      "bottom_half_pct": 53.56821439285358,
+      "wooden_spoon_pct": 7.9207920792079225,
+      "relegation_pct": 25.129162361254625
+    },
+    {
+      "division": "DIVISION 2B",
+      "team": "SPOONERS FC",
+      "win_div_pct": 13.320000000000002,
+      "top3_pct": 38.53,
+      "top_half_pct": 68.28227607586919,
+      "bottom_half_pct": 31.71894270190994,
+      "wooden_spoon_pct": 2.780278027802781,
+      "relegation_pct": 11.019632678910703
+    },
+    {
+      "division": "DIVISION 2B",
+      "team": "CASUAL APPROACH",
+      "win_div_pct": 1.7200000000000002,
+      "top3_pct": 9.32,
+      "top_half_pct": 28.450948364945496,
+      "bottom_half_pct": 71.54761507949735,
+      "wooden_spoon_pct": 17.231723172317235,
+      "relegation_pct": 43.718542715242826
+    },
+    {
+      "division": "DIVISION 2B",
+      "team": "JUSTICEFORMOON FC",
+      "win_div_pct": 2.4500000000000006,
+      "top3_pct": 12.15,
+      "top_half_pct": 32.88109603653455,
+      "bottom_half_pct": 67.11776274124196,
+      "wooden_spoon_pct": 14.581458145814585,
+      "relegation_pct": 39.248691710276326
+    },
+    {
+      "division": "DIVISION 2B",
+      "team": "RIO'S RHINOS",
+      "win_div_pct": 1.6300000000000003,
+      "top3_pct": 8.17,
+      "top_half_pct": 25.63085436181206,
+      "bottom_half_pct": 74.36752108263057,
+      "wooden_spoon_pct": 18.971897189718977,
+      "relegation_pct": 46.24845838472051
+    },
+    {
+      "division": "DIVISION 2B",
+      "team": "RICKY DIACO FC",
+      "win_div_pct": 4.750000000000001,
+      "top3_pct": 17.35,
+      "top_half_pct": 42.93143104770159,
+      "bottom_half_pct": 57.068097730075664,
+      "wooden_spoon_pct": 9.180918091809183,
+      "relegation_pct": 28.61904603179894
+    },
+    {
+      "division": "DIVISION 2B",
+      "team": "SILVERMAN'S XI",
+      "win_div_pct": 22.630000000000003,
+      "top3_pct": 52.67,
+      "top_half_pct": 79.92266408880296,
+      "bottom_half_pct": 20.07933068897703,
+      "wooden_spoon_pct": 1.1001100110011004,
+      "relegation_pct": 6.3697876737442085
+    },
+    {
+      "division": "DIVISION 2B",
+      "team": "DEER PARK UNITED",
+      "win_div_pct": 3.2000000000000006,
+      "top3_pct": 14.07,
+      "top_half_pct": 37.88126270875696,
+      "bottom_half_pct": 62.117929402353255,
+      "wooden_spoon_pct": 9.600960096009603,
+      "relegation_pct": 32.44891836938769
+    },
+    {
+      "division": "DIVISION 2B",
+      "team": "THE GARUCCI-SHOW",
+      "win_div_pct": 7.170000000000001,
+      "top3_pct": 24.73,
+      "top_half_pct": 53.67178905963532,
+      "bottom_half_pct": 46.32845571814273,
+      "wooden_spoon_pct": 5.350535053505352,
+      "relegation_pct": 20.049331688943703
+    },
+    {
+      "division": "DIVISION 2B",
+      "team": "FULLY SCICLUNA",
+      "win_div_pct": 8.830000000000002,
+      "top3_pct": 31.15,
+      "top_half_pct": 60.182006066868894,
+      "bottom_half_pct": 39.81867271090964,
+      "wooden_spoon_pct": 4.030403040304031,
+      "relegation_pct": 15.269491016966102
+    },
+    {
+      "division": "DIVISION 2B",
+      "team": "JUAN EL MAGICO FC",
+      "win_div_pct": 23.150000000000002,
+      "top3_pct": 52.83,
+      "top_half_pct": 79.38264608820293,
+      "bottom_half_pct": 20.619312689577015,
+      "wooden_spoon_pct": 1.3301330133013305,
+      "relegation_pct": 6.449785007166428
+    },
+    {
+      "division": "DIVISION 2B",
+      "team": "BALLERS",
+      "win_div_pct": 4.7700000000000005,
+      "top3_pct": 18.1,
+      "top_half_pct": 44.351478382612754,
+      "bottom_half_pct": 55.64814506183127,
+      "wooden_spoon_pct": 7.9207920792079225,
+      "relegation_pct": 25.42915236158795
+    },
+    {
+      "division": "DIVISION 3A",
+      "team": "TBCFC",
+      "win_div_pct": 1.3199999999999998,
+      "top3_pct": 7.369508699420038,
+      "top_half_pct": 28.93,
+      "bottom_half_pct": 71.07,
+      "wooden_spoon_pct": 13.9013901390139,
+      "bottom3_pct": 36.970000000000006
+    },
+    {
+      "division": "DIVISION 3A",
+      "team": "GARRY WALLAH UNITED",
+      "win_div_pct": 4.579999999999999,
+      "top3_pct": 19.098726751549894,
+      "top_half_pct": 49.92,
+      "bottom_half_pct": 50.08,
+      "wooden_spoon_pct": 5.12051205120512,
+      "bottom3_pct": 18.830000000000002
+    },
+    {
+      "division": "DIVISION 3A",
+      "team": "BORATVERYNICE",
+      "win_div_pct": 27.579999999999995,
+      "top3_pct": 57.49616692220518,
+      "top_half_pct": 86.0,
+      "bottom_half_pct": 14.0,
+      "wooden_spoon_pct": 0.58005800580058,
+      "bottom3_pct": 2.7000000000000006
+    },
+    {
+      "division": "DIVISION 3A",
+      "team": "BREXIT LADS",
+      "win_div_pct": 0.8499999999999999,
+      "top3_pct": 5.219652023198453,
+      "top_half_pct": 22.92,
+      "bottom_half_pct": 77.08,
+      "wooden_spoon_pct": 18.08180818081808,
+      "bottom3_pct": 44.88000000000001
+    },
+    {
+      "division": "DIVISION 3A",
+      "team": "PAW PATROL UNITED",
+      "win_div_pct": 2.7699999999999996,
+      "top3_pct": 11.669222051863208,
+      "top_half_pct": 38.22,
+      "bottom_half_pct": 61.78,
+      "wooden_spoon_pct": 8.77087708770877,
+      "bottom3_pct": 27.420000000000005
+    },
+    {
+      "division": "DIVISION 3A",
+      "team": "LOAVES & FISHES",
+      "win_div_pct": 21.469999999999995,
+      "top3_pct": 50.41663889074061,
+      "top_half_pct": 82.2,
+      "bottom_half_pct": 17.8,
+      "wooden_spoon_pct": 0.7000700070007,
+      "bottom3_pct": 3.6000000000000005
+    },
+    {
+      "division": "DIVISION 3A",
+      "team": "GOT WOUD?",
+      "win_div_pct": 5.249999999999999,
+      "top3_pct": 19.768682087860807,
+      "top_half_pct": 51.97,
+      "bottom_half_pct": 48.03,
+      "wooden_spoon_pct": 4.38043804380438,
+      "bottom3_pct": 16.170000000000005
+    },
+    {
+      "division": "DIVISION 3A",
+      "team": "PAYNE IN THE NECK FC",
+      "win_div_pct": 3.2999999999999994,
+      "top3_pct": 13.769082061195919,
+      "top_half_pct": 41.85,
+      "bottom_half_pct": 58.15,
+      "wooden_spoon_pct": 7.05070507050705,
+      "bottom3_pct": 23.480000000000004
+    },
+    {
+      "division": "DIVISION 3A",
+      "team": "GALUCTASARY",
+      "win_div_pct": 0.8499999999999999,
+      "top3_pct": 4.7696820211985855,
+      "top_half_pct": 21.75,
+      "bottom_half_pct": 78.25,
+      "wooden_spoon_pct": 18.87188718871887,
+      "bottom3_pct": 45.42000000000001
+    },
+    {
+      "division": "DIVISION 3A",
+      "team": "SK STURM MELBOURNE",
+      "win_div_pct": 4.249999999999999,
+      "top3_pct": 17.598826744883674,
+      "top_half_pct": 50.13,
+      "bottom_half_pct": 49.87,
+      "wooden_spoon_pct": 5.4005400540054005,
+      "bottom3_pct": 18.730000000000004
+    },
+    {
+      "division": "DIVISION 3A",
+      "team": "PAIN IN DIAS",
+      "win_div_pct": 5.449999999999999,
+      "top3_pct": 19.828678088127454,
+      "top_half_pct": 52.88,
+      "bottom_half_pct": 47.12,
+      "wooden_spoon_pct": 4.68046804680468,
+      "bottom3_pct": 16.980000000000004
+    },
+    {
+      "division": "DIVISION 3A",
+      "team": "QUINTASENTIAL FC",
+      "win_div_pct": 7.499999999999999,
+      "top3_pct": 25.098326778214783,
+      "top_half_pct": 59.93,
+      "bottom_half_pct": 40.07,
+      "wooden_spoon_pct": 3.43034303430343,
+      "bottom3_pct": 12.430000000000001
+    },
+    {
+      "division": "DIVISION 3A",
+      "team": "SABITEURS",
+      "win_div_pct": 3.4299999999999997,
+      "top3_pct": 13.799080061329242,
+      "top_half_pct": 44.08,
+      "bottom_half_pct": 55.92,
+      "wooden_spoon_pct": 6.95069506950695,
+      "bottom3_pct": 23.470000000000006
+    },
+    {
+      "division": "DIVISION 3A",
+      "team": "E/MELB SUCCULENT CHINESE MEAL",
+      "win_div_pct": 11.399999999999999,
+      "top3_pct": 34.09772681821212,
+      "top_half_pct": 69.22,
+      "bottom_half_pct": 30.78,
+      "wooden_spoon_pct": 2.08020802080208,
+      "bottom3_pct": 8.920000000000002
+    },
+    {
+      "division": "DIVISION 3B",
+      "team": "FOR VUCK'S SAKE FC",
+      "win_div_pct": 12.512274549098198,
+      "top3_pct": 36.06759549363375,
+      "top_half_pct": 71.53102187174102,
+      "bottom_half_pct": 28.469593291524408,
+      "wooden_spoon_pct": 1.5501550155015502,
+      "bottom3_pct": 7.0702356745224835
+    },
+    {
+      "division": "DIVISION 3B",
+      "team": "MONGREL GARDEN",
+      "win_div_pct": 6.161422845691383,
+      "top3_pct": 21.948536764215717,
+      "top_half_pct": 55.600794297061384,
+      "bottom_half_pct": 44.39936572334681,
+      "wooden_spoon_pct": 3.0003000300030003,
+      "bottom3_pct": 13.780459348644955
+    },
+    {
+      "division": "DIVISION 3B",
+      "team": "MACCA'S STARS",
+      "win_div_pct": 0.5,
+      "top3_pct": 1.7198853409772679,
+      "top_half_pct": 11.080158287975543,
+      "bottom_half_pct": 88.9187297324324,
+      "wooden_spoon_pct": 31.083108310831086,
+      "bottom3_pct": 62.572085736191205
+    },
+    {
+      "division": "DIVISION 3B",
+      "team": "AARONGURDWOODREICH",
+      "win_div_pct": 16.849198396793586,
+      "top3_pct": 42.66715552296513,
+      "top_half_pct": 76.1510878726839,
+      "bottom_half_pct": 23.849659290581563,
+      "wooden_spoon_pct": 1.17011701170117,
+      "bottom3_pct": 5.730191006366879
+    },
+    {
+      "division": "DIVISION 3B",
+      "team": "SYDNEY OLEEE",
+      "win_div_pct": 1.7148296593186372,
+      "top3_pct": 7.919472035197653,
+      "top_half_pct": 30.00042857755111,
+      "bottom_half_pct": 69.99900001428551,
+      "wooden_spoon_pct": 11.251125112511252,
+      "bottom3_pct": 34.031134371145704
+    },
+    {
+      "division": "DIVISION 3B",
+      "team": "THE BEAU-CHAMPS",
+      "win_div_pct": 10.269038076152306,
+      "top3_pct": 31.627891473901737,
+      "top_half_pct": 66.95095644223488,
+      "bottom_half_pct": 33.049527863887654,
+      "wooden_spoon_pct": 1.8001800180018002,
+      "bottom3_pct": 8.670289009633654
+    },
+    {
+      "division": "DIVISION 3B",
+      "team": "SILVO'S SQUAD",
+      "win_div_pct": 22.60185370741483,
+      "top3_pct": 50.366642223851734,
+      "top_half_pct": 82.471178159688,
+      "bottom_half_pct": 17.529749575006072,
+      "wooden_spoon_pct": 0.7000700070007001,
+      "bottom3_pct": 3.270109003633454
+    },
+    {
+      "division": "DIVISION 3B",
+      "team": "GARNCELONA",
+      "win_div_pct": 3.1405310621242486,
+      "top3_pct": 12.799146723551761,
+      "top_half_pct": 42.230603294332774,
+      "bottom_half_pct": 57.76917472607534,
+      "wooden_spoon_pct": 6.020602060206021,
+      "bottom3_pct": 22.1807393579786
+    },
+    {
+      "division": "DIVISION 3B",
+      "team": "SHAQNADO 2: RETURN OF THE SHAQ",
+      "win_div_pct": 1.5951903807615233,
+      "top3_pct": 7.319512032531164,
+      "top_half_pct": 29.25041786311233,
+      "bottom_half_pct": 70.74898930015286,
+      "wooden_spoon_pct": 11.671167116711672,
+      "bottom3_pct": 35.13117103903463
+    },
+    {
+      "division": "DIVISION 3B",
+      "team": "DRUMMOYNE TERRIERS",
+      "win_div_pct": 2.9610721442885777,
+      "top3_pct": 13.029131391240583,
+      "top_half_pct": 42.28060400862869,
+      "bottom_half_pct": 57.71917544035085,
+      "wooden_spoon_pct": 6.280628062806281,
+      "bottom3_pct": 23.030767692256408
+    },
+    {
+      "division": "DIVISION 3B",
+      "team": "RUBY FC",
+      "win_div_pct": 7.906162324649299,
+      "top3_pct": 26.618225451636555,
+      "top_half_pct": 62.33089044129202,
+      "bottom_half_pct": 37.6694618648305,
+      "wooden_spoon_pct": 2.4802480248024805,
+      "bottom3_pct": 10.950365012167072
+    },
+    {
+      "division": "DIVISION 3B",
+      "team": "DADDY VALKANIS & SONS",
+      "win_div_pct": 1.7247995991983966,
+      "top3_pct": 9.19938670755283,
+      "top_half_pct": 32.770468149544996,
+      "bottom_half_pct": 67.22903958514878,
+      "wooden_spoon_pct": 10.331033103310332,
+      "bottom3_pct": 31.22104070135671
+    },
+    {
+      "division": "DIVISION 3B",
+      "team": "KRANSKY FC",
+      "win_div_pct": 1.515430861723447,
+      "top3_pct": 7.219518698753416,
+      "top_half_pct": 29.370419577422535,
+      "bottom_half_pct": 70.62899101441408,
+      "wooden_spoon_pct": 10.831083108310832,
+      "bottom3_pct": 34.23114103803459
+    },
+    {
+      "division": "DIVISION 3B",
+      "team": "CONCEICAO",
+      "win_div_pct": 10.548196392785572,
+      "top3_pct": 31.497900139990662,
+      "top_half_pct": 67.9809711567308,
+      "bottom_half_pct": 32.01954257796318,
+      "wooden_spoon_pct": 1.8301830183018302,
+      "bottom3_pct": 8.130271009033637
+    },
+    {
+      "division": "ELIZA CUP (D1)",
+      "team": "JARVIS ZEBRAS",
+      "win_div_pct": 5.7005700570057005,
+      "top3_pct": 17.88,
+      "top_half_pct": 47.55,
+      "bottom_half_pct": 52.45,
+      "wooden_spoon_pct": 7.73,
+      "relegation_pct": 30.170000000000005
+    },
+    {
+      "division": "ELIZA CUP (D1)",
+      "team": "STAIRWAY TO EVANS",
+      "win_div_pct": 8.930893089308931,
+      "top3_pct": 26.22,
+      "top_half_pct": 57.07,
+      "bottom_half_pct": 42.93,
+      "wooden_spoon_pct": 5.1,
+      "relegation_pct": 22.330000000000002
+    },
+    {
+      "division": "ELIZA CUP (D1)",
+      "team": "KALLO FC",
+      "win_div_pct": 8.900890089008902,
+      "top3_pct": 26.42,
+      "top_half_pct": 57.48,
+      "bottom_half_pct": 42.52,
+      "wooden_spoon_pct": 4.37,
+      "relegation_pct": 22.330000000000002
+    },
+    {
+      "division": "ELIZA CUP (D1)",
+      "team": "SAUCE FC",
+      "win_div_pct": 6.330633063306331,
+      "top3_pct": 19.62,
+      "top_half_pct": 48.02,
+      "bottom_half_pct": 51.98,
+      "wooden_spoon_pct": 6.67,
+      "relegation_pct": 30.130000000000003
+    },
+    {
+      "division": "ELIZA CUP (D1)",
+      "team": "ALASKAN BULL WORMS",
+      "win_div_pct": 7.420742074207421,
+      "top3_pct": 22.45,
+      "top_half_pct": 52.48,
+      "bottom_half_pct": 47.52,
+      "wooden_spoon_pct": 5.98,
+      "relegation_pct": 25.750000000000004
+    },
+    {
+      "division": "ELIZA CUP (D1)",
+      "team": "BC UNITED ZEBRAS",
+      "win_div_pct": 12.901290129012901,
+      "top3_pct": 33.78,
+      "top_half_pct": 65.72,
+      "bottom_half_pct": 34.28,
+      "wooden_spoon_pct": 3.35,
+      "relegation_pct": 16.700000000000003
+    },
+    {
+      "division": "ELIZA CUP (D1)",
+      "team": "DW ABOUT IT FC",
+      "win_div_pct": 6.130613061306131,
+      "top3_pct": 20.35,
+      "top_half_pct": 49.38,
+      "bottom_half_pct": 50.62,
+      "wooden_spoon_pct": 6.57,
+      "relegation_pct": 28.030000000000005
+    },
+    {
+      "division": "ELIZA CUP (D1)",
+      "team": "GIVE US WANG",
+      "win_div_pct": 8.1008100810081,
+      "top3_pct": 24.25,
+      "top_half_pct": 54.5,
+      "bottom_half_pct": 45.5,
+      "wooden_spoon_pct": 4.75,
+      "relegation_pct": 23.270000000000003
+    },
+    {
+      "division": "ELIZA CUP (D1)",
+      "team": "NANISTATE",
+      "win_div_pct": 6.520652065206521,
+      "top3_pct": 19.73,
+      "top_half_pct": 48.52,
+      "bottom_half_pct": 51.48,
+      "wooden_spoon_pct": 7.47,
+      "relegation_pct": 29.400000000000006
+    },
+    {
+      "division": "ELIZA CUP (D1)",
+      "team": "FROGBERT FOOTBALL",
+      "win_div_pct": 10.801080108010801,
+      "top3_pct": 29.15,
+      "top_half_pct": 59.98,
+      "bottom_half_pct": 40.02,
+      "wooden_spoon_pct": 3.57,
+      "relegation_pct": 19.670000000000005
+    },
+    {
+      "division": "ELIZA CUP (D1)",
+      "team": "HARVEY FREKES",
+      "win_div_pct": 9.500950095009502,
+      "top3_pct": 27.1,
+      "top_half_pct": 57.55,
+      "bottom_half_pct": 42.45,
+      "wooden_spoon_pct": 4.13,
+      "relegation_pct": 22.520000000000003
+    },
+    {
+      "division": "ELIZA CUP (D1)",
+      "team": "VICTORYRULES",
+      "win_div_pct": 2.9802980298029804,
+      "top3_pct": 10.8,
+      "top_half_pct": 32.9,
+      "bottom_half_pct": 67.1,
+      "wooden_spoon_pct": 13.73,
+      "relegation_pct": 44.28000000000001
+    },
+    {
+      "division": "ELIZA CUP (D1)",
+      "team": "BIG MAC FC",
+      "win_div_pct": 3.2303230323032306,
+      "top3_pct": 12.73,
+      "top_half_pct": 36.97,
+      "bottom_half_pct": 63.03,
+      "wooden_spoon_pct": 11.1,
+      "relegation_pct": 39.370000000000005
+    },
+    {
+      "division": "ELIZA CUP (D1)",
+      "team": "TOP KUOLITY",
+      "win_div_pct": 2.5502550255025502,
+      "top3_pct": 9.52,
+      "top_half_pct": 31.88,
+      "bottom_half_pct": 68.12,
+      "wooden_spoon_pct": 15.48,
+      "relegation_pct": 46.050000000000004
+    }
+  ],
+  "live_adjustments_applied": [
+    {
+      "team": "KALLO FC",
+      "n_played": 2,
+      "observed_avg": 81.5,
+      "predicted_avg": 68.0,
+      "residual": 13.5,
+      "confidence": 0.08,
+      "original_shift": 0.91,
+      "adjusted_shift": 1.95
+    },
+    {
+      "team": "BC UNITED ZEBRAS",
+      "n_played": 2,
+      "observed_avg": 82.5,
+      "predicted_avg": 69.3,
+      "residual": 13.2,
+      "confidence": 0.08,
+      "original_shift": 2.27,
+      "adjusted_shift": 3.29
+    },
+    {
+      "team": "GIVE US WANG",
+      "n_played": 2,
+      "observed_avg": 81.5,
+      "predicted_avg": 65.4,
+      "residual": 16.1,
+      "confidence": 0.08,
+      "original_shift": 0.28,
+      "adjusted_shift": 1.52
+    },
+    {
+      "team": "NANISTATE",
+      "n_played": 2,
+      "observed_avg": 73.5,
+      "predicted_avg": 66.2,
+      "residual": 7.3,
+      "confidence": 0.08,
+      "original_shift": 0.78,
+      "adjusted_shift": 1.34
+    },
+    {
+      "team": "HARVEY FREKES",
+      "n_played": 2,
+      "observed_avg": 82.5,
+      "predicted_avg": 66.9,
+      "residual": 15.6,
+      "confidence": 0.08,
+      "original_shift": 0.87,
+      "adjusted_shift": 2.07
+    },
+    {
+      "team": "VICTORYRULES",
+      "n_played": 2,
+      "observed_avg": 72.0,
+      "predicted_avg": 64.6,
+      "residual": 7.4,
+      "confidence": 0.08,
+      "original_shift": -0.45,
+      "adjusted_shift": 0.12
+    },
+    {
+      "team": "TOP KUOLITY",
+      "n_played": 2,
+      "observed_avg": 79.0,
+      "predicted_avg": 59.9,
+      "residual": 19.1,
+      "confidence": 0.08,
+      "original_shift": -0.59,
+      "adjusted_shift": 0.88
+    },
+    {
+      "team": "VICTORY",
+      "n_played": 1,
+      "observed_avg": 69.0,
+      "predicted_avg": 55.1,
+      "residual": 13.9,
+      "confidence": 0.04,
+      "original_shift": 0.1,
+      "adjusted_shift": 0.64
+    },
+    {
+      "team": "LALAS LEVEN",
+      "n_played": 1,
+      "observed_avg": 83.0,
+      "predicted_avg": 64.3,
+      "residual": 18.7,
+      "confidence": 0.04,
+      "original_shift": 1.32,
+      "adjusted_shift": 2.03
+    },
+    {
+      "team": "MANCHESTHAIR UTD",
+      "n_played": 1,
+      "observed_avg": 77.0,
+      "predicted_avg": 60.1,
+      "residual": 16.9,
+      "confidence": 0.04,
+      "original_shift": 0.13,
+      "adjusted_shift": 0.78
+    },
+    {
+      "team": "CASUAL APPROACH",
+      "n_played": 1,
+      "observed_avg": 70.0,
+      "predicted_avg": 56.9,
+      "residual": 13.1,
+      "confidence": 0.04,
+      "original_shift": -0.81,
+      "adjusted_shift": -0.31
+    },
+    {
+      "team": "JUSTICEFORMOON FC",
+      "n_played": 1,
+      "observed_avg": 80.0,
+      "predicted_avg": 55.6,
+      "residual": 24.4,
+      "confidence": 0.04,
+      "original_shift": 0.26,
+      "adjusted_shift": 1.2
+    },
+    {
+      "team": "DEER PARK UNITED",
+      "n_played": 1,
+      "observed_avg": 79.0,
+      "predicted_avg": 57.9,
+      "residual": 21.1,
+      "confidence": 0.04,
+      "original_shift": 0.37,
+      "adjusted_shift": 1.18
+    },
+    {
+      "team": "FULLY SCICLUNA",
+      "n_played": 1,
+      "observed_avg": 49.0,
+      "predicted_avg": 65.4,
+      "residual": -16.4,
+      "confidence": 0.04,
+      "original_shift": 0.84,
+      "adjusted_shift": 0.2
+    },
+    {
+      "team": "GARRY WALLAH UNITED",
+      "n_played": 1,
+      "observed_avg": 72.0,
+      "predicted_avg": 56.6,
+      "residual": 15.4,
+      "confidence": 0.04,
+      "original_shift": 0.45,
+      "adjusted_shift": 1.04
+    },
+    {
+      "team": "LOAVES & FISHES",
+      "n_played": 1,
+      "observed_avg": 74.0,
+      "predicted_avg": 58.2,
+      "residual": 15.8,
+      "confidence": 0.04,
+      "original_shift": 0.29,
+      "adjusted_shift": 0.89
+    },
+    {
+      "team": "GOT WOUD?",
+      "n_played": 1,
+      "observed_avg": 74.0,
+      "predicted_avg": 53.8,
+      "residual": 20.2,
+      "confidence": 0.04,
+      "original_shift": 0.0,
+      "adjusted_shift": 0.78
+    },
+    {
+      "team": "PAYNE IN THE NECK FC",
+      "n_played": 1,
+      "observed_avg": 70.0,
+      "predicted_avg": 44.1,
+      "residual": 25.9,
+      "confidence": 0.04,
+      "original_shift": -1.91,
+      "adjusted_shift": -0.91
+    },
+    {
+      "team": "GALUCTASARY",
+      "n_played": 1,
+      "observed_avg": 33.0,
+      "predicted_avg": 53.8,
+      "residual": -20.8,
+      "confidence": 0.04,
+      "original_shift": 0.0,
+      "adjusted_shift": -0.8
+    },
+    {
+      "team": "SK STURM MELBOURNE",
+      "n_played": 1,
+      "observed_avg": 70.0,
+      "predicted_avg": 53.8,
+      "residual": 16.2,
+      "confidence": 0.04,
+      "original_shift": 0.0,
+      "adjusted_shift": 0.62
+    },
+    {
+      "team": "PAIN IN DIAS",
+      "n_played": 1,
+      "observed_avg": 73.0,
+      "predicted_avg": 53.8,
+      "residual": 19.2,
+      "confidence": 0.04,
+      "original_shift": 0.0,
+      "adjusted_shift": 0.74
+    },
+    {
+      "team": "QUINTASENTIAL FC",
+      "n_played": 1,
+      "observed_avg": 77.0,
+      "predicted_avg": 53.8,
+      "residual": 23.2,
+      "confidence": 0.04,
+      "original_shift": 0.0,
+      "adjusted_shift": 0.89
+    },
+    {
+      "team": "AARONGURDWOODREICH",
+      "n_played": 1,
+      "observed_avg": 77.0,
+      "predicted_avg": 55.9,
+      "residual": 21.1,
+      "confidence": 0.04,
+      "original_shift": -0.63,
+      "adjusted_shift": 0.18
+    },
+    {
+      "team": "SYDNEY OLEEE",
+      "n_played": 1,
+      "observed_avg": 74.0,
+      "predicted_avg": 49.5,
+      "residual": 24.5,
+      "confidence": 0.04,
+      "original_shift": -1.25,
+      "adjusted_shift": -0.31
+    },
+    {
+      "team": "THE BEAU-CHAMPS",
+      "n_played": 1,
+      "observed_avg": 70.0,
+      "predicted_avg": 55.2,
+      "residual": 14.8,
+      "confidence": 0.04,
+      "original_shift": -0.07,
+      "adjusted_shift": 0.5
+    },
+    {
+      "team": "SILVO'S SQUAD",
+      "n_played": 1,
+      "observed_avg": 73.0,
+      "predicted_avg": 53.8,
+      "residual": 19.2,
+      "confidence": 0.04,
+      "original_shift": 0.0,
+      "adjusted_shift": 0.74
+    },
+    {
+      "team": "GARNCELONA",
+      "n_played": 1,
+      "observed_avg": 73.0,
+      "predicted_avg": 53.8,
+      "residual": 19.2,
+      "confidence": 0.04,
+      "original_shift": 0.0,
+      "adjusted_shift": 0.74
+    },
+    {
+      "team": "DRUMMOYNE TERRIERS",
+      "n_played": 1,
+      "observed_avg": 75.0,
+      "predicted_avg": 53.8,
+      "residual": 21.2,
+      "confidence": 0.04,
+      "original_shift": 0.0,
+      "adjusted_shift": 0.82
+    },
+    {
+      "team": "CONCEICAO",
+      "n_played": 1,
+      "observed_avg": 67.0,
+      "predicted_avg": 53.8,
+      "residual": 13.2,
+      "confidence": 0.04,
+      "original_shift": 0.0,
+      "adjusted_shift": 0.51
+    }
+  ]
+}
