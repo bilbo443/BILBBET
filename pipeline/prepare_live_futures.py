@@ -3,6 +3,7 @@ import argparse
 import json
 from pathlib import Path
 from live_futures import refresh_whole_league
+from leading_markets import write_leading_snapshot
 from simulation_adapter import regenerate_division_futures
 from convert_draft_to_publishable import convert_draft_to_publishable
 
@@ -15,6 +16,7 @@ def prepare(csv_path, extracted_path, out_dir, data_dir='data'):
     odds = regenerate_division_futures(results, str(data/'team_market_coeffs.json'), str(data/'h2h_divisions.json'), str(data/'roddy_history.json'))
     whole, roddy_scores = refresh_whole_league(csv_path,data,read('admin_teams'),read('h2h_divisions'),read('team_market_coeffs'),read('roddy_history'),{r['team']:r['scores_by_round'] for r in results})
     odds.update(whole)
+    write_leading_snapshot(odds,out/'leading-at-publishable.json')
     draft = out/'odds.json'; draft.write_text(json.dumps(odds,indent=2)+'\n')
     converted, summary = convert_draft_to_publishable(str(draft),str(data/'futures.json'),str(out/'futures.json'))
     (out/'roddy-results.json').write_text(json.dumps(roddy_scores,indent=2)+'\n')
