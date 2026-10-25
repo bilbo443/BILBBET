@@ -2076,10 +2076,15 @@
     </section>`;
   }
 
+  function publishedFeaturedPick(p){
+    if(collectingTrustedPrices)return p;
+    const q=trustedPrices.get(p.id);
+    return q ? {...p,odds:Number(q.odds),baseOdds:Number(q.baseOdds || p.baseOdds)} : p;
+  }
   function renderHomeTab(){
-    const fixtures = homeFixturesReady(state.currentRound) ? (state.featuredFixturesData || []).filter(homeFixtureReleased) : [];
+    const fixtures = homeFixturesReady(state.currentRound) ? (state.featuredFixturesData || []).filter(homeFixtureReleased).map(publishedFeaturedPick) : [];
     const fixturesLoading = homeFixturesReady(state.currentRound) && state.featuredFixturesData === null;
-    const futures = computeFeaturedFutures();
+    const futures = computeFeaturedFutures().map(publishedFeaturedPick);
 
     const fixtureCards = fixtures.length ? fixtures.map(p => `
       <div class="bb-card bb-featured-card" style="display:flex;align-items:stretch;gap:12px;margin-bottom:8px;">
@@ -2142,7 +2147,7 @@
       ${renderOpeningRoundHub()}
       <div class="bb-card" style="background:linear-gradient(135deg,#2a2410,#1a1a1a);border-color:#4a3a10;margin-bottom:16px;text-align:center;padding:1.25rem;">
         <div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);letter-spacing:0.08em;color:#ffdd00;text-transform:uppercase;font-weight:700;">This week's boosted odds</div>
-        <div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-top:4px;">Every pick below is +${Math.round((FEATURED_BOOST_MULTIPLIER-1)*100)}% on the normal price \u2014 just for being featured.</div>
+        <div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-top:4px;">Featured picks receive up to ${Math.round((FEATURED_BOOST_MULTIPLIER-1)*100)}% extra on the normal price. Boosts are capped to keep the full market consistent.</div>
       </div>
       ${renderTippingNudgeCard()}
       ${renderPointProjection(state.currentRound)}
@@ -3208,6 +3213,11 @@
   // team logo+name -- for layouts where the team is already shown once,
   // separately, and only the price itself needs to sit in its own box.
   function priceOnlyButton(pickId, label, oddsInfo){
+    if(!collectingTrustedPrices){
+      const published=trustedPrices.get(pickId);
+      if(published?.bettable===false) return '<span class="bb-btn ghost" aria-disabled="true">Pricing review</span>';
+      if(published) oddsInfo={...oddsInfo,odds:Number(published.odds)};
+    }
     if(oddsInfo.suspended){
       return `<span class="bb-btn ghost" style="padding:8px 14px;font-size:clamp(18px, calc(18px + 0.4vw), 21px);opacity:0.5;cursor:default;width:100%;text-align:center;">susp.</span>`;
     }
@@ -7375,6 +7385,7 @@
   }
 
   let trustedPrices=new Map();
+  let collectingTrustedPrices=false;
   async function loadTrustedPrices(){
     joinMarkets=await secureRpc('bilbbet_join_markets');
     const list=await secureRpc('bilbbet_price_list');
@@ -7385,6 +7396,12 @@
     for(const el of document.querySelectorAll('[data-pick][data-odds]')){
       const q=trustedPrices.get(el.dataset.pick);
       if(!q)continue;
+      if(q.bettable===false){
+        el.removeAttribute('data-pick'); el.removeAttribute('data-odds');
+        el.setAttribute('aria-disabled','true'); el.style.opacity='0.5';
+        el.title='Temporarily unavailable for pricing review';
+        continue;
+      }
       const old=Number(el.dataset.odds),price=Number(q.odds);
       el.dataset.odds=String(price);
       const futuresDisplay = el.querySelector('[data-futures-price]');
@@ -7409,7 +7426,7 @@
   async function priceSyncFingerprint(){
     const data=Object.fromEntries(Object.entries(DATA).filter(([key])=>!['real_results','carry_balances'].includes(key)));
     const input={
-      priceModelVersion:'h2h-live-form-v2',
+      priceModelVersion:'market-book-safety-v1',
       season:seasonKeyPart(),round:state.currentRound,data,
       controls:{
         cupFixtures:state.cupFixtures,
@@ -7456,12 +7473,60 @@
     try{return await priceSyncRunning;}
     finally{priceSyncRunning=null;}
   }
+  function enforceQuoteBookSafety(rows){
+    const groups=new Map();
+    for(const q of rows.values()){
+      if(q.bettable===false)continue;
+      const p=q.id.split('|');let key,outcome,size;
+      if(p[0]==='H2H' && p[1].startsWith('res-')){
+        key='MATCH|'+p[2]+'|'+[p[3],p[4]].sort().join('|');outcome=q.team||'DRAW';size=3;
+      }else if(p[0]==='H2H' && p[1].startsWith('hcap-')){
+        key='HCAP|'+p.slice(2).join('|');outcome=p[1].split('-')[1];size=2;
+      }else if(p[0]==='FUT' && /^(roddy_)?(miss_)?top(3|5|10|_half)_pct$/.test(p[2])){
+        key='FINISH|'+p[1]+'|'+p[2].replace('miss_top','top')+'|'+p[3];outcome=p[2].includes('miss_top')?'miss':'top';size=2;
+      }else if(p[0]==='FUT' && ['win_div_pct','roddy_win_pct','wooden_spoon_pct'].includes(p[2])){
+        key='WINNER|'+p[1]+'|'+p[2];outcome=p[3];size=p[1]==='RODDY'?TOTAL_TEAMS:(H2H_DIVISIONS[p[1]]||[]).length;
+      }else continue;
+      if(!groups.has(key))groups.set(key,{size,outcomes:new Map()});
+      const group=groups.get(key);
+      if(!group.outcomes.has(outcome))group.outcomes.set(outcome,[]);
+      group.outcomes.get(outcome).push(q);
+      q.safetyGroup=key;q.safetyOutcome=outcome;q.safetySize=size;
+    }
+    for(const [key,group] of groups){
+      if(group.outcomes.size!==group.size)continue; // Cannot cover a suspended/missing outcome.
+      const entries=[...group.outcomes.values()].map(list=>({list,base:Math.min(...list.map(q=>Number(q.baseOdds)))}));
+      if(entries.some(e=>!Number.isFinite(e.base)||e.base<=1))throw new Error('Missing ordinary price for '+key);
+      const ordinary=entries.reduce((sum,e)=>sum+1/e.base,0);
+      if(ordinary<1.001)throw new Error('Ordinary prices fail market coverage check: '+key);
+      const wanted=entries.map(e=>e.list.some(q=>q.featured)?1/e.base-1/(e.base*FEATURED_BOOST_MULTIPLIER):0);
+      const reduction=wanted.reduce((sum,v)=>sum+v,0);
+      const factor=reduction?Math.max(0,Math.min(1,(ordinary-1.01)/reduction)):0;
+      entries.forEach((entry,i)=>{
+        const price=1/(1/entry.base-wanted[i]*factor);
+        const capped=Math.max(1.005,Math.floor(price*100+1e-8)/100);
+        for(const q of entry.list){
+          q.baseOdds=entry.base;
+          q.odds=q.featured?Math.max(entry.base,capped):entry.base;
+          q.prices=[...new Set([entry.base,q.odds])];
+        }
+      });
+      const total=entries.reduce((sum,e)=>sum+1/Math.max(...e.list.map(q=>Math.max(...q.prices))),0);
+      if(total<1)throw new Error('Market coverage check failed: '+key);
+    }
+  }
+
   async function collectTrustedPrices(){
+    collectingTrustedPrices=true;
+    try { return await collectTrustedPricesUnchecked(); }
+    finally { collectingTrustedPrices=false; }
+  }
+  async function collectTrustedPricesUnchecked(){
     if(!state.user?.isAdmin)throw new Error('Administrator sign-in required.');
     if(!await refreshSubmissionControls())throw new Error('Could not refresh price controls.');
     await loadFeaturedMedianSpecials(state.currentRound);
     const rows=new Map();
-    const record=(id,odds,label)=>{
+    const record=(id,odds,label,promotional=false)=>{
       odds=Number(odds);
       if(!Number.isFinite(odds)||odds<=0||isPickBlocked(id))return;
       if(id.startsWith('H2H|') && !confirmedLeagueFixturePick(id) && !confirmedCupFixturePick(id) && EARLY_DIV12_RELEASE && (FIXTURES_ARE_PLACEHOLDER||!state.h2hRealScheduleConfirmed))return;
@@ -7469,11 +7534,12 @@
       if(old){
         if(!old.prices.includes(odds))old.prices.push(odds);
         old.odds=odds;
+        if(!promotional)old.baseOdds=odds;
         return;
       }
       const p=parsePick(id),parts=id.split('|');
       const q={
-        id,odds,prices:[odds],
+        id,odds,baseOdds:promotional?null:odds,prices:[odds],
         team:p.team || (['H2H_WIN','H2H_MEDIAN'].includes(parts[0])?parts[1]:p.type==='h2h'?(p.side==='a'?p.teamA:p.side==='b'?p.teamB:null):null),
         label:label||id,
         featured:isFeaturedPick(id),
@@ -7529,11 +7595,11 @@
       }
       rows.set(id,q);
     };
-    const htmlPrices=html=>{
+    const htmlPrices=(html,promotional=false)=>{
       const container=document.createElement('div');
       container.innerHTML=html;
       container.querySelectorAll('[data-pick][data-odds]').forEach(el=>{
-        record(el.dataset.pick,el.dataset.odds,el.dataset.label);
+        record(el.dataset.pick,el.dataset.odds,el.dataset.label,promotional);
       });
     };
     for(const [div,markets]of Object.entries(FUTURES.divisions)){
@@ -7624,7 +7690,7 @@
         state.specialsExtremeExpanded=key;
         htmlPrices(renderSpecialsTab());
       }
-      htmlPrices(renderHomeTab());
+      htmlPrices(renderHomeTab(),true);
       htmlPrices(renderElectionHub());
       for(const group of Object.keys(state.eclGroups||{}))htmlPrices(renderEclGroupBox(group));
     }finally{
@@ -7641,9 +7707,9 @@
         }
       }
     }
-    for(const pick of computeFeaturedFutures())record(pick.id,pick.odds,pick.team+' — '+pick.market);
+    for(const pick of computeFeaturedFutures())record(pick.id,pick.odds,pick.team+' — '+pick.market,true);
     for(const pick of state.featuredFixturesData||[]){
-      if(homeFixtureReleased(pick))record(pick.id,pick.odds,pick.label||pick.team);
+      if(homeFixtureReleased(pick))record(pick.id,pick.odds,pick.label||pick.team,true);
     }
     const savedRound=state.h2hRound;
     try{
@@ -7657,6 +7723,7 @@
     }finally{
       state.h2hRound=savedRound;
     }
+    enforceQuoteBookSafety(rows);
     const count=await secureRpc('bilbbet_publish_board',{p_quotes:[...rows.values()]});
     await loadTrustedPrices();
     return count;

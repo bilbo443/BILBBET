@@ -1178,3 +1178,13 @@ Embedded Home Boosty Boys, 26 October 2026:
 - The Eliza Cup Home portal now shows the same published boosted fixture cards, opponents and prices as Home, labelled Boosty Boys. Empty rounds show no invented offers.
 - Updated the embedded introduction to remove pre-lockout draw wording. The portal remains a read-only preview with links to Bilbbet.
 - Verified actual Home rendering in embed mode with the legacy flag enabled: boosted team/opponent/price visible, correct empty state; JavaScript syntax and diff checks passed. No odds, account or database changes; no admin price sync required.
+
+
+Market coverage correction, 26 October 2026:
+- Live audit confirmed four H2H books where the best accepted odds across both fixture orientations allowed guaranteed-profit coverage of all three outcomes. Stale Home boosts were retained alongside refreshed ordinary prices; blanket 25% boosts could also exhaust the margin.
+- Temporarily blocked 15 quote IDs across those four books. No accepted bets, balances, carry corrections or settlements changed. The remaining bettable board passes the server coverage check.
+- Publisher now checks complete outcome books before replacing any quotes and rejects a board if sum(1 / best available odds) < 1. Reversed fixture IDs are grouped together; handicap pairs, finish/miss complements and metadata-labelled winner fields are included. Authentication is unchanged.
+- Client retains fresh ordinary base prices separately, discards stale promotional price variants, and caps requested boosts so complete books retain at least a 1% implied margin before downward rounding. Featured copy now says up to 25%.
+- Home and embed buttons display the actual published quote and show pricing review for paused quotes. Publication uses raw model values, never stale trusted display prices.
+- Regression tests reproduce all four real failures, reverse-orientation hedges and complementary finish bets. Server synthetic rejection, live-board validation and preserved administrator authentication verified without impersonating a user or publishing a synthetic board.
+- After deployment, Refresh Home offers in the normal administrator session regenerates the corrected offers and safely replaces the temporary quote blocks.
