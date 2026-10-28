@@ -93,6 +93,20 @@
     }
     return null;
   }
+  async function fetchDataResponse(path){
+    const delays = [750, 1500];
+    for(let attempt = 0; ; attempt++){
+      let response;
+      try {
+        response = await fetch(path, attempt ? {cache:'reload'} : {});
+      } catch(error) {
+        if(attempt >= delays.length) throw error;
+      }
+      const temporary = response && (response.status === 408 || response.status === 429 || response.status >= 500);
+      if(response && (!temporary || attempt >= delays.length)) return response;
+      await new Promise(resolve => setTimeout(resolve, delays[attempt]));
+    }
+  }
   async function loadAllData(){
     const files = ['futures','h2h_history','h2h_divisions','h2h_shift','h2h_cup_shift','h2h_variance_widen','h2h_schedule','leading_at','special_markets','h2h_record','cup_calendar','carry_balances','round_dates','div23_schedule_exceptions','real_results','aleague_round_projection','roster_rules','team_strength_tiers','official_fa_cup_draw','roddy_results'];
     const failures = [];
@@ -100,20 +114,24 @@
       const path = './data/' + name + '.json';
       let res;
       try {
-        res = await fetch(path);
+        res = await fetchDataResponse(path);
       } catch(e) {
         failures.push(name + ' (network error: ' + e.message + ')');
         return null;
       }
       if(!res.ok){
-        if(name === 'real_results'){
+        if(name === 'real_results' && res.status === 404){
           // Won't exist until the first real round of live season data has
           // actually gone through the pipeline -- that's the normal
           // pre-season state, not a missing-file error like every other
           // file here.
           return {};
         }
-        failures.push(name + ' (HTTP ' + res.status + ' -- check the file exists at data/' + name + '.json)');
+        const reason = res.status === 404 ? 'file missing at data/' + name + '.json'
+          : (res.status === 408 || res.status === 429 || res.status >= 500)
+            ? 'temporary hosting failure after automatic retries; please try again'
+            : 'request failed';
+        failures.push(name + ' (HTTP ' + res.status + ' -- ' + reason + ')');
         return null;
       }
       let parsed;
@@ -163,8 +181,10 @@
     document.getElementById('app').innerHTML = `
       <div style="padding:2rem 1rem;max-width:420px;margin:0 auto;color:#f5f5f5;font-family:system-ui,sans-serif;">
         <h2 style="margin:0 0 8px;">Couldn't load bilbbet</h2>
-        <p style="color:#9a9a9a;font-size:clamp(19px, calc(19px + 0.4vw), 22px);">One of the files in <code>/data</code> failed to load (${esc(e.message)}). If you're setting this up from a fresh copy, check every file in the <code>data/</code> folder was uploaded, including any newly added ones -- a single missing or renamed data file stops the whole page from starting.</p>
+        <p style="color:#9a9a9a;font-size:clamp(19px, calc(19px + 0.4vw), 22px);">One of the files in <code>/data</code> failed to load (${esc(e.message)}). Temporary server or network failures can interrupt loading. Please try again. If the error persists, share this message with the administrator.</p>
+        <button id="retry-data-load" type="button" style="padding:10px 18px;cursor:pointer;">Try again</button>
       </div>`;
+    document.getElementById('retry-data-load').addEventListener('click', () => window.location.reload());
     return;
   }
 
