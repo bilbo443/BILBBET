@@ -1202,3 +1202,13 @@ Custom H2H CSV timestamps, 26 October 2026:
 - Capture a single snapshot time when export starts and reuse it in the CSV header, filename and completion message. Sydney local time and daylight-saving abbreviation are explicit.
 - Filename example: bilbbet-h2h-win-odds-R3-20261026-101530-AEDT.csv. Matrix row/column layout is unchanged.
 - Existing export checks pass with additional fixed-date AEDT/AEST and UTC-to-local-date rollover checks. No price, bet, balance or database changes.
+
+
+Public fixture share page:
+- Open fixtures.html from H2H → Share round fixtures & odds. Default uses the live current round; shared links pin round and optional competition.
+- Confirmed league fixtures and official cup fixtures only, filtered to that round. No provisional pairings or median fixtures.
+- Ordinary published H2H win/draw and both signed handicap lines/prices; no independent model recalculation or boosts. Missing/paused/unsafe books show a dash.
+- Handicap lines come from published labels, including reversed orientation; ambiguous lines are not guessed.
+- Public read-only controls/price snapshot; returns before remembered account login, reward sync and Home/admin pricing actions.
+- Save timestamped 1080px PNG match cards, at most seven fixtures each, or copy/share the public link. Large cup rounds split into multiple images.
+- Images are snapshots, not automatic social link thumbnails. Current availability must be checked on Bilbbet.
