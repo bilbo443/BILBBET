@@ -37,3 +37,8 @@ sandbox.document={createElement:()=>{
  assert(branch.includes('bilbbet_price_list'));assert(!/sset\(|getUser\(|loadHomeStats\(|publish_board|place_bet/.test(branch));assert(branch.includes('return;'));
  console.log('PASS: win/draw/handicap orientation, ordinary published prices, paused/unsafe/ambiguous books, round filtering, page links, PNG layout and read-only startup.');
 })().catch(e=>{console.error(e);process.exitCode=1});
+
+const cupGroups=api.fixtureGroups({divisions:[],schedule:{},round:4,confirmed:()=>false,noFixtures:()=>false,cupFixtures:{'FA CUP':[{teamA:'A',teamB:'B',round:4}],ECL:[{teamA:'C',teamB:'D',round:4},{teamA:'E',teamB:'F',round:5}]}});
+assert.equal(cupGroups.length,2);assert.equal(cupGroups[1].fixtures.length,1);
+const css=fs.readFileSync('css/fixture-share.css','utf8');
+for(const [name,row] of [['ELIZA CUP (D1)',1],['DIVISION 2A',2],['DIVISION 2B',2],['DIVISION 3A',3],['DIVISION 3B',3],['FA CUP',4],['ECL',4]])assert(css.includes('data-competition="'+name+'"]{grid-column:')&&css.includes('grid-row:'+row));
