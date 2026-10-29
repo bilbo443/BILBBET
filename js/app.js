@@ -677,6 +677,7 @@
   // than assumed from context, so the normal in-app experience is 100%
   // unaffected unless this exact param is present.
   const EMBED_MODE = new URLSearchParams(window.location.search).get('embed') === 'home';
+  const FIXTURE_SHARE_MODE = window.location.pathname.endsWith('/fixtures.html');
 
   let state = {
     screen:'main', user:null, error:'', info:'', loginModalOpen:false,
@@ -2241,6 +2242,7 @@
 
   // ---------- rendering ----------
   function render(){
+    if(FIXTURE_SHARE_MODE)return; // Dedicated read-only page mounts once after its public snapshot loads.
     if(EMBED_MODE){
       document.getElementById('app').innerHTML = renderEmbedHome();
       // Embeds skip attachHandlers, so start their own countdown.
@@ -3263,7 +3265,8 @@
 
   function h2hSubTabBar(){
     const renderItem = t => `<div class="bb-tab ${state.h2hSubTab===t?'active':''}" data-h2hsubtab="${esc(t)}" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;display:flex;align-items:center;gap:4px;">${subTabLogo(t)}${t==='CUSTOM MATCHUP'?'Custom matchup':(t==='PLAYOFFS'?'Playoffs':t.replace(' (D1)',''))}</div>`;
-    return twoRowTabBar(FUTURE_DIVS.filter(availableDivision), partialRelease() ? [] : ['FA CUP', 'ECL', 'PLAYOFFS', 'CUSTOM MATCHUP'], renderItem);
+    return `<a class="bb-btn ghost" href="fixtures.html?round=${Number(state.h2hRound)}" target="_blank" rel="noopener" style="display:inline-block;margin-bottom:12px;">Share round fixtures &amp; odds ↗</a>` +
+      twoRowTabBar(FUTURE_DIVS.filter(availableDivision), partialRelease() ? [] : ['FA CUP', 'ECL', 'PLAYOFFS', 'CUSTOM MATCHUP'], renderItem);
   }
   const FUTURES_SUBTABS = [...FUTURE_DIVS, 'RODDY', 'FA CUP', 'ECL'];
   function futuresSubTabBar(){
@@ -9282,6 +9285,37 @@
   // first (a genuine edge case round_dates.json doesn't reflect), and
   // falls back to deriving the correct round from today's real date
   // otherwise -- the normal case, needing no admin action at all.
+  if(FIXTURE_SHARE_MODE){
+    // Public snapshot only: stop before remembered login, Home caching, reward sync or admin actions.
+    const share=window.BilbbetFixtureShare;
+    const fields={bilbbet2_current_round_override:'currentRoundOverride',bilbbet2_cup_fixtures:'cupFixtures',
+      bilbbet2_round_betting_open:'roundBettingOpen',bilbbet2_close_scope:'closeScope',
+      bilbbet2_last_autoclosed_round:'lastAutoClosedRound'};
+    let quotes=new Map(),error='';
+    const [controlsResult,pricesResult]=await Promise.allSettled([
+      secureRead(Object.keys(fields)),secureRpc('bilbbet_price_list')
+    ]);
+    if(controlsResult.status==='fulfilled'){
+      for(const [key,field] of Object.entries(fields))
+        if(controlsResult.value[key]!==undefined && controlsResult.value[key]!==null)state[field]=controlsResult.value[key];
+    }else error='Live round controls could not be verified. Prices are unavailable; please reload.';
+    state.currentRound=Number(state.currentRoundOverride)||deriveCurrentRoundFromDate();
+    const requested=new URLSearchParams(window.location.search).get('round');
+    const round=/^(?:[1-9]|1[0-9]|2[0-6])$/.test(requested||'')?Number(requested):state.currentRound;
+    if(controlsResult.status==='fulfilled'&&pricesResult.status==='fulfilled'&&Array.isArray(pricesResult.value))
+      quotes=new Map(pricesResult.value.map(q=>[q.id,q]));
+    else if(!error)error='The live price board could not be loaded. Prices are unavailable; please reload.';
+    const groups=share.fixtureGroups({divisions:FUTURE_DIVS,schedule:H2H_SCHEDULE,round,
+      confirmed:divisionFixtureConfirmed,noFixtures:hasNoFixtures,cupFixtures:state.cupFixtures});
+    for(const group of groups)for(const fixture of group.fixtures){
+      fixture.prices=share.fixturePrices(fixture.teamA,fixture.teamB,round,quotes);
+      fixture.logoA=teamLogo(fixture.teamA,24);fixture.logoB=teamLogo(fixture.teamB,24);
+    }
+    share.mount(document.getElementById('app'),{round,groups,timestamp:h2hCsvTimestamp(),
+      closed:controlsResult.status!=='fulfilled'||isRoundBlocked(round),error});
+    return;
+  }
+
   const savedOverride = await sget('bilbbet2_current_round_override');
   const resolvedRound = savedOverride || deriveCurrentRoundFromDate();
   state.currentRoundOverride = savedOverride || null;
