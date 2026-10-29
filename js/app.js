@@ -2165,6 +2165,9 @@
     return `
       ${curtainDown() ? '' : `
       ${renderRoundCountdown()}
+      <a href="fixtures.html" class="bb-card" style="display:flex;align-items:center;justify-content:space-between;gap:16px;text-decoration:none;border-color:#675b19;background:linear-gradient(135deg,#292713,#172329);padding:18px;margin-bottom:16px;color:#f5f5f5;">
+        <span><strong style="display:block;color:#ffdd00;font-size:21px;">Round ${Number(state.currentRound)} fixtures &amp; odds</strong><span style="display:block;color:#b9c4ca;margin-top:5px;">All divisions · H2H odds · Handicaps · Shareable match cards</span></span><span aria-hidden="true" style="font-size:26px;color:#ffdd00;">→</span>
+      </a>
       ${renderHomeDigest()}
       ${renderOpeningRoundHub()}
       <div class="bb-card" style="background:linear-gradient(135deg,#2a2410,#1a1a1a);border-color:#4a3a10;margin-bottom:16px;text-align:center;padding:1.25rem;">
