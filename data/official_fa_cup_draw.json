@@ -192,5 +192,74 @@
     "CASUAL APPROACH",
     "QUINTASENTIAL FC"
   ],
-  "r64_results_source": "Validated GW2 extraction, 25 October 2026"
+  "r64_results_source": "Validated GW2 extraction, 25 October 2026",
+  "round_of_32_round": 4,
+  "r32_draw_confirmed": true,
+  "r32_matches": [
+    [
+      "BC UNITED ZEBRAS",
+      "FROGBERT FOOTBALL"
+    ],
+    [
+      "JUSTICEFORMOON FC",
+      "NANISTATE"
+    ],
+    [
+      "THE DRONE POLICE",
+      "KALLO FC"
+    ],
+    [
+      "PAYNE IN THE NECK FC",
+      "MANCHESTHAIR UTD"
+    ],
+    [
+      "DEER PARK UNITED",
+      "SAUCE FC"
+    ],
+    [
+      "RIO'S RHINOS",
+      "QUINTASENTIAL FC"
+    ],
+    [
+      "AARONGURDWOODREICH",
+      "SILVERMAN'S XI"
+    ],
+    [
+      "DINKIN CRFC",
+      "THE BEAU-CHAMPS"
+    ],
+    [
+      "CASUAL APPROACH",
+      "HARVEY FREKES"
+    ],
+    [
+      "AFC BIG RED PORT",
+      "ALBANIAN BOARS"
+    ],
+    [
+      "GIVE US WANG",
+      "DW ABOUT IT FC"
+    ],
+    [
+      "LALAS LEVEN",
+      "CONCEICAO"
+    ],
+    [
+      "ROTORUA UNITED",
+      "GARRY WALLAH UNITED"
+    ],
+    [
+      "ALASKAN BULL WORMS",
+      "VICTORYRULES"
+    ],
+    [
+      "DRUMMOYNE TERRIERS",
+      "GARNCELONA"
+    ],
+    [
+      "GOT WOUD?",
+      "LOAVES & FISHES"
+    ]
+  ],
+  "r32_confirmed_on": "2026-11-05"
 }

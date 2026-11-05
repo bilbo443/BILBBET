@@ -15,6 +15,8 @@ class ConfirmedDrawTests(unittest.TestCase):
         data = Path(__file__).resolve().parents[1] / 'data'
         self.roster = json.loads((data / 'h2h_divisions.json').read_text())
         self.official = json.loads((data / 'official_fa_cup_draw.json').read_text())
+        self.full_draw = copy.deepcopy(self.official)
+        self.official.pop('r32_draw_confirmed', None)
         self.official.pop('r64_results_final', None)
         self.official.pop('r64_winners', None)
         self.names = sorted(t for group in self.roster.values() for t in group)
@@ -40,6 +42,15 @@ class ConfirmedDrawTests(unittest.TestCase):
             draw['r64_matches'][-1][-1]=name
             with self.assertRaisesRegex(ValueError,'each survivor exactly once'):
                 self.run_model(draw)
+
+    def test_confirmed_r32_controls_round_of_16_field(self):
+        _, markets, _ = self.run_model(self.full_draw)
+        expected = {max(pair, key=self.score.get) for pair in self.full_draw['r32_matches']}
+        self.assertEqual({t for t, pct in markets['reach_r16_pct'].items() if pct == 100}, expected)
+        invalid = copy.deepcopy(self.full_draw)
+        invalid['r32_matches'][0][0] = invalid['r32_matches'][1][0]
+        with self.assertRaisesRegex(ValueError, 'each Round of 64 winner exactly once'):
+            self.run_model(invalid)
 
     def test_incomplete_draw_rejected(self):
         draw=copy.deepcopy(self.official);draw['r64_matches'].pop()

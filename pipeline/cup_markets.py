@@ -165,6 +165,13 @@ def regenerate_roddy_and_cup(roster, coeffs, scale, history, n_sim=6000, seed=11
                 raise ValueError('Completed FA Cup round contains a draw; advancement needs organiser confirmation')
             r64_winners = [pair[0] if scores[0] > scores[1] else pair[1] for pair,scores in zip(pairs,values)]
             eliminated.update(t for pair in pairs for t in pair if t not in r64_winners)
+    r32_pairs = []
+    if official_cup_draw and official_cup_draw.get('r32_draw_confirmed'):
+        r32_pairs = official_cup_draw.get('r32_matches', [])
+        if (len(r32_pairs) != 16 or any(len(pair) != 2 for pair in r32_pairs)
+                or len({t for pair in r32_pairs for t in pair}) != 32
+                or {t for pair in r32_pairs for t in pair} != set(r64_winners)):
+            raise ValueError('Confirmed Round of 32 must contain each Round of 64 winner exactly once')
     for _ in range(n_sim):
         prelim = {('PRELIM', i): (
                     confirmed_winners[i] if confirmed_winners else play(a, b))
@@ -184,7 +191,8 @@ def regenerate_roddy_and_cup(roster, coeffs, scale, history, n_sim=6000, seed=11
         for stage in ('r32', 'r16', 'qf', 'sf', 'final'):
             for t in field:
                 reached[t][stage] += 1
-            field = round_matches(field)
+            field = ([play(a, b) for a, b in r32_pairs]
+                     if stage == 'r32' and r32_pairs else round_matches(field))
         reached[field[0]]['win'] += 1
     cup = {market: market_rows({t: 100 * reached[t][stage]/n_sim for t in teams if t not in eliminated})
            for market, stage in FA_MARKETS.items()}
