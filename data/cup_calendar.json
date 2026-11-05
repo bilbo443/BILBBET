@@ -1,7 +1,8 @@
 {
   "fa_cup": {
     "1": "Preliminary Round",
-    "2": "Round Of 64"
+    "2": "Round Of 64",
+    "4": "Round Of 32"
   },
   "ecl": {
     "14": "Matchday 1",
