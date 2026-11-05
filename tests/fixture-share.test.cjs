@@ -9,8 +9,8 @@ add('hcap-a-fav',1.9,'R3: A -4.5');add('hcap-b-dog',1.92,'R3: B +4.5');
 let p=api.fixturePrices('A','B',3,quotes);
 assert.equal(p.a,1.8);assert.equal(p.b,2.4);assert.equal(p.lineA,-4.5);assert.equal(p.lineB,4.5);assert.equal(p.ha,1.9);
 p=api.fixturePrices('B','A',3,quotes);assert.equal(p.a,2.4);assert.equal(p.lineA,4.5);assert.equal(p.ha,1.92);
-quotes.get('H2H|res-a'+suffix).odds=2.25;quotes.get('H2H|res-a'+suffix).prices.push(2.25);
-assert.equal(api.fixturePrices('A','B',3,quotes).a,1.8,'boost excluded');
+quotes.get('H2H|res-a'+suffix).odds=1.85;quotes.get('H2H|res-a'+suffix).prices.push(1.85);
+assert.equal(api.fixturePrices('A','B',3,quotes).a,1.85,'published boost matches main fixture price');
 quotes.get('H2H|res-a'+suffix).bettable=false;assert.equal(api.fixturePrices('A','B',3,quotes).a,null);
 delete quotes.get('H2H|res-a'+suffix).bettable;
 quotes.get('H2H|hcap-b-dog'+suffix).label='R3: B +5.5';assert.equal(api.fixturePrices('A','B',3,quotes).ha,null);
@@ -35,7 +35,7 @@ sandbox.document={createElement:()=>{
  const app=fs.readFileSync('js/app.js','utf8');
  const branch=app.slice(app.indexOf('  if(FIXTURE_SHARE_MODE){'),app.indexOf("  const savedOverride = await sget("));
  assert(branch.includes('bilbbet_price_list'));assert(!/sset\(|getUser\(|loadHomeStats\(|publish_board|place_bet/.test(branch));assert(branch.includes('return;'));
- console.log('PASS: win/draw/handicap orientation, ordinary published prices, paused/unsafe/ambiguous books, round filtering, page links, PNG layout and read-only startup.');
+ console.log('PASS: win/draw/handicap orientation, published prices, paused/unsafe/ambiguous books, round filtering, page links, PNG layout and read-only startup.');
 })().catch(e=>{console.error(e);process.exitCode=1});
 
 const cupGroups=api.fixtureGroups({divisions:[],schedule:{},round:4,confirmed:()=>false,noFixtures:()=>false,cupFixtures:{'FA CUP':[{teamA:'A',teamB:'B',round:4}],ECL:[{teamA:'C',teamB:'D',round:4},{teamA:'E',teamB:'F',round:5}]}});

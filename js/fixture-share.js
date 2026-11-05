@@ -3,13 +3,13 @@
   'use strict';
   const escape = value => String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const price = value => Number.isFinite(Number(value)) && Number(value)>1 ? (Math.abs(Number(value)-Math.round(Number(value)*100)/100)>1e-9?String(Number(value)):Number(value).toFixed(2)) : '—';
-  function ordinary(q){
+  function publishedPrice(q){
     if(!q || q.bettable===false || q.pricingReview)return null;
-    const n=Number(q.baseOdds || Math.min(...(q.prices || [q.odds]).map(Number)));
+    const n=Number(q.odds);
     return Number.isFinite(n)&&n>1?n:null;
   }
   function safeBook(rows){
-    const values=rows.map(ordinary);
+    const values=rows.map(publishedPrice);
     return values.every(v=>v!==null) && values.reduce((sum,n)=>sum+1/n,0)>=1 ? values : null;
   }
   function handicap(q,team,round){
@@ -84,7 +84,7 @@
     const groups=competition==='ALL'?model.groups:model.groups.filter(g=>g.name===competition);
     document.body.classList.add('fixture-share-mode');
     document.title='Round '+model.round+' fixtures & odds · Bilbbet';
-    container.innerHTML=`<main class="fs-shell"><nav class="fs-toolbar"><a href="./">← Bilbbet</a><div><button id="fs-copy">Copy page link</button><button id="fs-share">Share page</button></div></nav><header class="fs-hero"><div class="fs-kicker">BILBBET / THE WEEKLY MATCH CARD</div><h1>Round <span>${model.round}.</span><br>Pick your side.</h1><p>Every matchup. Both sides of the line.</p><div class="fs-meta"><span>${model.closed?'ROUND CLOSED · REFERENCE PRICES':'PUBLISHED ORDINARY PRICES'}</span><span>${escape(model.timestamp.label)}</span></div></header><section class="fs-controls" aria-label="Fixture filters"><label>ROUND <select id="fs-round">${Array.from({length:26},(_,i)=>`<option value="${i+1}" ${i+1===model.round?'selected':''}>Round ${i+1}</option>`).join('')}</select></label><label>COMPETITION <select id="fs-competition">${options.map(name=>`<option value="${escape(name)}" ${name===competition?'selected':''}>${escape(name==='ALL'?'All competitions':name.replace(' (D1)',''))}</option>`).join('')}</select></label></section><p id="fs-message" role="status">${escape(model.error||'Download an image for your post, or share this page link.')}</p><div class="fs-groups ${competition==='ALL'?'fs-groups-all':''}">${groups.length?groups.map((g,i)=>`<section class="fs-group" data-competition="${escape(g.name)}"><div class="fs-group-heading"><div><span class="fs-kicker">ROUND ${model.round} · ${g.fixtures.length} MATCHES</span><h2>${escape(g.name.replace(' (D1)',''))}</h2></div><button data-fs-image="${i}">Download ${g.fixtures.length>7?'images':'image'} ↓</button></div>${g.fixtures.map(modelCard).join('')}</section>`).join(''):'<section class="fs-empty"><h2>No confirmed fixtures for this round yet.</h2><p>Choose another round or check back after the official draw.</p></section>'}</div><footer class="fs-footer"><strong>BILBBET</strong><p>Win prices are three-way H2H prices: a tie pays the draw. Handicap prices include the signed score adjustment shown beside each team. These are not advancement prices.</p><p>Decimal odds · Ordinary prices include the usual margin; boosts excluded. — means no available published price. Images are timestamped snapshots; the page loads current published prices when opened. Check Bilbbet for current availability before placing a bet.</p><a href="./">Free fantasy fun. Join the action on Bilbbet →</a></footer></main>`;
+    container.innerHTML=`<main class="fs-shell"><nav class="fs-toolbar"><a href="./">← Bilbbet</a><div><button id="fs-copy">Copy page link</button><button id="fs-share">Share page</button></div></nav><header class="fs-hero"><div class="fs-kicker">BILBBET / THE WEEKLY MATCH CARD</div><h1>Round <span>${model.round}.</span><br>Pick your side.</h1><p>Every matchup. Both sides of the line.</p><div class="fs-meta"><span>${model.closed?'ROUND CLOSED · REFERENCE PRICES':'PUBLISHED PRICES'}</span><span>${escape(model.timestamp.label)}</span></div></header><section class="fs-controls" aria-label="Fixture filters"><label>ROUND <select id="fs-round">${Array.from({length:26},(_,i)=>`<option value="${i+1}" ${i+1===model.round?'selected':''}>Round ${i+1}</option>`).join('')}</select></label><label>COMPETITION <select id="fs-competition">${options.map(name=>`<option value="${escape(name)}" ${name===competition?'selected':''}>${escape(name==='ALL'?'All competitions':name.replace(' (D1)',''))}</option>`).join('')}</select></label></section><p id="fs-message" role="status">${escape(model.error||'Download an image for your post, or share this page link.')}</p><div class="fs-groups ${competition==='ALL'?'fs-groups-all':''}">${groups.length?groups.map((g,i)=>`<section class="fs-group" data-competition="${escape(g.name)}"><div class="fs-group-heading"><div><span class="fs-kicker">ROUND ${model.round} · ${g.fixtures.length} MATCHES</span><h2>${escape(g.name.replace(' (D1)',''))}</h2></div><button data-fs-image="${i}">Download ${g.fixtures.length>7?'images':'image'} ↓</button></div>${g.fixtures.map(modelCard).join('')}</section>`).join(''):'<section class="fs-empty"><h2>No confirmed fixtures for this round yet.</h2><p>Choose another round or check back after the official draw.</p></section>'}</div><footer class="fs-footer"><strong>BILBBET</strong><p>Win prices are three-way H2H prices: a tie pays the draw. Handicap prices include the signed score adjustment shown beside each team. These are not advancement prices.</p><p>Decimal odds · Prices match the published board, including any active boosts. — means no available published price. Images are timestamped snapshots; the page loads current published prices when opened. Check Bilbbet for current availability before placing a bet.</p><a href="./">Free fantasy fun. Join the action on Bilbbet →</a></footer></main>`;
     const message=text=>{document.getElementById('fs-message').textContent=text;};
     const url=()=>socialUrl(location.href,model.round,competition);
     document.getElementById('fs-round').onchange=e=>location.assign(socialUrl(location.href,Number(e.target.value),competition));
@@ -127,7 +127,7 @@
     ctx.fillStyle='#0e1420';ctx.fillRect(0,0,1080,canvas.height);ctx.fillStyle='#ffdd00';ctx.fillRect(0,0,1080,12);
     text('BILBBET',48,75,38,'#ffdd00',900);text('ROUND '+model.round+' / MATCH CARD',48,124,23,'#98a8bc',700);
     fit(group.name.replace(' (D1)',''),48,189,970,48,'#ffffff',900);
-    text(model.closed?'ROUND CLOSED · REFERENCE PRICES':'ORDINARY H2H ODDS + HANDICAPS',48,236,21,'#51dfc6',700);
+    text(model.closed?'ROUND CLOSED · REFERENCE PRICES':'PUBLISHED H2H ODDS + HANDICAPS',48,236,21,'#51dfc6',700);
     text('TEAM',58,283,17,'#98a8bc');text('WIN',712,283,17,'#98a8bc');text('HANDICAP / PRICE',835,283,17,'#98a8bc');
     for(let i=0;i<group.fixtures.length;i++){
       const f=group.fixtures[i],y=300+i*210,p=f.prices;
@@ -145,7 +145,7 @@
     }
     const foot=canvas.height-96;
     text(model.timestamp.label.replace(' (Australia/Sydney)',''),48,foot,20,'#aabbd0');
-    text('Three-way win odds · Not advancement · Boosts excluded · — unavailable',48,foot+30,18,'#aabbd0',400);
+    text('Three-way win odds · Not advancement · Published prices · — unavailable',48,foot+30,18,'#aabbd0',400);
     text('bilbo443.github.io/BILBBET',48,foot+63,22,'#ffdd00',700);
     if(pages>1)text(page+' / '+pages,960,foot+63,22,'#aabbd0');
     return new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('Could not create image')),'image/png'));
@@ -158,5 +158,5 @@
       image.onload=()=>done(image);image.onerror=()=>done(null);image.src=imageSrc.replace(/&amp;/g,'&');
     });
   }
-  root.BilbbetFixtureShare={ordinary,safeBook,handicap,fixturePrices,fixtureGroups,modelCard,imagePages,socialUrl,mount,drawImage};
+  root.BilbbetFixtureShare={publishedPrice,safeBook,handicap,fixturePrices,fixtureGroups,modelCard,imagePages,socialUrl,mount,drawImage};
 })(typeof window==='undefined'?globalThis:window);
