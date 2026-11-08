@@ -192,6 +192,26 @@
   // The saved pick ID identifies the market even when an older bet's label is only a team.
   function betSelectionLabel(s){
     const p = String(s.id || '').split('|');
+    if(p[0] === 'H2H' && p.length === 5){
+      const round = Number(p[2].replace(/^R/,''));
+      if(['res-a','res-b'].includes(p[1])){
+        const a=p[1]==='res-a';
+        return 'Round '+round+' · '+p[a?3:4]+' to win vs '+p[a?4:3];
+      }
+      if(p[1]==='res-draw')return 'Round '+round+' · Draw: '+p[3]+' vs '+p[4];
+      if(/^hcap-[ab]-(fav|dog)$/.test(p[1])){
+        const a=p[1].startsWith('hcap-a-'),name=p[a?3:4],opponent=p[a?4:3];
+        const prefix='R'+round+': '+name+' ';
+        const raw=typeof s.label==='string' && s.label.startsWith(prefix)?s.label.slice(prefix.length).trim():'';
+        const valid=/^[+-]\d+(?:\.\d+)?$/.test(raw) &&
+          (p[1].endsWith('-fav')?Number(raw)<0:Number(raw)>0);
+        return 'Round '+round+' · '+name+' '+(valid?raw+' handicap':'handicap (accepted line unavailable)')+' vs '+opponent;
+      }
+    }
+    if(['H2H_MEDIAN','H2H_WIN'].includes(p[0]) && p.length===3)
+      return 'Round '+p[2].replace(/^R/,'')+' · '+p[1]+(p[0]==='H2H_MEDIAN'?' to beat the division median':' to win against its scheduled opponent');
+    if(p[0]==='LEADAT' && p.length===4)
+      return p[3]+' · Lead '+p[1].replace(' (D1)','')+' at the end of Round '+p[2];
     let labels, context, key, team;
     if(p[0] === 'FUT' && p.length === 4){
       labels = p[1] === 'RODDY' ? FUTURES.roddy_labels : FUTURES.market_labels;
@@ -4342,7 +4362,7 @@
             ${bets.slice().sort((a,b)=>b.timestamp-a.timestamp).map(b => `
               <tr>
                 <td>${fmtDate(b.timestamp)}</td>
-                <td>${b.selections.map(s=>esc(s.label)+' <span style="color:#8a8a8a;">('+formatOdds(s.odds)+')</span>').join('<br/>')}</td>
+                <td>${b.selections.map(s=>esc(betSelectionLabel(s))+' <span style="color:#8a8a8a;">('+formatOdds(s.odds)+')</span>').join('<br/>')}</td>
                 <td>${fmt(b.stake)}</td>
                 <td>${b.combinedOdds.toFixed(2)}</td>
                 <td>${fmt(displayedBetReturn(b))}</td>
@@ -6800,7 +6820,7 @@
 
   function buildSlipText(){
     const lines = ['My bilbbet slip:'];
-    state.slip.forEach(s => lines.push('- ' + s.label + ' (' + formatOdds(s.odds) + ')'));
+    state.slip.forEach(s => lines.push('- ' + betSelectionLabel(s) + ' (' + formatOdds(s.odds) + ')'));
     if(state.betMode === 'multi' && state.slip.length){
       lines.push('Combined odds: ' + combinedOdds().toFixed(2));
       lines.push('Stake: ' + state.stake + ' clams \u2192 potential ' + round2(state.stake*combinedOdds()) + ' clams');
@@ -6845,7 +6865,7 @@
         ${modeToggle}${header}
         <div style="max-height:140px;overflow-y:auto;margin-bottom:6px;">
           ${state.slip.map(s => `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:clamp(13px, calc(13px + 0.4vw), 16px);padding:3px 0;border-bottom:1px solid #333333;">
-            <span style="color:#cfcfcf;flex:1;">${esc(s.label)} <span class="bb-odds">${formatOdds(s.odds)}</span>${state.showImpliedChance?` <span style="color:#9a9a9a;">(${impliedChance(s.odds)})</span>`:''}</span>
+            <span style="color:#cfcfcf;flex:1;">${esc(betSelectionLabel(s))} <span class="bb-odds">${formatOdds(s.odds)}</span>${state.showImpliedChance?` <span style="color:#9a9a9a;">(${impliedChance(s.odds)})</span>`:''}</span>
             <input class="bb-input" data-single-stake="${esc(s.id)}" type="number" min="0.01" step="0.01" value="${s.singleStake||50}" style="width:70px;padding:3px 5px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);"/>
             <span data-single-potential="${esc(s.id)}" style="color:#9a9a9a;width:52px;text-align:right;">&rarr;${fmt(round2((s.singleStake||0)*s.odds))}</span>
             <span data-remove="${esc(s.id)}" style="cursor:pointer;color:#9a9a9a;padding:10px;margin:-10px;display:inline-block;">&times;</span>
@@ -6874,7 +6894,7 @@
       ${modeToggle}${header}
       <div style="max-height:90px;overflow-y:auto;margin-bottom:6px;">
         ${state.slip.map(s => `<div style="display:flex;justify-content:space-between;font-size:clamp(13px, calc(13px + 0.4vw), 16px);padding:3px 0;border-bottom:1px solid #333333;">
-          <span style="color:#cfcfcf;">${esc(s.label)}</span>
+          <span style="color:#cfcfcf;">${esc(betSelectionLabel(s))}</span>
           <span style="display:flex;gap:8px;align-items:center;"><span class="bb-odds">${formatOdds(s.odds)}</span>${state.showImpliedChance?`<span style="color:#9a9a9a;font-size:clamp(13px, calc(13px + 0.4vw), 16px);">${impliedChance(s.odds)}</span>`:''}
           <span data-remove="${esc(s.id)}" style="cursor:pointer;color:#9a9a9a;padding:10px;margin:-10px;display:inline-block;">&times;</span></span></div>`).join('')}
       </div>
