@@ -27,3 +27,12 @@ const multi={status:'PENDING',selections:[{id:'H2H|res-a|R1|A|B',result:'WON'},{
 assert.equal(ready(multi),false,'Already resolved leg cannot flag a future unresolved leg');
 assert(!src.includes('r !== null && r <= state.currentRound'));
 console.log('PASS: upcoming Round 2, future populated scores, missing/invalid scores, actual past result, confirmed preliminary, settled/cashed-out bets and graded multi legs.');
+
+const hcap='H2H|hcap-b-fav|R1|A|B';
+assert.equal(result(hcap,{label:'R1: B -1.5'}),'LOST');
+assert.equal(result(hcap),null,'Missing accepted handicap must never use current market');
+assert.equal(result(hcap,{label:'R1: B +1.5'}),null,'Direction mismatch needs review');
+assert.equal(result('H2H|hcap-a-dog|R1|A|B',{label:'R1: A +1.5'}),'WON');
+assert.equal(result('H2H|hcap-b-dog|R1|A|B',{label:'R1: B +12'}),'VOID');
+assert.equal(ready({status:'PENDING',selections:[{id:hcap,label:'R1: B -1.5'}]}),true);
+assert.equal(result('H2H|hcap-b-fav|R2|A|B',{label:'R2: B -1.5'}),null);

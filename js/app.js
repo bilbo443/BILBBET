@@ -411,7 +411,7 @@
     'Jarvis Zebras': 9, 'Justiceformoon FC': 9, 'Dinkin CRFC': 8,
   };
   const ELECTION_TURNOUT_ACTUAL = 17;
-  function computeSuggestedResult(pickId){
+  function computeSuggestedResult(pickId, selection = null){
     const parts = pickId.split('|');
     if(parts[0] === 'ELECTION_SEAT'){
       const name = parts[1];
@@ -493,6 +493,18 @@
     const scoreA = fixtureScore(teamA, teamB, round);
     const scoreB = fixtureScore(teamB, teamA, round);
     if(!Number.isFinite(scoreA) || !Number.isFinite(scoreB)) return null; // no usable result for this round
+    if(/^hcap-[ab]-(fav|dog)$/.test(side)){
+      const team = side.startsWith('hcap-a-') ? teamA : teamB;
+      const prefix = 'R'+round+': '+team+' ';
+      const label = selection?.label;
+      if(typeof label !== 'string' || !label.startsWith(prefix))return null;
+      const raw = label.slice(prefix.length).trim();
+      if(!/^[+-]\d+(?:\.\d+)?$/.test(raw))return null;
+      const line = Number(raw);
+      if(!Number.isFinite(line) || (side.endsWith('-fav') ? line>=0 : line<=0))return null;
+      const margin = (side.startsWith('hcap-a-') ? scoreA-scoreB : scoreB-scoreA)+line;
+      return margin>0 ? 'WON' : margin<0 ? 'LOST' : 'VOID';
+    }
     if(scoreA === scoreB){
       const cupMatch = (state.cupFixtures['FA CUP'] || []).some(f =>
         Number(f.round) === round &&
@@ -509,7 +521,7 @@
   function betHasReviewableResult(bet){
     if((bet.status||'PENDING')!=='PENDING' || !Array.isArray(bet.selections)) return false;
     return bet.selections.some(selection =>
-      !selection.result && computeSuggestedResult(selection.id)!==null);
+      !selection.result && computeSuggestedResult(selection.id,selection)!==null);
   }
   // Derives the pausable "category" (a whole market, not one team's row in
   // it) from a pick ID. FUT|division|marketKey|team -> division|marketKey.
@@ -5313,7 +5325,7 @@
                 <td>${esc(b.username)}</td>
                 <td>${b.selections.map((s,i)=>{
                   const label = esc(betSelectionLabel(s))+' <span style="color:#8a8a8a;">('+formatOdds(s.odds)+')</span>';
-                  const suggestion = !s.result ? computeSuggestedResult(s.id) : null;
+                  const suggestion = !s.result ? computeSuggestedResult(s.id,s) : null;
                   const suggestionTag = suggestion ? ` <span style="color:#ffdd00;font-size:clamp(15px, calc(15px + 0.4vw), 18px);font-weight:600;">&#9889; suggested: ${suggestion}</span>` : '';
                   if(b.selections.length===1) return label + suggestionTag;
                   const legStatus = s.result || 'PENDING';
@@ -5329,8 +5341,8 @@
                 <td>${fmt(displayedBetReturn(b))}</td>
                 <td>${statusPill(b.status || 'PENDING')}${b.nearMissBonusAwarded?' <span class="bb-pill" style="background:#4a3a10;color:#ffdd00;display:inline-flex;align-items:center;white-space:nowrap;line-height:1.4;padding:4px 10px;margin:4px 0;vertical-align:middle;">bonus paid</span>':''}</td>
                 <td style="display:flex;gap:4px;flex-wrap:wrap;">
-                  <button class="bb-btn ghost" ${b.status==='CASHED_OUT'?'disabled':''} data-setstatus="${b.id}|WON" style="padding:4px 8px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);${b.selections.length===1&&computeSuggestedResult(b.selections[0].id)==='WON'?'border-color:#ffdd00;':''}">Won</button>
-                  <button class="bb-btn ghost" ${b.status==='CASHED_OUT'?'disabled':''} data-setstatus="${b.id}|LOST" style="padding:4px 8px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);${b.selections.length===1&&computeSuggestedResult(b.selections[0].id)==='LOST'?'border-color:#ffdd00;':''}">Lost</button>
+                  <button class="bb-btn ghost" ${b.status==='CASHED_OUT'?'disabled':''} data-setstatus="${b.id}|WON" style="padding:4px 8px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);${b.selections.length===1&&computeSuggestedResult(b.selections[0].id,b.selections[0])==='WON'?'border-color:#ffdd00;':''}">Won</button>
+                  <button class="bb-btn ghost" ${b.status==='CASHED_OUT'?'disabled':''} data-setstatus="${b.id}|LOST" style="padding:4px 8px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);${b.selections.length===1&&computeSuggestedResult(b.selections[0].id,b.selections[0])==='LOST'?'border-color:#ffdd00;':''}">Lost</button>
                   <button class="bb-btn ghost" ${b.status==='CASHED_OUT'?'disabled':''} data-setstatus="${b.id}|VOID" style="padding:4px 8px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);">Kick (void)</button>
                   <button class="bb-btn ghost" ${b.status==='CASHED_OUT'?'disabled':''} data-setstatus="${b.id}|PENDING" style="padding:4px 8px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);">Reset</button>
                 </td>
