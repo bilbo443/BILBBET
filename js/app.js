@@ -7533,7 +7533,7 @@
   async function priceSyncFingerprint(){
     const data=Object.fromEntries(Object.entries(DATA).filter(([key])=>!['real_results','carry_balances'].includes(key)));
     const input={
-      priceModelVersion:'market-book-safety-v1',
+      priceModelVersion:'five-round-h2h-publication-v1',
       season:seasonKeyPart(),round:state.currentRound,data,
       controls:{
         cupFixtures:state.cupFixtures,
@@ -7627,6 +7627,9 @@
     collectingTrustedPrices=true;
     try { return await collectTrustedPricesUnchecked(); }
     finally { collectingTrustedPrices=false; }
+  }
+  function h2hPublicationRounds(currentRound){
+    return Array.from({length:Math.min(5,26-Number(currentRound))+1},(_,i)=>Number(currentRound)+i);
   }
   async function collectTrustedPricesUnchecked(){
     if(!state.user?.isAdmin)throw new Error('Administrator sign-in required.');
@@ -7766,8 +7769,10 @@
         if(!availableDivision(div))continue;
         htmlPrices(renderFixtureList(div));
         htmlPrices(renderBeatMedianSection(div,state.currentRound));
-        if(divisionFixtureConfirmed(div,state.currentRound) || (!FIXTURES_ARE_PLACEHOLDER&&state.h2hRealScheduleConfirmed)){
-          for(const m of getFixtureMarkets(div,state.currentRound))htmlPrices(renderH2HMarket(m));
+        // Publish confirmed fixtures for this round and five rounds ahead.
+        for(const round of h2hPublicationRounds(state.currentRound)){
+          if(hasNoFixtures(div,round) || isRoundBlocked(round) || !divisionFixtureConfirmed(div,round))continue;
+          for(const m of getFixtureMarkets(div,round))htmlPrices(renderH2HMarket(m));
         }
         for(const round of Object.keys(LEADING_AT[div]||{})){
           state.leadingAtRound=Number(round);
@@ -7780,7 +7785,7 @@
       }
       for(const [comp,c] of Object.entries(state.cupFixtures||{})){
         for(const f of c||[]){
-          if(Number(f.round)>=state.currentRound && getCupRoundInfo(comp,Number(f.round))){
+          if(h2hPublicationRounds(state.currentRound).includes(Number(f.round)) && getCupRoundInfo(comp,Number(f.round))){
             const key=f.teamA+'|'+f.teamB+'|R'+Number(f.round);
             if(!openingHubCupMarkets[key])
               openingHubCupMarkets[key]=computeH2HMarket(f.teamA,f.teamB,Number(f.round));
