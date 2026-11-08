@@ -1,0 +1,12 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
+const s=fs.readFileSync('js/app.js','utf8'),ctx={FUTURES:{}};vm.createContext(ctx);
+vm.runInContext(s.slice(s.indexOf('  function betSelectionLabel('),s.indexOf('  const LEADING_AT =')),ctx);
+const label=x=>ctx.betSelectionLabel(x);
+const bet={id:'H2H|hcap-b-fav|R3|GIVE US WANG|STAIRWAY TO EVANS',label:'R3: STAIRWAY TO EVANS -1.5',odds:1.94};
+assert.equal(label(bet),'Round 3 · STAIRWAY TO EVANS -1.5 handicap vs GIVE US WANG');
+assert(label({...bet,label:'R3 STAIRWAY TO EVANS'}).includes('accepted line unavailable'));
+assert.equal(label({id:'H2H|res-a|R4|A|B'}),'Round 4 · A to win vs B');
+assert.equal(label({id:'H2H|res-draw|R4|A|B'}),'Round 4 · Draw: A vs B');
+assert(label({id:'LEADAT|RODDY|2|A'}).includes('at the end of Round 2'));
+assert.equal(bet.label,'R3: STAIRWAY TO EVANS -1.5');
+console.log('PASS: accepted handicap, unknown line, outright, draw, checkpoint labels and original record preserved.');
