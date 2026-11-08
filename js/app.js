@@ -7533,7 +7533,7 @@
   async function priceSyncFingerprint(){
     const data=Object.fromEntries(Object.entries(DATA).filter(([key])=>!['real_results','carry_balances'].includes(key)));
     const input={
-      priceModelVersion:'five-round-h2h-publication-v1',
+      priceModelVersion:'full-season-h2h-publication-v1',
       season:seasonKeyPart(),round:state.currentRound,data,
       controls:{
         cupFixtures:state.cupFixtures,
@@ -7629,7 +7629,7 @@
     finally { collectingTrustedPrices=false; }
   }
   function h2hPublicationRounds(currentRound){
-    return Array.from({length:Math.min(5,26-Number(currentRound))+1},(_,i)=>Number(currentRound)+i);
+    return Array.from({length:26-Number(currentRound)+1},(_,i)=>Number(currentRound)+i);
   }
   async function collectTrustedPricesUnchecked(){
     if(!state.user?.isAdmin)throw new Error('Administrator sign-in required.');
@@ -7769,7 +7769,7 @@
         if(!availableDivision(div))continue;
         htmlPrices(renderFixtureList(div));
         htmlPrices(renderBeatMedianSection(div,state.currentRound));
-        // Publish confirmed fixtures for this round and five rounds ahead.
+        // Publish every remaining confirmed fixture through the end of the season.
         for(const round of h2hPublicationRounds(state.currentRound)){
           if(hasNoFixtures(div,round) || isRoundBlocked(round) || !divisionFixtureConfirmed(div,round))continue;
           for(const m of getFixtureMarkets(div,round))htmlPrices(renderH2HMarket(m));

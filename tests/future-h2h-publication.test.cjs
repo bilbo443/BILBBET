@@ -2,11 +2,11 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 const s=fs.readFileSync('js/app.js','utf8');
 const ctx={};vm.createContext(ctx);
 vm.runInContext(s.slice(s.indexOf('  function h2hPublicationRounds('),s.indexOf('  async function collectTrustedPricesUnchecked(')),ctx);
-assert.deepEqual(Array.from(ctx.h2hPublicationRounds(4)),[4,5,6,7,8,9]);
+assert.deepEqual(Array.from(ctx.h2hPublicationRounds(4)),Array.from({length:23},(_,i)=>i+4));
 assert.deepEqual(Array.from(ctx.h2hPublicationRounds(25)),[25,26]);
 assert.deepEqual(Array.from(ctx.h2hPublicationRounds(26)),[26]);
-const loop=s.slice(s.indexOf('// Publish confirmed fixtures'),s.indexOf('for(const round of Object.keys(LEADING_AT'));
+const loop=s.slice(s.indexOf('// Publish every remaining confirmed fixture'),s.indexOf('for(const round of Object.keys(LEADING_AT'));
 assert(loop.includes('isRoundBlocked(round)'));assert(loop.includes('!divisionFixtureConfirmed(div,round)'));
 assert(loop.includes('getFixtureMarkets(div,round)'));
 assert(s.includes('h2hPublicationRounds(state.currentRound).includes(Number(f.round))'));
-console.log('PASS: six-round window, season boundary, confirmed fixture and lockout gates, cup window.');
+console.log('PASS: full-season window, season boundary, confirmed fixture and lockout gates, cup window.');
