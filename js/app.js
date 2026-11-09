@@ -7593,10 +7593,21 @@
     );
     return Array.from(new Uint8Array(digest),byte=>byte.toString(16).padStart(2,'0')).join('');
   }
+  function assertFuturesScoreFreshness(){
+    const league=DATA.real_results||{},roddy=DATA.roddy_results||{};
+    const snapshot=[...new Set([...Object.keys(league),...Object.keys(roddy)])].sort()
+      .map(team=>[team,league[team]??null,roddy[team]??null]);
+    const meta=FUTURES.futures_refresh;
+    const expected=[...Object.keys(H2H_DIVISIONS),'RODDY','FA CUP','ECL'];
+    if(!meta || expected.some(section=>!meta.coverage?.includes(section)) ||
+       JSON.stringify(meta.source_scores)!==JSON.stringify(snapshot))
+      throw new Error('Futures are out of date or incomplete. Regenerate and publish all division, Roddy, FA Cup and ECL futures from the latest scores before refreshing prices. The previous price board has been retained.');
+  }
   async function syncPricesIfNeeded(force=false){
     if(!state.user?.isAdmin)return;
     if(!await refreshSubmissionControls())throw new Error('Could not refresh price controls.');
     await loadFeaturedMedianSpecials(state.currentRound);
+    assertFuturesScoreFreshness();
     const fingerprint=await priceSyncFingerprint();
     const cached=await secureRpc('bilbbet_price_sync_status');
     if(!force && cached.fingerprint===fingerprint && Number(cached.round)===state.currentRound){
@@ -7667,6 +7678,7 @@
   }
   async function collectTrustedPricesUnchecked(){
     if(!state.user?.isAdmin)throw new Error('Administrator sign-in required.');
+    assertFuturesScoreFreshness();
     if(!await refreshSubmissionControls())throw new Error('Could not refresh price controls.');
     await loadFeaturedMedianSpecials(state.currentRound);
     const rows=new Map();

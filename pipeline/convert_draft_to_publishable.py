@@ -83,6 +83,9 @@ def pct_to_market_odds(pct):
 def convert_draft_to_publishable(draft_path, live_futures_path, out_path):
     draft = json.load(open(draft_path))
     live = json.load(open(live_futures_path))
+    if 'futures_refresh' in draft:
+        from futures_refresh_guard import validate_complete
+        validate_complete(draft)
 
     rows = draft['division_rows']
     by_div = {}
@@ -116,6 +119,8 @@ def convert_draft_to_publishable(draft_path, live_futures_path, out_path):
     for section in ('roddy', 'fa_cup_markets', 'ecl_markets'):
         if section in draft:
             publishable[section] = draft[section]
+
+    if 'futures_refresh' in draft: publishable['futures_refresh']=draft['futures_refresh']
 
     # The simulation above only recalculates division markets. The remaining
     # markets are copied from live futures, so reconcile their identities with

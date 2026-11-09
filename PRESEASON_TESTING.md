@@ -1212,3 +1212,11 @@ Public fixture share page:
 - Public read-only controls/price snapshot; returns before remembered account login, reward sync and Home/admin pricing actions.
 - Save timestamped 1080px PNG match cards, at most seven fixtures each, or copy/share the public link. Large cup rounds split into multiple images.
 - Images are snapshots, not automatic social link thumbnails. Current availability must be checked on Bilbbet.
+
+Full futures update coverage (9 November 2026):
+- Weekly and review refreshes must generate division, Roddy, FA Cup and ECL markets together; incomplete outputs fail before conversion/publication.
+- Roster-triggered refreshes also regenerate ECL.
+- Published futures include the league/Roddy score snapshot used and competition coverage.
+- Admin price publication rejects stale or incomplete futures; it retains the previous board and explains that a full futures regeneration is required.
+- Publishing new scores alone is not a futures simulation. Publish the complete refresh outputs, then refresh the admin price board.
+- Held/unfinished markets stay held; existing accepted bets and balances are unaffected.
