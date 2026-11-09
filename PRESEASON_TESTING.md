@@ -1246,3 +1246,11 @@ Median result suggestions: grade H2H_MEDIAN against the complete actual score me
 - Existing prices/models, account balances, accepted bets, team IDs and the Drone Police manual carry correction remain unchanged by this sweep. Promotion betting remains suspended pending a properly priced finals model; ECL groups and future cup draws require organiser confirmation.
 
 Deployment cache regression: only known HTML/CSS/JS shell files may enter the service-worker offline cache. Results/futures/registry JSON bypass it, and data fetches revalidate on first attempt. Shell requests revalidate too; stale HTTP-cache entries must not mask a successful deployment.
+
+## Completed-round admin review — 10 November 2026
+
+Leader-after-round bets are graded from actual end-of-round league points/score-for or separate Roddy totals, never current standings or forecast odds. Require every applicable fixture/score through the requested round; a tied leader remains manual. Standings accept an explicit historical cutoff without changing normal current-table views.
+
+The Admin Bets review queue shows pending completed-round selections even when grading is unsupported or scores are missing. It includes singles and multi legs, wraps actions beneath each label on mobile, and offers Won/Lost/Void using the existing atomic settlement RPC. A selectable All pending bets view permits deliberate manual overrides without flagging upcoming rounds as overdue. Queue actions require confirmation; no automatic settlement is introduced. Already settled/cashed-out bets are excluded. Accepted odds, balances and Drone Police carry remain untouched by installation.
+
+Regression covers the actual `LEADAT|ELIZA CUP (D1)|2|STAIRWAY TO EVANS` selection (suggested LOST), unique/tied leader cases, missing scores, explicit pending legs, future exclusions, manual access and multi-leg actions.

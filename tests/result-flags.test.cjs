@@ -7,7 +7,7 @@ const ctx={Date:class extends Date{static now(){return Date.parse('2026-10-22T12
  DATA:{official_fa_cup_draw:{preliminary_results_final:true,preliminary_round:1,preliminary:[['A','B']],preliminary_winners:['A']}},
  resolveTeamName:n=>n,sameTeam:(a,b)=>a===b,FUTURE_DIVS:['D1'],H2H_DIVISIONS:{D1:['A','B']},hasNoFixtures:()=>false,
  state:{currentRound:2,cupFixtures:{'FA CUP':[]},playoffFixtures:{}},fixtureScore:(t,o,r)=>scores[t]?.[r-1]??null};
-vm.createContext(ctx);vm.runInContext(code+';this.api={computeSuggestedResult,betHasReviewableResult};',ctx);
+vm.createContext(ctx);vm.runInContext(src.slice(src.indexOf('  function getPickRound('),src.indexOf('  // Suggests WON/LOST'))+code+';this.api={computeSuggestedResult,betHasReviewableResult};',ctx);
 const {computeSuggestedResult:result,betHasReviewableResult:ready}=ctx.api;
 const bet=(id,status='PENDING',legResult=null)=>({status,selections:[{id,result:legResult}]});
 assert.equal(ready(bet('H2H|res-a|R2|A|B')),false);
@@ -18,7 +18,7 @@ assert.equal(ready(bet('H2H|res-a|R1|A|B')),true);
 assert.equal(ready(bet('H2H|res-a|R1|A|B','CASHED_OUT')),false);
 assert.equal(ready(bet('H2H|res-a|R1|A|B','WON')),false);
 assert.equal(ready(bet('H2H|res-a|R1|A|B','PENDING','WON')),false);
-assert.equal(ready(bet('LEADAT|RODDY|2|A')),false,'Manual markets need actual result support');
+assert.equal(ready(bet('LEADAT|RODDY|2|A')),false,'A future leader market cannot create a review flag');
 ctx.DATA.official_fa_cup_draw={};scores.A[0]=null;
 assert.equal(result('H2H|res-a|R1|A|B'),null);
 scores.A[0]=NaN;assert.equal(result('H2H|res-a|R1|A|B'),null);
