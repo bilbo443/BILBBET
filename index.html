@@ -23,11 +23,11 @@
   <img src="assets/logos/bilby-logo.png" alt="" onerror="this.style.display='none';" onload="this.previousElementSibling.style.display='none';"/>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/app.js"></script>
+<script src="js/app.js?v=20261110-cache2"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').catch((err) => {
+      navigator.serviceWorker.register('sw.js?v=20261110-cache2').catch((err) => {
         console.warn('Service worker registration failed (non-fatal):', err);
       });
     });
