@@ -1283,3 +1283,5 @@ Streak specials layout: separate unbeaten/first-loss and winless/first-win secti
 Jarvis first-win round labels include projected drought days in parentheses, e.g. Round 5 (657), Round 6 (664). Uses each round's scheduled start and 1 February 2025, the end of the recorded last-win window; tooltip explains the convention. Other teams and no-event labels are unchanged. Display only; accepted selection labels and prices are preserved.
 
 Home now links directly to First Win and First Loss streak specials. Each shortcut opens Specials → Unbeaten & Winless with the correct filter; the special has accessible First Win/First Loss tabs and eligible-team counts. Public browsing renders only the selected group; price collection still includes both. Navigation and filter tests pass; no price or settlement changes.
+
+Process follow-up 10 November 2026: see reports/process-sweep-2026-11-10.md for verified coverage, cleanup, three-way draw/advancement suggestions, streak quote cache completeness, batched recoverable Stats reads, actionable current-round cup flags and six pending calendar conflicts. No financial records or source prices changed.

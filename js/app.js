@@ -494,8 +494,9 @@
       return REAL_RESULTS[team][round-1]>median ? 'WON' : 'LOST';
     }
     if(parts[0] !== 'H2H') return null;
-    const side = parts[1]; // 'res-a' or 'res-b'
-    const round = parseInt(parts[2].replace('R',''), 10);
+    const side = parts[1];
+    if(parts.length!==5||!/^R\d+$/.test(parts[2])||!(/^(res-(a|b|draw)|hcap-[ab]-(fav|dog))$/.test(side)))return null;
+    const round = Number(parts[2].slice(1));
     const teamA = resolveTeamName(parts[3]), teamB = resolveTeamName(parts[4]);
     if(!teamA || !teamB || !Number.isInteger(round) || round<1 || round>26) return null;
     // A scheduled round is not a result. Ignore accidentally populated future scores.
@@ -549,13 +550,15 @@
       const margin = (side.startsWith('hcap-a-') ? scoreA-scoreB : scoreB-scoreA)+line;
       return margin>0 ? 'WON' : margin<0 ? 'LOST' : 'VOID';
     }
+    if(side==='res-draw')return scoreA===scoreB?'WON':'LOST';
     if(scoreA === scoreB){
-      const cupMatch = (state.cupFixtures['FA CUP'] || []).some(f =>
-        Number(f.round) === round &&
-        ((resolveTeamName(f.teamA) === teamA && resolveTeamName(f.teamB) === teamB) ||
-         (resolveTeamName(f.teamA) === teamB && resolveTeamName(f.teamB) === teamA)));
-      if(cupMatch && ['res-a','res-b'].includes(side)) return 'VOID';
-      return null; // Other tied markets require their own settlement rules.
+      const advancement=/\b(to advance|to qualify|advancement)\b/i.test(selection?.label||'');
+      if(advancement)return 'VOID';
+      const cupMatch=(state.cupFixtures['FA CUP']||[]).some(f=>Number(f.round)===round&&
+        ((resolveTeamName(f.teamA)===teamA&&resolveTeamName(f.teamB)===teamB)||(resolveTeamName(f.teamA)===teamB&&resolveTeamName(f.teamB)===teamA)));
+      // Old cup picks without their accepted wording are ambiguous: leave them for review.
+      if(cupMatch&&!/\bto win\b/i.test(selection?.label||''))return null;
+      return 'LOST'; // In the displayed three-way match-result book, the draw is the winner.
     }
     const aWon = scoreA > scoreB;
     if(side === 'res-a') return aWon ? 'WON' : 'LOST';
@@ -1065,7 +1068,6 @@
     return new Date(dateStr + 'T' + String(utcHour).padStart(2,'0') + ':00:00Z');
   }
   function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
-  function simpleHash(s){ let h=0; for(let i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))|0;} return String(h); }
 
   // ---------- storage: Supabase (if configured) -> window.storage (Claude's
   // artifact panel) -> in-memory (last resort, this browser tab only) ----------
@@ -1124,6 +1126,12 @@
   async function sget(key){
     const data=await secureRead([key]);
     return data[key] ?? null;
+  }
+  async function sgetMany(keys){
+    const values={};
+    const unique=[...new Set(keys)];
+    for(let i=0;i<unique.length;i+=100)Object.assign(values,await secureRead(unique.slice(i,i+100)));
+    return keys.map(key=>values[key]??null);
   }
   async function sset(key,val){
     // Only admins persist shared price caches.
@@ -1555,28 +1563,6 @@
     if(Math.abs(odds - ODDS_FLOOR) < 0.0001) return odds.toFixed(3);
     return odds.toFixed(2);
   }
-  // A small, deliberately silly easter egg on futures odds for four named
-  // teams: the displayed price is a plausible-looking but genuinely
-  // different number from the real one -- hovering reveals the truth.
-  // Only ever changes the displayed TEXT and a hover title; data-odds
-  // (what a bet actually settles at) is set separately, upstream of this,
-  // and always uses the real, unmodified value -- this must never be the
-  // thing that determines a payout.
-  const ODDS_DISPLAY_PRANKS = {
-    'JARVIS ZEBRAS': 1.55,       // shown bigger than reality
-    'SPOONERS FC': 1.55,         // shown bigger than reality
-    'DW ABOUT IT FC': 0.65,      // shown smaller than reality
-    'JUSTICEFORMOON FC': 0.65,   // shown smaller than reality
-  };
-  function displayOddsFor(team, realOdds){
-    const factor = ODDS_DISPLAY_PRANKS[team];
-    if(!factor) return { text: formatOdds(realOdds), title: '' };
-    let fake = realOdds * factor;
-    if(fake < ODDS_FLOOR) fake = ODDS_FLOOR;
-    if(fake > ODDS_CAP) fake = ODDS_CAP;
-    fake = Math.round(fake * 100) / 100;
-    return { text: formatOdds(fake), title: `Psst \u2014 true odds: ${formatOdds(realOdds)}` };
-  }
   // Decimal odds -> implied probability, the standard conversion (1/odds).
   // Purely informational -- this is what the odds themselves imply before
   // the platform's margin, not a claim about the true chance of the
@@ -1891,34 +1877,8 @@
     return best;
   }
 
-  // The highest-odds bet that actually WON last round, among bets punters
-  // genuinely placed -- if nobody's winning bet cleared, that's worth
-  // saying plainly rather than just showing an empty section.
-  //
-  // Both featured fixtures and best-value-winner rely on the same random
-  // simulation used throughout the app -- fine for a displayed odds number
-  // (an invisible, sub-decimal wobble), but a problem for a *discrete
-  // selection*: which fixture ranks as "most competitive" among several
-  // close ones can flip on a fresh page load, especially in Eliza Cup (14
-  // teams, 7 fixtures/round, the most of any division, so the most chances
-  // for a close call to go either way) -- confirmed this was happening on
-  // every reload, not just occasionally. The underlying sampler bakes
-  // Math.random() into its pools at construction time, so making the
-  // simulation itself reproducible would mean touching the sampling
-  // infrastructure every market in the app depends on -- too much risk for
-  // this. Persisting the computed result instead, keyed by round, means
-  // it's genuinely computed once -- by whoever loads the page first for
-  // that round -- and every visitor after that, on any device, on any
-  // future reload, sees that exact same result until the round changes.
-  // Admin escape hatch for the exact situation that motivated this: the
-  // featured-fixtures selection is computed once per round and locked in
-  // by design (so it never randomly changes for punters) -- but that
-  // means if a bug in the selection logic gets fixed in code, any round
-  // that already has a stored value keeps showing the OLD, buggy result
-  // forever, since the code has no way to know a stored value is stale.
-  // This clears that one round's stored value and forces a fresh
-  // recompute against the current code, without needing direct database
-  // access to do it.
+  // Refresh prices for the saved weekly Home selections. Teams are drawn uniformly
+  // by the admin when no weekly selection exists; this action never redraws them.
   async function refreshFeaturedFixtures(){
     if(!state.user?.isAdmin || state.refreshingFeatured) return;
     const round=state.currentRound;
@@ -5281,6 +5241,7 @@
   }
 
   function renderStatsTab(){
+    if(state.statsError)return '<div class="bb-card" role="alert"><p>Statistics could not be loaded: '+esc(state.statsError)+'</p><button class="bb-btn ghost" id="retry-stats">Retry statistics</button></div>';
     if(state.statsData === null) return '<p style="color:#9a9a9a;">Loading&hellip;</p>';
     const s = state.statsData;
     function leaderboard(title, rows, valueFmt){
@@ -5308,12 +5269,17 @@
       (s.myKittyRank ? `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-top:-10px;margin-bottom:1.25rem;">You're ranked #${s.myKittyRank.rank} of ${s.myKittyRank.of} punters by balance.</p>` : '') +
       leaderboard('Most career wins (carried over from previous seasons)', s.topCareerWins, v=>v+' win'+(v!==1?'s':'')) +
       '<h4 style="color:#9a9a9a;margin-bottom:6px;">Beating the line</h4>' +
+      '<p style="color:#9a9a9a;font-size:14px;">Reconstructed with the current model; these are not archived pre-match handicap lines.</p>' +
       (s.lineBeat.ready
         ? leaderboard('Cover their line most often', s.lineBeat.best.map(r => ({ label: r.team+' \u2014 '+r.covered+'/'+r.total, value: r.pct })), v=>v.toFixed(0)+'%') +
           leaderboard('Miss their line most often', s.lineBeat.worst.map(r => ({ label: r.team+' \u2014 '+r.covered+'/'+r.total, value: r.pct })), v=>v.toFixed(0)+'%')
         : '<p style="color:#9a9a9a;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">Not enough completed rounds yet to make this meaningful \u2014 check back around Round 5.</p>');
   }
 
+  function currentCupFixtureGaps(){
+    return ['FA CUP','ECL'].filter(comp=>getCupRoundInfo(comp,state.currentRound)&&
+      !(state.cupFixtures[comp]||[]).some(f=>Number(f.round)===Number(state.currentRound)));
+  }
   function renderAdminTab(){
     if(state.adminPunters === null || state.adminBets === null) return '<p style="color:#9a9a9a;">Loading&hellip;</p>';
     const punters = state.adminPunters, bets = state.adminBets;
@@ -5326,8 +5292,7 @@
     const flagSeason = !!state.oddsRefreshRequested;
     // Finals brackets are entered when known. A conference may have no
     // fixture in a particular playoff week, so its absence is not an alert.
-    const flagFixtures = ['FA CUP','ECL'].some(comp =>
-      getCupRoundInfo(comp, state.currentRound) && !(state.cupFixtures[comp]||[]).length);
+    const flagFixtures = currentCupFixtureGaps().length>0;
     const resolvableSingles = bets.filter(b => b.selections.length===1 && betHasReviewableResult(b));
     const readyCount = bets.filter(b => betHasReviewableResult(b)).length;
     const flagBets = resolvableSingles.length > 0 || readyCount > 0;
@@ -6459,26 +6424,6 @@
     await loadAdminData();
   }
 
-  // Multi-leg resolution: every leg gets resolved individually (some legs might be
-  // known before others), and the bet's overall status is derived once every leg has
-  // a result -- LOST if any leg lost, otherwise WON (void legs don't count either way).
-  function computeOverallStatus(selections){
-    if(selections.some(s => s.result === null || s.result === undefined)) return 'PENDING';
-    if(selections.some(s => s.result === 'LOST')) return 'LOST';
-    if(selections.every(s => s.result === 'VOID')) return 'VOID';
-    return 'WON';
-  }
-
-  // A 5+ leg multi that loses by exactly one leg (every other leg won, none voided)
-  // earns the punter a bonus credit matching their stake, per house rule.
-  function isNearMissBonus(selections){
-    if(selections.length < 5) return false;
-    const lostCount = selections.filter(s => s.result === 'LOST').length;
-    const wonCount = selections.filter(s => s.result === 'WON').length;
-    const voidCount = selections.filter(s => s.result === 'VOID').length;
-    return lostCount === 1 && voidCount === 0 && wonCount === selections.length - 1;
-  }
-
   async function resolveSelectionResult(betId, index, result){
     try { await settleBetAtomically(betId, result, index); }
     catch(e){ alert(e.message); throw e; }
@@ -6728,13 +6673,17 @@
     };
   }
 
+  let statsLoading=false;
   async function loadStats(){
+    if(statsLoading)return;
+    statsLoading=true;state.statsError='';
+    try{
     const usernames = await getIndex('bilbbet2_users_index');
-    const allUsers = (await Promise.all(usernames.map(getUser))).filter(Boolean);
+    const allUsers = (await sgetMany(usernames.map(u=>'bilbbet2_user:'+u.toLowerCase()))).filter(Boolean);
     const users = allUsers.filter(u => !u.isAdmin);
     const adminUsernames = new Set(allUsers.filter(u => u.isAdmin).map(u => u.username.toLowerCase()));
     const betIds = await getIndex('bilbbet2_all_bets_index');
-    const allBets = (await Promise.all(betIds.map(id => sget('bilbbet2_bet:'+id)))).filter(Boolean);
+    const allBets = (await sgetMany(betIds.map(id=>'bilbbet2_bet:'+id))).filter(Boolean);
     // Voided bets never actually happened (stake refunded), so they're
     // excluded here across every stat below -- previously only topWins/
     // topLosses filtered by status (WON/LOST respectively), while
@@ -6784,6 +6733,8 @@
       lineBeat,
     };
     render();
+    }catch(error){state.statsError=error.message||'Statistics could not be loaded.';state.statsData=null;render();}
+    finally{statsLoading=false;}
   }
 
   function renderMain(){
@@ -7628,15 +7579,6 @@
     return 'bilbbet2_tip_reward_' + username.toLowerCase() + '_' + seasonKeyPart() + '_R' + round + '_' + sectionKey;
   }
 
-  // Idempotent and race-safe: the "already claimed" check and the balance
-  // update both happen inside the same user lock, so two near-simultaneous
-  // calls (e.g. two open tabs) can't both slip past the check and double-
-  // award. Returns true only on the specific call that actually granted it,
-  // so the caller knows whether to show a fresh celebration or stay quiet.
-  async function awardPerfectSectionIfEligible(username, round, section){
-    return false; // Credits are calculated and committed by bilbbet_claim_rewards.
-  }
-
   // Every fixture across every tippable competition for a round -- not
   // just one section. A weekly leaderboard ranking is only meaningful once
   // the WHOLE round is in; checking only one section (like the
@@ -7670,27 +7612,6 @@
     return qualifying.filter(e => e[metric] === max).map(e => e.username);
   }
 
-  // Shared by every weekly/seasonal reward tier -- idempotent per
-  // (tierKey, metric) so odds and points are independently, stackably
-  // awarded, and a dead heat splits the stated amount rounded UP rather
-  // than down (a 3-way tie for 10 clams pays 4 each, not 3.33 -- the
-  // total paid out in a tie can exceed the headline amount by design).
-  async function awardTierMetricIfEligible(username, tierKey, metric, winners, amount, reasonLabel){
-    return null; // Credits are calculated and committed by bilbbet_claim_rewards.
-  }
-
-  // Weekly, per-section prize (league sections only) -- checks both odds
-  // and points independently for one already-fully-resolved round.
-  async function awardWeeklySectionRewardsIfEligible(username, round, sectionKey){
-    return []; // Credits are calculated and committed by bilbbet_claim_rewards.
-  }
-
-  // Weekly, ALL-competitions-combined prize -- same shape, different scope
-  // and amount.
-  async function awardWeeklyOverallRewardsIfEligible(username, round){
-    return []; // Credits are calculated and committed by bilbbet_claim_rewards.
-  }
-
   const SEASON_MAX_ROUND = 26;
 
   // Different qualifying basis than findMetricWinners: volume tipped (at
@@ -7715,23 +7636,6 @@
       }
     }
     return count;
-  }
-
-  // Seasonal, per-section prize -- league sections only, gated by the
-  // admin's manual "season closed" flag for that section rather than any
-  // automatic detection. No minimum-correct bar on odds/points (unlike
-  // the weekly tier) since that wasn't specified for the seasonal prizes
-  // -- only the ratio category has its own, separate 25%-tipped bar.
-  async function awardSeasonalSectionRewardsIfEligible(username, sectionKey){
-    return []; // Credits are calculated and committed by bilbbet_claim_rewards.
-  }
-
-  // Seasonal, ALL-competitions-combined prize -- same shape, gated by the
-  // separate "ALL" season-closed flag (the combined prize can reasonably
-  // stay open even after individual league sections have been flagged
-  // closed, e.g. while cup competitions are still running).
-  async function awardSeasonalOverallRewardsIfEligible(username){
-    return []; // Credits are calculated and committed by bilbbet_claim_rewards.
   }
 
   // Sweeps every past, completed round's qualifying sections for the
@@ -8004,6 +7908,20 @@
        JSON.stringify(meta.source_scores)!==JSON.stringify(snapshot))
       throw new Error('Futures are out of date or incomplete. Regenerate and publish all division, Roddy, FA Cup and ECL futures from the latest scores before refreshing prices. The previous price board has been retained.');
   }
+  function streakQuoteCoverageIssues(){
+    const issues=[];
+    for(const market of streakMarkets()){
+      const prefix='STREAK|'+market.kind+'|'+market.teamId+'|R'+market.basis+'|';
+      if(isPickBlocked(prefix+'R'+market.basis))continue;
+      const rows=[...trustedPrices.values()].filter(q=>q.id?.startsWith(prefix));
+      const expected=rows[0]?.streakOutcomeCount??market.last-market.basis+2;
+      if(!Number.isInteger(expected)||expected<1||rows.length!==expected||rows.some(q=>
+        q.team_id!==market.teamId||Number(q.round)!==market.basis||q.safetyGroup!==prefix.slice(0,-1)||
+        !Number.isFinite(Number(q.odds))||Number(q.odds)<=1||
+        (q.streakOutcomeCount!==undefined&&q.streakOutcomeCount!==expected)))issues.push(market.team+' · first '+market.kind.toLowerCase());
+    }
+    return issues;
+  }
   async function syncPricesIfNeeded(force=false){
     if(!state.user?.isAdmin)return;
     if(!await refreshSubmissionControls())throw new Error('Could not refresh price controls.');
@@ -8013,9 +7931,11 @@
     const cached=await secureRpc('bilbbet_price_sync_status');
     if(!force && cached.fingerprint===fingerprint && Number(cached.round)===state.currentRound){
       await loadTrustedPrices();
-      return {reused:true};
+      if(!streakQuoteCoverageIssues().length)return {reused:true};
     }
     const count=await collectTrustedPrices();
+    const missing=streakQuoteCoverageIssues();
+    if(missing.length)throw new Error('Special price publication is incomplete: '+missing.join('; '));
     await secureRpc('bilbbet_mark_price_sync',{p_fingerprint:fingerprint});
     return {reused:false,count};
   }
@@ -8288,13 +8208,13 @@
       state.h2hRound=savedRound;
     }
     for(const market of streakMarkets()){
-      const outcomes=streakOutcomes(market);
+      const outcomes=streakOutcomes(market),publishedCount=outcomes.filter(o=>!o.price.suspended).length;
       for(const outcome of outcomes){
         if(outcome.price.suspended)continue;
         record(outcome.id,outcome.price.odds,outcome.label);
         const q=rows.get(outcome.id);if(!q)continue;
         q.safetyGroup='STREAK|'+market.kind+'|'+market.teamId+'|R'+market.basis;
-        q.safetyOutcome=outcome.round===null?'NEVER':'R'+outcome.round;q.safetySize=outcomes.length;
+        q.safetyOutcome=outcome.round===null?'NEVER':'R'+outcome.round;q.safetySize=outcomes.length;q.streakOutcomeCount=publishedCount;
       }
     }
     enforceQuoteBookSafety(rows);
@@ -8519,17 +8439,6 @@
   const PRESEASON_PICK_REWARD_AMOUNT = 50;
   const PRESEASON_LEADERBOARD_REWARD_AMOUNT = 1000;
 
-  // 50 clams for EACH individually correct pre-season pick -- not a
-  // leaderboard placement, so several correct predictions across several
-  // slots all pay independently (e.g. a correct division winner pick AND
-  // a correct relegation pick both pay, separately). Only pays once a
-  // slot is fully resolved, same gate the pre-season scoring itself
-  // already uses, and idempotent per (username, slot, team) so one
-  // specific correct pick can never be paid twice.
-  async function awardPreseasonPickRewardsIfEligible(username){
-    return []; // Credits are calculated and committed by bilbbet_claim_rewards.
-  }
-
   // The overall pre-season prizes only mean anything once every single
   // slot is known -- a partial pre-season leaderboard could still swing
   // wildly once, say, the FA Cup or ECL winner is finally decided months
@@ -8541,9 +8450,6 @@
       const actual = state.preseasonResults[slot.key];
       return actual && actual.length >= slot.count;
     });
-  }
-  async function awardPreseasonLeaderboardRewardsIfEligible(username){
-    return []; // Credits are calculated and committed by bilbbet_claim_rewards.
   }
 
   async function computePreseasonLeaderboard(){
@@ -8894,6 +8800,7 @@
     const closeLoginBtn = $('#close-login-modal'); if(closeLoginBtn) closeLoginBtn.onclick = () => { state.pinRecovery = false; state.pin = ''; state.loginModalOpen = false; state.adminLoginMode=false; state.registeringMode=false; state.customNameMode=false; state.tosAgreed=false; state.error=''; state.info=''; render(); };
     const dismissTrashTalk = $('#dismiss-trash-talk'); if(dismissTrashTalk) dismissTrashTalk.onclick = () => { state.trashTalkBanner = null; render(); };
     const useAdminBtn = $('#use-admin-login'); if(useAdminBtn) useAdminBtn.onclick = () => { state.adminLoginMode = true; render(); };
+    const retryStats=document.getElementById('retry-stats');if(retryStats)retryStats.onclick=()=>loadStats();
     document.querySelectorAll('[data-tab]').forEach(el => el.onclick = () => {
       state.activeTab = el.dataset.tab;
       state.mobileNavOpen = false; // picking a tab (desktop or mobile) always closes the mobile dropdown
@@ -9875,20 +9782,8 @@
   if(savedPausedPicks !== null){ state.pausedCategories = savedPausedPicks; }
   const savedAutoClosedRound = await sget('bilbbet2_last_autoclosed_round');
   state.lastAutoClosedRound = savedAutoClosedRound;
-  // Auto-close is a one-time check on load, not a background timer: if the
-  // scheduled date for the current round has arrived and nobody's closed or
-  // auto-closed it yet for this specific round, close it now. Tracking which
-  // round we last auto-closed (rather than just the open/closed flag) means
-  // a manual reopen after auto-close sticks -- it won't immediately
-  // re-trigger on the next page load for the same round.
-  if(false && scheduledCloseDue() && state.roundBettingOpen && savedAutoClosedRound !== state.currentRound){
-    state.roundBettingOpen = false;
-    if(state.user?.isAdmin){
-      await sset('bilbbet2_round_betting_open', false);
-      await sset('bilbbet2_last_autoclosed_round', state.currentRound);
-    }
-    state.lastAutoClosedRound = state.currentRound;
-  }
+  // Submission lockouts are checked against the server and the current clock;
+  // page loading does not mutate the shared round-open setting.
   const savedOddsRefreshRequested = await sget('bilbbet2_odds_refresh_requested');
   if(savedOddsRefreshRequested !== null){ state.oddsRefreshRequested = savedOddsRefreshRequested; }
 

@@ -1,32 +1,12 @@
 name: Weekly Odds Refresh (auto, with manual override)
 
-# Runs automatically every Monday, and can still be triggered manually any
-# time. Scheduled runs have no human to type a sheet URL into, so the
-# published CSV link is read from a saved repository VARIABLE instead of
-# a workflow_dispatch input. A manual run can still override it by typing
-# a different one, useful for testing without touching the saved default.
-#
-# NOTE ON ROSTER SYNC: sync_roster.py is fully built AND wired into the
-# pipeline (see pipeline_layer3.py's run_pipeline() and this script's
-# --alltime-url threading, both fixed 2026-08-20). When the ALLTIME_URL
-# repository variable below is set, a real roster change (new team,
-# rename, departure) is detected and applied automatically -- the
-# add-paths list further down stages every file it can produce, and the
-# PR body surfaces the change prominently for review. Two things it does
-# NOT cover, by design (both genuinely expensive full simulations,
-# flagged in the roster-change summary instead of silently regenerated
-# on every routine check): leading_at.json and special_markets.json.
-# If ALLTIME_URL isn't set, this step is skipped entirely and behavior
-# is unchanged from before roster sync existed -- setting the variable
-# is what actually turns this on.
-#
-# Safety note on the schedule itself: this was deliberately manual-only
-# earlier in the project, out of concern that a scheduled run might
-# process the sheet's pre-season test data as if it were real. That risk
-# is already handled by Layer 2's calendar-consistency check, which
-# rejects any round whose reported kickoff date hasn't actually passed
-# yet -- so a scheduled run genuinely can't mistake test data for a real
-# result, and doesn't need a human gatekeeper to stay safe.
+# Checks daily at 12:30 Sydney time, but the fixture-aware gate only runs
+# the results pipeline the morning after the final scheduled match.
+# Manual dispatch can override the calendar gate. CSV URLs come from
+# repository variables unless a manual override is provided.
+# Roster changes are staged for review. Weekly futures and leader checkpoints
+# are regenerated together; separate charity/philanthropy simulations remain
+# outside routine roster sync. Merging a draft PR does not publish data/ files.
 on:
   schedule:
     - cron: '30 1 * * *'  # 12:30pm AEDT
@@ -153,8 +133,8 @@ jobs:
           # PR at all. Keep this in sync with sync_roster.py's own
           # write list if that ever changes.
           commit-message: "Draft odds refresh from weekly sheet pull"
-          # This PR is the "draft" -- merging it is the explicit publish
-          # step (Layer 6). Nothing here writes to data/ directly.
+          # This PR contains review drafts. Merging retains those drafts;
+          # reviewed files must still be published to data/ together.
           # draft/futures-publishable.json is the file that's actually
           # safe to copy into data/futures.json once reviewed -- NOT the
           # raw odds-draft-*.json, which is percentages only.

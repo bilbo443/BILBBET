@@ -56,3 +56,20 @@ assert.equal(result('H2H_MEDIAN|A|R1junk'),null);
 assert.equal(result('H2H_MEDIAN|A|R0'),null);
 assert.equal(result('H2H_MEDIAN|A|R27'),null);
 console.log('PASS: median suggestions handle wins, losses, equality, zero, missing/invalid scores and future rounds without voiding bets.');
+
+// Three-way draw picks and match wins follow the accepted market wording.
+scores.A[0]=82;scores.B[0]=82;
+assert.equal(result('H2H|res-draw|R1|A|B'),'WON');
+assert.equal(result('H2H|res-a|R1|A|B',{label:'R1: A to win'}),'LOST');
+assert.equal(result('H2H|res-b|R1|A|B',{label:'R1: B to win'}),'LOST');
+ctx.state.cupFixtures['FA CUP']=[{round:1,teamA:'A',teamB:'B'}];
+assert.equal(result('H2H|res-draw|R1|A|B'),'WON','Cup draw selection still wins');
+assert.equal(result('H2H|res-a|R1|A|B',{label:'R1: A to win'}),'LOST','Three-way cup match win is not advancement');
+assert.equal(result('H2H|res-a|R1|A|B',{label:'R1: A to advance'}),'VOID');
+assert.equal(result('H2H|res-b|R1|A|B',{label:'R1: B to qualify'}),'VOID');
+assert.equal(result('H2H|res-a|R1|A|B'),null,'Ambiguous historical cup wording requires review');
+scores.A[0]=90;
+assert.equal(result('H2H|res-draw|R1|A|B'),'LOST');
+assert.equal(result('H2H|res-a|R1oops|A|B'),null);
+assert.equal(result('H2H|unsupported|R1|A|B'),null);
+console.log('PASS: league/cup three-way draws, explicit advancement voids, ambiguous legacy review and strict result IDs.');
