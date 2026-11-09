@@ -1258,3 +1258,13 @@ Regression covers the actual `LEADAT|ELIZA CUP (D1)|2|STAIRWAY TO EVANS` selecti
 ## Boosty Boys random draw — 10 November 2026
 
 Boosty Boys fixture selection now uses a uniform cryptographic draw without replacement from each division's eligible underdog fixtures, replacing closest-to-even ranking. The existing minimum chance and per-division/total limits remain. Repeats across rounds are permitted; there is no anti-repeat or compensation weighting. Save a draw once for the round. Public visitors cannot generate an unpublished draw, and Refresh Home offers reprices the existing selected IDs instead of redrawing. Existing current-round selections remain in place, so this change applies as new round draws are generated. Featured futures and Mr Median retain their separate selection policies; this change concerns the Boosty Boys fixture section only. No accepted bets, published prices or balances are changed by installation.
+
+## First-win / first-loss specials — 10 November 2026
+
+- Specials → Unbeaten & Winless derives eligibility from complete, confirmed league H2H history. Uses internal team IDs; team names remain the public labels. Current GW4 history yields 7 unbeaten and 8 winless teams.
+- Forecast all remaining regular rounds and a no-event bucket from the same H2H engine; ordinary 5% prices. An isolated actual-app run generated and validated all 306 outcomes across the 15 current team markets, including probability mass and book coverage. No review calculation was published.
+- The public view reads published quote prices only and displays Awaiting price publication until the admin board refresh; it does not run extra full-season simulations for ordinary visitors.
+- Every outcome locks at the offering round's deadline, not its future target round. Server validation enforces singles-only, canonical ID/round metadata and negative own-team restrictions; general server quote availability, price, pause and deadline checks still apply.
+- New markets join the normal weekly quote generation/fingerprint, price-book safety and admin result-review paths. Target-round review timing is separate from offering-round lockout timing, so future streak outcomes do not become premature alerts.
+- `supabase/streak-specials.sql` installs the private validation helper and guarded hook. `supabase/streak-specials-test.sql` checks safe/unsafe books and validation without placing bets or changing accounts.
+- No existing price board, accepted bets, balances, team IDs or Drone Police carry correction changed during installation. Admin Refresh Home offers publishes the new price board through the normal authenticated path.

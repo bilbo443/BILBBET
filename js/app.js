@@ -403,6 +403,7 @@
   // exact round (H2H matches, leading-at-this-round, win/lose-this-round).
   function getPickRound(id){
     const parts = id.split('|');
+    if(parts[0]==='STREAK')return /^R\d+$/.test(parts[3]||'')?Number(parts[3].slice(1)):null;
     if(['H2H','H2H_MEDIAN','H2H_WIN'].includes(parts[0])) return /^R\d+$/.test(parts[2]||'') ? Number(parts[2].slice(1)) : null;
     if(parts[0]==='LEADAT') return parseInt(parts[2],10);
     if(parts[0]==='SPECIALFIX' && (parts[1]==='win_round'||parts[1]==='lose_round')) return parseInt(parts[2].replace('R',''),10);
@@ -434,6 +435,7 @@
   const ELECTION_TURNOUT_ACTUAL = 17;
   function computeSuggestedResult(pickId, selection = null){
     const parts = pickId.split('|');
+    if(parts[0] === 'STREAK')return streakResult(pickId);
     if(parts[0] === 'LEADAT')return computeLeaderAfterResult(parts);
     if(parts[0] === 'ELECTION_SEAT'){
       const name = parts[1];
@@ -595,6 +597,12 @@
   function selectionNeedsResultReview(selection){
     if(selection.result && selection.result!=='PENDING')return false;
     if(computeSuggestedResult(selection.id,selection)!==null)return true;
+    const parts=selection.id.split('|');
+    if(parts[0]==='STREAK'){
+      const div=findTeamDivision(streakTeam(parts[2])?.name);
+      const target=parts[4]==='NEVER'?(div==='ELIZA CUP (D1)'?26:23):Number(parts[4]?.slice(1));
+      return Number.isInteger(target)&&target<state.currentRound;
+    }
     const round=getPickRound(selection.id);
     return Number.isInteger(round)&&round>=1&&round<state.currentRound;
   }
@@ -609,6 +617,7 @@
   // category-pause concept -- those are governed by round open/close instead.
   function pickCategory(id){
     const parts = id.split('|');
+    if(parts[0] === 'STREAK') return 'STREAK|'+parts[1];
     if(parts[0] === 'FUT') return parts[1] + '|' + parts[2];
     if(parts[0] === 'FACUP' || parts[0] === 'ECL') return parts[0] + '|' + parts[1];
     if(parts[0] === 'ECLGROUP') return parts[0] + '|' + parts[1];
@@ -2018,6 +2027,7 @@
     const wonThisRound = bets.filter(b => b.status === 'WON' && homeBetIsReleased(b) &&
       b.selections.some(s => s.id && s.id.startsWith('H2H_MEDIAN|')
         ? Number(s.id.split('|')[2]?.slice(1)) === prevRound
+        : s.id?.startsWith('STREAK|') ? (s.id.split('|')[4]==='NEVER'?(findTeamDivision(streakTeam(s.id.split('|')[2])?.name)==='ELIZA CUP (D1)'?26:23):Number(s.id.split('|')[4].slice(1)))===prevRound
         : getPickRound(s.id) === prevRound));
     wonThisRound.sort((a, b) => b.combinedOdds - a.combinedOdds);
     state.homeBestBet = wonThisRound[0] || { none: true };
@@ -4968,10 +4978,96 @@
     </div>`;
   }
 
+  function streakTeam(teamId){
+    return (DATA.admin_teams||[]).find(t=>String(t.id).padStart(3,'0')===String(teamId).padStart(3,'0'));
+  }
+  function streakHistory(div,through){
+    const teams=H2H_DIVISIONS[div]||[],first=div==='ELIZA CUP (D1)'?1:2,last=div==='ELIZA CUP (D1)'?26:23;
+    for(let r=first;r<=Math.min(through,last);r++)if(!divisionFixtureConfirmed(div,r))return null;
+    return window.BilbbetStreaks.history(teams,H2H_SCHEDULE[div]||[],REAL_RESULTS,through,first,last);
+  }
+  function streakMarkets(){
+    const output=[],basis=Number(state.currentRound);
+    for(const [div,teams] of Object.entries(H2H_DIVISIONS)){
+      const last=div==='ELIZA CUP (D1)'?26:23;
+      if(basis>last||!availableDivision(div))continue;
+      const records=streakHistory(div,basis-1);
+      if(!records)continue;
+      for(const team of teams){
+        const rec=records[team];if(!rec.played)continue;
+        const row=(DATA.admin_teams||[]).find(t=>t.name===team);if(!row)continue;
+        for(const kind of ['LOSS','WIN']){
+          if(kind==='LOSS'?rec.lost>0:rec.won>0)continue;
+          output.push({team,teamId:String(row.id).padStart(3,'0'),division:div,kind,basis,last,record:rec});
+        }
+      }
+    }
+    return output;
+  }
+  function streakOutcomes(market){
+    const {kind,team,teamId,division,basis,last}=market;
+    const rows=window.BilbbetStreaks.forecast(kind,team,H2H_SCHEDULE[division],basis,last,(pair,round)=>{
+      if(!divisionFixtureConfirmed(division,round))return NaN;
+      const m=getFixtureMarkets(division,round).find(m=>m.teamA===pair[0]&&m.teamB===pair[1]);
+      if(!m)return NaN;
+      const own=team===m.teamA;
+      return (kind==='WIN'?(own?m.aWinPct:m.bWinPct):(own?m.bWinPct:m.aWinPct))/100;
+    });
+    return rows.map(row=>{
+      const target=row.round===null?'NEVER':'R'+row.round;
+      const label=team+' · '+(kind==='LOSS'?'First league loss':'First league win')+' · '+(row.round===null?'None through Round '+last:'Round '+row.round)+' ('+division+')';
+      return {...row,id:'STREAK|'+kind+'|'+teamId+'|R'+basis+'|'+target,label,
+        price:row.probability>0?toOdds(row.probability*100):{suspended:true}};
+    });
+  }
+  function streakResult(id){
+    const p=id.split('|');
+    if(p.length!==5||!['WIN','LOSS'].includes(p[1])||!/^R\d+$/.test(p[3])||!(p[4]==='NEVER'||/^R\d+$/.test(p[4])))return null;
+    const team=streakTeam(p[2])?.name;if(!team)return null;
+    const div=findTeamDivision(team);if(!div)return null;
+    const last=div==='ELIZA CUP (D1)'?26:23,first=div==='ELIZA CUP (D1)'?1:2;
+    const basis=Number(p[3].slice(1)),target=p[4]==='NEVER'?null:Number(p[4].slice(1));
+    if(basis<first||basis>last||target!==null&&(target<basis||target>last))return null;
+    let through=first-1,records=null;
+    for(let r=first;r<=last;r++){
+      if(!ROUND_DATES[r]||Date.now()<sydneyKickoffUTC(ROUND_DATES[r]))break;
+      const next=streakHistory(div,r);if(!next)break;
+      through=r;records=next;
+    }
+    const rec=records?.[team];if(!rec)return null;
+    const event=p[1]==='WIN'?rec.firstWin:rec.firstLoss;
+    if(event!==null&&event<basis)return null; // Retrospective score corrections require manual review.
+    return window.BilbbetStreaks.result(p[1],target,rec,through,last);
+  }
+  function renderStreakSpecials(){
+    const markets=streakMarkets();
+    let html='<p>Pick the league round when an unbeaten team first loses, or a winless team first wins. Draws do neither. League games only; finals and cups excluded. These are singles only. All options close at the next league lockout and prices update with weekly results.</p>';
+    if(!markets.length)return html+'<p>No eligible completed-round streaks are available. Missing or unconfirmed results must be resolved before a market opens.</p>';
+    html+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">'+markets.map(m=>{
+      const key=m.kind+'|'+m.teamId;
+      return '<button class="bb-btn ghost" data-streak-view="'+esc(key)+'">'+esc(m.team)+' · first '+m.kind.toLowerCase()+'</button>';
+    }).join('')+'</div>';
+    const market=markets.find(m=>m.kind+'|'+m.teamId===state.streakSelection)||markets[0];
+    const rows=collectingTrustedPrices?streakOutcomes(market):
+      [...Array.from({length:market.last-market.basis+1},(_,i)=>market.basis+i),null].map(round=>{
+        const id='STREAK|'+market.kind+'|'+market.teamId+'|R'+market.basis+'|'+(round===null?'NEVER':'R'+round);
+        const q=trustedPrices.get(id);
+        return {id,round,label:q?.label||'',price:{odds:Number(q?.odds),suspended:false}};
+      }),rec=market.record;
+    html+=categoryPauseControl('STREAK|'+market.kind,market.kind==='LOSS'?'all first-loss specials':'all first-win specials');
+    html+='<h4>'+esc(market.team)+' · '+(market.kind==='LOSS'?'First league loss':'First league win')+'</h4><p>'+esc(market.division)+' · '+rec.won+'W / '+rec.drawn+'D / '+rec.lost+'L through Round '+(market.basis-1)+'. “None” means through Round '+market.last+'.</p>';
+    if(!rows.length)return html+'<p>Awaiting the remaining confirmed league fixtures before pricing this market.</p>';
+    return html+rows.map(row=>{
+      const price=!collectingTrustedPrices&&!trustedPrices.has(row.id)?'<span class="bb-btn ghost" aria-disabled="true">Awaiting price publication</span>':priceOnlyButton(row.id,row.label,row.price);
+      return '<div class="bb-card" style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:8px;"><span>'+esc(row.round===null?'No '+market.kind.toLowerCase()+' through Round '+market.last:'Round '+row.round)+'</span><span style="min-width:100px;">'+price+'</span></div>';
+    }).join('');
+  }
+
   function specialsSubTabBar(){
     const TABS = [
       {key:'round', label:'Round Specials'},
       {key:'season', label:'Season Specials'},
+      {key:'streaks', label:'Unbeaten &amp; Winless'},
       {key:'novelty', label:'Novelty &amp; Suggestions'},
     ];
     // Round/Season specials both expose team and division info (leading/
@@ -4990,6 +5086,7 @@
     if(state.novelty === null) return '<p style="color:#9a9a9a;">Loading&hellip;</p>';
     let html = '<h3 style="margin-top:0;">Specials</h3>' + specialsSubTabBar();
 
+    if(state.specialsSubTab === 'streaks')return html+renderStreakSpecials();
     if(state.specialsSubTab === 'round'){
       html += `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:10px;">Pick any upcoming round to back who'll be leading or trailing after it.</p>`;
       html += renderRoundExtremeMarket('win_round');
@@ -5672,7 +5769,8 @@
         ${b.selections.map((selection,index)=>{
           const unresolved=!selection.result||selection.result==='PENDING';
           const suggestion=unresolved?computeSuggestedResult(selection.id,selection):null;
-          const round=getPickRound(selection.id);
+          const parts=selection.id.split('|');
+          const round=parts[0]==='STREAK'?(parts[4]==='NEVER'?(findTeamDivision(streakTeam(parts[2])?.name)==='ELIZA CUP (D1)'?26:23):Number(parts[4]?.slice(1))):getPickRound(selection.id);
           const note=suggestion?'Suggested: '+suggestion:unresolved?(Number.isInteger(round)&&round<state.currentRound?'Manual review required — missing data, tied outcome or unsupported grading.':'Manual override — outcome not yet determined.'):'Already graded: '+selection.result;
           return `<div style="margin-top:12px;">
             <div>${esc(betSelectionLabel(selection))} · accepted odds ${formatOdds(selection.odds)}</div>
@@ -6779,6 +6877,7 @@
   function parsePick(id){
     if(id.startsWith('JOIN|'))return {type:'join',group:'JOIN|'+id.split('|')[1]};
     const parts = id.split('|');
+    if(parts[0]==='STREAK')return {type:'streak',kind:parts[1],teamId:parts[2],team:streakTeam(parts[2])?.name,group:'STREAK|'+parts.slice(1,4).join('|')};
     if(parts[0]==='H2H'){
       const [, kindRaw, roundTag, teamA, teamB] = parts;
       const isRes = kindRaw.startsWith('res');
@@ -6840,6 +6939,10 @@
   }
   function findConflict(newId){
     const np = parsePick(newId);
+    if(np.type==='streak'&&state.slip.length || state.slip.some(s=>s.id.startsWith('STREAK|')))
+      return {reason:'singles-only',msg:'first-win/first-loss specials must be placed as separate singles'};
+    if(np.type==='streak'&&isOwnTeam(np.team)&&(np.kind==='LOSS'?!newId.endsWith('|NEVER'):newId.endsWith('|NEVER')))
+      return {reason:'self-interest',msg:'you cannot back a negative streak outcome for your own team'};
 
     // Self-interest guard: a punter here is also a competing fantasy team,
     // so betting against your own team's interests -- your opponent to
@@ -7743,7 +7846,7 @@
   async function priceSyncFingerprint(){
     const data=Object.fromEntries(Object.entries(DATA).filter(([key])=>!['real_results','carry_balances'].includes(key)));
     const input={
-      priceModelVersion:'full-season-h2h-publication-v1',
+      priceModelVersion:'full-season-h2h-and-streaks-v1',
       season:seasonKeyPart(),round:state.currentRound,data,
       controls:{
         cupFixtures:state.cupFixtures,
@@ -7816,6 +7919,8 @@
         key='FINISH|'+p[1]+'|'+p[2].replace('miss_top','top')+'|'+p[3];outcome=p[2].includes('miss_top')?'miss':'top';size=2;
       }else if(p[0]==='FUT' && ['win_div_pct','roddy_win_pct','wooden_spoon_pct'].includes(p[2])){
         key='WINNER|'+p[1]+'|'+p[2];outcome=p[3];size=p[1]==='RODDY'?TOTAL_TEAMS:(H2H_DIVISIONS[p[1]]||[]).length;
+      }else if(p[0]==='STREAK'){
+        key=q.safetyGroup;outcome=q.safetyOutcome;size=q.safetySize;
       }else continue;
       if(!groups.has(key))groups.set(key,{size,outcomes:new Map()});
       const group=groups.get(key);
@@ -7913,6 +8018,9 @@
           q.pool=p.type+'|'+p.marketKey;
           q.team=p.team;
         }
+      }else if(p.type==='streak'){
+        q.event='STREAK|'+p.teamId;q.exclusive=p.group;q.team_id=p.teamId;
+        q.negative=p.kind==='LOSS'?parts[4]!=='NEVER':parts[4]==='NEVER';
       }else if(p.type==='h2h'){
         q.event='MATCH|'+p.roundTag+'|'+p.teamA+'|'+p.teamB;
       }else if(p.type==='leadat'){
@@ -8058,6 +8166,16 @@
       }
     }finally{
       state.h2hRound=savedRound;
+    }
+    for(const market of streakMarkets()){
+      const outcomes=streakOutcomes(market);
+      for(const outcome of outcomes){
+        if(outcome.price.suspended)continue;
+        record(outcome.id,outcome.price.odds,outcome.label);
+        const q=rows.get(outcome.id);if(!q)continue;
+        q.safetyGroup='STREAK|'+market.kind+'|'+market.teamId+'|R'+market.basis;
+        q.safetyOutcome=outcome.round===null?'NEVER':'R'+outcome.round;q.safetySize=outcomes.length;
+      }
     }
     enforceQuoteBookSafety(rows);
     const count=await secureRpc('bilbbet_publish_board',{p_quotes:[...rows.values()]});
@@ -8752,6 +8870,7 @@
       else state.futureMarketTab = Object.keys(FUTURES.market_labels)[0];
       render();
     });
+    document.querySelectorAll('[data-streak-view]').forEach(el=>el.onclick=()=>{state.streakSelection=el.dataset.streakView;render();});
     document.querySelectorAll('[data-specialssubtab]').forEach(el => el.onclick = () => { state.specialsSubTab = el.dataset.specialssubtab; render(); });
     document.querySelectorAll('[data-fixture-expand]').forEach(el => el.onclick = () => {
       const [div, idx] = el.dataset.fixtureExpand.split('|');
