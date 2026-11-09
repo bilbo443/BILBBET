@@ -1244,3 +1244,5 @@ Median result suggestions: grade H2H_MEDIAN against the complete actual score me
 - `python pipeline/check_published_state.py` checks conference fields, all fixtures, actual score/futures provenance, active market prices, final-table leader/winner agreement, Roddy membership and cup survivors without writes.
 - `.github/workflows/platform-checks.yml` runs the snapshot check and JS/Python regressions on relevant main pushes, PRs and manual dispatch. No credentials, live data writes or real bets required.
 - Existing prices/models, account balances, accepted bets, team IDs and the Drone Police manual carry correction remain unchanged by this sweep. Promotion betting remains suspended pending a properly priced finals model; ECL groups and future cup draws require organiser confirmation.
+
+Deployment cache regression: only known HTML/CSS/JS shell files may enter the service-worker offline cache. Results/futures/registry JSON bypass it, and data fetches revalidate on first attempt. Shell requests revalidate too; stale HTTP-cache entries must not mask a successful deployment.

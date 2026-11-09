@@ -18,6 +18,7 @@ async function run(sequence){
 (async () => {
   let r = await run([503,200]);
   assert.equal(r.response.status,200); assert.equal(r.calls.length,2);
+  assert.equal(r.calls[0].options.cache,'no-cache');
   assert.equal(r.calls[1].options.cache,'reload');
   r = await run([new Error('offline'),503,200]);
   assert.equal(r.response.status,200); assert.deepEqual(r.waits,[750,1500]);

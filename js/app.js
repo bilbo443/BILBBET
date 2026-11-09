@@ -98,7 +98,7 @@
     for(let attempt = 0; ; attempt++){
       let response;
       try {
-        response = await fetch(path, attempt ? {cache:'reload'} : {});
+        response = await fetch(path, {cache:attempt ? 'reload' : 'no-cache'});
       } catch(error) {
         if(attempt >= delays.length) throw error;
       }

@@ -28,7 +28,7 @@ Baseline: main `5e3bed011b5c933aa45c6215287bf1573eb01b7d`, with published GW4 sc
 | Price-book consistency | 1,658 grouped live books checked; no guaranteed-profit book found. No invalid active price found. Non-bettable promotion tipping rows deliberately excluded. |
 | Round/reward context | Server and price round both 5; all 33 GW4 league fixtures scored in reward context. |
 | Public navigation | Home, all futures competitions, all H2H divisions, custom matchup, cups, playoffs, weekly tipping divisions, Specials, Stats and logged-out My Bets opened in the live browser. |
-| Automated checks | 19 JavaScript regression scripts and 22 Python tests passed; JavaScript syntax and published-state audit passed. |
+| Automated checks | 20 JavaScript regression scripts and 22 Python tests passed; JavaScript syntax and published-state audit passed. |
 
 ## Ongoing checks
 
@@ -43,3 +43,7 @@ Weekly refresh PRs remain review drafts. Merging a draft alone is not live publi
 - Promotion betting remains suspended; tipping slots are available under the agreed rules.
 - The check establishes consistency with the latest published GW4 snapshot; it does not certify every subjective strength assumption or guarantee future hosting availability.
 - No source team IDs or Drone Police manual carry correction were changed.
+
+## Deployment-cache follow-up
+
+The live browser continued loading old code after a successful Pages deployment. The service worker comment promised shell-only caching, but its fetch handler intercepted every same-origin GET, including score JSON. Restrict it to a shell allowlist, revalidate shell requests against the network, clear only older Bilbbet shell caches, and never intercept data requests. Data-file loads also revalidate on their first attempt. A hard refresh may be required once to replace the old worker; subsequent reloads use the corrected policy. Added cache-behaviour regression checks; model data and prices remain unchanged.
