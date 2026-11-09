@@ -47,3 +47,5 @@ Weekly refresh PRs remain review drafts. Merging a draft alone is not live publi
 ## Deployment-cache follow-up
 
 The live browser continued loading old code after a successful Pages deployment. The service worker comment promised shell-only caching, but its fetch handler intercepted every same-origin GET, including score JSON. Restrict it to a shell allowlist, revalidate shell requests against the network, clear only older Bilbbet shell caches, and never intercept data requests. Data-file loads also revalidate on their first attempt. A hard refresh may be required once to replace the old worker; subsequent reloads use the corrected policy. Added cache-behaviour regression checks; model data and prices remain unchanged.
+
+The HTML startup references are versioned to help existing browsers replace the older app and service worker. One earlier pending `LEADAT|ELIZA CUP (D1)|2|STAIRWAY TO EVANS` bet remains an admin review/settlement item; this sweep did not resolve it.

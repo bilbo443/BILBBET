@@ -23,3 +23,6 @@ async function request(path,method='GET'){
  offline=true;assert.equal((await request('/BILBBET/js/app.js')).status,503);
  console.log('PASS: shell-only cache, reload revalidation, no result-data interception, method guards and explicit offline fallback.');
 })().catch(error=>{console.error(error);process.exitCode=1;});
+
+for(const page of ['index.html','fixtures.html'])assert(fs.readFileSync(page,'utf8').includes('js/app.js?v=20261110-cache2'));
+assert(fs.readFileSync('index.html','utf8').includes("register('sw.js?v=20261110-cache2')"));
