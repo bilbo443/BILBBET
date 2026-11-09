@@ -21,7 +21,9 @@ def prepare(csv_path, extracted_path, out_dir, data_dir='data'):
     write_leading_snapshot(odds,out/'leading-at-publishable.json')
     draft = out/'odds.json'; draft.write_text(json.dumps(odds,indent=2)+'\n')
     converted, summary = convert_draft_to_publishable(str(draft),str(data/'futures.json'),str(out/'futures.json'))
-    (out/'roddy-results.json').write_text(json.dumps(roddy_scores,indent=2)+'\n')
+    from futures_refresh_guard import write_score_snapshots
+    write_score_snapshots(odds,{r['team']:r['scores_by_round'] for r in results},
+                          roddy_scores,out/'real_results.json',out/'roddy-results.json')
     print('Review prepared:',out)
     for line in summary: print(line)
     return converted

@@ -403,7 +403,7 @@
   // exact round (H2H matches, leading-at-this-round, win/lose-this-round).
   function getPickRound(id){
     const parts = id.split('|');
-    if(parts[0]==='H2H') return parseInt(parts[2].replace('R',''),10);
+    if(['H2H','H2H_MEDIAN','H2H_WIN'].includes(parts[0])) return /^R\d+$/.test(parts[2]||'') ? Number(parts[2].slice(1)) : null;
     if(parts[0]==='LEADAT') return parseInt(parts[2],10);
     if(parts[0]==='SPECIALFIX' && (parts[1]==='win_round'||parts[1]==='lose_round')) return parseInt(parts[2].replace('R',''),10);
     return null;
@@ -2063,6 +2063,16 @@
     }
     return [...chosen.values()];
   }
+  function publishedRoddyTotals(names, beforeRound){
+    const scores=DATA.roddy_results||{};
+    const totals=new Map(names.map(team=>[team,0])),complete=[];
+    for(let round=1;round<beforeRound;round++){
+      if(!names.every(team=>Number.isFinite(scores[resolveTeamName(team)]?.[round-1])))continue;
+      complete.push(round);
+      for(const team of names)totals.set(team,totals.get(team)+scores[resolveTeamName(team)][round-1]);
+    }
+    return {totals,complete};
+  }
   function renderOpeningRoundHub(){
     const entered=(state.cupFixtures['FA CUP'] || []).filter(f=>
       Number.isInteger(Number(f.round))&&Number(f.round)>=state.currentRound);
@@ -2076,15 +2086,7 @@
 
     const fixtures=entered.filter(f=>Number(f.round)===round);
     const names=[...new Set(Object.values(H2H_DIVISIONS).flat())];
-    const totals=new Map(names.map(t=>[t,0]));
-    const complete=[];
-    for(let r=1;r<round;r++){
-      if(names.every(t=>Number.isFinite(REAL_RESULTS[resolveTeamName(t)]?.[r-1]))){
-        complete.push(r);
-        for(const t of names)
-          totals.set(t,totals.get(t)+REAL_RESULTS[resolveTeamName(t)][r-1]);
-      }
-    }
+    const {totals,complete}=publishedRoddyTotals(names,Math.min(round,state.currentRound));
     const ranks=new Map();
     if(complete.length){
       const ordered=[...names].sort((a,b)=>
@@ -3015,6 +3017,18 @@
     return picker + futuresSortControl(scopeKey) + list;
   }
 
+  function defaultCupFuturesMarket(){
+    const markets=FUTURES.fa_cup_markets||{};
+    if(markets.win_pct?.some(row=>!row.suspended))return 'win_pct';
+    return Object.keys(FUTURES.fa_cup_labels||{}).find(key=>markets[key]?.some(row=>!row.suspended))||'fixtures';
+  }
+  function faCupProgressNote(){
+    const count=FUTURES.fa_cup_markets?.win_pct?.length||0;
+    const pending=(state.cupFixtures['FA CUP']||[]).filter(f=>Number(f.round)>=state.currentRound)
+      .sort((a,b)=>Number(a.round)-Number(b.round))[0];
+    const next=pending ? 'Next confirmed fixture: '+(pending.stage||getCupRoundInfo('FA CUP',Number(pending.round))?.stage||'FA Cup')+' in Round '+Number(pending.round)+'.' : 'Next draw or fixture confirmation pending.';
+    return count+' remaining entrant'+(count===1?'':'s')+'. '+next+' Completed stage markets are closed.';
+  }
   function cupMarketTabs(labelsKey){
     const labels = FUTURES[labelsKey];
     const isEcl = labelsKey === 'ecl_labels';
@@ -6507,7 +6521,7 @@
       } else if(state.futuresSubTab === 'FA CUP'){
         body = stripe + futuresSubTabBar() + futuresPriceToggle() + cupMarketTabs('fa_cup_labels') + sectionRibbon() +
           (state.futureMarketTab === 'fixtures' ? renderCupFixtures('FA CUP') :
-            `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:10px;">${FUTURES.fa_cup_markets?.win_pct?.length || TOTAL_TEAMS} current entrants. ${(FUTURES.fa_cup_markets?.win_pct?.length || TOTAL_TEAMS) > 64 ? 'An additional preliminary round is required; check the cup calendar and fixtures before betting.' : 'Round of 64 is the first scheduled cup stage.'} Futures must be regenerated after roster changes.</p>` +
+            `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:10px;">${esc(faCupProgressNote())}</p>` +
             `<div id="outcomes-list">${cupOutcomesList('fa_cup_markets', state.futureMarketTab)}</div>`);
       } else if(state.futuresSubTab === 'ECL'){
         body = stripe + futuresSubTabBar() + futuresPriceToggle() + cupMarketTabs('ecl_labels') + sectionRibbon() +
@@ -8006,17 +8020,31 @@
     if(nextRound!==Number(state.currentRound)){
       state.currentRound=nextRound;state.h2hRound=nextRound;
       state.leadingAtRound=nextRound;state.specialsRound=nextRound;
-      await syncTrustedPrices(true);
       state.info='Results finalised. Advanced automatically to Round '+nextRound+'.';
+      try{await syncTrustedPrices(true);}
+      catch(error){state.error='Results synced and Round '+nextRound+' selected, but prices were retained: '+error.message;}
     }
   }
   function scheduleRewardSync(){
-    if(!state.user?.isAdmin || priceSyncRunning)return;
+    if(!state.user?.isAdmin)return;
     clearTimeout(rewardSyncTimer);
-    rewardSyncTimer=setTimeout(()=>Promise.resolve().then(()=>syncTrustedPrices()).then(()=>syncRewardContext()).catch(e=>{
-      console.error('Reward results sync failed:',e);
-      alert('The change was saved, but tipping rewards are waiting for results to sync. Sign in as admin again to retry. '+e.message);
-    }),300);
+    rewardSyncTimer=setTimeout(async()=>{
+      // Real result/reward context must sync even if an unrelated price
+      // freshness check fails. Never present a price error as a lost save.
+      try{await syncRewardContext();}
+      catch(error){
+        console.error('Reward results sync failed:',error);
+        alert('The change was saved, but tipping rewards are waiting for results to sync. Sign in as admin again to retry. '+error.message);
+        return;
+      }
+      try{await syncTrustedPrices();}
+      catch(error){
+        console.error('Price sync failed:',error);
+        state.error='Results synced. The previous price board was retained: '+error.message;
+        alert(state.error);
+      }
+      render();
+    },300);
   }
   async function checkAndCelebrateReward(){
     if(!state.user || state.user.isAdmin || state.rewardClaimInFlight)return;
@@ -8553,7 +8581,7 @@
       state.playoffFixtureMarket = null;
       if(state.activeTab === 'FUTURES'){
         if(state.futuresSubTab === 'RODDY') state.futureMarketTab = Object.keys(FUTURES.roddy_labels)[0];
-        else if(state.futuresSubTab === 'FA CUP') state.futureMarketTab = Object.keys(FUTURES.fa_cup_labels)[0];
+        else if(state.futuresSubTab === 'FA CUP') state.futureMarketTab = defaultCupFuturesMarket();
         else if(state.futuresSubTab === 'ECL') state.futureMarketTab = Object.keys(FUTURES.ecl_labels)[0];
         else state.futureMarketTab = Object.keys(FUTURES.market_labels)[0];
       }
@@ -8637,7 +8665,7 @@
       // specific) -- reset to that set's first market rather than risk
       // landing on one that gets filtered out and silently shows nothing.
       if(state.futuresSubTab === 'RODDY') state.futureMarketTab = Object.keys(FUTURES.roddy_labels)[0];
-      else if(state.futuresSubTab === 'FA CUP') state.futureMarketTab = Object.keys(FUTURES.fa_cup_labels)[0];
+      else if(state.futuresSubTab === 'FA CUP') state.futureMarketTab = defaultCupFuturesMarket();
       else if(state.futuresSubTab === 'ECL') state.futureMarketTab = Object.keys(FUTURES.ecl_labels)[0];
       else state.futureMarketTab = Object.keys(FUTURES.market_labels)[0];
       render();

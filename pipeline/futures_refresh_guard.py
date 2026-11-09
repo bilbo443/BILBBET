@@ -27,3 +27,14 @@ def stamp_complete(odds,league,roddy):
     divisions={row['division'] for row in odds.get('division_rows',[])}
     odds['futures_refresh']=manifest(divisions,league,roddy)
     validate_complete(odds)
+
+
+def write_score_snapshots(odds, league, roddy, league_path, roddy_path):
+    """Stage the exact inputs alongside prices; never reuse an older roster-only draft."""
+    import json
+    from pathlib import Path
+    validate_complete(odds)
+    if odds['futures_refresh']['source_scores'] != score_snapshot(league, roddy):
+        raise ValueError('Score publication snapshot differs from simulated futures')
+    for path, scores in ((league_path, league), (roddy_path, roddy)):
+        Path(path).write_text(json.dumps(scores, indent=2) + '\n')

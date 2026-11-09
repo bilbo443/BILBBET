@@ -139,6 +139,15 @@ def main():
         "",
         diff_report,
     ]
+    pr_body_lines += [
+        '', '## Publish the reviewed snapshot together', '',
+        'Merging this PR saves review drafts only. After review, publish these four files in one commit:', '',
+        f"- `{result['score_path']}` -> `data/real_results.json`",
+        f"- `{result['roddy_path']}` -> `data/roddy_results.json`",
+        f"- `{args.draft_dir}/futures-publishable.json` -> `data/futures.json`",
+        f"- `{args.draft_dir}/leading-at-publishable.json` -> `data/leading_at.json`",
+        '', 'Then reload Bilbbet as admin to sync results and refresh prices. The freshness guard will reject a mixed snapshot.',
+    ]
     pr_body = '\n'.join(pr_body_lines)
 
     os.makedirs(os.path.dirname(args.pr_body_path), exist_ok=True)
