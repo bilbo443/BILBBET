@@ -716,6 +716,7 @@
     username:'', pin:'', adminLoginMode:false, storageDegraded:false,
     activeTab:'HOME',
     futuresPriceView: initialFuturesPriceView(),
+    futuresSort:'price',
     futureMarketTab: FUTURE_DIVS.length ? Object.keys(FUTURES.market_labels)[0] : null,
     teamA:'', teamB:'', h2hRound:1, h2hMarket:null,
     h2hSubTab: FUTURE_DIVS[0], h2hFixtureMarket: null,
@@ -2865,6 +2866,74 @@
     </div>`;
   }
 
+  function futuresStandingRanks(scope){
+    if(typeof H2H_DIVISIONS==='undefined')return new Map();
+    if(H2H_DIVISIONS[scope])return new Map(computeDivisionStandings(scope).map((r,i)=>[r.team,i+1]));
+    const source=DATA.roddy_results||{},teams=Object.values(H2H_DIVISIONS).flat();
+    const rounds=Array.from({length:Math.max(0,Number(state.currentRound)-1)},(_,i)=>i)
+      .filter(i=>teams.every(t=>Number.isFinite(source[t]?.[i])));
+    if(!rounds.length)return new Map();
+    const rows=teams.map(team=>({team,total:rounds.reduce((sum,i)=>sum+source[team][i],0)})).sort((a,b)=>b.total-a.total||a.team.localeCompare(b.team));
+    return new Map(rows.map((r,i)=>[r.team,rows.findIndex(other=>other.total===r.total)+1]));
+  }
+  function sortFuturesRows(rows,scope,pickId){
+    const ranks=futuresStandingRanks(scope),mode=state.futuresSort||'price';
+    const quote=row=>typeof trustedPrices==='undefined'?null:trustedPrices.get(pickId(row.team));
+    const price=row=>Number(quote(row)?.odds??row.odds);
+    return rows.slice().sort((a,b)=>{
+      const blocked=row=>!!row.suspended||quote(row)?.bettable===false;
+      if(blocked(a)!==blocked(b))return blocked(a)?1:-1;
+      if(mode==='name')return a.team.localeCompare(b.team);
+      if(mode==='position')return (ranks.get(a.team)??Infinity)-(ranks.get(b.team)??Infinity)||a.team.localeCompare(b.team);
+      return (mode==='price_desc'?-1:1)*(price(a)-price(b))||a.team.localeCompare(b.team);
+    });
+  }
+  function futuresSortControl(scope){
+    const positionLabel=['RODDY','FACUP','ECL'].includes(scope)?'Roddy position':'Current table position';
+    return `<label style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0 14px;color:#bdbdbd;">Sort by <select class="bb-select" data-futures-sort style="max-width:100%;"><option value="price" ${(state.futuresSort||'price')==='price'?'selected':''}>Price: shortest first</option><option value="price_desc" ${state.futuresSort==='price_desc'?'selected':''}>Price: longest first</option><option value="name" ${state.futuresSort==='name'?'selected':''}>Team name A–Z</option><option value="position" ${state.futuresSort==='position'?'selected':''}>${positionLabel}</option></select></label>`;
+  }
+  function divisionPointsBounds(div){
+    if(typeof H2H_DIVISIONS==='undefined'||!H2H_DIVISIONS[div])return null;
+    const end=div==='ELIZA CUP (D1)'?26:23,schedule=H2H_SCHEDULE[div]||[];
+    const rows=computeDivisionStandings(div).map(r=>({...r,remaining:0}));
+    const byTeam=new Map(rows.map(r=>[r.team,r]));
+    for(let round=1;round<=end;round++)for(const [a,b] of schedule[round-1]||[]){
+      if(!byTeam.has(a)||!byTeam.has(b))continue;
+      if(!divisionFixtureConfirmed(div,round))return null;
+      const complete=round<state.currentRound&&Number.isFinite(fixtureScore(a,b,round))&&Number.isFinite(fixtureScore(b,a,round));
+      if(!complete){byTeam.get(a).remaining++;byTeam.get(b).remaining++;}
+    }
+    return rows.map(r=>({...r,maxPoints:r.points+3*r.remaining}));
+  }
+  function pointsContention(rows,team,target,negative=false){
+    const row=rows.find(r=>r.team===team);if(!row)return null;
+    const others=rows.filter(r=>r.team!==team);
+    const eliminated=ceiling=>others.filter(r=>r.points>ceiling).length>=target;
+    const assured=points=>others.filter(r=>r.maxPoints>=points).length<target;
+    const finish=target===1?'first':'in the top '+target;
+    const prefix='Based on current league points and the remaining confirmed regular-season fixtures. Score-for tiebreaks are treated conservatively. This is not a simulation probability. ';
+    if(eliminated(row.maxPoints))return {label:negative?'Mathematically assured':'Mathematically out',detail:prefix+team+' cannot finish '+finish+', even with every remaining win.'};
+    if(assured(row.points))return {label:negative?'Mathematically out':'Mathematically assured',detail:prefix+team+' is guaranteed to finish '+finish+', even if all remaining matches are lost.'};
+    if(row.remaining>0&&eliminated(row.maxPoints-2))return {label:'No room to drop points',detail:prefix+team+' must win every remaining match to keep finishing '+finish+' possible. Winning them all does not guarantee that finish.'};
+    if(row.remaining>0&&assured(row.points+3))return {label:'Within one win of assurance',detail:prefix+'One further win guarantees '+team+' a finish '+finish+', regardless of other results.'};
+    return null;
+  }
+  function futuresContentionBadge(div,key,team){
+    let target,negative=false;
+    const n=typeof H2H_DIVISIONS==='undefined'?0:H2H_DIVISIONS[div]?.length;
+    if(!n)return '';
+    if(key==='win_div_pct')target=1;
+    else if(key==='top3_pct'||key==='miss_top3_pct'){target=3;negative=key.startsWith('miss_');}
+    else if(['top_half_pct','miss_top_half_pct','bottom_half_pct'].includes(key)){target=Math.floor(n/2);negative=key!=='top_half_pct';}
+    else if(key==='bottom3_pct'){target=n-3;negative=true;}
+    else if(key==='relegation_pct'){target=n-(div==='ELIZA CUP (D1)'?4:3);negative=true;}
+    else if(key==='wooden_spoon_pct'){target=n-1;negative=true;}
+    else return '';
+    const rows=divisionPointsBounds(div);if(!rows)return '';
+    const note=pointsContention(rows,team,target,negative);if(!note)return '';
+    return `<button type="button" data-futures-note="${esc(note.detail)}" style="display:block;max-width:100%;margin-top:5px;padding:4px 7px;border:1px solid #786a2b;border-radius:6px;background:#332f1b;color:#ffdd76;font-size:12px;text-align:left;">ⓘ ${esc(note.label)}</button>`;
+  }
+
   function futuresMarketTabs(){
     return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">' +
       Object.entries(FUTURES.market_labels).filter(([key]) =>
@@ -2912,10 +2981,7 @@
     const source = scopeKey === 'RODDY' ? RODDY_LEADING_AT : LEADING_AT[scopeKey];
     const outcomes = source[round] || source[String(round)] || [];
     const tagPrefix = 'LEADAT|' + scopeKey + '|' + round;
-    const sorted = outcomes.slice().sort((a,b) => {
-      if(!!a.suspended !== !!b.suspended) return a.suspended ? 1 : -1;
-      return a.odds - b.odds;
-    });
+    const sorted = sortFuturesRows(outcomes,scopeKey,team=>tagPrefix+'|'+team);
     const list = !outcomes.length ? '<p style="color:#9a9a9a;">No outcomes in this market.</p>' : sorted.map(o => {
       if(o.suspended){
         return `<div class="bb-outcome" style="opacity:0.5;cursor:default;">
@@ -2926,7 +2992,7 @@
       return `<div class="bb-outcome ${selected?'selected':''}" data-pick="${esc(selId)}" data-team="${esc(o.team)}" data-odds="${o.odds}" data-label="${esc(o.team)} leading after Round ${round} (${scopeKey==='RODDY'?'Roddy':scopeKey.replace(' (D1)','')})">
         <span>${esc(o.team)}</span>${futuresPriceSpan(o.odds)}</div>`;
     }).join('');
-    return picker + list;
+    return picker + futuresSortControl(scopeKey) + list;
   }
 
   function cupMarketTabs(labelsKey){
@@ -3090,10 +3156,7 @@
     // Active odds ascending (favourites first); suspended entries grouped
     // at the end regardless of their underlying odds value, rather than
     // interleaved based on a number that isn't actually shown or usable.
-    const sorted = outcomes.slice().sort((a,b) => {
-      if(!!a.suspended !== !!b.suspended) return a.suspended ? 1 : -1;
-      return a.odds - b.odds;
-    });
+    const sorted = sortFuturesRows(outcomes,cupTag,team=>cupTag+'|'+marketKey+'|'+team);
     const list = sorted.map(o => {
       const selId = cupTag+'|'+marketKey+'|'+o.team;
       if(o.suspended || categoryPaused){
@@ -3104,7 +3167,7 @@
       return `<div class="bb-outcome ${selected?'selected':''}" data-pick="${esc(selId)}" data-team="${esc(o.team)}" data-odds="${o.odds}" data-label="${esc(o.team)}">
         <span>${esc(o.team)}</span>${futuresPriceSpan(o.odds)}</div>`;
     }).join('');
-    return control + list;
+    return futuresSortControl(cupTag) + control + list;
   }
 
   function futuresOutcomesList(div, marketKey){
@@ -3118,26 +3181,23 @@
     const outcomes = div==='RODDY' ? FUTURES.roddy[marketKey] : FUTURES.divisions[div][marketKey];
     if(!outcomes || !outcomes.length) return '<p style="color:#9a9a9a;">No outcomes in this market.</p>';
     const control = categoryPauseControl(category, marketKey);
-    const sorted = outcomes.slice().sort((a,b) => {
-      if(!!a.suspended !== !!b.suspended) return a.suspended ? 1 : -1;
-      return a.odds - b.odds;
-    });
+    const sorted = sortFuturesRows(outcomes,div,team=>'FUT|'+div+'|'+marketKey+'|'+team);
     const list = sorted.map(o => {
       const selId = 'FUT|'+div+'|'+marketKey+'|'+o.team;
       if(o.suspended || categoryPaused){
         return `<div class="bb-outcome" style="opacity:0.5;cursor:default;">
-          <span style="display:flex;align-items:center;gap:8px;">${teamLogo(o.team,20)}${esc(o.team)}</span>
+          <span style="display:flex;align-items:center;gap:8px;">${teamLogo(o.team,20)}<span>${esc(o.team)}${futuresContentionBadge(div,marketKey,o.team)}</span></span>
           <span class="bb-odds" style="color:#9a9a9a;">${categoryPaused && !o.suspended ? 'paused' : 'suspended'}</span></div>`;
       }
       const selected = state.slip.some(s=>s.id===selId);
       return `<div class="bb-outcome ${selected?'selected':''}" data-pick="${esc(selId)}" data-team="${esc(o.team)}" data-odds="${o.odds}" data-label="${esc(o.team)}">
-        <span style="display:flex;align-items:center;gap:8px;">${teamLogo(o.team,20)}${esc(o.team)}</span>
+        <span style="display:flex;align-items:center;gap:8px;">${teamLogo(o.team,20)}<span>${esc(o.team)}${futuresContentionBadge(div,marketKey,o.team)}</span></span>
         ${futuresPriceSpan(o.odds)}</div>`;
     }).join('');
     const explanation = marketKey.includes('miss_top')
       ? '<p style="color:#9a9a9a;">Miss top X means finishing X+1 or lower in the official final ranking. Miss top half means finishing outside the top half.</p>'
       : '';
-    return explanation + control + list;
+    return futuresSortControl(div) + explanation + control + list;
   }
 
   function renderH2HMarket(m){
@@ -8481,6 +8541,8 @@
       if(state.activeTab === 'STATS'){ state.statsData = null; render(); loadStats(); return; }
       render();
     });
+    document.querySelectorAll('[data-futures-sort]').forEach(el=>el.onchange=()=>{state.futuresSort=el.value;render();});
+    document.querySelectorAll('[data-futures-note]').forEach(el=>el.onclick=e=>{e.stopPropagation();alert(el.dataset.futuresNote);});
     document.querySelectorAll('[data-futures-price-view]').forEach(el => el.onclick = () => {
       state.futuresPriceView = el.dataset.futuresPriceView === 'implied' ? 'implied' : 'odds';
       try { localStorage.setItem('bilbbet_futures_price_view', state.futuresPriceView); } catch(e){}
