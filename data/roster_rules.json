@@ -178,5 +178,22 @@
       "source": "User-supplied Round 15 results and fixture date window; year inferred as 2025 from season context.",
       "date_precision": "round_window"
     }
+  },
+  "streak_team_tags": {
+    "002": "Still searching for a winning stripe.",
+    "026": "Big Wang energy.",
+    "064": "Turning it up to Leven.",
+    "080": "The Garucci Show: renewed for another season.",
+    "101": "Sabotaging everyone else’s weekend.",
+    "053": "A name that needs extra time.",
+    "076": "Champs by name. No pressure.",
+    "096": "Més que a Garn.",
+    "077": "Short legs. Long season.",
+    "089": "Certified ballers. Paperwork pending.",
+    "038": "Very nice. Mostly.",
+    "029": "Every dog has its matchday.",
+    "047": "Would you like wins with that?",
+    "097": "The sequel needs a redemption arc.",
+    "104": "Father figures. Unfinished business."
   }
 }

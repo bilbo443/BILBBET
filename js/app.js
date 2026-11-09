@@ -5082,13 +5082,16 @@
     if(event!==null&&event<basis)return null; // Retrospective score corrections require manual review.
     return window.BilbbetStreaks.result(p[1],target,rec,through,last);
   }
+  function streakTeamTag(teamId){
+    return String(DATA.roster_rules?.streak_team_tags?.[String(teamId).padStart(3,'0')]||'');
+  }
   function renderStreakSpecials(){
     const markets=streakMarkets();
     let html='<p>Pick the league round when an unbeaten team first loses, or a winless team first wins. Draws do neither. League games only; finals and cups excluded. These are singles only. All options close at the next league lockout and prices update with weekly results.</p>';
     if(!markets.length)return html+'<p>No eligible completed-round streaks are available. Missing or unconfirmed results must be resolved before a market opens.</p>';
     html+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">'+markets.map(m=>{
       const key=m.kind+'|'+m.teamId;
-      return '<button class="bb-btn ghost" data-streak-view="'+esc(key)+'">'+esc(m.team)+' · first '+m.kind.toLowerCase()+'</button>';
+      return '<button class="bb-btn ghost" data-streak-view="'+esc(key)+'" style="text-align:left;"><span style="display:block;">'+esc(m.team)+' · first '+m.kind.toLowerCase()+'</span>'+(streakTeamTag(m.teamId)?'<small style="display:block;color:#bac7d4;font-weight:400;white-space:normal;">'+esc(streakTeamTag(m.teamId))+'</small>':'')+'</button>';
     }).join('')+'</div>';
     const market=markets.find(m=>m.kind+'|'+m.teamId===state.streakSelection)||markets[0];
     const rows=collectingTrustedPrices?streakOutcomes(market):
@@ -5099,6 +5102,7 @@
       }),rec=market.record;
     html+=categoryPauseControl('STREAK|'+market.kind,market.kind==='LOSS'?'all first-loss specials':'all first-win specials');
     html+='<h4>'+esc(market.team)+' · '+(market.kind==='LOSS'?'First league loss':'First league win')+'</h4><p>'+esc(market.division)+' · '+rec.won+'W / '+rec.drawn+'D / '+rec.lost+'L through Round '+(market.basis-1)+'. “None” means through Round '+market.last+'.</p>';
+    if(streakTeamTag(market.teamId))html+='<p style="color:#bac7d4;font-style:italic;">'+esc(streakTeamTag(market.teamId))+'</p>';
     if(market.teamId==='002')html+=renderD1DroughtTracker(market.team,'',market.basis);
     if(!rows.length)return html+'<p>Awaiting the remaining confirmed league fixtures before pricing this market.</p>';
     return html+rows.map(row=>{
