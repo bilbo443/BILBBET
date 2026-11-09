@@ -7956,7 +7956,7 @@
         closeScope:state.closeScope,
         lastAutoClosedRound:state.lastAutoClosedRound
       },
-      novelty:state.novelty||[],
+      novelty:(state.novelty||[]).map(({counter,...market})=>market),
       featuredFixtures:state.featuredFixturesData||[],
       medianSpecials:state.homeMedianSpecialsRound===state.currentRound?(state.homeMedianSpecialsData||[]):[]
     };

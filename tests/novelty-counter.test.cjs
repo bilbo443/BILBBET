@@ -19,5 +19,12 @@ inputs['novelty-count-'+item.id].value='1.5';await ctx.saveNoveltyCounter(item.i
 inputs['novelty-count-'+item.id].value='0';await ctx.saveNoveltyCounter(item.id);assert.equal(writes[1].args.p_value.counter.value,0);
 ctx.state.user.isAdmin=false;await ctx.saveNoveltyCounter(item.id);assert.equal(writes.length,2);assert.equal(ctx.renderNoveltyCounterControls(item),'');
 const before=renders;await ctx.refreshNoveltyCounters();assert.equal(nodes[0].textContent,'Moderator tracker: 4 missed trade deadlines');assert.equal(renders,before,'Live refresh must not rerender inputs or slip');
+ctx.DATA={};ctx.seasonKeyPart=()=> '26-27';ctx.crypto=require('crypto').webcrypto;ctx.TextEncoder=TextEncoder;
+vm.runInContext(app.slice(app.indexOf('  async function priceSyncFingerprint('),app.indexOf('  function assertFuturesScoreFreshness(')),ctx);
+const fingerprint=await ctx.priceSyncFingerprint();
+ctx.state.novelty[0]={...ctx.state.novelty[0],counter:{value:99,unit:'days',updatedAt:1}};
+assert.equal(await ctx.priceSyncFingerprint(),fingerprint,'Counter changes must not invalidate published prices');
+ctx.state.novelty[0].odds=2;
+assert.notEqual(await ctx.priceSyncFingerprint(),fingerprint,'Actual odds changes still invalidate price cache');
 console.log('PASS: manual units, unset/zero/invalid values, admin write guard, preserved market fields and targeted public refresh.');
 })().catch(e=>{console.error(e);process.exit(1)});
