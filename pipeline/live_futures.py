@@ -6,6 +6,7 @@ import re
 from pathlib import Path
 from cup_markets import regenerate_roddy_and_cup
 from team_strength_tiers import load_tier_centres
+from ecl_live_futures import regenerate_ecl
 
 
 def extract_roddy(csv_path, registry):
@@ -68,4 +69,5 @@ def refresh_whole_league(csv_path, data_dir, registry, roster, coeffs, history, 
     _, cup, _ = regenerate_roddy_and_cup(roster, coeffs['team_coeffs'], coeffs['scale'], history,
         n_sim=n_sim, seed=11, roddy_ability_model=ability, tier_centres=centres,
         official_cup_draw=official, live_results=league_results)
-    return {'roddy':roddy, 'fa_cup_markets':cup, 'roddy_leading_at':checkpoints}, roddy_scores
+    ecl=regenerate_ecl(roster,history,coeffs['team_coeffs'],coeffs['scale'],read('futures')['ecl_field'],roddy_scores,n_sim=n_sim)
+    return {'roddy':roddy, 'fa_cup_markets':cup, 'ecl_markets':ecl, 'roddy_leading_at':checkpoints}, roddy_scores

@@ -69,7 +69,7 @@ def make_sampler(rng, values, shift):
     return sample
 
 
-def build_samplers(rng, market, new_divs, history, team_coeffs, scale):
+def build_samplers(rng, market, new_divs, history, team_coeffs, scale, live_results=None):
     div_pool = {}
     for div, teams in new_divs.items():
         pool = []
@@ -86,7 +86,12 @@ def build_samplers(rng, market, new_divs, history, team_coeffs, scale):
                                      'relegation_risk': 0.0, 'variance_widen': 0.0})
             base = c[market]
             shift = scale * base
-            samplers[t] = make_sampler(rng, history.get(t, div_pool[div]), shift)
+            values=history.get(t, div_pool[div])
+            played=[v for v in (live_results or {}).get(t,[]) if v is not None]
+            if played:
+                weight=min(len(played)/26.0,0.5)
+                shift+=weight*(float(np.mean(played))-float(np.mean(values))-shift)
+            samplers[t] = make_sampler(rng, values, shift)
     return samplers
 
 
@@ -150,12 +155,12 @@ def group_standings(rng, samplers, group):
     return sorted(group, key=lambda t: (-pts[t], -sfor[t])), pts, sfor
 
 
-def run_ecl_seed(seed, ecl_field, samplers_builder):
+def run_ecl_seed(seed, ecl_field, samplers_builder, n_sim=N_SIM):
     rng = np.random.default_rng(seed)
     samplers = samplers_builder(rng)
     reach = {t: {'knockout': 0, 'sf': 0, 'final': 0, 'win': 0} for t in ecl_field}
 
-    for _ in range(N_SIM):
+    for _ in range(n_sim):
         shuffled = list(ecl_field)
         rng.shuffle(shuffled)
         groups = [shuffled[0:4], shuffled[4:8], shuffled[8:12]]
@@ -180,7 +185,7 @@ def run_ecl_seed(seed, ecl_field, samplers_builder):
         champion = knockout_round(rng, samplers, final_two)
         reach[champion[0]]['win'] += 1
 
-    return {t: {k: 100 * v / N_SIM for k, v in stages.items()} for t, stages in reach.items()}
+    return {t: {k: 100 * v / n_sim for k, v in stages.items()} for t, stages in reach.items()}
 
 
 def average_with_spread(per_seed_values):
