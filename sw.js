@@ -1,46 +1,31 @@
-// Minimal service worker, required for Android's "Add to Home Screen" /
-// installability criteria. Deliberately network-first, not cache-first:
-// this app's whole purpose is showing current odds, balances, and bets --
-// caching those aggressively would mean occasionally showing stale money
-// data, which is worse than just not being installable. The cache here
-// exists only as a fallback if the network genuinely fails, not as the
-// primary source.
+// Cache only the static application shell as an offline fallback.
+// Scores and other data must never enter the service-worker cache.
+const CACHE_NAME = 'bilbbet-shell-v2';
+const SHELL_FILES = ['./index.html', './css/styles.css', './js/app.js',
+  './fixtures.html', './css/fixture-share.css', './js/fixture-share.js'];
+const SHELL_PATHS = new Set(SHELL_FILES.map(path => new URL(path, self.location.href).pathname));
+SHELL_PATHS.add(new URL('./', self.location.href).pathname);
 
-const CACHE_NAME = 'bilbbet-shell-v1';
-const SHELL_FILES = ['./index.html', './css/styles.css', './js/app.js'];
-
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_FILES))
-  );
+self.addEventListener('install', event => {
+  event.waitUntil(caches.open(CACHE_NAME).then(cache =>
+    cache.addAll(SHELL_FILES.map(path => new Request(path, {cache:'reload'})))));
   self.skipWaiting();
 });
-
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((names) =>
-      Promise.all(names.filter((n) => n !== CACHE_NAME).map((n) => caches.delete(n)))
-    )
-  );
-  self.clients.claim();
+self.addEventListener('activate', event => {
+  event.waitUntil(caches.keys().then(names => Promise.all(
+    names.filter(name => name.startsWith('bilbbet-shell-') && name !== CACHE_NAME)
+      .map(name => caches.delete(name)))).then(() => self.clients.claim()));
 });
-
-self.addEventListener('fetch', (event) => {
-  // Only handle GET requests for the app's own shell files -- never
-  // intercept data fetches or anything cross-origin (Supabase, etc.),
-  // so live data always goes straight to the network with no caching
-  // logic in the way at all.
-  if (event.request.method !== 'GET') return;
+self.addEventListener('fetch', event => {
+  if(event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
-  if (url.origin !== self.location.origin) return;
-
-  event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        const copy = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
-        return response;
-      })
-      .catch(() => caches.match(event.request))
-  );
+  if(url.origin !== self.location.origin || !SHELL_PATHS.has(url.pathname)) return;
+  event.respondWith(fetch(event.request, {cache:'no-cache'}).then(response => {
+    if(response.ok){
+      const copy = response.clone();
+      event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy)));
+    }
+    return response;
+  }).catch(async () => (await caches.match(event.request)) ||
+    new Response('Bilbbet is offline. Reconnect and reload.', {status:503})));
 });

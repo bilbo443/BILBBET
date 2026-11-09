@@ -2,9 +2,9 @@ name: Platform consistency and regression checks
 on:
   push:
     branches: [main]
-    paths: ['js/**', 'css/**', 'data/**', 'pipeline/**', 'tests/**', '.github/workflows/platform-checks.yml']
+    paths: ['index.html', 'fixtures.html', 'sw.js', 'js/**', 'css/**', 'data/**', 'pipeline/**', 'tests/**', '.github/workflows/platform-checks.yml']
   pull_request:
-    paths: ['js/**', 'css/**', 'data/**', 'pipeline/**', 'tests/**', '.github/workflows/platform-checks.yml']
+    paths: ['index.html', 'fixtures.html', 'sw.js', 'js/**', 'css/**', 'data/**', 'pipeline/**', 'tests/**', '.github/workflows/platform-checks.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -23,6 +23,7 @@ jobs:
       - name: Check JavaScript syntax and public snapshot
         run: |
           node --check js/app.js
+          node --check sw.js
           node --check js/fixture-share.js
           python pipeline/check_published_state.py
       - name: Run JavaScript regression checks
