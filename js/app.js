@@ -2229,6 +2229,15 @@
     const q=trustedPrices.get(p.id);
     return q ? {...p,odds:Number(q.odds),baseOdds:Number(q.baseOdds || p.baseOdds)} : p;
   }
+  function renderStreakHomeCard(){
+    return '<div class="bb-card" style="background:#152132;border:1px solid #40566c;margin-bottom:16px;padding:16px;"><h3 style="margin:0 0 6px;">Unbeaten &amp; Winless</h3><p style="color:#bac7d4;margin:0 0 12px;">Who breaks their streak next? Pick the round of a first league win or loss.</p><div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="bb-btn" data-open-streak="WIN">First Win · winless teams</button><button class="bb-btn ghost" data-open-streak="LOSS">First Loss · unbeaten teams</button></div></div>';
+  }
+  async function openStreakSpecials(kind){
+    if(!['WIN','LOSS'].includes(kind))return;
+    state.activeTab='SPECIALS';state.specialsSubTab='streaks';state.streakKind=kind;state.mobileNavOpen=false;
+    render();
+    if(state.novelty===null)await loadNovelty();
+  }
   function renderHomeTab(){
     const fixtures = homeFixturesReady(state.currentRound) ? (state.featuredFixturesData || []).filter(homeFixtureReleased).map(publishedFeaturedPick) : [];
     const fixturesLoading = homeFixturesReady(state.currentRound) && state.featuredFixturesData === null;
@@ -2294,6 +2303,7 @@
       <a href="fixtures.html" class="bb-card" style="display:flex;align-items:center;justify-content:space-between;gap:16px;text-decoration:none;border-color:#675b19;background:linear-gradient(135deg,#292713,#172329);padding:18px;margin-bottom:16px;color:#f5f5f5;">
         <span><strong style="display:block;color:#ffdd00;font-size:21px;">Round ${Number(state.currentRound)} fixtures &amp; odds</strong><span style="display:block;color:#b9c4ca;margin-top:5px;">All divisions · H2H odds · Handicaps · Shareable match cards</span></span><span aria-hidden="true" style="font-size:26px;color:#ffdd00;">→</span>
       </a>
+      ${renderStreakHomeCard()}
       ${renderHomeDigest()}
       ${renderOpeningRoundHub()}
       <div class="bb-card" style="background:linear-gradient(135deg,#2a2410,#1a1a1a);border-color:#4a3a10;margin-bottom:16px;text-align:center;padding:1.25rem;">
@@ -5089,8 +5099,11 @@
     const markets=streakMarkets();
     let html='<p>League games only. Draws preserve either streak. Singles only; every option closes at the next league lockout.</p>';
     if(state.user?.isAdmin)html+='<button class="bb-btn ghost" id="publish-streak-prices" style="margin-bottom:12px;">Publish / refresh special prices</button>';
+    const selectedKind=state.streakKind==='LOSS'?'LOSS':'WIN';
+    html+='<div role="tablist" aria-label="First win or loss" style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0;">'+['WIN','LOSS'].map(kind=>'<button role="tab" aria-selected="'+(selectedKind===kind)+'" class="bb-btn '+(selectedKind===kind?'':'ghost')+'" data-streak-kind="'+kind+'">'+(kind==='WIN'?'First Win':'First Loss')+' ('+markets.filter(m=>m.kind===kind).length+')</button>').join('')+'</div>';
     if(!markets.length)return html+'<p>No eligible completed-round streaks are available. Missing or unconfirmed results must be resolved before a market opens.</p>';
-    for(const kind of ['LOSS','WIN']){
+    if(!markets.some(m=>m.kind===selectedKind))html+='<p>No eligible '+(selectedKind==='WIN'?'winless':'unbeaten')+' teams remain.</p>';
+    for(const kind of (collectingTrustedPrices?['LOSS','WIN']:[selectedKind])){
       const group=markets.filter(m=>m.kind===kind);if(!group.length)continue;
       html+='<h4 style="margin:18px 0 10px;">'+(kind==='LOSS'?'Unbeaten · first league loss':'Winless · first league win')+'</h4>';
       html+=categoryPauseControl('STREAK|'+kind,kind==='LOSS'?'all first-loss specials':'all first-win specials');
@@ -8984,6 +8997,8 @@
       catch(e){state.error='Prices were not published: '+e.message;}
       render();
     };
+    document.querySelectorAll('[data-open-streak]').forEach(el=>el.onclick=()=>openStreakSpecials(el.dataset.openStreak));
+    document.querySelectorAll('[data-streak-kind]').forEach(el=>el.onclick=()=>{state.streakKind=el.dataset.streakKind==='LOSS'?'LOSS':'WIN';render();});
     document.querySelectorAll('[data-specialssubtab]').forEach(el => el.onclick = () => { state.specialsSubTab = el.dataset.specialssubtab; render(); });
     document.querySelectorAll('[data-fixture-expand]').forEach(el => el.onclick = () => {
       const [div, idx] = el.dataset.fixtureExpand.split('|');

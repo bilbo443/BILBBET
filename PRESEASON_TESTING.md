@@ -1281,3 +1281,5 @@ Casual Approach novelty moderator counter: Admin → Specials & Novelty now supp
 Streak specials layout: separate unbeaten/first-loss and winless/first-win sections with responsive team cards, next three round prices, no-event price and expandable later rounds. Jarvis drought is an optional detail. Admin publication action explicitly refreshes the board and reports errors. Public cards use published quote prices only.
 
 Jarvis first-win round labels include projected drought days in parentheses, e.g. Round 5 (657), Round 6 (664). Uses each round's scheduled start and 1 February 2025, the end of the recorded last-win window; tooltip explains the convention. Other teams and no-event labels are unchanged. Display only; accepted selection labels and prices are preserved.
+
+Home now links directly to First Win and First Loss streak specials. Each shortcut opens Specials → Unbeaten & Winless with the correct filter; the special has accessible First Win/First Loss tabs and eligible-team counts. Public browsing renders only the selected group; price collection still includes both. Navigation and filter tests pass; no price or settlement changes.
