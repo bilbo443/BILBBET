@@ -165,5 +165,18 @@
       22,
       23
     ]
+  },
+  "d1_drought_history": {
+    "002": {
+      "last_win_window_start": "2025-01-31",
+      "last_win_window_end": "2025-02-01",
+      "season": "2024-25",
+      "round": 15,
+      "opponent": "PAIN F.C",
+      "team_score": 105,
+      "opponent_score": 91,
+      "source": "User-supplied Round 15 results and fixture date window; year inferred as 2025 from season context.",
+      "date_precision": "round_window"
+    }
   }
 }
