@@ -1582,8 +1582,9 @@
   // playoff/ECL fixtures (if scheduled this round) get priority, then each
   // division contributes roughly 15-25% of its own match count for the
   // round (rounded, capped at 2), always backing whichever side is the
-  // more competitive underdog -- a genuine, non-trivial chance, not a
-  // near-hopeless punt -- so every pick is framed as a positive "to win"
+  // eligible underdog chosen uniformly at random -- a genuine chance, not a
+  // near-hopeless punt. Save the draw once; price refreshes never redraw it.
+  // Every pick is framed as a positive "to win"
   // outcome, never "to lose". Capped at 10 total across everything.
   const FEATURED_BOOST_MULTIPLIER = 1.25; // the promotional boost on every Home-tab featured pick
   // Mr Median Special: one random team per round from each of the given
@@ -1643,7 +1644,7 @@
     render();
   }
   function pickValueSide(m, roundTag, division, extra){
-    const aIsDog = m.aWinPct < m.bWinPct;
+    const aIsDog = m.aWinPct === m.bWinPct ? randomHomeIndex(2)===0 : m.aWinPct < m.bWinPct;
     const dogPct = aIsDog ? m.aWinPct : m.bWinPct;
     if(dogPct < 20) return null; // too much of a long-shot to read as genuine value
     const team = aIsDog ? m.teamA : m.teamB;
@@ -1727,6 +1728,33 @@
       Object.values(state.cupFixtures || {}).some(list=>(list || []).some(f=>Number(f.round)===Number(round))) ||
       (!FIXTURES_ARE_PLACEHOLDER && state.h2hRealScheduleConfirmed);
   }
+  function randomHomeIndex(bound){
+    if(!Number.isInteger(bound)||bound<1||bound>0x100000000)throw new Error('Invalid Home draw size.');
+    const limit=Math.floor(0x100000000/bound)*bound,word=new Uint32Array(1);
+    do{crypto.getRandomValues(word);}while(word[0]>=limit);
+    return word[0]%bound;
+  }
+  function randomHomeSample(candidates,count,randomIndex=randomHomeIndex){
+    const pool=candidates.slice(),size=Math.min(Math.max(0,count),pool.length);
+    for(let i=0;i<size;i++){
+      const j=i+randomIndex(pool.length-i);
+      [pool[i],pool[j]]=[pool[j],pool[i]];
+    }
+    return pool.slice(0,size);
+  }
+  function refreshFeaturedFixturePrices(picks,round){
+    return picks.flatMap(p=>{
+      const parts=p.id?.split('|');
+      if(parts?.length!==5||parts[0]!=='H2H'||!['res-a','res-b'].includes(parts[1])||parts[2]!=='R'+round)return [];
+      const [a,b]=parts.slice(3);
+      const m=p.isCup?computeH2HMarket(a,b,round,4000):
+        getFixtureMarkets(p.division,round).find(m=>m.teamA===a&&m.teamB===b);
+      if(!m)return [];
+      const pct=parts[1]==='res-a'?m.aWinPct:m.bWinPct,base=toOdds(pct);
+      if(base.suspended)return [];
+      return [{...p,pct,baseOdds:base.odds,odds:Math.round(base.odds*FEATURED_BOOST_MULTIPLIER*100)/100}];
+    });
+  }
   function computeFeaturedFixtures(){
     if(!homeFixturesReady(state.currentRound)) return [];
     const round = state.currentRound;
@@ -1779,11 +1807,10 @@
         const pick = pickValueSide(m, roundTag, div, { isCup: false });
         if(pick) picks.push(pick);
       }
-      picks.sort((a, b) => b.pct - a.pct); // most competitive underdog first
       const targetCount = Math.max(1, Math.round(pairs.length * 0.20)); // midpoint of the 15-25% range
-      for(const p of picks.slice(0, Math.min(targetCount, remaining))){
+      for(const p of randomHomeSample(picks, Math.min(targetCount, remaining))){
         if(selected.length >= MAX_TOTAL) break;
-        selected.push(p);
+        selected.push({...p,selectionMethod:'uniform-eligible-v1'});
       }
     }
     return selected;
@@ -1901,7 +1928,8 @@
       await loadFeaturedMedianSpecials(round,true);
       if(state.currentRound!==round)
         throw new Error('Round changed. Refresh the selected round again.');
-      const fresh=computeFeaturedFixtures();
+      const saved=await sget('bilbbet2_featured_fixtures_R'+round);
+      const fresh=Array.isArray(saved)?refreshFeaturedFixturePrices(saved,round):computeFeaturedFixtures();
       if(!await sset('bilbbet2_featured_fixtures_R'+round,fresh))
         throw new Error('Could not save refreshed featured fixtures.');
       state.featuredFixturesData=fresh;
@@ -1950,13 +1978,14 @@
     // "NO stored value, computing fresh" right after an app.js upload,
     // that's the actual smoking gun and narrows this down precisely.
     console.log('[featured-fixtures debug] round=' + round, featured ? 'FOUND stored value' : 'NO stored value, computing fresh');
-    if(!featured && homeFixturesReady(round)){
+    if(!featured && homeFixturesReady(round) && state.user?.isAdmin){
       featured = computeFeaturedFixtures();
       const wrote = await sset(featuredKey, featured);
       console.log('[featured-fixtures debug] wrote fresh value, sset returned:', wrote);
+      featured=wrote?(await sget(featuredKey)||[]):[];
     }
     if(state.currentRound !== round) return;
-    state.featuredFixturesData = featured;
+    state.featuredFixturesData = Array.isArray(featured)?featured:[];
     render();
     await loadFeaturedMedianSpecials(round);
     if(state.currentRound !== round) return;
