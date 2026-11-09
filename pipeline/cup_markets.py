@@ -172,6 +172,28 @@ def regenerate_roddy_and_cup(roster, coeffs, scale, history, n_sim=6000, seed=11
                 or len({t for pair in r32_pairs for t in pair}) != 32
                 or {t for pair in r32_pairs for t in pair} != set(r64_winners)):
             raise ValueError('Confirmed Round of 32 must contain each Round of 64 winner exactly once')
+    r32_winners = [None]*len(r32_pairs)
+    if r32_pairs and apply_cup_results and official_cup_draw.get('r32_winners'):
+        r32_winners=list(official_cup_draw['r32_winners'])
+        if len(r32_winners)!=16 or any(w is not None and w not in pair for w,pair in zip(r32_winners,r32_pairs)):
+            raise ValueError('Invalid confirmed Round of 32 advancement')
+        for winner,pair in zip(r32_winners,r32_pairs):
+            if winner is not None: eliminated.update(t for t in pair if t!=winner)
+    if r32_pairs and apply_cup_results:
+        ri = int(official_cup_draw['round_of_32_round'])-1
+        for i,(a,b) in enumerate(r32_pairs):
+            replay = next((f for f in official_cup_draw.get('r32_replays',[])
+                           if {f['teamA'],f['teamB']}=={a,b}),None)
+            scores = [live_results.get(t,[None]*26)[ri] for t in (a,b)]
+            if any(v is None for v in scores): continue
+            if scores[0]==scores[1]:
+                if not replay: raise ValueError('Tied Round of 32 match requires a confirmed replay')
+                replay_i=int(replay['round'])-1
+                scores=[live_results.get(t,[None]*26)[replay_i] for t in (a,b)]
+                if any(v is None for v in scores): continue
+                if scores[0]==scores[1]: raise ValueError('Replay drawn; advancement requires organiser confirmation')
+            r32_winners[i]=a if scores[0]>scores[1] else b
+            eliminated.add(b if r32_winners[i]==a else a)
     for _ in range(n_sim):
         prelim = {('PRELIM', i): (
                     confirmed_winners[i] if confirmed_winners else play(a, b))
@@ -191,7 +213,7 @@ def regenerate_roddy_and_cup(roster, coeffs, scale, history, n_sim=6000, seed=11
         for stage in ('r32', 'r16', 'qf', 'sf', 'final'):
             for t in field:
                 reached[t][stage] += 1
-            field = ([play(a, b) for a, b in r32_pairs]
+            field = ([r32_winners[i] or play(a, b) for i,(a, b) in enumerate(r32_pairs)]
                      if stage == 'r32' and r32_pairs else round_matches(field))
         reached[field[0]]['win'] += 1
     cup = {market: market_rows({t: 100 * reached[t][stage]/n_sim for t in teams if t not in eliminated})

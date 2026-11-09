@@ -23,7 +23,7 @@ class LiveFuturesTest(unittest.TestCase):
     def test_roddy_complete_totals_and_cup_survivors(self):
         read=lambda n:json.loads((ROOT/'data'/f'{n}.json').read_text())
         roster=read('h2h_divisions'); teams=[t for ts in roster.values() for t in ts]
-        official=read('official_fa_cup_draw'); official.pop('r32_draw_confirmed',None); official.pop('r64_results_final',None); official.pop('r64_winners',None); scores={t:[None]*26 for t in teams}
+        official=read('official_fa_cup_draw'); official.pop('r32_winners',None); official.pop('r32_draw_confirmed',None); official.pop('r64_results_final',None); official.pop('r64_winners',None); scores={t:[None]*26 for t in teams}
         for a,b in official['r64_matches']:scores[a][1]=100;scores[b][1]=10
         coeff={t:{'roddy':0,'fa_cup':0} for t in teams}
         a,c,d=regenerate_roddy_and_cup(roster,coeff,1,{t:[50,60,70] for t in teams},n_sim=25,official_cup_draw=official,live_results=scores)

@@ -276,5 +276,25 @@
       ],
       "status": "AWAITING_REPLAY"
     }
-  ]
+  ],
+  "r32_winners": [
+    "FROGBERT FOOTBALL",
+    null,
+    "KALLO FC",
+    "PAYNE IN THE NECK FC",
+    "SAUCE FC",
+    "QUINTASENTIAL FC",
+    "AARONGURDWOODREICH",
+    "THE BEAU-CHAMPS",
+    "HARVEY FREKES",
+    "ALBANIAN BOARS",
+    "GIVE US WANG",
+    "CONCEICAO",
+    "GARRY WALLAH UNITED",
+    "VICTORYRULES",
+    "GARNCELONA",
+    "LOAVES & FISHES"
+  ],
+  "r32_results_final": false,
+  "r32_results_note": "GW4: 15 ties decided; JusticeForMoon FC and Nanistate drew 77-77 and replay in GW8."
 }
