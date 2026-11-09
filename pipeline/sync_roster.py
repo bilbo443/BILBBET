@@ -517,6 +517,11 @@ def sync_futures_divisions(new_roster, team_coeffs, scale, history, data_dir, dr
         field_roster if field_roster is not None else new_roster,
         team_coeffs, scale, history, n_sim=n_sim, seed=seed,
         roddy_adjustments=roddy_adjustments, roddy_ability_model=roddy_ability_model, official_cup_draw=official_cup_draw, tier_centres=tier_centres, live_results=roddy_scores)
+    from ecl_live_futures import regenerate_ecl
+    from futures_refresh_guard import manifest
+    futures['ecl_markets']=regenerate_ecl(field_roster if field_roster is not None else new_roster,
+        history,team_coeffs,scale,futures['ecl_field'],roddy_scores,n_sim=n_sim)
+    futures['futures_refresh']=manifest(new_roster,scores,roddy_scores)
     json.dump(futures, open(os.path.join(draft_dir, 'futures.json'), 'w'))
     json.dump(draw, open(os.path.join(draft_dir, 'fa_cup_draw.json'), 'w'))
     return futures

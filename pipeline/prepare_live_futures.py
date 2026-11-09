@@ -16,6 +16,8 @@ def prepare(csv_path, extracted_path, out_dir, data_dir='data'):
     odds = regenerate_division_futures(results, str(data/'team_market_coeffs.json'), str(data/'h2h_divisions.json'), str(data/'roddy_history.json'))
     whole, roddy_scores = refresh_whole_league(csv_path,data,read('admin_teams'),read('h2h_divisions'),read('team_market_coeffs'),read('roddy_history'),{r['team']:r['scores_by_round'] for r in results})
     odds.update(whole)
+    from futures_refresh_guard import stamp_complete
+    stamp_complete(odds,{r['team']:r['scores_by_round'] for r in results},roddy_scores)
     write_leading_snapshot(odds,out/'leading-at-publishable.json')
     draft = out/'odds.json'; draft.write_text(json.dumps(odds,indent=2)+'\n')
     converted, summary = convert_draft_to_publishable(str(draft),str(data/'futures.json'),str(out/'futures.json'))
