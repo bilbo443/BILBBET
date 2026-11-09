@@ -1,0 +1,10 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
+const app=fs.readFileSync('js/app.js','utf8');
+const ctx={Number,state:{currentRound:5,cupFixtures:{'FA CUP':[{round:1},{round:4},{round:8}],ECL:[]}},getCupRoundInfo:(comp,r)=>comp==='FA CUP'&&r===8||comp==='ECL'&&r===14};
+vm.createContext(ctx);vm.runInContext(app.slice(app.indexOf('  function currentCupFixtureGaps(){'),app.indexOf('  function renderAdminTab(){')),ctx);
+assert.equal(ctx.currentCupFixtureGaps().length,0,'No current cup round means no task');
+ctx.state.currentRound=8;ctx.state.cupFixtures['FA CUP']=[{round:1},{round:4}];assert.deepEqual(Array.from(ctx.currentCupFixtureGaps()),['FA CUP'],'Past fixtures cannot conceal missing current-round fixtures');
+ctx.state.cupFixtures['FA CUP'].push({round:'8'});assert.equal(ctx.currentCupFixtureGaps().length,0);
+ctx.state.currentRound=14;assert.deepEqual(Array.from(ctx.currentCupFixtureGaps()),['ECL']);
+ctx.state.cupFixtures.ECL=[{round:15}];assert.equal(ctx.currentCupFixtureGaps().length,1,'Future entries do not satisfy current round');
+console.log('PASS: actionable current cup flags, past/future exclusions and string round normalization.');
