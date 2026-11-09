@@ -1625,43 +1625,36 @@
   const ALEAGUE_MIN_ROUNDS = 3;
   const ALEAGUE_BYE_RATIO = 0.9455;
   const ALEAGUE_DOUBLE_RATIO = 1.1664;
-  function computeLiveALeagueBaseline(){
-    const roundsPlayed = state.currentRound - 1;
-    if(roundsPlayed < ALEAGUE_MIN_ROUNDS) return null;
-    const allScores = [];
-    for(const team in REAL_RESULTS){
-      if(!availableDivision(findTeamDivision(team))) continue;
-      for(let r = 0; r < roundsPlayed; r++){
-        const s = REAL_RESULTS[team][r];
-        if(s != null) allScores.push(s);
-      }
+  function computeLiveALeagueBaseline(div, round=state.currentRound){
+    const teams=H2H_DIVISIONS[div] || [];
+    if(!teams.length)return null;
+    const allScores=[];let completeRounds=0;
+    for(let r=0;r<Math.min(Number(round),Number(state.currentRound))-1;r++){
+      const scores=teams.map(team=>REAL_RESULTS[team]?.[r]);
+      if(!scores.every(Number.isFinite))continue;
+      completeRounds++;allScores.push(...scores);
     }
-    if(!allScores.length) return null; // round count says results should exist, but they haven't actually landed yet
-    return allScores.reduce((a,b)=>a+b, 0) / allScores.length;
+    if(completeRounds<ALEAGUE_MIN_ROUNDS)return null;
+    return allScores.reduce((a,b)=>a+b,0)/allScores.length;
   }
   function renderPointProjection(round){
-    const proj = ALEAGUE_PROJECTION[round];
-    if(!proj) return '';
-    const liveStandard = computeLiveALeagueBaseline();
-    if(liveStandard === null) return ''; // not enough real data yet -- nothing shown at all, rather than a guess
-    const STANDARD = Math.round(liveStandard * 10) / 10;
-    let baseline = STANDARD;
-    let note;
-    if(proj.byes.length){
-      baseline = Math.round(liveStandard * ALEAGUE_BYE_RATIO * 10) / 10;
-      note = `Down from the usual ${STANDARD} \u2014 ${proj.byes.join(' and ')} ${proj.byes.length>1?'are':'is'} on a bye.`;
-    } else if(proj.doubles.length){
-      baseline = Math.round(liveStandard * ALEAGUE_DOUBLE_RATIO * 10) / 10;
-      note = `Up from the usual ${STANDARD} \u2014 ${proj.doubles.join(' and ')} ${proj.doubles.length>1?'have':'has'} a double this round.`;
-    } else {
-      note = 'A standard round \u2014 every club plays exactly once.';
-    }
+    const proj=ALEAGUE_PROJECTION[round];
+    if(!proj)return '';
+    const factor=proj.byes.length?ALEAGUE_BYE_RATIO:proj.doubles.length?ALEAGUE_DOUBLE_RATIO:1;
+    const rows=Object.keys(H2H_DIVISIONS).filter(availableDivision).map(div=>{
+      const standard=computeLiveALeagueBaseline(div,round);
+      if(standard===null)return '';
+      return `<div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid #3d3d3d;">
+        <span style="font-weight:600;">${esc(div.replace('ELIZA CUP (D1)','Division 1'))}</span>
+        <span><strong style="color:#ffdd00;font-size:23px;">${(standard*factor).toFixed(1)} pts</strong>${factor!==1?` <span style="color:#9a9a9a;">(usual ${standard.toFixed(1)})</span>`:''}</span>
+      </div>`;
+    }).filter(Boolean);
+    if(!rows.length)return '';
+    const note=proj.byes.length?proj.byes.join(' and ')+' on a bye.':proj.doubles.length?proj.doubles.join(' and ')+' have a double gameweek.':'Standard round: every A-League club plays once.';
     return `<div class="bb-card" style="margin-bottom:1rem;">
-      <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">
-        <span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;text-transform:uppercase;letter-spacing:0.05em;">Round ${round} projected score</span>
-        <span style="font-size:clamp(23px, calc(23px + 0.4vw), 26px);font-weight:800;color:#ffdd00;">${baseline.toFixed(1)} pts</span>
-      </div>
-      <div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-top:2px;">${note}</div>
+      <h3 style="margin:0 0 8px;">Round ${Number(round)} projected scores by division</h3>
+      ${rows.join('')}
+      <p style="color:#9a9a9a;margin:12px 0 0;">${esc(note)} Each projection uses that division’s own average from complete prior rounds (minimum three), not an overall competition median. These are score guides, not betting lines.</p>
     </div>`;
   }
 
