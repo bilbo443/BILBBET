@@ -269,8 +269,11 @@ def run_pipeline(url, roster_path, round_dates_path, draft_dir,
     stamp_complete(odds,{r['team']:r['scores_by_round'] for r in results},roddy_scores)
     from leading_markets import write_leading_snapshot
     write_leading_snapshot(odds, os.path.join(draft_dir, 'leading-at-publishable.json'))
-    with open(os.path.join(draft_dir, f'roddy-results-{run_id}.json'), 'w') as f:
-        json.dump(roddy_scores, f, indent=2)
+    from futures_refresh_guard import write_score_snapshots
+    score_path = os.path.join(draft_dir, 'real_results.json')
+    roddy_path = os.path.join(draft_dir, f'roddy-results-{run_id}.json')
+    write_score_snapshots(odds, {r['team']:r['scores_by_round'] for r in results},
+                          roddy_scores, score_path, roddy_path)
     step('All futures refreshed: divisions, Roddy, FA Cup and ECL; coverage checks passed')
 
     step("Simulation complete -- writing draft odds")
@@ -278,6 +281,7 @@ def run_pipeline(url, roster_path, round_dates_path, draft_dir,
     with open(odds_path, 'w') as f:
         json.dump(odds, f, indent=2)
     result = {'status': 'draft_ready', 'extracted_path': extracted_path, 'odds_path': odds_path,
+              'score_path': score_path, 'roddy_path': roddy_path,
               'roster_change_summary': roster_change_summary, 'log': log}
     write_run_report(draft_dir, run_id, result)
     return result

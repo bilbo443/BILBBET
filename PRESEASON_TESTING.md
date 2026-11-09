@@ -1231,3 +1231,16 @@ Futures browsing and contention notes:
 
 
 Median result suggestions: grade H2H_MEDIAN against the complete actual score median of the team's own conference. Require finite scores for every entrant and a started round; missing/future data stays ungraded. Strictly above wins; equal or below loses. This supplies admin review suggestions only and never writes settlements, refunds or balances.
+
+## Weekly process sweep — 10 November 2026
+
+- Public Home, all five divisions, Roddy, FA Cup, ECL, H2H/custom/playoffs, weekly tipping sections, specials, stats, and logged-out bet-history entry checked in the live browser. Authenticated submissions and real settlement were not executed.
+- GW5 server/price round agree. Live reward context contains 33 scored GW4 league fixtures. 945 live season-futures quotes match the generated snapshot; all 648 remaining confirmed league fixtures have both win prices. Live grouped books show no two-sided guaranteed-profit book.
+- Median/interim-win selections now carry their actual round into the shared client lockout check, instead of being treated as season-long picks. Server validation remains in place.
+- Home cup features use the separate Roddy score table, including GW1 and only complete prior rounds.
+- FA Cup futures open on the winner market while available, or another open market/fixtures; the text reports remaining entrants and the next confirmed fixture, instead of announcing the completed Round of 64.
+- A failed price refresh no longer prevents saved results/reward context from syncing. Round rollover remains visible even when the previous price board must be retained; errors distinguish results and prices.
+- Every weekly/manual futures draft stages the exact validated league and Roddy scores used for its simulations. Weekly PRs explicitly list the four files to publish together; merging review drafts alone does not change live data.
+- `python pipeline/check_published_state.py` checks conference fields, all fixtures, actual score/futures provenance, active market prices, final-table leader/winner agreement, Roddy membership and cup survivors without writes.
+- `.github/workflows/platform-checks.yml` runs the snapshot check and JS/Python regressions on relevant main pushes, PRs and manual dispatch. No credentials, live data writes or real bets required.
+- Existing prices/models, account balances, accepted bets, team IDs and the Drone Police manual carry correction remain unchanged by this sweep. Promotion betting remains suspended pending a properly priced finals model; ECL groups and future cup draws require organiser confirmation.

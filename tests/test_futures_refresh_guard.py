@@ -10,3 +10,20 @@ class CoverageTests(unittest.TestCase):
    partial=copy.deepcopy(odds);del partial[section]
    with self.assertRaisesRegex(ValueError,'Incomplete'):validate_complete(partial)
   self.assertEqual(odds['futures_refresh']['source_scores'],[['A',[80],[80]]])
+
+class ScorePublicationTests(unittest.TestCase):
+ def test_stage_exact_scores_and_reject_mixed_snapshot(self):
+  import json,tempfile
+  from futures_refresh_guard import write_score_snapshots
+  odds={'division_rows':[{'division':'D1'}],**{section:{key:[{'team':'A'}] for key in keys} for section,keys in REQUIRED.items()}}
+  league={'A':[None,80]};roddy={'A':[70,80]}
+  stamp_complete(odds,league,roddy)
+  with tempfile.TemporaryDirectory() as directory:
+   l,r=Path(directory)/'real_results.json',Path(directory)/'roddy-results.json'
+   write_score_snapshots(odds,league,roddy,l,r)
+   self.assertEqual(json.loads(l.read_text()),league)
+   self.assertEqual(json.loads(r.read_text()),roddy)
+   original=l.read_text()
+   with self.assertRaisesRegex(ValueError,'differs'):
+    write_score_snapshots(odds,{'A':[None,81]},roddy,l,r)
+   self.assertEqual(l.read_text(),original)

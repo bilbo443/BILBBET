@@ -1,0 +1,33 @@
+name: Platform consistency and regression checks
+on:
+  push:
+    branches: [main]
+    paths: ['js/**', 'css/**', 'data/**', 'pipeline/**', 'tests/**', '.github/workflows/platform-checks.yml']
+  pull_request:
+    paths: ['js/**', 'css/**', 'data/**', 'pipeline/**', 'tests/**', '.github/workflows/platform-checks.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install numpy pandas requests
+      - name: Check JavaScript syntax and public snapshot
+        run: |
+          node --check js/app.js
+          node --check js/fixture-share.js
+          python pipeline/check_published_state.py
+      - name: Run JavaScript regression checks
+        run: |
+          set -e
+          for test in tests/*.test.cjs; do node "$test"; done
+      - name: Run simulation and publication regressions
+        run: python -m unittest discover -s tests -p 'test_*.py'

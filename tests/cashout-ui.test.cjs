@@ -17,7 +17,7 @@ let calls=0,loads=0;const alerts=[];
 const bet={id:'one',username:'tester',status:'PENDING',stake:100,combinedOdds:4,potentialReturn:400,timestamp:1,selections:[{label:'Home team',odds:4}]};
 const ctx={console,Date,Number,Math,Map,setInterval,clearInterval,state:{user:{username:'tester',balance:900},myBets:[bet]},
  fmt:v=>Number(v).toFixed(2),fmtDate:()=>'',formatOdds:v=>v.toFixed(2),round2:v=>Math.round(v*100)/100,
- esc:v=>String(v).replaceAll('<','&lt;'),statusPill:s=>s,render:()=>{},loadMyBets:async()=>{loads++;},alert:x=>alerts.push(x),
+ betSelectionLabel:s=>s.label,esc:v=>String(v).replaceAll('<','&lt;'),statusPill:s=>s,render:()=>{},loadMyBets:async()=>{loads++;},alert:x=>alerts.push(x),
  document:{getElementById:id=>elements.get(id),createElement:()=>{const e=new Element();e.style={};return e;},body:{appendChild:e=>elements.set(e.id,e)}},
  secureRpc:async name=>{if(name==='bilbbet_cashout_offer')return{available:true,amount:180.95,offerId:'test',expiresAt:new Date(Date.now()+30000).toISOString()};calls++;return{bet:{...bet,status:'CASHED_OUT',cashOut:{amount:180.95}},user:{username:'tester',balance:1080.95}};}};
 vm.createContext(ctx);vm.runInContext(helper+renderer+returns+';this.api={openCashout,renderCashoutControl,renderMyBetsTab,displayedBetReturn};',ctx);
