@@ -1268,3 +1268,6 @@ Boosty Boys fixture selection now uses a uniform cryptographic draw without repl
 - New markets join the normal weekly quote generation/fingerprint, price-book safety and admin result-review paths. Target-round review timing is separate from offering-round lockout timing, so future streak outcomes do not become premature alerts.
 - `supabase/streak-specials.sql` installs the private validation helper and guarded hook. `supabase/streak-specials-test.sql` checks safe/unsafe books and validation without placing bets or changing accounts.
 - No existing price board, accepted bets, balances, team IDs or Drone Police carry correction changed during installation. Admin Refresh Home offers publishes the new price board through the normal authenticated path.
+
+
+Jarvis D1 drought tracker: ID 002 appears on league fixture cards, expanded league markets and his first-win special. Counts verified completed current-season league results only; missing results suppress the tracker, draws preserve winless runs but break losing runs, wins reset the run. Historical 11-game/650-day claims are not treated as verified data. No additional odds penalty or pricing changes. Confirm the last D1 win date before adding a calendar-day counter.
