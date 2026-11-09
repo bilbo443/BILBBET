@@ -20,7 +20,7 @@ assert.equal(engine.forecast('WIN','A',schedule,1,4,()=>NaN).length,0);
 const app=fs.readFileSync('js/app.js','utf8'),part=(a,b)=>app.slice(app.indexOf(a),app.indexOf(b,app.indexOf(a)));
 const read=n=>JSON.parse(fs.readFileSync('data/'+n+'.json','utf8'));
 const roster=read('h2h_divisions'),real=read('real_results'),registry=read('admin_teams'),fixtures=read('h2h_schedule');
-const ctx={window:{BilbbetStreaks:engine},DATA:{admin_teams:registry},REAL_RESULTS:real,H2H_DIVISIONS:roster,H2H_SCHEDULE:fixtures,
+const ctx={window:{BilbbetStreaks:engine},DATA:{admin_teams:registry,roster_rules:read('roster_rules')},REAL_RESULTS:real,H2H_DIVISIONS:roster,H2H_SCHEDULE:fixtures,
  state:{currentRound:5,slip:[]},Number,Date,ROUND_DATES:read('round_dates'),sydneyKickoffUTC:()=>0,availableDivision:()=>true,divisionFixtureConfirmed:()=>true,
  findTeamDivision:team=>Object.keys(roster).find(d=>roster[d].includes(team)),getFixtureMarkets:(div,r)=>fixtures[div][r-1].map(([teamA,teamB])=>({teamA,teamB,aWinPct:45,bWinPct:53})),
  toOdds:p=>({odds:Math.round(100/(p*1.05)*100)/100,suspended:false}),esc:String,formatOdds:n=>n.toFixed(2),collectingTrustedPrices:false,trustedPrices:new Map(),
@@ -49,3 +49,10 @@ assert.equal(ctx.streakResult(wangId.replace(/R5$/,'R6')),'LOST','Earlier first 
 assert.equal(ctx.streakResult(wangId.replace(/R5$/,'NEVER')),'LOST');
 assert.equal(ctx.streakResult(wangId.replace('|R5|','|R6|')),null,'A retrospective event before offer requires manual review');
 console.log('PASS: published ID parsing, current-round first event, later/never loss grading and retrospective correction guard.');
+
+assert.equal(ctx.streakTeamTag('002'),'Still searching for a winning stripe.');
+assert.equal(ctx.streakTeamTag(2),ctx.streakTeamTag('002'),'Tags follow internal ID');
+assert.equal(ctx.streakTeamTag('999'),'');
+for(const market of markets)assert(ctx.streakTeamTag(market.teamId),'Every currently eligible team has a tag');
+assert(ctx.renderStreakSpecials().includes('Still searching for a winning stripe.'));
+console.log('PASS: all eligible teams have ID-based display tags; unknown teams remain untagged.');
