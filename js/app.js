@@ -5775,12 +5775,20 @@
   // on its own from there), or any time an admin decides an override is
   // no longer needed.
   async function clearCurrentRoundOverride(){
-    await sset('bilbbet2_current_round_override', null);
+    try {
+      await sdelete('bilbbet2_current_round_override');
+      if(await sget('bilbbet2_current_round_override') !== null)
+        throw new Error('The round override is still present. Reload and retry.');
+    } catch(error){
+      state.error='Could not return to automatic rounds: '+error.message;
+      render();
+      return;
+    }
     state.currentRoundOverride = null;
     const derived = deriveCurrentRoundFromDate();
     state.currentRound = derived; state.h2hRound = derived; state.leadingAtRound = derived; state.specialsRound = derived;
-    state.roundBettingOpen = true;
-    await sset('bilbbet2_round_betting_open', true);
+    state.error='';
+    state.info='Automatic rounds enabled. The calendar currently selects Round '+derived+'. Betting controls are unchanged.';
     render();
     loadHomeStats();
   }
