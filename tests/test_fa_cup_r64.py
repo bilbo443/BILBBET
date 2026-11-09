@@ -15,6 +15,7 @@ class ConfirmedDrawTests(unittest.TestCase):
         data = Path(__file__).resolve().parents[1] / 'data'
         self.roster = json.loads((data / 'h2h_divisions.json').read_text())
         self.official = json.loads((data / 'official_fa_cup_draw.json').read_text())
+        self.official.pop('r32_winners',None)
         self.full_draw = copy.deepcopy(self.official)
         self.official.pop('r32_draw_confirmed', None)
         self.official.pop('r64_results_final', None)
@@ -51,6 +52,18 @@ class ConfirmedDrawTests(unittest.TestCase):
         invalid['r32_matches'][0][0] = invalid['r32_matches'][1][0]
         with self.assertRaisesRegex(ValueError, 'each Round of 64 winner exactly once'):
             self.run_model(invalid)
+
+    def test_completed_r32_losers_removed_replay_pending(self):
+        draw=copy.deepcopy(self.full_draw)
+        scores={t:[None]*26 for t in self.names}
+        for a,b in draw['r32_matches']: scores[a][3]=90;scores[b][3]=70
+        a,b=draw['r32_matches'][1];scores[a][3]=77;scores[b][3]=77
+        with patch.object(cup_markets,'market_rows',side_effect=lambda values:values):
+            _,markets,_=cup_markets.regenerate_roddy_and_cup(self.roster,{},1,self.history,n_sim=10,official_cup_draw=draw,live_results=scores)
+        expected={p[0] for p in draw['r32_matches']}|{b}
+        self.assertEqual(set(markets['win_pct']),expected)
+        self.assertEqual(len(expected),17)
+        self.assertIn(a,markets['win_pct']);self.assertIn(b,markets['win_pct'])
 
     def test_incomplete_draw_rejected(self):
         draw=copy.deepcopy(self.official);draw['r64_matches'].pop()

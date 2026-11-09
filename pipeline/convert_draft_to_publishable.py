@@ -180,6 +180,8 @@ def convert_draft_to_publishable(draft_path, live_futures_path, out_path):
                 cup_eliminated = set(cup_state.get('eliminated_teams', []))
             if cup_state.get('r64_results_final'):
                 cup_eliminated.update(t for pair in cup_state['r64_matches'] for t in pair if t not in cup_state['r64_winners'])
+            for winner,pair in zip(cup_state.get('r32_winners',[]),cup_state.get('r32_matches',[])):
+                if winner is not None: cup_eliminated.update(t for t in pair if t!=winner)
         for section in ('roddy', 'fa_cup_markets'):
             expected = active - cup_eliminated if section == 'fa_cup_markets' else active
             for key, rows in publishable.get(section, {}).items():
