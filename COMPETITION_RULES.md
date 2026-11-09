@@ -63,3 +63,13 @@ Fixture amendment:
 - GW1 results check remains Monday 19 October.
 - GW7 results check moves to Wednesday 16 December.
 - Review GW1/GW7 bye and double-match projections separately.
+
+## Unbeaten / winless streak specials
+
+- League H2H fixtures only, excluding FA Cup, ECL, median exhibitions and finals. A draw is neither a win nor a loss.
+- Teams with at least one completed league game and no loss may be backed for the round of their first league loss. Teams with no win may be backed for their first league win.
+- Every remaining regular-season round is an outcome. “None” means no relevant result through Round 26 for Division 1, or Round 23 for Divisions 2/3.
+- All choices in a quoted team market close at the offering round's lockout, including choices for later rounds. New weekly markets use distinct offering-round IDs; existing accepted selections retain their original odds and target round.
+- Forecasts use current per-fixture H2H win/loss probabilities and the probability of surviving all earlier fixtures without that event, with the ordinary 5% margin. Weekly events are treated independently for forecasting. A no-event outcome completes each book.
+- Singles only; no multi combination with these specials. Existing negative own-team betting restrictions apply to a selected first-loss round or a “no win” season. Backing one's own team to remain unbeaten is positive, not a negative outcome.
+- Actual completed league results provide admin result suggestions. Draws do not void a streak selection. Missing scores, unconfirmed fixtures and retrospective changes that invalidate the original eligibility require manual review; they do not trigger automatic refunds or settlement.
