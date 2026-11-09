@@ -1220,3 +1220,11 @@ Full futures update coverage (9 November 2026):
 - Admin price publication rejects stale or incomplete futures; it retains the previous board and explains that a full futures regeneration is required.
 - Publishing new scores alone is not a futures simulation. Publish the complete refresh outputs, then refresh the admin price board.
 - Held/unfinished markets stay held; existing accepted bets and balances are unaffected.
+
+
+Futures browsing and contention notes:
+- Default order is shortest currently published price first, with name as a stable tiebreak. Keep the user's existing decimal/implied display preference.
+- Sort controls support shortest/longest price, alphabetical name and current table position. Cross-division cup lists explicitly use Roddy position.
+- League finish notes use conservative points bounds from remaining confirmed regular-season fixtures, not Monte Carlo probabilities. Show assured/out only when proven on points, and explain near-clinch/all-wins-needed conditions in a popup.
+- Current/future or missing scores remain unplayed; unknown fixtures and ambiguous tiebreak cases do not get a mathematical claim. No promotion-playoff or Roddy-score ceiling is invented.
+- Clicking the note must not select a bet. No accepted odds, balances or settlement changes.
