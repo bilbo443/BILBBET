@@ -26,9 +26,9 @@ Baseline: main `0fcef84477095f9881d9e3092be4d4628bc0d520`, published GW4 scores 
 - Public browser checks: Home shortcuts and both streak filters; H2H in all five divisions; all division, Roddy, FA Cup and ECL futures; weekly tipping; Stats; logged-out My Bets gate. No real submission was made.
 - Split rounds 6 and 16 stay in one scoring round, with checks deferred until after the final match. All 26 configured results checks require 12:30 Sydney time on the configured check date.
 
-## Calendar conflicts — organiser confirmation needed
+## Calendar conflicts — resolved in the targeted follow-up
 
-These are internal source discrepancies, not externally verified fixture changes. Exact first-kickoff timestamps are needed before changing frontend and server lockouts together. No dates or deadlines were changed by this sweep.
+The first sweep recorded the discrepancies below. The targeted follow-up aligned client/server dates to the existing fixture-aware source; see rollover-rehearsal-2026-11-10.md. Exact first-kickoff times remain unconfirmed, and the existing 19:00 house rule remains in place.
 
 | Round | Current betting date | First-fixture date in results calendar | Consequence if the results calendar is correct |
 |---|---|---|---|

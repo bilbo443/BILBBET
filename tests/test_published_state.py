@@ -19,3 +19,9 @@ class PublishedStateTests(unittest.TestCase):
    self.assertTrue(any('published scores' in x for x in check(data)))
    f=data/'futures.json';prices=json.loads(f.read_text());division=next(iter(prices['divisions']));prices['divisions'][division]['win_div_pct'][0]['team']='WRONG CONFERENCE';f.write_text(json.dumps(prices))
    self.assertTrue(any('team field differs' in x for x in check(data)))
+
+ def test_calendar_date_drift_detected(self):
+  with tempfile.TemporaryDirectory() as directory:
+   data=Path(directory)/'data';shutil.copytree(ROOT/'data',data)
+   path=data/'round_dates.json';dates=json.loads(path.read_text());dates['10']='2027-01-01';path.write_text(json.dumps(dates))
+   self.assertTrue(any('first fixture in GW10' in x for x in check(data)))

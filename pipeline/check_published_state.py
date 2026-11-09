@@ -15,6 +15,15 @@ def check(data_dir='data'):
     errors = []
     def require(ok, message):
         if not ok: errors.append(message)
+    calendar, dates = read('round_results_schedule'), read('round_dates')
+    require(set(dates) == set(calendar.get('rounds', {})), 'Betting/results calendars cover different rounds')
+    for number, entry in calendar.get('rounds', {}).items():
+        require(dates.get(number) == entry.get('first_fixture_date'), 'Betting date differs from first fixture in GW' + number)
+        counts = {'ELIZA': 0, 'DIV2': 0, 'DIV3': 0}
+        for division, rounds in schedule.items():
+            section = 'ELIZA' if division.startswith('ELIZA') else 'DIV2' if division.startswith('DIVISION 2') else 'DIV3'
+            counts[section] += len(rounds[int(number)-1])
+        require(entry.get('expected_league_fixtures') == counts, 'Round completion fixture counts differ in GW' + number)
     require(len(active) == len(set(active.values())), 'Duplicate active team ID')
     names = [t for teams in roster.values() for t in teams]
     require(Counter(names) == Counter(list(active)), 'Registry/conference membership differs')

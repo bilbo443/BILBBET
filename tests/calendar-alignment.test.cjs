@@ -1,0 +1,10 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
+const app=fs.readFileSync('js/app.js','utf8'),dates=JSON.parse(fs.readFileSync('data/round_dates.json')),schedule=JSON.parse(fs.readFileSync('data/round_results_schedule.json'));
+for(const [round,entry]of Object.entries(schedule.rounds))assert.equal(dates[round],entry.first_fixture_date,'First fixture date drift in GW'+round);
+const ctx={Date,Intl,SYDNEY_TZ:'Australia/Sydney'};vm.createContext(ctx);vm.runInContext(app.slice(app.indexOf('  function sydneyOffsetHours('),app.indexOf('  function uid(')),ctx);
+assert.equal(ctx.sydneyKickoffUTC(dates['10']).toISOString(),'2026-12-31T08:00:00.000Z');
+assert.equal(ctx.sydneyKickoffUTC(dates['12']).toISOString(),'2027-01-14T08:00:00.000Z');
+assert.equal(ctx.sydneyKickoffUTC(dates['21']).toISOString(),'2027-04-02T08:00:00.000Z');
+assert.equal(ctx.sydneyKickoffUTC(dates['22']).toISOString(),'2027-04-09T09:00:00.000Z');
+assert.equal(ctx.sydneyKickoffUTC(dates['1']).toISOString(),'2026-10-16T08:55:00.000Z');
+console.log('PASS: all 26 first-fixture dates aligned, corrected late dates, AEDT/AEST boundary and GW1 exception preserved.');
