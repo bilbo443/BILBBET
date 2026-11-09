@@ -413,8 +413,9 @@
   // for an admin to confirm or override. Deliberately scoped to H2H-style
   // picks only for now (regular division matches, FA Cup, ECL, and
   // Playoffs all share this exact pick format, so one function covers all
-  // four). Leading-at, round win/lose specials, season-long futures, and
-  // anything else return null -- no suggestion, stays fully manual -- not
+  // four). End-of-round leader bets also use their actual historical table.
+  // Round win/lose specials, season-long futures and unsupported picks
+  // return null -- no suggestion, stay fully manual -- not
   // because they're impossible to resolve automatically, just not yet
   // built out.
   // Actual final board election results (17 voters; top 7 by votes seated
@@ -433,6 +434,7 @@
   const ELECTION_TURNOUT_ACTUAL = 17;
   function computeSuggestedResult(pickId, selection = null){
     const parts = pickId.split('|');
+    if(parts[0] === 'LEADAT')return computeLeaderAfterResult(parts);
     if(parts[0] === 'ELECTION_SEAT'){
       const name = parts[1];
       if(!(name in ELECTION_VOTE_COUNTS)) return null;
@@ -558,10 +560,47 @@
     if(side === 'res-b') return aWon ? 'LOST' : 'WON';
     return null;
   }
+  function computeLeaderAfterResult(parts){
+    if(parts.length!==4 || !/^\d+$/.test(parts[2]))return null;
+    const round=Number(parts[2]),scope=parts[1],team=resolveTeamName(parts[3]);
+    const date=ROUND_DATES[round];
+    if(!Number.isInteger(round)||round<1||round>26||!date||Date.now()<sydneyKickoffUTC(date))return null;
+    let ranked;
+    if(scope==='RODDY'){
+      const teams=[...new Set(Object.values(H2H_DIVISIONS).flat())],scores=DATA.roddy_results||{};
+      if(!teams.includes(team)||!teams.every(t=>Array.from({length:round},(_,i)=>scores[t]?.[i]).every(Number.isFinite)))return null;
+      ranked=teams.map(t=>({team:t,points:0,scoreFor:scores[t].slice(0,round).reduce((a,b)=>a+b,0)}));
+    }else{
+      const teams=H2H_DIVISIONS[scope],schedule=H2H_SCHEDULE[scope];
+      if(!teams?.includes(team)||!schedule||round>(scope==='ELIZA CUP (D1)'?26:23))return null;
+      let played=false;
+      for(let r=1;r<=round;r++){
+        if(hasNoFixtures(scope,r))continue;
+        const pairs=schedule[r-1]||[];
+        if(!pairs.length||!divisionFixtureConfirmed(scope,r))return null;
+        const seen=pairs.flat().filter(t=>teams.includes(t));
+        if(seen.length!==teams.length||new Set(seen).size!==teams.length)return null;
+        if(!pairs.every(([a,b])=>Number.isFinite(fixtureScore(a,b,r))&&Number.isFinite(fixtureScore(b,a,r))))return null;
+        played=true;
+      }
+      if(!played)return null;
+      ranked=computeDivisionStandings(scope,round);
+    }
+    ranked.sort((a,b)=>b.points-a.points||b.scoreFor-a.scoreFor);
+    const top=ranked[0];
+    const leaders=ranked.filter(row=>row.points===top.points&&row.scoreFor===top.scoreFor);
+    if(!leaders.some(row=>row.team===team))return 'LOST';
+    return leaders.length===1?'WON':null; // Unresolved top tie requires an organiser/admin decision.
+  }
+  function selectionNeedsResultReview(selection){
+    if(selection.result && selection.result!=='PENDING')return false;
+    if(computeSuggestedResult(selection.id,selection)!==null)return true;
+    const round=getPickRound(selection.id);
+    return Number.isInteger(round)&&round>=1&&round<state.currentRound;
+  }
   function betHasReviewableResult(bet){
     if((bet.status||'PENDING')!=='PENDING' || !Array.isArray(bet.selections)) return false;
-    return bet.selections.some(selection =>
-      !selection.result && computeSuggestedResult(selection.id,selection)!==null);
+    return bet.selections.some(selectionNeedsResultReview);
   }
   // Derives the pausable "category" (a whole market, not one team's row in
   // it) from a pick ID. FUT|division|marketKey|team -> division|marketKey.
@@ -4538,10 +4577,10 @@
   // Points/tiebreak convention matches the simulation exactly (3/1/0,
   // ties broken by score-for not differential) for consistency with
   // every other ranking shown across the site.
-  function computeDivisionStandings(div){
+  function computeDivisionStandings(div, throughRound = state.currentRound - 1){
     const teams = H2H_DIVISIONS[div] || [];
     const schedule = H2H_SCHEDULE[div] || [];
-    const lastPlayed = state.currentRound - 1;
+    const lastPlayed = throughRound;
     const table = {};
     teams.forEach(t => { table[t] = { team: t, played: 0, won: 0, drawn: 0, lost: 0, scoreFor: 0, scoreAgainst: 0, points: 0 }; });
     for(let r = 1; r <= Math.min(lastPlayed, schedule.length); r++){
@@ -5338,23 +5377,7 @@
         </div>
       </div>
 `;
-    const BETS_HTML = `\n      <h3>Resolve outstanding bets</h3>
-      <div class="bb-card" style="margin-bottom:1.5rem;">
-        ${(() => {
-          const resolvable = bets.filter(b => b.selections.length===1 && betHasReviewableResult(b));
-          if(!resolvable.length) return `<p style="color:#9a9a9a;font-size:clamp(18px, calc(18px + 0.4vw), 21px);margin:0;">No unresolved singles have a result available to review yet.</p>`;
-          return `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-top:0;">Pending singles with a result available to review. Upcoming bets stay in the table below without an action flag. Confirm that scores are final before settling; multi-leg bets are reviewed individually below.</p>` +
-            resolvable.map(b => `
-              <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #2a2a2a;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">
-                <span>${esc(b.username)} \u2014 ${esc(betSelectionLabel(b.selections[0]))} <span style="color:#8a8a8a;">(stake ${fmt(b.stake)}, odds ${formatOdds(b.selections[0].odds)})</span></span>
-                <span style="display:flex;gap:4px;">
-                  <button class="bb-btn ghost" ${b.status==='CASHED_OUT'?'disabled':''} data-setstatus="${b.id}|WON" style="padding:4px 8px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);">Won</button>
-                  <button class="bb-btn ghost" ${b.status==='CASHED_OUT'?'disabled':''} data-setstatus="${b.id}|LOST" style="padding:4px 8px;font-size:clamp(16px, calc(16px + 0.4vw), 19px);">Lost</button>
-                </span>
-              </div>`).join('');
-        })()}
-      </div>
-      <h3>All registered bets</h3>
+    const BETS_HTML = renderAdminBetReviewQueue(bets) + `\n      <h3>All registered bets</h3>
       ${!bets.length ? '<p style="color:#9a9a9a;">No bets placed by anyone yet.</p>' : (() => {
         // Filters combine with AND -- a username search plus a status
         // filter narrows to bets matching both, not either.
@@ -5390,7 +5413,7 @@
       <button class="bb-btn ghost" id="export-bets-csv" style="margin-bottom:10px;padding:6px 12px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Export to CSV</button>
       ${(() => {
         const readyCount = filteredBets.filter(b => betHasReviewableResult(b)).length;
-        return readyCount ? `<p style="color:#ffdd00;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:8px;">\u26a1 ${readyCount} bet(s) below have a real result available and are ready to review -- highlighted first.</p>` : '';
+        return readyCount ? `<p style="color:#ffdd00;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:8px;">\u26a1 ${readyCount} bet(s) below need result review -- highlighted first, including completed rounds requiring manual grading.</p>` : '';
       })()}
       <div class="bb-card" style="padding:0;overflow-x:auto;">
         <table class="bb-table">
@@ -5432,7 +5455,7 @@
                 <td>${esc(b.username)}</td>
                 <td>${b.selections.map((s,i)=>{
                   const label = esc(betSelectionLabel(s))+' <span style="color:#8a8a8a;">('+formatOdds(s.odds)+')</span>';
-                  const suggestion = !s.result ? computeSuggestedResult(s.id,s) : null;
+                  const suggestion = !s.result || s.result==='PENDING' ? computeSuggestedResult(s.id,s) : null;
                   const suggestionTag = suggestion ? ` <span style="color:#ffdd00;font-size:clamp(15px, calc(15px + 0.4vw), 18px);font-weight:600;">&#9889; suggested: ${suggestion}</span>` : '';
                   if(b.selections.length===1) return label + suggestionTag;
                   const legStatus = s.result || 'PENDING';
@@ -5601,6 +5624,36 @@
     return renderDiv3PoolPreview() + tabBar + (bodyByTab[state.adminSubTab] || SEASON_HTML);
   }
 
+  function renderAdminBetReviewQueue(bets){
+    const all=state.adminBetReviewScope==='all';
+    const pending=bets.filter(b=>(b.status||'PENDING')==='PENDING');
+    const due=pending.filter(betHasReviewableResult);
+    const visible=all?pending:due;
+    const actions=(bet,selection,index)=>['WON','LOST','VOID'].map(result=>{
+      const attr=bet.selections.length===1?'data-setstatus="'+esc(bet.id+'|'+result)+'"':'data-resolveleg="'+esc(bet.id+'|'+index+'|'+result)+'"';
+      const suggestion=computeSuggestedResult(selection.id,selection);
+      return '<button class="bb-btn ghost" '+attr+' data-review-confirm="true" style="padding:8px 12px;'+(suggestion===result?'border-color:#ffdd00;':'')+'">'+(result==='VOID'?'Void / refund':result==='WON'?'Won':'Lost')+'</button>';
+    }).join('');
+    return `<section style="margin-bottom:20px;">
+      <h3>Resolve outstanding bets (${due.length})</h3>
+      <label>Show <select class="bb-select" id="admin-bet-review-scope"><option value="due" ${!all?'selected':''}>Needs result review</option><option value="all" ${all?'selected':''}>All pending bets — manual override</option></select></label>
+      <p style="color:#9a9a9a;">Completed-round bets stay here even when a score is missing or automatic grading is unavailable. Confirm final results before resolving. Won credits the return; Void refunds the stake. Upcoming bets appear only under All pending bets.</p>
+      ${visible.length?visible.map(b=>`<article class="bb-card" style="margin-bottom:10px;min-width:0;overflow-wrap:anywhere;">
+        <strong>${esc(b.username)}</strong> · stake ${fmt(b.stake)} · ${esc(b.id)}
+        ${b.selections.map((selection,index)=>{
+          const unresolved=!selection.result||selection.result==='PENDING';
+          const suggestion=unresolved?computeSuggestedResult(selection.id,selection):null;
+          const round=getPickRound(selection.id);
+          const note=suggestion?'Suggested: '+suggestion:unresolved?(Number.isInteger(round)&&round<state.currentRound?'Manual review required — missing data, tied outcome or unsupported grading.':'Manual override — outcome not yet determined.'):'Already graded: '+selection.result;
+          return `<div style="margin-top:12px;">
+            <div>${esc(betSelectionLabel(selection))} · accepted odds ${formatOdds(selection.odds)}</div>
+            <div style="margin:6px 0;color:${suggestion?'#ffdd00':'#b0b0b0'};">${esc(note)}</div>
+            ${unresolved?'<div style="display:flex;gap:8px;flex-wrap:wrap;">'+actions(b,selection,index)+'</div>':''}
+          </div>`;
+        }).join('')}
+      </article>`).join(''):'<p>No pending completed-round bets need review. All pending bets remain accessible using the selector above.</p>'}
+    </section>`;
+  }
   async function loadAdminData(){
     const usernames = await getIndex('bilbbet2_users_index');
     const users = (await Promise.all(usernames.map(getUser))).filter(Boolean);
@@ -8973,13 +9026,19 @@
       if(typed !== username) return; // includes a plain Cancel, which returns null
       deletePunterAccount(username);
     });
-    document.querySelectorAll('[data-setstatus]').forEach(el => el.onclick = () => {
+    const reviewScope=$('#admin-bet-review-scope');
+    if(reviewScope)reviewScope.onchange=()=>{state.adminBetReviewScope=reviewScope.value;render();};
+    document.querySelectorAll('[data-setstatus]').forEach(el => el.onclick = async () => {
       const [betId, status] = el.dataset.setstatus.split('|');
-      setBetStatus(betId, status);
+      if(el.dataset.reviewConfirm && !confirm('Resolve bet '+betId+' as '+status+'? '+(status==='VOID'?'This refunds the stake.':status==='WON'?'This credits the accepted return.':'This records a losing bet.')))return;
+      el.disabled=true;
+      try{await setBetStatus(betId, status);}catch(error){console.error('Admin settlement failed:',error);}finally{el.disabled=false;}
     });
-    document.querySelectorAll('[data-resolveleg]').forEach(el => el.onclick = () => {
+    document.querySelectorAll('[data-resolveleg]').forEach(el => el.onclick = async () => {
       const [betId, idx, result] = el.dataset.resolveleg.split('|');
-      resolveSelectionResult(betId, parseInt(idx,10), result);
+      if(el.dataset.reviewConfirm && !confirm('Resolve leg '+(Number(idx)+1)+' of bet '+betId+' as '+result+'? The multi status and any return will be recalculated.'))return;
+      el.disabled=true;
+      try{await resolveSelectionResult(betId, parseInt(idx,10), result);}catch(error){console.error('Admin leg settlement failed:',error);}finally{el.disabled=false;}
     });
     const addNoveltyBtn = $('#add-novelty'); if(addNoveltyBtn) addNoveltyBtn.onclick = addNoveltyItem;
     const suggestionText = $('#suggestion-text'); if(suggestionText) suggestionText.oninput = e => { state.suggestionText = e.target.value; };
