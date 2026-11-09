@@ -4249,7 +4249,7 @@
 
   function renderFixtureList(div){
     if(state.h2hFixtureMarket){
-      return `<button class="bb-btn ghost" id="back-to-fixtures" style="margin-bottom:10px;">&larr; Back to Round ${state.h2hRound} fixtures</button>` + renderH2HMarket(state.h2hFixtureMarket);
+      return `<button class="bb-btn ghost" id="back-to-fixtures" style="margin-bottom:10px;">&larr; Back to Round ${state.h2hRound} fixtures</button>` + renderD1DroughtTracker(state.h2hFixtureMarket.teamA,state.h2hFixtureMarket.teamB,state.h2hFixtureMarket.round) + renderH2HMarket(state.h2hFixtureMarket);
     }
     if(!state.roundBettingOpen && state.h2hRound === state.currentRound){
       return `<div class="bb-card" style="text-align:center;padding:2rem 1rem;color:#9a9a9a;">
@@ -4300,6 +4300,7 @@
           <div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:3px;">
             <div style="display:flex;align-items:center;gap:6px;font-weight:600;cursor:pointer;" data-show-form="${esc(m.teamA)}" title="See ${esc(m.teamA)}'s results">${teamLogo(m.teamA,18)}${esc(m.teamA)}</div>
             <div style="display:flex;align-items:center;gap:6px;font-weight:600;cursor:pointer;" data-show-form="${esc(m.teamB)}" title="See ${esc(m.teamB)}'s results"><span style="color:#9a9a9a;font-weight:400;">vs</span> ${teamLogo(m.teamB,18)}${esc(m.teamB)}</div>
+            ${div==='ELIZA CUP (D1)'?renderD1DroughtTracker(m.teamA,m.teamB,m.round):''}
             <span class="bb-btn ghost" data-fixture-expand="${esc(div)}|${i}" style="align-self:flex-start;padding:3px 9px;font-size:clamp(15px, calc(15px + 0.4vw), 18px);margin-top:2px;">Full market (draw &amp; handicap)</span>
           </div>
           <div style="width:88px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;justify-content:center;">
@@ -4978,6 +4979,32 @@
     </div>`;
   }
 
+  function renderD1DroughtTracker(teamA,teamB,round){
+    const team=streakTeam('002')?.name,div='ELIZA CUP (D1)';
+    if(!team||![teamA,teamB].includes(team))return '';
+    const through=Math.min(Number(round)-1,Number(state.currentRound)-1,26);
+    if(through<1)return '';
+    const records=streakHistory(div,through),rec=records?.[team];
+    if(!rec)return ''; // Never extend a drought across missing/unconfirmed results.
+    let winless=0,losses=0;
+    for(let r=through;r>=1;r--){
+      const pair=(H2H_SCHEDULE[div]?.[r-1]||[]).find(p=>p.includes(team));
+      if(!pair)return '';
+      const opponent=pair.find(t=>t!==team),own=REAL_RESULTS[team]?.[r-1],other=REAL_RESULTS[opponent]?.[r-1];
+      if(!Number.isFinite(own)||!Number.isFinite(other))return '';
+      if(own>other)break;
+      winless++;
+    }
+    for(let r=through;r>=1;r--){
+      const pair=H2H_SCHEDULE[div][r-1].find(p=>p.includes(team));
+      const opponent=pair.find(t=>t!==team);
+      if(REAL_RESULTS[team][r-1]>=REAL_RESULTS[opponent][r-1])break;
+      losses++;
+    }
+    const message=winless ? winless+' consecutive D1 games without a win this season'+(losses?' · '+losses+' straight losses':'') : 'D1 drought broken: latest completed league game was a win';
+    return '<div style="background:#172536;border:1px solid #40566c;border-radius:8px;padding:10px;margin:8px 0;color:#e1eaf3;"><strong>'+esc(team)+' · D1 drought watch</strong><div>'+esc(message)+'</div><small>Through Round '+through+'. Draws extend the winless run but end a losing streak. Historical day count awaits a confirmed last D1 win date. Prices use scoring form and opponent strength; no extra drought penalty.</small></div>';
+  }
+
   function streakTeam(teamId){
     return (DATA.admin_teams||[]).find(t=>String(t.id).padStart(3,'0')===String(teamId).padStart(3,'0'));
   }
@@ -5056,6 +5083,7 @@
       }),rec=market.record;
     html+=categoryPauseControl('STREAK|'+market.kind,market.kind==='LOSS'?'all first-loss specials':'all first-win specials');
     html+='<h4>'+esc(market.team)+' · '+(market.kind==='LOSS'?'First league loss':'First league win')+'</h4><p>'+esc(market.division)+' · '+rec.won+'W / '+rec.drawn+'D / '+rec.lost+'L through Round '+(market.basis-1)+'. “None” means through Round '+market.last+'.</p>';
+    if(market.teamId==='002')html+=renderD1DroughtTracker(market.team,'',market.basis);
     if(!rows.length)return html+'<p>Awaiting the remaining confirmed league fixtures before pricing this market.</p>';
     return html+rows.map(row=>{
       const price=!collectingTrustedPrices&&!trustedPrices.has(row.id)?'<span class="bb-btn ghost" aria-disabled="true">Awaiting price publication</span>':priceOnlyButton(row.id,row.label,row.price);

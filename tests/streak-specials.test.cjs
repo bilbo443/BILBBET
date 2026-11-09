@@ -25,7 +25,7 @@ const ctx={window:{BilbbetStreaks:engine},DATA:{admin_teams:registry},REAL_RESUL
  findTeamDivision:team=>Object.keys(roster).find(d=>roster[d].includes(team)),getFixtureMarkets:(div,r)=>fixtures[div][r-1].map(([teamA,teamB])=>({teamA,teamB,aWinPct:45,bWinPct:53})),
  toOdds:p=>({odds:Math.round(100/(p*1.05)*100)/100,suspended:false}),esc:String,formatOdds:n=>n.toFixed(2),collectingTrustedPrices:false,trustedPrices:new Map(),
  categoryPauseControl:()=>'',priceOnlyButton:()=>'<button>published</button>'};
-vm.createContext(ctx);vm.runInContext(part('  function streakTeam(','  function specialsSubTabBar(')+part('  function getPickRound(','  // Suggests WON/LOST'),ctx);
+vm.createContext(ctx);vm.runInContext(part('  function renderD1DroughtTracker(','  function specialsSubTabBar(')+part('  function getPickRound(','  // Suggests WON/LOST'),ctx);
 const markets=ctx.streakMarkets();assert(markets.length>0);
 for(const m of markets){
  assert(m.kind==='LOSS'?m.record.lost===0:m.record.won===0);
