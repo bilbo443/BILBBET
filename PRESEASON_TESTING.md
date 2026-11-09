@@ -1228,3 +1228,6 @@ Futures browsing and contention notes:
 - League finish notes use conservative points bounds from remaining confirmed regular-season fixtures, not Monte Carlo probabilities. Show assured/out only when proven on points, and explain near-clinch/all-wins-needed conditions in a popup.
 - Current/future or missing scores remain unplayed; unknown fixtures and ambiguous tiebreak cases do not get a mathematical claim. No promotion-playoff or Roddy-score ceiling is invented.
 - Clicking the note must not select a bet. No accepted odds, balances or settlement changes.
+
+
+Median result suggestions: grade H2H_MEDIAN against the complete actual score median of the team's own conference. Require finite scores for every entrant and a started round; missing/future data stays ungraded. Strictly above wins; equal or below loses. This supplies admin review suggestions only and never writes settlements, refunds or balances.

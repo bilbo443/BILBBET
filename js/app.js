@@ -469,6 +469,26 @@
       return null;
     }
     if(parts[0] === 'ELECTION_COMMISSIONER_WHO') return 'LOST';
+    if(parts[0] === 'H2H_MEDIAN'){
+      const team = resolveTeamName(parts[1]);
+      if(parts.length !== 3 || !/^R\d+$/.test(parts[2])) return null;
+      const round = Number(parts[2].slice(1));
+      const date = ROUND_DATES[round];
+      if(!team || !Number.isInteger(round) || round<1 || round>26 ||
+         !date || Date.now()<sydneyKickoffUTC(date)) return null;
+      const div = FUTURE_DIVS.find(d => (H2H_DIVISIONS[d] || []).includes(team));
+      const teams = H2H_DIVISIONS[div];
+      if(!teams?.length) return null;
+      // This market is priced for the team's own conference, unlike the
+      // combined-tier MR MEDIAN fixture used in the opening round.
+      const scores = teams.map(t => REAL_RESULTS[t]?.[round-1]);
+      if(!scores.every(Number.isFinite)) return null;
+      const sorted = scores.slice().sort((a,b) => a-b);
+      const mid = Math.floor(sorted.length/2);
+      const median = sorted.length%2 ? sorted[mid] : (sorted[mid-1]+sorted[mid])/2;
+      // "Beat" is strictly above: equality is not a win or a void.
+      return REAL_RESULTS[team][round-1]>median ? 'WON' : 'LOST';
+    }
     if(parts[0] !== 'H2H') return null;
     const side = parts[1]; // 'res-a' or 'res-b'
     const round = parseInt(parts[2].replace('R',''), 10);
