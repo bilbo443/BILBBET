@@ -7675,7 +7675,9 @@
   }
   function assertFuturesScoreFreshness(){
     const league=DATA.real_results||{},roddy=DATA.roddy_results||{};
-    const snapshot=[...new Set([...Object.keys(league),...Object.keys(roddy)])].sort()
+    const snapshot=[...new Set([...Object.keys(league),...Object.keys(roddy)])]
+      // Runtime MR MEDIAN rows are derived fixture opponents, not source scores.
+      .filter(team=>!['MR MEDIAN ELIZA','MR MEDIAN DIV2','MR MEDIAN DIV3'].includes(team)).sort()
       .map(team=>[team,league[team]??null,roddy[team]??null]);
     const meta=FUTURES.futures_refresh;
     const expected=[...Object.keys(H2H_DIVISIONS),'RODDY','FA CUP','ECL'];
