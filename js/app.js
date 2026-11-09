@@ -5104,7 +5104,10 @@
         });
         const rowHtml=row=>{
           const price=!collectingTrustedPrices&&!trustedPrices.has(row.id)?'<span style="color:#aebdca;font-size:14px;">Awaiting publication</span>':priceOnlyButton(row.id,row.label,row.price);
-          return '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid #344253;"><span>'+esc(row.round===null?'No '+kind.toLowerCase()+' this season':'Round '+row.round)+'</span><span style="min-width:90px;text-align:right;">'+price+'</span></div>';
+          const days=market.teamId==='002'&&row.round!==null?d1DroughtDays(DATA.roster_rules?.d1_drought_history?.['002'],ROUND_DATES[row.round]):null;
+          const roundLabel=row.round===null?'No '+kind.toLowerCase()+' this season':'Round '+row.round+(days?' ('+days.min+')':'');
+          const dayHint=days?' title="Projected days without a D1 win at this round’s scheduled start, counted from the end of the recorded last-win window ('+esc(DATA.roster_rules.d1_drought_history['002'].last_win_window_end)+')."':'';
+          return '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid #344253;"><span'+dayHint+'>'+esc(roundLabel)+'</span><span style="min-width:90px;text-align:right;">'+price+'</span></div>';
         };
         const near=rows.filter(r=>r.round!==null).slice(0,3),later=rows.filter(r=>r.round!==null).slice(3),never=rows.find(r=>r.round===null);
         let card='<div class="bb-card" style="margin:0;padding:14px;background:#152132;border:1px solid #344253;min-width:0;"><strong>'+esc(market.team)+'</strong><div style="color:#aebdca;font-size:14px;margin:4px 0;">'+esc(market.division)+' · '+rec.won+'W / '+rec.drawn+'D / '+rec.lost+'L</div>';

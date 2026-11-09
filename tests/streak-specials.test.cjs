@@ -61,3 +61,7 @@ assert(ctx.renderStreakSpecials().includes('Unbeaten · first league loss'));
 assert(ctx.renderStreakSpecials().includes('Winless · first league win'));
 assert(ctx.renderStreakSpecials().includes('Later rounds ('));
 assert(!ctx.renderStreakSpecials().includes('data-streak-view'));
+
+assert(ctx.renderStreakSpecials().includes('Round 5 (657)'),'Jarvis round labels include projected days from end of last-win window');
+assert(ctx.renderStreakSpecials().includes('Round 6 (664)'));
+assert(!ctx.renderStreakSpecials().includes('No win this season ('),'No-event outcome has no invented round date');
