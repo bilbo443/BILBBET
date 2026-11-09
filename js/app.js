@@ -4979,6 +4979,13 @@
     </div>`;
   }
 
+  function d1DroughtDays(history,referenceDate){
+    const valid=value=>typeof value==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value)&&Number.isFinite(Date.parse(value+'T00:00:00Z'));
+    if(!history||![history.last_win_window_start,history.last_win_window_end,referenceDate].every(valid))return null;
+    const start=Date.parse(history.last_win_window_start+'T00:00:00Z'),end=Date.parse(history.last_win_window_end+'T00:00:00Z'),ref=Date.parse(referenceDate+'T00:00:00Z');
+    if(end<start||ref<end)return null;
+    return {min:Math.floor((ref-end)/86400000),max:Math.floor((ref-start)/86400000)};
+  }
   function renderD1DroughtTracker(teamA,teamB,round){
     const team=streakTeam('002')?.name,div='ELIZA CUP (D1)';
     if(!team||![teamA,teamB].includes(team))return '';
@@ -5002,7 +5009,16 @@
       losses++;
     }
     const message=winless ? winless+' consecutive D1 games without a win this season'+(losses?' · '+losses+' straight losses':'') : 'D1 drought broken: latest completed league game was a win';
-    return '<div style="background:#172536;border:1px solid #40566c;border-radius:8px;padding:10px;margin:8px 0;color:#e1eaf3;"><strong>'+esc(team)+' · D1 drought watch</strong><div>'+esc(message)+'</div><small>Through Round '+through+'. Draws extend the winless run but end a losing streak. Historical day count awaits a confirmed last D1 win date. Prices use scoring form and opponent strength; no extra drought penalty.</small></div>';
+    const history=DATA.roster_rules?.d1_drought_history?.['002'];
+    let historical='';
+    if(history&&rec.won===0){
+      const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Sydney',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+      const days=d1DroughtDays(history,today),future=d1DroughtDays(history,ROUND_DATES[round]);
+      const range=value=>value.min===value.max?String(value.min):value.min+'–'+value.max;
+      if(days)historical='<div>Last recorded D1 win: '+esc(history.team_score+'–'+history.opponent_score+' vs '+history.opponent)+' · '+esc(history.last_win_window_start+' to '+history.last_win_window_end)+'. <strong>'+range(days)+' days without a D1 win</strong> as of '+esc(today)+' (Sydney).</div>';
+      if(future&&Number(round)>=Number(state.currentRound))historical+='<div>If still winless at Round '+Number(round)+"'s scheduled start ("+esc(ROUND_DATES[round])+'): '+range(future)+' days. This is a projection, not a result.</div>';
+    }
+    return '<div style="background:#172536;border:1px solid #40566c;border-radius:8px;padding:10px;margin:8px 0;color:#e1eaf3;"><strong>'+esc(team)+' · D1 drought watch</strong><div>'+esc(message)+'</div>'+historical+'<small>Through Round '+through+'. Draws extend the winless run but end a losing streak. Historical dates use the supplied round window, not an exact match day. Prices use scoring form and opponent strength; no extra drought penalty.</small></div>';
   }
 
   function streakTeam(teamId){
