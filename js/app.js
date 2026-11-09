@@ -5165,13 +5165,13 @@
           const id = 'NOVELTY|'+n.id;
           const selected = state.slip.some(s=>s.id===id);
           return `<div class="bb-outcome ${selected?'selected':''}" data-pick="${esc(id)}" data-label="${esc(n.name)}" data-odds="${n.odds}" style="${i<open.length-1?'border-bottom:1px solid #3d3d3d;':''}">
-            <span>${esc(n.name)}</span><span class="bb-odds">${formatOdds(n.odds)}</span></div>`;
+            <span>${esc(n.name)}${renderNoveltyCounter(n)}</span><span class="bb-odds">${formatOdds(n.odds)}</span></div>`;
         }).join('') + '</div>';
     }
     if(settled.length){
       html += '<h4 style="color:#9a9a9a;">Settled</h4><div class="bb-card" style="padding:0;overflow:hidden;margin-bottom:1.5rem;">' +
         settled.map((n,i) => `<div style="display:flex;justify-content:space-between;padding:10px 14px;${i<settled.length-1?'border-bottom:1px solid #3d3d3d;':''}">
-          <span style="color:#9a9a9a;">${esc(n.name)} <span style="color:#8a8a8a;">(${formatOdds(n.odds)})</span></span>${statusPill(n.status)}
+          <span style="color:#9a9a9a;">${esc(n.name)} <span style="color:#8a8a8a;">(${formatOdds(n.odds)})</span>${renderNoveltyCounter(n)}</span>${statusPill(n.status)}
         </div>`).join('') + '</div>';
     }
 
@@ -5673,6 +5673,7 @@
         </div>
         ${!(state.novelty||[]).length ? '<p style="color:#9a9a9a;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">Nothing added yet.</p>' : (state.novelty||[]).slice().sort((a,b)=>b.createdAt-a.createdAt).map(n => `
           <div style="padding:8px 0;border-bottom:1px solid #333333;">
+            ${renderNoveltyCounter(n)}${renderNoveltyCounterControls(n)}
             ${state.editingNoveltyId === n.id ? `
               <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;">
                 <div style="flex:2;min-width:180px;"><span style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:#9a9a9a;display:block;">Bet name</span>
@@ -6461,6 +6462,53 @@
   }
 
   // ---------- Specials / Novelty ----------
+  function noveltyCounterEligible(item){
+    return item?.id==='mu0cx3prmxo3h'||!!item?.counter;
+  }
+  function noveltyCounterText(item){
+    const c=item?.counter;
+    if(!c||!Number.isSafeInteger(c.value)||c.value<0)return 'Moderator tracker: not set yet';
+    const unit=c.unit==='deadlines'?'missed trade deadlines':'days';
+    return 'Moderator tracker: '+c.value+' '+unit;
+  }
+  function renderNoveltyCounter(item){
+    return noveltyCounterEligible(item)?'<small style="display:block;color:#bac7d4;margin-top:5px;" data-novelty-counter="'+esc(item.id)+'">'+esc(noveltyCounterText(item))+'</small>':'';
+  }
+  function renderNoveltyCounterControls(item){
+    if(!state.user?.isAdmin||!noveltyCounterEligible(item))return '';
+    const c=item.counter||{};
+    return '<div style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin:10px 0;"><label>Moderator counter<input class="bb-input" type="number" min="0" step="1" id="novelty-count-'+esc(item.id)+'" value="'+(Number.isSafeInteger(c.value)&&c.value>=0?c.value:'')+'" placeholder="Current count"></label><label>Unit<select class="bb-input" id="novelty-unit-'+esc(item.id)+'"><option value="days"'+(c.unit!=='deadlines'?' selected':'')+'>Days</option><option value="deadlines"'+(c.unit==='deadlines'?' selected':'')+'>Missed trade deadlines</option></select></label><button class="bb-btn ghost" data-save-novelty-counter="'+esc(item.id)+'">Save counter</button><small>Manual tracker only; does not change odds or settle bets.</small></div>';
+  }
+  let noveltyCounterSaving=false,noveltyCounterRefreshing=false;
+  async function saveNoveltyCounter(id){
+    if(!state.user?.isAdmin||noveltyCounterSaving)return;
+    const input=document.getElementById('novelty-count-'+id),unit=document.getElementById('novelty-unit-'+id)?.value;
+    const value=Number(input?.value);
+    if(!input?.value.trim()||!Number.isSafeInteger(value)||value<0||!['days','deadlines'].includes(unit)){alert('Enter a whole number of zero or more and select the counter unit.');return;}
+    noveltyCounterSaving=true;
+    try{
+      const item=await sget('bilbbet2_novelty:'+id);
+      if(!item||!noveltyCounterEligible(item))throw new Error('This special is no longer available.');
+      item.counter={value,unit,updatedAt:Date.now()};
+      // Existing admin-only shared-item write; counter metadata needs no price/reward sync.
+      await secureRpc('bilbbet_write',{p_key:'bilbbet2_novelty:'+id,p_value:item,p_delete:false});
+      state.novelty=(state.novelty||[]).map(n=>n.id===id?item:n);
+      render();
+    }catch(e){alert('Counter was not saved: '+e.message);}
+    finally{noveltyCounterSaving=false;}
+  }
+  async function refreshNoveltyCounters(){
+    if(noveltyCounterRefreshing||document.hidden)return;
+    const nodes=Array.from(document.querySelectorAll('[data-novelty-counter]'));
+    if(!nodes.length)return;
+    noveltyCounterRefreshing=true;
+    try{
+      const ids=[...new Set(nodes.map(n=>n.dataset.noveltyCounter))];
+      const data=await secureRead(ids.map(id=>'bilbbet2_novelty:'+id));
+      for(const node of nodes){const item=data['bilbbet2_novelty:'+node.dataset.noveltyCounter];if(item)node.textContent=noveltyCounterText(item);}
+    }catch(e){/* Keep the last visible value; retry next minute. */}
+    finally{noveltyCounterRefreshing=false;}
+  }
   async function loadNovelty(){
     const ids = await getIndex('bilbbet2_novelty_index');
     const items = (await Promise.all(ids.map(id => sget('bilbbet2_novelty:'+id)))).filter(Boolean);
@@ -7908,7 +7956,7 @@
         closeScope:state.closeScope,
         lastAutoClosedRound:state.lastAutoClosedRound
       },
-      novelty:state.novelty||[],
+      novelty:(state.novelty||[]).map(({counter,...market})=>market),
       featuredFixtures:state.featuredFixturesData||[],
       medianSpecials:state.homeMedianSpecialsRound===state.currentRound?(state.homeMedianSpecialsData||[]):[]
     };
@@ -9458,6 +9506,7 @@
       resolveNoveltyItem(noveltyId, status);
     });
     document.querySelectorAll('[data-edit-novelty]').forEach(el => el.onclick = () => startEditNovelty(el.dataset.editNovelty));
+    document.querySelectorAll('[data-save-novelty-counter]').forEach(el=>el.onclick=()=>saveNoveltyCounter(el.dataset.saveNoveltyCounter));
     document.querySelectorAll('[data-save-novelty]').forEach(el => el.onclick = () => saveNoveltyEdit(el.dataset.saveNovelty));
     document.querySelectorAll('[data-cancel-novelty-edit]').forEach(el => el.onclick = cancelEditNovelty);
     document.querySelectorAll('[data-delete-novelty]').forEach(el => el.onclick = () => deleteNoveltyItem(el.dataset.deleteNovelty));
@@ -9831,6 +9880,7 @@
 
   await loadTrustedPrices();
   render();
+  setInterval(refreshNoveltyCounters,60000); // Refresh only tracker text; preserve slips and typed inputs.
   loadHomeStats(); // not awaited -- the initial render shows a loading state, this fills it in once ready
   if(EMBED_MODE){
     // loadAllData only runs once at boot -- a periodic full reload is the
