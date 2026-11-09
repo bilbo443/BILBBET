@@ -113,7 +113,7 @@ def convert_draft_to_publishable(draft_path, live_futures_path, out_path):
             publishable['divisions'][div][key] = market_rows
 
     # Whole-league simulations are refreshed from their own validated score tables.
-    for section in ('roddy', 'fa_cup_markets'):
+    for section in ('roddy', 'fa_cup_markets', 'ecl_markets'):
         if section in draft:
             publishable[section] = draft[section]
 
