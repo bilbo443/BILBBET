@@ -261,5 +261,20 @@
       "LOAVES & FISHES"
     ]
   ],
-  "r32_confirmed_on": "2026-11-05"
+  "r32_confirmed_on": "2026-11-05",
+  "r32_replays": [
+    {
+      "round": 8,
+      "original_round": 4,
+      "teamA": "JUSTICEFORMOON FC",
+      "teamB": "NANISTATE",
+      "teamA_id": "028",
+      "teamB_id": "030",
+      "original_score": [
+        77,
+        77
+      ],
+      "status": "AWAITING_REPLAY"
+    }
+  ]
 }
