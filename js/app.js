@@ -5087,28 +5087,36 @@
   }
   function renderStreakSpecials(){
     const markets=streakMarkets();
-    let html='<p>Pick the league round when an unbeaten team first loses, or a winless team first wins. Draws do neither. League games only; finals and cups excluded. These are singles only. All options close at the next league lockout and prices update with weekly results.</p>';
+    let html='<p>League games only. Draws preserve either streak. Singles only; every option closes at the next league lockout.</p>';
+    if(state.user?.isAdmin)html+='<button class="bb-btn ghost" id="publish-streak-prices" style="margin-bottom:12px;">Publish / refresh special prices</button>';
     if(!markets.length)return html+'<p>No eligible completed-round streaks are available. Missing or unconfirmed results must be resolved before a market opens.</p>';
-    html+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">'+markets.map(m=>{
-      const key=m.kind+'|'+m.teamId;
-      return '<button class="bb-btn ghost" data-streak-view="'+esc(key)+'" style="text-align:left;"><span style="display:block;">'+esc(m.team)+' · first '+m.kind.toLowerCase()+'</span>'+(streakTeamTag(m.teamId)?'<small style="display:block;color:#bac7d4;font-weight:400;white-space:normal;">'+esc(streakTeamTag(m.teamId))+'</small>':'')+'</button>';
-    }).join('')+'</div>';
-    const market=markets.find(m=>m.kind+'|'+m.teamId===state.streakSelection)||markets[0];
-    const rows=collectingTrustedPrices?streakOutcomes(market):
-      [...Array.from({length:market.last-market.basis+1},(_,i)=>market.basis+i),null].map(round=>{
-        const id='STREAK|'+market.kind+'|'+market.teamId+'|R'+market.basis+'|'+(round===null?'NEVER':'R'+round);
-        const q=trustedPrices.get(id);
-        return {id,round,label:q?.label||'',price:{odds:Number(q?.odds),suspended:false}};
-      }),rec=market.record;
-    html+=categoryPauseControl('STREAK|'+market.kind,market.kind==='LOSS'?'all first-loss specials':'all first-win specials');
-    html+='<h4>'+esc(market.team)+' · '+(market.kind==='LOSS'?'First league loss':'First league win')+'</h4><p>'+esc(market.division)+' · '+rec.won+'W / '+rec.drawn+'D / '+rec.lost+'L through Round '+(market.basis-1)+'. “None” means through Round '+market.last+'.</p>';
-    if(streakTeamTag(market.teamId))html+='<p style="color:#bac7d4;font-style:italic;">'+esc(streakTeamTag(market.teamId))+'</p>';
-    if(market.teamId==='002')html+=renderD1DroughtTracker(market.team,'',market.basis);
-    if(!rows.length)return html+'<p>Awaiting the remaining confirmed league fixtures before pricing this market.</p>';
-    return html+rows.map(row=>{
-      const price=!collectingTrustedPrices&&!trustedPrices.has(row.id)?'<span class="bb-btn ghost" aria-disabled="true">Awaiting price publication</span>':priceOnlyButton(row.id,row.label,row.price);
-      return '<div class="bb-card" style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:8px;"><span>'+esc(row.round===null?'No '+market.kind.toLowerCase()+' through Round '+market.last:'Round '+row.round)+'</span><span style="min-width:100px;">'+price+'</span></div>';
-    }).join('');
+    for(const kind of ['LOSS','WIN']){
+      const group=markets.filter(m=>m.kind===kind);if(!group.length)continue;
+      html+='<h4 style="margin:18px 0 10px;">'+(kind==='LOSS'?'Unbeaten · first league loss':'Winless · first league win')+'</h4>';
+      html+=categoryPauseControl('STREAK|'+kind,kind==='LOSS'?'all first-loss specials':'all first-win specials');
+      html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr));gap:12px;align-items:start;">';
+      html+=group.map(market=>{
+        const rec=market.record,tag=streakTeamTag(market.teamId);
+        const rows=collectingTrustedPrices?streakOutcomes(market):[...Array.from({length:market.last-market.basis+1},(_,i)=>market.basis+i),null].map(round=>{
+          const target=round===null?'NEVER':'R'+round,id='STREAK|'+market.kind+'|'+market.teamId+'|R'+market.basis+'|'+target,q=trustedPrices.get(id);
+          const label=market.team+' · First league '+kind.toLowerCase()+' · '+(round===null?'None through Round '+market.last:'Round '+round)+' ('+market.division+')';
+          return {id,round,label:q?.label||label,price:{odds:Number(q?.odds),suspended:q?.bettable===false}};
+        });
+        const rowHtml=row=>{
+          const price=!collectingTrustedPrices&&!trustedPrices.has(row.id)?'<span style="color:#aebdca;font-size:14px;">Awaiting publication</span>':priceOnlyButton(row.id,row.label,row.price);
+          return '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid #344253;"><span>'+esc(row.round===null?'No '+kind.toLowerCase()+' this season':'Round '+row.round)+'</span><span style="min-width:90px;text-align:right;">'+price+'</span></div>';
+        };
+        const near=rows.filter(r=>r.round!==null).slice(0,3),later=rows.filter(r=>r.round!==null).slice(3),never=rows.find(r=>r.round===null);
+        let card='<div class="bb-card" style="margin:0;padding:14px;background:#152132;border:1px solid #344253;min-width:0;"><strong>'+esc(market.team)+'</strong><div style="color:#aebdca;font-size:14px;margin:4px 0;">'+esc(market.division)+' · '+rec.won+'W / '+rec.drawn+'D / '+rec.lost+'L</div>';
+        if(tag)card+='<p style="color:#c4d1df;font-style:italic;margin:6px 0 12px;">'+esc(tag)+'</p>';
+        card+=near.map(rowHtml).join('');
+        if(never)card+=rowHtml(never);
+        if(later.length)card+='<details style="margin-top:10px;"><summary style="cursor:pointer;color:#c4d1df;">Later rounds ('+later.length+')</summary>'+later.map(rowHtml).join('')+'</details>';
+        if(market.teamId==='002')card+='<details style="margin-top:10px;"><summary style="cursor:pointer;color:#c4d1df;">Jarvis drought watch</summary>'+renderD1DroughtTracker(market.team,'',market.basis)+'</details>';
+        return card+'</div>';
+      }).join('')+'</div>';
+    }
+    return html+'<p style="color:#aebdca;font-size:14px;margin-top:12px;">“No win/loss this season” means through the last regular-season round; cups and finals do not count. Prices update after confirmed results.</p>';
   }
 
   function specialsSubTabBar(){
@@ -8966,7 +8974,13 @@
       else state.futureMarketTab = Object.keys(FUTURES.market_labels)[0];
       render();
     });
-    document.querySelectorAll('[data-streak-view]').forEach(el=>el.onclick=()=>{state.streakSelection=el.dataset.streakView;render();});
+    const publishStreakPrices=document.getElementById('publish-streak-prices');
+    if(publishStreakPrices)publishStreakPrices.onclick=async()=>{
+      publishStreakPrices.disabled=true;publishStreakPrices.textContent='Publishing prices…';
+      try{await syncTrustedPrices(true);state.info='Special prices published for Round '+state.currentRound+'.';}
+      catch(e){state.error='Prices were not published: '+e.message;}
+      render();
+    };
     document.querySelectorAll('[data-specialssubtab]').forEach(el => el.onclick = () => { state.specialsSubTab = el.dataset.specialssubtab; render(); });
     document.querySelectorAll('[data-fixture-expand]').forEach(el => el.onclick = () => {
       const [div, idx] = el.dataset.fixtureExpand.split('|');

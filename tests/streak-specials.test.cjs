@@ -34,7 +34,7 @@ for(const m of markets){
  assert(out.every(row=>ctx.getPickRound(row.id)===5),'All outcomes lock in offering round, not chosen round');
  assert(out.filter(row=>!row.price.suspended).reduce((sum,row)=>sum+1/row.price.odds,0)>=1,'A complete round book cannot guarantee profit');
 }
-assert(ctx.renderStreakSpecials().includes('Awaiting price publication'));
+assert(ctx.renderStreakSpecials().includes('Awaiting publication'));
 console.log('CURRENT ELIGIBLE STREAKS',markets.map(m=>m.team+': first '+m.kind.toLowerCase()).join('; '));
 console.log('PASS: draws, first-event timing, survival/no-event probabilities, score completeness, 5% books, ID/basis lockouts and unpublished-state UI.');
 vm.runInContext(part('  function parsePick(','  function chainOf('),ctx);
@@ -56,3 +56,8 @@ assert.equal(ctx.streakTeamTag('999'),'');
 for(const market of markets)assert(ctx.streakTeamTag(market.teamId),'Every currently eligible team has a tag');
 assert(ctx.renderStreakSpecials().includes('Still searching for a winning stripe.'));
 console.log('PASS: all eligible teams have ID-based display tags; unknown teams remain untagged.');
+
+assert(ctx.renderStreakSpecials().includes('Unbeaten · first league loss'));
+assert(ctx.renderStreakSpecials().includes('Winless · first league win'));
+assert(ctx.renderStreakSpecials().includes('Later rounds ('));
+assert(!ctx.renderStreakSpecials().includes('data-streak-view'));
