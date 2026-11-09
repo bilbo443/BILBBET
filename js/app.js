@@ -577,7 +577,7 @@
       await loadTrustedPrices();
       const data=await secureRead(Object.keys(fields));
       for(const [key,value]of Object.entries(data))if(value!==null)state[fields[key]]=value;
-      state.currentRound=state.currentRoundOverride||deriveCurrentRoundFromDate();
+      state.currentRound=Number(await secureRpc('bilbbet_current_round'));
       return true;
     }catch(e){alert('Could not verify lockout. Nothing was submitted. '+e.message);return false;}
   }
@@ -5028,11 +5028,11 @@
           <span style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);color:#9a9a9a;">Next round to be played:</span>
           <strong style="font-size:clamp(20px, calc(20px + 0.4vw), 23px);">Round ${state.currentRound}</strong>
           ${state.currentRoundOverride
-            ? `<span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#e0c060;">(manually overridden -- would otherwise be Round ${deriveCurrentRoundFromDate()} automatically)</span>`
-            : `<span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#8fc98f;">(auto-derived from today's date, no admin action needed)</span>`}
+            ? `<span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#e0c060;">(manual override — automatic progression paused)</span>`
+            : `<span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#8fc98f;">(automatic: finalised results and calendar)</span>`}
         </div>
         <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin:0 0 10px;">
-          This now advances on its own from round_dates.json + today's date -- nothing to remember weekly.
+          The next round opens after completed league results are synced, once the scheduled results-check time has passed. The calendar remains a fallback.
           Only override it for a genuine edge case that date isn't correct for (a real-world bye week or
           schedule slip round_dates.json doesn't reflect yet).
         </p>
@@ -5775,17 +5775,18 @@
   // on its own from there), or any time an admin decides an override is
   // no longer needed.
   async function clearCurrentRoundOverride(){
+    let derived;
     try {
       await sdelete('bilbbet2_current_round_override');
       if(await sget('bilbbet2_current_round_override') !== null)
         throw new Error('The round override is still present. Reload and retry.');
+      derived=Number(await secureRpc('bilbbet_current_round'));
     } catch(error){
       state.error='Could not return to automatic rounds: '+error.message;
       render();
       return;
     }
     state.currentRoundOverride = null;
-    const derived = deriveCurrentRoundFromDate();
     state.currentRound = derived; state.h2hRound = derived; state.leadingAtRound = derived; state.specialsRound = derived;
     state.error='';
     state.info='Automatic rounds enabled. The calendar currently selects Round '+derived+'. Betting controls are unchanged.';
@@ -7914,6 +7915,13 @@
         slots:PRESEASON_SLOTS.map(({key,label,count})=>({key,label,count}))
       }
     });
+    const nextRound=Number(await secureRpc('bilbbet_current_round'));
+    if(nextRound!==Number(state.currentRound)){
+      state.currentRound=nextRound;state.h2hRound=nextRound;
+      state.leadingAtRound=nextRound;state.specialsRound=nextRound;
+      await syncTrustedPrices(true);
+      state.info='Results finalised. Advanced automatically to Round '+nextRound+'.';
+    }
   }
   function scheduleRewardSync(){
     if(!state.user?.isAdmin || priceSyncRunning)return;
@@ -9347,7 +9355,7 @@
       for(const [key,field] of Object.entries(fields))
         if(controlsResult.value[key]!==undefined && controlsResult.value[key]!==null)state[field]=controlsResult.value[key];
     }else error='Live round controls could not be verified. Prices are unavailable; please reload.';
-    state.currentRound=Number(state.currentRoundOverride)||deriveCurrentRoundFromDate();
+    state.currentRound=Number(await secureRpc('bilbbet_current_round'));
     const requested=new URLSearchParams(window.location.search).get('round');
     const round=/^(?:[1-9]|1[0-9]|2[0-6])$/.test(requested||'')?Number(requested):state.currentRound;
     if(controlsResult.status==='fulfilled'&&pricesResult.status==='fulfilled'&&Array.isArray(pricesResult.value))
@@ -9365,7 +9373,7 @@
   }
 
   const savedOverride = await sget('bilbbet2_current_round_override');
-  const resolvedRound = savedOverride || deriveCurrentRoundFromDate();
+  const resolvedRound = Number(await secureRpc('bilbbet_current_round'));
   state.currentRoundOverride = savedOverride || null;
   state.currentRound = resolvedRound; state.h2hRound = resolvedRound; state.leadingAtRound = resolvedRound; state.specialsRound = resolvedRound;
   const savedCupFixtures = await sget('bilbbet2_cup_fixtures');
