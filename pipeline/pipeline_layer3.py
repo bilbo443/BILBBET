@@ -14,13 +14,9 @@ Design rules carried over from every layer before this one:
     that someone questions later) has a full trail, not just a console
     scrollback that's already gone.
 
-What this does NOT do yet: regenerate the actual futures odds. The full
-Monte Carlo simulation (coefficient computation, division/Roddy/cup
-projections) already exists from earlier work on this project, but it was
-built against the OLD historical CSV format, not this sheet's live
-structure. `regenerate_futures_odds()` is the integration point where that
-adapter needs to be built -- deliberately left unimplemented rather than
-faked, so nobody mistakes a dry run for a real odds refresh.
+The simulation adapter regenerates division futures. run_refresh.py then refreshes
+Roddy, FA Cup and ECL futures and shared leader checkpoints, validates complete
+coverage and stages the exact score inputs beside the review draft.
 """
 import os
 import json
@@ -103,11 +99,8 @@ def regenerate_futures_odds(extracted_results, coeffs_path, roster_path, history
     copies quietly drift out of sync with the live site's real data in the
     first place.
 
-    Scope note: this covers division futures ('eliza' market) as one
-    complete, tested vertical slice. Roddy/FA Cup/ECL use the same
-    coefficient-blend approach and the same build_samplers() pattern --
-    extending to them is the same method applied again, not new design
-    work, and is reasonable to scope as a separate follow-up pass.
+    This adapter returns the division slice. run_refresh.py adds the whole-league
+    Roddy/FA Cup/ECL markets before the conversion/publication guard accepts it.
     """
     return regenerate_division_futures(extracted_results, coeffs_path=coeffs_path,
                                         divs_path=roster_path, history_path=history_path)

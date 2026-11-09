@@ -44,6 +44,7 @@ explicit publish action.
 import json
 import argparse
 import os
+from pathlib import Path
 
 MARGIN = 1.05
 ODDS_FLOOR = 1.005
@@ -81,8 +82,8 @@ def pct_to_market_odds(pct):
 
 
 def convert_draft_to_publishable(draft_path, live_futures_path, out_path):
-    draft = json.load(open(draft_path))
-    live = json.load(open(live_futures_path))
+    draft = json.loads(Path(draft_path).read_text())
+    live = json.loads(Path(live_futures_path).read_text())
     if 'futures_refresh' in draft:
         from futures_refresh_guard import validate_complete
         validate_complete(draft)
@@ -122,16 +123,15 @@ def convert_draft_to_publishable(draft_path, live_futures_path, out_path):
 
     if 'futures_refresh' in draft: publishable['futures_refresh']=draft['futures_refresh']
 
-    # The simulation above only recalculates division markets. The remaining
-    # markets are copied from live futures, so reconcile their identities with
-    # the roster draft and suspend a copied market if its field has changed.
+    # Reconcile registry identities in any inherited rows. Whole-league sections
+    # supplied by the current validated draft have already been regenerated.
     roster_path = os.path.join(os.path.dirname(out_path), 'admin_teams.json')
     if not os.path.exists(roster_path):
         roster_path = os.path.join(os.path.dirname(live_futures_path), 'admin_teams.json')
     if os.path.exists(roster_path):
-        current = json.load(open(roster_path))
+        current = json.loads(Path(roster_path).read_text())
         prior_path = os.path.join(os.path.dirname(live_futures_path), 'admin_teams.json')
-        prior = json.load(open(prior_path))
+        prior = json.loads(Path(prior_path).read_text())
         old_by_id = {str(t['id']): t['name'] for t in prior}
         aliases = {old_by_id[str(t['id'])]: t['name'] for t in current
                    if str(t['id']) in old_by_id and old_by_id[str(t['id'])] != t['name']}
@@ -180,7 +180,7 @@ def convert_draft_to_publishable(draft_path, live_futures_path, out_path):
         cup_eliminated = set()
         cup_state_path = os.path.join(os.path.dirname(live_futures_path), 'official_fa_cup_draw.json')
         if os.path.exists(cup_state_path):
-            cup_state = json.load(open(cup_state_path))
+            cup_state = json.loads(Path(cup_state_path).read_text())
             if cup_state.get('preliminary_results_final'):
                 cup_eliminated = set(cup_state.get('eliminated_teams', []))
             if cup_state.get('r64_results_final'):
@@ -208,7 +208,7 @@ def convert_draft_to_publishable(draft_path, live_futures_path, out_path):
             for row in markets.get('promotion_pct', []):
                 row['suspended'] = True
 
-    json.dump(publishable, open(out_path, 'w'), indent=2)
+    Path(out_path).write_text(json.dumps(publishable, indent=2))
 
     summary = []
     if os.path.exists(roster_path):
