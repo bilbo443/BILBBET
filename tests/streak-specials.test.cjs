@@ -57,11 +57,23 @@ for(const market of markets)assert(ctx.streakTeamTag(market.teamId),'Every curre
 assert(ctx.renderStreakSpecials().includes('Still searching for a winning stripe.'));
 console.log('PASS: all eligible teams have ID-based display tags; unknown teams remain untagged.');
 
-assert(ctx.renderStreakSpecials().includes('Unbeaten · first league loss'));
 assert(ctx.renderStreakSpecials().includes('Winless · first league win'));
+assert(!ctx.renderStreakSpecials().includes('Unbeaten · first league loss'));
+ctx.state.streakKind='LOSS';
+assert(ctx.renderStreakSpecials().includes('Unbeaten · first league loss'));
+assert(!ctx.renderStreakSpecials().includes('Winless · first league win'));
+ctx.state.streakKind='WIN';
 assert(ctx.renderStreakSpecials().includes('Later rounds ('));
 assert(!ctx.renderStreakSpecials().includes('data-streak-view'));
 
 assert(ctx.renderStreakSpecials().includes('Round 5 (657)'),'Jarvis round labels include projected days from end of last-win window');
 assert(ctx.renderStreakSpecials().includes('Round 6 (664)'));
 assert(!ctx.renderStreakSpecials().includes('No win this season ('),'No-event outcome has no invented round date');
+
+vm.runInContext(part('  function renderStreakHomeCard(','  function renderHomeTab('),ctx);
+assert(ctx.renderStreakHomeCard().includes('data-open-streak="WIN"'));
+assert(ctx.renderStreakHomeCard().includes('data-open-streak="LOSS"'));
+ctx.render=()=>{};ctx.state.novelty=[];
+ctx.openStreakSpecials('LOSS');
+assert.equal(ctx.state.activeTab,'SPECIALS');assert.equal(ctx.state.specialsSubTab,'streaks');assert.equal(ctx.state.streakKind,'LOSS');
+ctx.openStreakSpecials('WIN');assert.equal(ctx.state.streakKind,'WIN');
