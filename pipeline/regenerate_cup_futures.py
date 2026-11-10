@@ -155,19 +155,34 @@ def group_standings(rng, samplers, group):
     return sorted(group, key=lambda t: (-pts[t], -sfor[t])), pts, sfor
 
 
-def run_ecl_seed(seed, ecl_field, samplers_builder, n_sim=N_SIM):
+def run_ecl_seed(seed, ecl_field, samplers_builder, n_sim=N_SIM, pot1=None, groups=None):
     rng = np.random.default_rng(seed)
     samplers = samplers_builder(rng)
     reach = {t: {'knockout': 0, 'sf': 0, 'final': 0, 'win': 0} for t in ecl_field}
 
+    fixed = [list((groups or {}).get(g, [])) for g in ('A', 'B', 'C')]
+    assigned = [t for g in fixed for t in g]
+    if len(set(assigned)) != len(assigned) or not set(assigned) <= set(ecl_field) or any(len(g)>4 for g in fixed):
+        raise ValueError('Invalid committed ECL groups')
+    if pot1 is not None and (len(pot1)!=3 or len(set(pot1))!=3 or not set(pot1)<=set(ecl_field)
+        or any(sum(t in pot1 for t in g)>1 or sum(t not in pot1 for t in g)>3 for g in fixed)):
+        raise ValueError('Invalid ECL pots')
     for _ in range(n_sim):
-        shuffled = list(ecl_field)
-        rng.shuffle(shuffled)
-        groups = [shuffled[0:4], shuffled[4:8], shuffled[8:12]]
+        drawn = [g.copy() for g in fixed]
+        if pot1 is not None:
+            first = [t for t in pot1 if t not in assigned];rng.shuffle(first)
+            second = [t for t in ecl_field if t not in pot1 and t not in assigned];rng.shuffle(second)
+            for g in drawn:
+                if not any(t in pot1 for t in g):g.append(first.pop())
+                while len(g)<4:g.append(second.pop())
+        else:
+            remaining=[t for t in ecl_field if t not in assigned];rng.shuffle(remaining)
+            for g in drawn:
+                while len(g)<4:g.append(remaining.pop())
 
         knockout_six = []
         all_pts, all_sfor = {}, {}
-        for g in groups:
+        for g in drawn:
             ranking, pts, sfor = group_standings(rng, samplers, g)
             knockout_six.extend(ranking[:2])
             all_pts.update(pts); all_sfor.update(sfor)

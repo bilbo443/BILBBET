@@ -1,0 +1,44 @@
+{
+  "season": "2026-27",
+  "field_team_ids": [
+    "002",
+    "020",
+    "021",
+    "022",
+    "026",
+    "030",
+    "041",
+    "050",
+    "056",
+    "069",
+    "075",
+    "085"
+  ],
+  "pot1_team_ids": [
+    "075",
+    "069",
+    "085"
+  ],
+  "group_matchdays": [
+    8,
+    10,
+    13
+  ],
+  "quarter_final_round": 15,
+  "semi_final_round": 18,
+  "final_round": 20,
+  "group_qualifiers": 2,
+  "total_qualifiers": 6,
+  "semi_final_byes": 2,
+  "win_points": 3,
+  "draw_points": 1,
+  "ranking": [
+    "match_points",
+    "fantasy_points_for"
+  ],
+  "groups": {
+    "A": [],
+    "B": [],
+    "C": []
+  }
+}
