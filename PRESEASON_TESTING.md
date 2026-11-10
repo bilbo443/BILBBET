@@ -1329,3 +1329,16 @@ Targeted follow-up 10 November 2026: six calendar dates aligned to the existing 
 - Overall stage markets pause while the draw changes. A stable-ID draw export feeds the existing futures refresh; no GitHub changes are needed between group announcements.
 - `supabase/live-ecl-draw.sql` installed; rollback-only backend regressions passed without live group/financial changes. Details and operator steps: `reports/ecl-live-draw-2026-11-11.md`.
 - Regressions: `tests/ecl-draw.test.cjs`, `tests/test_ecl_draw.py`, `supabase/live-ecl-draw-test.sql`.
+
+# ECL standalone calculator download
+
+The public ECL live draw tab offers Download ECL calculator data. It retrieves
+published model inputs with cache disabled, verifies two successive reads match,
+then exports timestamped JSON with stable IDs, aliases, pots, score histories,
+cup adjustments, shared tiers, live scores, official ECL fixtures, rules, model
+version and the 5% margin. A SHA-256 fingerprint identifies the model snapshot.
+Failed or changing inputs stop the download instead of using an old session copy.
+The file contains no account, balance, bet, credential or private correction data.
+It is a snapshot for a standalone sheet importer; importing/recalculating within
+the external draw spreadsheet is a separate installation, not automatic publication
+into Bilbbet. Refresh the download before the draw.
