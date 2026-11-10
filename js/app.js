@@ -771,22 +771,16 @@
 
   const FUTURE_DIVS = Object.keys(FUTURES.divisions);
   const BASE_TABS = ['HOME', 'FUTURES', 'H2H', 'TIPPING', 'SPECIALS', 'STATS', 'MY BETS'];
-  // Hidden from the public site entirely until the Eliza organisation has
-  // publicly announced the division makeups -- these tabs all expose team
-  // groupings, fixtures, or division names. Admin flips
-  // state.divisionsAnnounced once it's public. Admins still see everything
-  // (they need it to prepare), so this gate is deliberately only applied
-  // to the non-admin view.
+  // The roster and every division are public. Keep the legacy query
+  // functions for existing render callers, without obsolete launch switches.
   const CURTAINED_TABS = ['FUTURES', 'H2H', 'TIPPING'];
-  // Release settled leagues before Division 3 and the full cup fields settle.
-  // The old global switch still controls the later full-roster release.
+  // Legacy pricing/publication paths still use these constants. Removing the
+  // obsolete UI switch must not change their quoted prices or fixture guards.
   const EARLY_DIV12_RELEASE = true;
   const EARLY_DIVISIONS = ['ELIZA CUP (D1)', 'DIVISION 2A', 'DIVISION 2B'];
-  function partialRelease(){
-    return false; // All divisions are now publicly visible.
-  }
-  function availableDivision(div){ return !partialRelease() || EARLY_DIVISIONS.includes(div); }
-  function curtainDown(){ return !EARLY_DIV12_RELEASE && !state.divisionsAnnounced && !(state.user && state.user.isAdmin); }
+  function partialRelease(){ return false; }
+  function availableDivision(div){ return true; }
+  function curtainDown(){ return false; }
   function currentTabs(){
     const base = curtainDown() ? BASE_TABS.filter(t => !CURTAINED_TABS.includes(t)) : BASE_TABS;
     return state.user && state.user.isAdmin ? [...base, 'ADMIN'] : base;
@@ -5315,9 +5309,8 @@
     // Finals brackets are entered when known. A conference may have no
     // fixture in a particular playoff week, so its absence is not an alert.
     const flagFixtures = currentCupFixtureGaps().length>0;
-    const resolvableSingles = bets.filter(b => b.selections.length===1 && betHasReviewableResult(b));
     const readyCount = bets.filter(b => betHasReviewableResult(b)).length;
-    const flagBets = resolvableSingles.length > 0 || readyCount > 0;
+    const flagBets = readyCount > 0;
     const flagSpecials = (state.suggestions||[]).filter(s => s.status === 'PENDING_REVIEW').length > 0;
     const flagPunters = pending.length > 0;
 
@@ -5347,6 +5340,8 @@
           Only override it for a genuine edge case that date isn't correct for (a real-world bye week or
           schedule slip round_dates.json doesn't reflect yet).
         </p>
+        <details id="admin-round-override" ${state.currentRoundOverride?'open':''}>
+          <summary style="cursor:pointer;padding:8px 0;">Manual round override</summary>
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
           <select class="bb-select" id="admin-current-round" style="width:140px;">
             ${Array.from({length:26},(_, i) => i+1).map(r => `<option value="${r}" ${r===state.currentRound?'selected':''}>Round ${r}</option>`).join('')}
@@ -5354,13 +5349,16 @@
           <button class="bb-btn ghost" id="save-current-round">Set override</button>
           ${state.currentRoundOverride ? `<button class="bb-btn ghost" id="clear-current-round-override" style="border-color:#8fc98f;color:#8fc98f;">Clear override, go back to automatic</button>` : ''}
         </div>
-        <span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;display:block;margin-top:8px;">Rounds before this are greyed out everywhere as already played. Changing this reopens betting fresh.</span>
+        <span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;display:block;margin-top:8px;">Rounds before this are treated as already played. Overrides pause automatic progression; check the betting status after changing one.</span>
+        </details>
       </div>
       <div class="bb-card" style="margin-bottom:1.5rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
         <span style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);color:#9a9a9a;">Refreshes Home match and median offers and their server quotes. Precomputed futures, leading-at and fixed specials require a separate simulation refresh.</span>
         <button class="bb-btn ghost" id="refresh-featured-fixtures" ${state.refreshingFeatured?'disabled':''}>${state.refreshingFeatured?'Refreshing\u2026':'Refresh Home offers for Round '+state.currentRound}</button>
         ${state.refreshedFeaturedInfo ? `<span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#8fc98f;width:100%;">${esc(state.refreshedFeaturedInfo)}</span>` : ''}
       </div>
+      <details id="admin-season-archive" style="margin-bottom:16px;">
+        <summary style="cursor:pointer;padding:10px 0;font-weight:600;">Season label &amp; end-of-season archive</summary>
       <h3>End of season</h3>
       <div class="bb-card" style="margin-bottom:1.5rem;border-color:#a3402f;">
         <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-top:0;">
@@ -5383,6 +5381,9 @@
         </p>
         <button class="bb-btn ghost" id="end-season-btn" style="border-color:#a3402f;color:#c0604f;">End season &amp; archive</button>
       </div>
+      </details>
+      <details id="admin-season-prizes" style="margin-bottom:16px;" ${Object.values(state.seasonClosed).some(Boolean)?'open':''}>
+        <summary style="cursor:pointer;padding:10px 0;font-weight:600;">Seasonal tipping prize release</summary>
       <h3>Tipping season prizes</h3>
       <div class="bb-card" style="margin-bottom:1.5rem;">
         <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-top:0;">
@@ -5400,6 +5401,7 @@
           <span>Combined competition (all tipping) season closed</span>
         </label>
       </div>
+      </details>
       <h3>Round betting</h3>
       <div class="bb-card" style="margin-bottom:1.5rem;">
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
@@ -5432,15 +5434,8 @@
           <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin:6px 0 0;">Off (default): advancing to a new round always force-reopens betting, regardless of how last round was left. On: that automatic reopen is skipped -- betting only opens when you click "Reopen betting" yourself, even after the round ticks over.</p>
         </div>
       </div>
-      <h3>Division makeups &amp; fixtures</h3>
-      <div class="bb-card" style="margin-bottom:1.5rem;">
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
-          <span class="bb-pill" style="background:${state.divisionsAnnounced?'#1e3a2a':'#3a2a26'};color:${state.divisionsAnnounced?'#7fbf8f':'#c0604f'};">${state.divisionsAnnounced?'ANNOUNCED':'CURTAIN DOWN'}</span>
-          <span style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">${EARLY_DIV12_RELEASE?'Division 1 and 2 are public in H2H, Tipping and Futures. Division 3 and whole-league markets are held.':state.divisionsAnnounced?'Divisions are public \u2014 H2H, Tipping and Futures are visible to everyone.':'H2H, Tipping and Futures are hidden from non-admins (you still see them).'}</span>
-        </div>
-        <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin:0 0 10px;">Leave this down until the Eliza organisation has publicly announced the division makeups. While down, non-admins see only the election markets, Specials, Stats and My Bets \u2014 the featured fixtures/futures, boosted odds, tipping nudge and point projection are all hidden from the home page too.</p>
-        <button class="bb-btn ${state.divisionsAnnounced?'ghost':''}" id="toggle-divisions-announced-btn" style="padding:8px 14px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">${EARLY_DIV12_RELEASE?'Division 1 and 2 public (Division 3 held)':state.divisionsAnnounced?'Put the curtain back down':'Divisions are public \u2014 raise the curtain'}</button>
-      </div>
+      <details id="admin-launch-setup" style="margin-bottom:16px;">
+        <summary style="cursor:pointer;padding:10px 0;font-weight:600;">Archived launch setup — Round 1, schedule fallback &amp; election</summary>
       <h3>Import Round 1 fixtures (Eliza Cup)</h3>
       <div class="bb-card" style="margin-bottom:1.5rem;">
         <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin:0 0 8px;">One fixture per line, home team and away team separated by a comma (or "vs"). Saved as a runtime override \u2014 no redeploy needed \u2014 and used for Round 1 Eliza Cup in place of the projected schedule. Paste the CSV export straight in once the sheet's filled out; a header line naming the columns is ignored.</p>
@@ -5458,7 +5453,7 @@
           <span style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">Real H2H fixtures are ${state.h2hRealScheduleConfirmed && !FIXTURES_ARE_PLACEHOLDER?'confirmed and open for betting.':'not confirmed yet \u2014 the fixture-list tab shows the interim "to win" market instead. "Beat the league median" stays available either way.'}</span>
         </div>
         <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin:0 0 10px;">
-          The fantasy platform only generates real H2H fixtures once its own lockout is in place, which lands after this needs to be bettable. Leave this off until the real schedule is actually confirmed each round -- flipping it on shows real head-to-head fixtures for betting instead of the interim market. Custom Matchup is unaffected either way.
+          Published per-division fixture confirmations govern the official schedule. This legacy fallback is only for fixtures without a published confirmation; it does not need switching on every round. Custom Matchup is unaffected.
         </p>
         <button class="bb-btn ${state.h2hRealScheduleConfirmed?'ghost':''}" id="toggle-h2h-schedule-confirmed-btn" style="padding:8px 14px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">${state.h2hRealScheduleConfirmed?'Revert to interim market':'Mark real schedule as confirmed'}</button>
       </div>
@@ -5473,6 +5468,9 @@
         </p>
         <button class="bb-btn ${state.electionBettingOpen?'':'ghost'}" id="toggle-election-betting-btn" style="padding:8px 14px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">${state.electionBettingOpen?'Close election betting':'Reopen election betting'}</button>
       </div>
+      </details>
+      <details id="admin-simulation-reminder" style="margin-bottom:16px;" ${state.oddsRefreshRequested?'open':''}>
+        <summary style="cursor:pointer;padding:10px 0;font-weight:600;">Simulation refresh reminder</summary>
       <h3>Odds refresh</h3>
       <div class="bb-card" style="margin-bottom:1.5rem;">
         <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-top:0;">
@@ -5482,6 +5480,7 @@
           ? `<div style="display:flex;align-items:center;gap:10px;"><span class="bb-pill" style="background:#4a3a10;color:#ffdd00;">Requested</span><button class="bb-btn ghost" id="clear-odds-refresh-btn" style="padding:6px 12px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Clear</button></div>`
           : `<button class="bb-btn ghost" id="request-odds-refresh-btn" style="padding:8px 14px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Flag odds as needing a refresh</button>`}
       </div>
+      </details>
 `;
     const FIXTURES_HTML = `\n      <h3>Cup fixtures (FA Cup &amp; ECL)</h3>
       <div class="bb-card" style="margin-bottom:1.5rem;">
@@ -5518,6 +5517,8 @@
         }).join('')}
         <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-top:4px;">Set fixtures when there's an actual cup weekend; clear them once it's passed so the tab correctly shows "No fixtures scheduled yet" the rest of the time.</p>
       </div>
+      <details id="admin-finals-fixtures" style="margin-bottom:16px;" ${state.currentRound>=24?'open':''}>
+        <summary style="cursor:pointer;padding:10px 0;font-weight:600;">Finals fixture setup — Rounds 24–26</summary>
       <h3>Playoff fixtures (Division 2 &amp; 3, Rounds 24-26)</h3>
       <div class="bb-card" style="margin-bottom:1.5rem;">
         ${PLAYOFF_DIVS.map(div => `
@@ -5542,6 +5543,7 @@
           </div>`).join('')}
         <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-top:4px;">Rounds 24-26 are the playoff weeks for Division 2/3 (no regular H2H fixtures those weeks) -- set matchups here once the bracket's known.</p>
       </div>
+      </details>
       <h3>ECL group draw</h3>
       <div class="bb-card" style="margin-bottom:1.5rem;">
         <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-top:0;">12 confirmed qualifiers this season. Assign each to a group of 4 once the real draw's known -- betting for a group opens automatically once it has all 4.</p>
@@ -5672,7 +5674,7 @@
         after a mistaken override) reverses that credit automatically, so balances always stay consistent with the bet's current status.
         Kick (void) cancels the bet and refunds the stake, as if it had never been placed.
       </p>`;
-    const SPECIALS_HTML = `\n      ${renderJoinMarkets(true)}
+    const SPECIALS_HTML = `\n      ${renderAdminJoinMarkets()}
       <h3>Specials &amp; Novelty</h3>
       <div class="bb-card" style="margin-bottom:1.5rem;">
         <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px;">
@@ -7812,9 +7814,16 @@
     return m.status!=='OPEN'||Date.now()>=Date.parse(m.deadline)||
       m.contenders.some(c=>(c.id===state.user?.teamId||c.team.toLowerCase()===String(state.user?.username||'').toLowerCase()));
   }
-  function renderJoinMarkets(admin=false){
-    if(!joinMarkets.length)return '';
-    return '<h3>Last Through the Door</h3>'+joinMarkets.filter(m=>!m.archived).map(m=>{
+  function renderAdminJoinMarkets(){
+    const markets=joinMarkets.filter(m=>!m.archived);
+    const active=markets.filter(m=>!['SETTLED','VOID'].includes(m.status));
+    const finished=markets.filter(m=>['SETTLED','VOID'].includes(m.status));
+    return renderJoinMarkets(true,active)+(finished.length?
+      '<details id="admin-finished-join-markets" style="margin-bottom:16px;"><summary style="cursor:pointer;padding:10px 0;font-weight:600;">Completed Last to Join specials ('+finished.length+')</summary>'+renderJoinMarkets(true,finished)+'</details>':'');
+  }
+  function renderJoinMarkets(admin=false,markets=joinMarkets){
+    if(!markets.length)return '';
+    return '<h3>Last Through the Door</h3>'+markets.filter(m=>!m.archived).map(m=>{
       const blocked=joinMarketBlocked(m);
       const contender=m.contenders.some(c=>(c.id===state.user?.teamId||c.team.toLowerCase()===String(state.user?.username||'').toLowerCase()));
       return `<div class="bb-card"><h4>Last to Join — Division ${esc(m.division||m.code)}${m.archived?' (previous market)':''}</h4>
@@ -9312,13 +9321,6 @@
     if(toggleElectionBettingBtn) toggleElectionBettingBtn.onclick = async () => {
       state.electionBettingOpen = !state.electionBettingOpen;
       await sset('bilbbet2_election_betting_open', state.electionBettingOpen);
-      render();
-    };
-    const toggleDivisionsBtn = $('#toggle-divisions-announced-btn');
-    if(toggleDivisionsBtn) toggleDivisionsBtn.onclick = async () => {
-      if(EARLY_DIV12_RELEASE){ alert('Division 3 stays closed during the Division 1 and 2 release.'); return; }
-      state.divisionsAnnounced = !state.divisionsAnnounced;
-      await sset('bilbbet2_divisions_announced', state.divisionsAnnounced);
       render();
     };
     const r1ImportBox = $('#r1-fixture-import');

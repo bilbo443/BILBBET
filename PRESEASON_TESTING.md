@@ -1296,3 +1296,13 @@ Targeted follow-up 10 November 2026: six calendar dates aligned to the existing 
 - Existing admin single-bet and multi-leg review controls apply the result only after confirmation. No automatic settlement or changes to accepted prices, balances or results.
 - Trusted-board collection expands win_round/lose_round, matching the actual market renderer; the old win/lose keys skipped their full price lists.
 - Regression: `node tests/round-extreme-results.test.cjs` covers published Rounds 1–4, field membership, aliases, zero/missing scores, ties, round gating and review controls.
+
+## In-season admin menu cleanup — 11 November 2026
+
+- Removed the obsolete division-announcement curtain button and its dead handler. All divisions remain public.
+- Round 1 import, legacy H2H schedule fallback and election controls are grouped under Archived launch setup. Existing overrides and historical data are retained.
+- Manual round overrides, seasonal prize release, simulation reminders and end-of-season archiving are collapsible. Active overrides, closed prize sections and outstanding refresh reminders expand automatically.
+- Finals fixture setup is collapsed before Round 24 and opens during finals. Cup entries and ECL group setup remain directly available.
+- Settled/void Last to Join specials are collapsed under completed specials. Open and closed-but-unsettled markets remain visible for administration.
+- Weekly betting controls, Home-offer refresh, bet review, punter approvals and settlement controls remain available. Existing permission checks, deadline/fixture guards and quoted prices are unchanged.
+- Regression: `node tests/admin-menu-layout.test.cjs` runs the actual admin renderer across every tab and checks controls, collapsed/open states and render-only behaviour.
