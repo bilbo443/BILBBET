@@ -1287,3 +1287,12 @@ Home now links directly to First Win and First Loss streak specials. Each shortc
 Process follow-up 10 November 2026: see reports/process-sweep-2026-11-10.md for verified coverage, cleanup, three-way draw/advancement suggestions, streak quote cache completeness, batched recoverable Stats reads, actionable current-round cup flags and six pending calendar conflicts. No financial records or source prices changed.
 
 Targeted follow-up 10 November 2026: six calendar dates aligned to the existing first-fixture schedule in client/server, with CI drift and fixture-count checks. Pure round-completion helper now requires expected tier coverage, unique fixtures/teams, usable scores and the configured check time. Actual 66-team synthetic GW5 simulation/staging/repeatability and GW6 client rollover rehearsals pass without live scores or financial operations. See reports/rollover-rehearsal-2026-11-10.md. The 19:00 house rule is unchanged pending actual kickoff times.
+
+## Weekly highest/lowest-score special grading — 11 November 2026
+
+- Highest/lowest round specials now suggest WON/LOST from published real weekly scores, using the same scheduled team field as their prices.
+- Require a past, completed round and finite scores for every eligible team. Zero is a valid score. Current/split rounds and incomplete fields stay unresolved.
+- Equal highest/lowest selections remain for admin review until a tie-payment policy is confirmed; non-tied losing selections can still be graded.
+- Existing admin single-bet and multi-leg review controls apply the result only after confirmation. No automatic settlement or changes to accepted prices, balances or results.
+- Trusted-board collection expands win_round/lose_round, matching the actual market renderer; the old win/lose keys skipped their full price lists.
+- Regression: `node tests/round-extreme-results.test.cjs` covers published Rounds 1–4, field membership, aliases, zero/missing scores, ties, round gating and review controls.

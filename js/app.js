@@ -415,7 +415,7 @@
   // picks only for now (regular division matches, FA Cup, ECL, and
   // Playoffs all share this exact pick format, so one function covers all
   // four). End-of-round leader bets also use their actual historical table.
-  // Round win/lose specials, season-long futures and unsupported picks
+  // Season-long futures and unsupported picks
   // return null -- no suggestion, stay fully manual -- not
   // because they're impossible to resolve automatically, just not yet
   // built out.
@@ -437,6 +437,7 @@
     const parts = pickId.split('|');
     if(parts[0] === 'STREAK')return streakResult(pickId);
     if(parts[0] === 'LEADAT')return computeLeaderAfterResult(parts);
+    if(parts[0] === 'SPECIALFIX' && ['win_round','lose_round'].includes(parts[1]))return computeRoundExtremeResult(parts);
     if(parts[0] === 'ELECTION_SEAT'){
       const name = parts[1];
       if(!(name in ELECTION_VOTE_COUNTS)) return null;
@@ -564,6 +565,24 @@
     if(side === 'res-a') return aWon ? 'WON' : 'LOST';
     if(side === 'res-b') return aWon ? 'LOST' : 'WON';
     return null;
+  }
+  function computeRoundExtremeResult(parts){
+    if(parts.length!==4 || !/^R\d+$/.test(parts[2]))return null;
+    const round=Number(parts[2].slice(1)),team=resolveTeamName(parts[3]);
+    const date=ROUND_DATES[round];
+    // Scores can be present while a split/current round is still running.
+    // Only offer grading after that round has completed and rolled forward.
+    if(!Number.isInteger(round)||round<1||round>26||round>=state.currentRound||
+       !date||Date.now()<sydneyKickoffUTC(date))return null;
+    const teams=roundExtremeTeams(round);
+    if(!teams.length||!teams.includes(team))return null;
+    const scores=teams.map(t=>REAL_RESULTS[t]?.[round-1]);
+    if(!scores.every(Number.isFinite))return null;
+    const extreme=parts[1]==='win_round'?Math.max(...scores):Math.min(...scores);
+    if(REAL_RESULTS[team][round-1]!==extreme)return 'LOST';
+    // Accepted odds cannot be reduced for a dead heat without an agreed rule.
+    // Leave tied highest/lowest selections for the existing admin override.
+    return scores.filter(score=>score===extreme).length===1?'WON':null;
   }
   function computeLeaderAfterResult(parts){
     if(parts.length!==4 || !/^\d+$/.test(parts[2]))return null;
@@ -2306,9 +2325,7 @@
   // re-run the simulation.
   const ALL_TEAMS = Object.keys(H2H_SHIFT);
   const roundExtremeCache = {};
-  function computeRoundExtremes(round, nSims){
-    if(roundExtremeCache[round]) return roundExtremeCache[round];
-    nSims = nSims || 8000;
+  function roundExtremeTeams(round){
     const scheduled = new Set();
     for(const rounds of Object.values(H2H_SCHEDULE)){
       for(const [a,b] of (rounds[round-1] || [])){
@@ -2316,7 +2333,12 @@
         if(b !== AVERAGE_TEAM) scheduled.add(b);
       }
     }
-    const teams = ALL_TEAMS.filter(t => scheduled.has(t));
+    return ALL_TEAMS.filter(t => scheduled.has(t));
+  }
+  function computeRoundExtremes(round, nSims){
+    if(roundExtremeCache[round]) return roundExtremeCache[round];
+    nSims = nSims || 8000;
+    const teams = roundExtremeTeams(round);
     const winCounts = {}, loseCounts = {};
     teams.forEach(t => { winCounts[t] = 0; loseCounts[t] = 0; });
     const samples = {};
@@ -7870,7 +7892,7 @@
   async function priceSyncFingerprint(){
     const data=Object.fromEntries(Object.entries(DATA).filter(([key])=>!['real_results','carry_balances'].includes(key)));
     const input={
-      priceModelVersion:'full-season-h2h-and-streaks-v1',
+      priceModelVersion:'full-season-h2h-and-round-specials-v2',
       season:seasonKeyPart(),round:state.currentRound,data,
       controls:{
         cupFixtures:state.cupFixtures,
@@ -8170,7 +8192,7 @@
           if(f.round===state.currentRound)htmlPrices(renderH2HMarket(computeH2HMarket(f.teamA,f.teamB,state.currentRound)));
         }
       }
-      for(const key of ['win','lose','charity','philanthropy']){
+      for(const key of ['win_round','lose_round','charity','philanthropy']){
         state.specialsExtremeExpanded=key;
         htmlPrices(renderSpecialsTab());
       }
