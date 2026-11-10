@@ -770,23 +770,17 @@
   const K = 8;
 
   const FUTURE_DIVS = Object.keys(FUTURES.divisions);
-  const BASE_TABS = ['HOME', 'FUTURES', 'H2H', 'TIPPING', 'SPECIALS', 'STATS', 'MY BETS'];
-  // Hidden from the public site entirely until the Eliza organisation has
-  // publicly announced the division makeups -- these tabs all expose team
-  // groupings, fixtures, or division names. Admin flips
-  // state.divisionsAnnounced once it's public. Admins still see everything
-  // (they need it to prepare), so this gate is deliberately only applied
-  // to the non-admin view.
+  const BASE_TABS = ['HOME', 'FUTURES', 'H2H', 'TIPPING', 'SPECIALS', 'STATS', 'BETTING LEDGER', 'MY BETS'];
+  // The roster and every division are public. Keep the legacy query
+  // functions for existing render callers, without obsolete launch switches.
   const CURTAINED_TABS = ['FUTURES', 'H2H', 'TIPPING'];
-  // Release settled leagues before Division 3 and the full cup fields settle.
-  // The old global switch still controls the later full-roster release.
+  // Legacy pricing/publication paths still use these constants. Removing the
+  // obsolete UI switch must not change their quoted prices or fixture guards.
   const EARLY_DIV12_RELEASE = true;
   const EARLY_DIVISIONS = ['ELIZA CUP (D1)', 'DIVISION 2A', 'DIVISION 2B'];
-  function partialRelease(){
-    return false; // All divisions are now publicly visible.
-  }
-  function availableDivision(div){ return !partialRelease() || EARLY_DIVISIONS.includes(div); }
-  function curtainDown(){ return !EARLY_DIV12_RELEASE && !state.divisionsAnnounced && !(state.user && state.user.isAdmin); }
+  function partialRelease(){ return false; }
+  function availableDivision(div){ return true; }
+  function curtainDown(){ return false; }
   function currentTabs(){
     const base = curtainDown() ? BASE_TABS.filter(t => !CURTAINED_TABS.includes(t)) : BASE_TABS;
     return state.user && state.user.isAdmin ? [...base, 'ADMIN'] : base;
@@ -841,6 +835,8 @@
     tippingSubTab: 'PICKS', tippingSection: 'ELIZA', tippingRound: null, tippingViewRound: null, tippingData: null, tippingPending: {}, tippingAllPicks: null, round1LegacyTips: false,
     tippingRewardChecked: null, tippingRewardBanner: null, tipReminderStatus: null,
     perfectRoundStatus: {}, // cache keyed by `${username}|${round}|${sectionKey}` -- true only, never explicitly false/missed (see loadPerfectRoundStatus)
+    publicBets:null,publicBetsError:'',publicBetsUpdated:null,publicBetsSkipped:0,publicBetsPage:1,
+    publicBetsFilters:{punter:'',status:'ALL',type:'ALL',round:'ALL',sort:'newest'},
     preseasonData: null, preseasonPending: {}, preseasonLeaderboard: null, preseasonResults: null, preseasonAllPicks: null, openHelpTip: null, homeTippingNudge: null, txHistory: null, txHistoryExpanded: false, recentWinners: null, trashTalkBanner: null,
     tippingLeaderboardMode: 'OVERALL', tippingLeaderboardRound: null, tippingLeaderboard: null, leaderboardKind: 'WEEKLY',
     tippingLeaderboardSection: 'OVERALL', tippingLeaderboardSortBy: 'oddsPoints', tippingLeaderboardSortDir: 'desc',
@@ -2621,6 +2617,7 @@
     { tab: 'TIPPING', title: 'Tipping', body: 'A separate prediction game alongside the main betting \u2014 free to play, but topping it pays real clams (see the Prizes tab for the full breakdown). Tip a winner for this week\'s fixtures across whichever competitions you like, hit Confirm to lock them in, and see how you stack up on the leaderboard by correct picks, by the odds those picks were worth, or by accuracy. Get every fixture in a section right and you can turn those same tips into a real multi bet, or just enjoy the bragging rights.' },
     { tab: 'SPECIALS', title: 'Specials', body: 'Round-by-round and season-long novelty bets -- who\'ll be leading or trailing after a given round, most charity, most philanthropy, plus a spot to suggest your own bet for others to weigh in on.' },
     { tab: 'STATS', title: 'Stats', body: 'Leaderboards across the platform -- biggest stakes, best multis, most wins, and (once a handful of rounds are played) which teams are consistently beating or missing their own odds.' },
+    { tab: 'BETTING LEDGER', title: 'Betting Ledger', body: 'Browse everyone’s bets, accepted odds and outcomes. Filter by punter, round, status or single/multi. This is a read-only ledger; your personal bet actions stay in My Bets.' },
     { tab: 'MY BETS', title: 'My Bets', body: 'Every bet you\'ve placed, with its current status -- pending, won, lost, or void -- and your running record across the season.' },
   ];
   const TUTORIAL_STEPS_ADMIN = [
@@ -2907,7 +2904,7 @@
   // query, so this never depends on JS to detect screen size.
   function mainTabs(){
     const items = currentTabs().map(t => {
-      const label = t==='MY BETS'?'My Bets':(t==='ADMIN'?'Admin':(t==='H2H'?'H2H':(t==='HOME'?'Home':(t==='FUTURES'?'Futures':(t==='TIPPING'?'Tipping':t)))));
+      const label = t==='BETTING LEDGER'?'Betting Ledger':t==='MY BETS'?'My Bets':(t==='ADMIN'?'Admin':(t==='H2H'?'H2H':(t==='HOME'?'Home':(t==='FUTURES'?'Futures':(t==='TIPPING'?'Tipping':t)))));
       const adminFlag = (t==='ADMIN' && state.user && state.user.isAdmin && adminNeedsAttention())
         ? ' <span title="Needs attention" style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);">\u{1F6A9}</span>' : '';
       const tipFlag = (t==='TIPPING' && state.tipReminderStatus === true)
@@ -4453,6 +4450,78 @@
     finally{cashoutBusy=false;}
   }
 
+  // A separate read-only projection: never reuse the admin betting table.
+  function publicBetRecord(bet){
+    if(!bet||typeof bet.username!=='string'||!Array.isArray(bet.selections)||!bet.selections.length||bet.selections.some(s=>!s||typeof s!=='object'))return null;
+    const stake=Number(bet.stake),combinedOdds=Number(bet.combinedOdds);
+    if(!Number.isFinite(stake)||stake<0||!Number.isFinite(combinedOdds)||combinedOdds<1)return null;
+    const selections=bet.selections.map(s=>({id:String(s.id||''),label:typeof s.label==='string'?s.label:'',team:typeof s.team==='string'?s.team:'',odds:Number(s.odds),result:['WON','LOST','VOID'].includes(s.result)?s.result:'PENDING'}));
+    if(selections.some(s=>!s.id||!Number.isFinite(s.odds)||s.odds<1))return null;
+    const timestamp=Number(bet.timestamp)||Date.parse(bet.timestamp)||0;
+    return {id:String(bet.id||''),username:bet.username,timestamp,stake,combinedOdds,selections,
+      status:['WON','LOST','VOID','CASHED_OUT'].includes(bet.status)?bet.status:'PENDING',potentialReturn:bet.potentialReturn!=null&&Number.isFinite(Number(bet.potentialReturn))?Number(bet.potentialReturn):stake*combinedOdds,
+      ...(typeof bet.actualReturn==='number'&&Number.isFinite(bet.actualReturn)?{actualReturn:bet.actualReturn}:{}),
+      cashOut:{amount:Number.isFinite(Number(bet.cashOut?.amount))?Number(bet.cashOut.amount):0}};
+  }
+  let publicBetsLoading=false;
+  async function loadPublicBetLedger(){
+    if(publicBetsLoading)return;
+    publicBetsLoading=true;state.publicBetsError='';
+    try{
+      // These indexes/bets already have public read permission; no account,
+      // results, price publication or settlement writes belong in this loader.
+      const indexes=await secureRead(['bilbbet2_all_bets_index','bilbbet2_users_index']);
+      const ids=indexes.bilbbet2_all_bets_index??[],users=indexes.bilbbet2_users_index??[];
+      if(!Array.isArray(ids)||!Array.isArray(users))throw new Error('Betting indexes could not be read.');
+      const profiles=await sgetMany(users.map(u=>'bilbbet2_user:'+String(u).toLowerCase()));
+      const admins=new Set(['admin',...profiles.filter(u=>u?.isAdmin).map(u=>String(u.username).toLowerCase())]);
+      const bets=await sgetMany([...new Set(ids)].map(id=>'bilbbet2_bet:'+id));
+      const visible=bets.filter(b=>b&&!admins.has(String(b.username).toLowerCase()));
+      const projected=visible.map(publicBetRecord);
+      state.publicBetsSkipped=projected.filter(b=>!b).length+bets.filter(b=>!b).length;
+      state.publicBets=projected.filter(Boolean);state.publicBetsUpdated=Date.now();
+    }catch(error){state.publicBetsError=error.message||'Betting records could not be loaded.';}
+    finally{publicBetsLoading=false;render();}
+  }
+  function filteredPublicBets(){
+    const f=state.publicBetsFilters;
+    const rows=(state.publicBets||[]).filter(b=>
+      (!f.punter||b.username.toLowerCase().includes(f.punter.toLowerCase()))&&
+      (f.status==='ALL'||b.status===f.status)&&
+      (f.type==='ALL'||(f.type==='SINGLE'?b.selections.length===1:b.selections.length>1))&&
+      (f.round==='ALL'||b.selections.some(s=>{
+        let r;try{r=getPickRound(s.id);}catch(error){return false;}return f.round==='SEASON'?r===null:r===Number(f.round);
+      })));
+    const sort=f.sort==='stake'?(a,b)=>b.stake-a.stake:f.sort==='return'?(a,b)=>b.potentialReturn-a.potentialReturn:(a,b)=>b.timestamp-a.timestamp;
+    return rows.sort((a,b)=>sort(a,b)||b.timestamp-a.timestamp||a.id.localeCompare(b.id));
+  }
+  function renderPublicBetLedger(){
+    const f=state.publicBetsFilters,select=(name,items)=>`<label>${esc(name)}<select class="bb-select" name="${name.toLowerCase()}" style="display:block;min-width:125px;">${items.map(([value,label])=>`<option value="${esc(value)}" ${String(f[name.toLowerCase()])===String(value)?'selected':''}>${esc(label)}</option>`).join('')}</select></label>`;
+    let html=`<h3>Betting Ledger</h3><p style="color:var(--bb-text-muted);">Everyone’s bets, with the odds accepted when placed. Public viewing only. Manage your own bets in My Bets.</p>
+      <form id="public-bets-filters" class="bb-card" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;">
+      <label>Punter<input class="bb-input" name="punter" value="${esc(f.punter)}" placeholder="Search punter" style="display:block;max-width:200px;"></label>
+      ${select('Status',[['ALL','All statuses'],['PENDING','Pending'],['WON','Won'],['LOST','Lost'],['VOID','Void'],['CASHED_OUT','Cashed out']])}
+      ${select('Type',[['ALL','Singles and multis'],['SINGLE','Singles'],['MULTI','Multis']])}
+      ${select('Round',[['ALL','All rounds'],['SEASON','Season / untimed'],...Array.from({length:26},(_,i)=>[String(i+1),'Round '+(i+1)])])}
+      ${select('Sort',[['newest','Newest first'],['stake','Largest stake'],['return','Largest potential return']])}
+      <button class="bb-btn" type="submit">Apply filters</button><button class="bb-btn ghost" type="button" id="refresh-public-bets">Refresh</button></form>`;
+    if(state.publicBetsError)html+=`<p role="alert" style="color:#e5a18b;">Couldn’t refresh the ledger: ${esc(state.publicBetsError)}. Use Refresh to retry.${state.publicBets!==null?' The previous snapshot is shown below.':''}</p>`;
+    if(state.publicBets===null)return html+`<p>${state.publicBetsError?'No betting records loaded.':'Loading betting records…'}</p>`;
+    const rows=filteredPublicBets(),size=25,pages=Math.max(1,Math.ceil(rows.length/size)),page=Math.min(Math.max(1,state.publicBetsPage),pages);
+    html+=`<p style="color:var(--bb-text-muted);">${rows.length} matching bet${rows.length===1?'':'s'} · Updated ${esc(fmtDate(state.publicBetsUpdated))}</p>`;
+    if(state.publicBetsSkipped)html+=`<p role="status">${state.publicBetsSkipped} unavailable or incomplete record(s) could not be displayed.</p>`;
+    if(!rows.length)return html+'<p>No bets match these filters.</p>';
+    html+=rows.slice((page-1)*size,page*size).map(b=>{
+      const settled=['WON','LOST','VOID','CASHED_OUT'].includes(b.status);
+      return `<article class="bb-card" style="margin-bottom:12px;overflow-wrap:anywhere;">
+        <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;"><strong>${esc(b.username)}</strong>${statusPill(b.status)}</div>
+        <p style="color:var(--bb-text-muted);margin:6px 0;">${esc(fmtDate(b.timestamp))} · ${b.selections.length===1?'Single':b.selections.length+'-leg multi'}</p>
+        ${b.selections.map(s=>`<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:7px 0;border-bottom:1px solid var(--bb-border);"><span>${esc(betSelectionLabel(s))}</span><span>${formatOdds(s.odds)}${b.selections.length>1?' · '+statusPill(s.result):''}</span></div>`).join('')}
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;"><span>Stake <strong>${fmt(b.stake)}</strong></span><span>Accepted odds <strong>${formatOdds(b.combinedOdds)}</strong></span><span>Potential return <strong>${fmt(b.potentialReturn)}</strong></span>${settled?`<span>${b.status==='VOID'?'Refunded':'Paid return'} <strong>${fmt(displayedBetReturn(b))}</strong></span>`:''}</div>
+      </article>`;
+    }).join('');
+    return html+`<div style="display:flex;gap:12px;align-items:center;justify-content:center;"><button class="bb-btn ghost" data-public-bets-page="${page-1}" ${page===1?'disabled':''}>Previous</button><span>Page ${page} of ${pages}</span><button class="bb-btn ghost" data-public-bets-page="${page+1}" ${page===pages?'disabled':''}>Next</button></div>`;
+  }
   function renderMyBetsTab(){
     if(!state.user) return '<p style="color:#9a9a9a;">Log in to see your bets.</p>';
     const prefsCard = `<div class="bb-card" style="margin-bottom:1rem;">
@@ -4832,43 +4901,81 @@
   const ECL_LABELS_FOR_PROFILE = { reach_knockout_pct: 'Reach Knockout Stage', reach_sf_pct: 'Reach Semi-Final', reach_final_pct: 'Reach Final', win_pct: 'Win the ECL' };
 
   function renderTeamProfileBilbbetHistory(teamName){
-    // The punter's username IS their Eliza Cup team name -- that's how
-    // registration works, so no separate link/mapping is needed. Direct
-    // lookup, same as any other username (getUser already lowercases).
     if(state.teamProfileBilbbetData === undefined || state.teamProfileBilbbetData === null || state.teamProfileBilbbetData.forTeam !== teamName){
       loadTeamProfileBilbbetHistory(teamName); // async -- fires off the fetch, this render shows a loading state
       return `<div class="bb-card"><p style="color:var(--bb-text-muted);margin:0;">Loading&hellip;</p></div>`;
     }
     const d = state.teamProfileBilbbetData;
+    if(d.error)return `<div class="bb-card" role="alert"><p>Betting history could not be loaded: ${esc(d.error)}</p><button class="bb-btn ghost" id="retry-profile-bets">Retry betting history</button></div>`;
     if(!d.user){
       return `<div class="bb-card"><p style="color:var(--bb-text-muted);margin:0;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">No bilbbet account registered under "${esc(teamName)}" yet.</p></div>`;
     }
     return `<div class="bb-card" style="margin-bottom:10px;display:flex;gap:20px;flex-wrap:wrap;">
         <div><div style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:var(--bb-text-muted);text-transform:uppercase;">Clam balance</div><div style="font-size:clamp(23px, calc(23px + 0.4vw), 26px);font-weight:700;">${fmt(d.user.balance)}</div></div>
-        <div><div style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:var(--bb-text-muted);text-transform:uppercase;">Tips this season</div><div style="font-size:clamp(23px, calc(23px + 0.4vw), 26px);font-weight:700;">${fmtCorrect(d.tipping.correct)}/${d.tipping.total}</div></div>
-        <div><div style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:var(--bb-text-muted);text-transform:uppercase;">Odds points</div><div style="font-size:clamp(23px, calc(23px + 0.4vw), 26px);font-weight:700;">${d.tipping.oddsPoints.toFixed(2)}</div></div>
+        ${d.tipping?`<div><div style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:var(--bb-text-muted);text-transform:uppercase;">Tips this season</div><div style="font-size:clamp(23px, calc(23px + 0.4vw), 26px);font-weight:700;">${fmtCorrect(d.tipping.correct)}/${d.tipping.total}</div></div>
+        <div><div style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:var(--bb-text-muted);text-transform:uppercase;">Odds points</div><div style="font-size:clamp(23px, calc(23px + 0.4vw), 26px);font-weight:700;">${d.tipping.oddsPoints.toFixed(2)}</div></div>`:'<p style="color:var(--bb-text-muted);">Tipping totals are unavailable for this view.</p>'}
       </div>
       <div class="bb-card" style="padding:0;overflow:hidden;">
+        ${d.warning?`<p role="status" style="padding:8px 14px;">${esc(d.warning)}</p>`:''}
         <div style="padding:12px 14px 6px;"><strong style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">Recent bets</strong></div>
-        ${!d.bets.length ? '<p style="color:var(--bb-text-muted);font-size:clamp(18px, calc(18px + 0.4vw), 21px);padding:0 14px 14px;">No bets placed yet.</p>' :
+        ${!d.bets.length ? `<p style="color:var(--bb-text-muted);font-size:clamp(18px, calc(18px + 0.4vw), 21px);padding:0 14px 14px;">${d.warning?'No matching bets in the available records.':'No bets placed yet.'}</p>` :
           d.bets.slice(0,10).map((b,i) => `<div style="padding:8px 14px;${i<Math.min(d.bets.length,10)-1?'border-bottom:1px solid var(--bb-border);':''}font-size:clamp(18px, calc(18px + 0.4vw), 21px);display:flex;justify-content:space-between;">
-            <span style="color:var(--bb-text-muted);">${b.selections.length>1?b.selections.length+'-leg multi':esc(b.selections[0]?.label||b.selections[0]?.team||'bet')}</span>
-            <span>${fmt(b.stake)} @ ${b.combinedOdds.toFixed(2)} <span style="color:var(--bb-text-muted);">(${b.status})</span></span>
+            <span style="color:var(--bb-text-muted);">${b.selections.map(s=>esc(betSelectionLabel(s))).join('<br>')}</span>
+            <span>${fmt(b.stake)} @ ${formatOdds(b.combinedOdds)} <span style="color:var(--bb-text-muted);">(${esc(b.status)})</span></span>
           </div>`).join('')}
       </div>`;
   }
+  function profileAccountTeamId(account){
+    const rows=DATA.admin_teams||[],id=value=>String(value).padStart(3,'0');
+    const explicit=account.teamId??account.team_id;
+    if(explicit!=null)return rows.some(t=>id(t.id)===id(explicit))?id(explicit):null;
+    const names=t=>[t.name,t.prev_names,...String(t.prev_names||'').split(',')].filter(Boolean);
+    const exact=s=>String(s||'').trim().toUpperCase();
+    let matches=rows.filter(t=>exact(t.name)===exact(account.username));
+    if(!matches.length)matches=rows.filter(t=>names(t).some(n=>exact(n)===exact(account.username)));
+    if(!matches.length){
+      // Legacy punctuation/case and an optional standalone FC suffix only.
+      // Check the entire registry; never guess between two teams.
+      const loose=s=>exact(s).normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Z0-9]+/g,' ').trim().replace(/\s+FC$/,'');
+      const key=loose(account.username);
+      if(key)matches=rows.filter(t=>names(t).some(n=>loose(n)===key));
+    }
+    const ids=[...new Set(matches.map(t=>id(t.id)))];return ids.length===1?ids[0]:null;
+  }
+  const profileHistoryLoads=new Set();
   async function loadTeamProfileBilbbetHistory(teamName){
-    const username = teamName; // the team name IS the punter username
-    const user = await getUser(username);
-    const ids = user ? await getIndex('bilbbet2_bets_index_' + username.toLowerCase()) : [];
-    const bets = (await Promise.all(ids.map(id => sget('bilbbet2_bet:'+id)))).filter(Boolean).sort((a,b) => b.timestamp - a.timestamp);
-    const lastPlayed = state.currentRound - 1;
-    const tipping = (user && lastPlayed >= 1)
-      ? (await computeTippingTotals('ALL', 1, lastPlayed))[username] || { correct: 0, total: 0, oddsPoints: 0 }
-      : { correct: 0, total: 0, oddsPoints: 0 };
-    if(state.viewingTeamProfile !== teamName) return; // navigated away while this was loading
-    state.teamProfileBilbbetData = { forTeam: teamName, user, bets, tipping };
-    render();
+    if(profileHistoryLoads.has(teamName))return;
+    profileHistoryLoads.add(teamName);
+    try{
+      const teamId=profileAccountTeamId({username:teamName});
+      if(!teamId)throw new Error('Team identity is ambiguous or unavailable.');
+      const indexes=await secureRead(['bilbbet2_users_index','bilbbet2_all_bets_index']);
+      const users=indexes.bilbbet2_users_index??[],ids=indexes.bilbbet2_all_bets_index??[];
+      if(!Array.isArray(users)||!Array.isArray(ids))throw new Error('Betting indexes could not be read.');
+      const profiles=(await sgetMany([...new Set(users.map(u=>String(u).toLowerCase()))].map(u=>'bilbbet2_user:'+u))).filter(Boolean);
+      const accounts=profiles.filter(u=>profileAccountTeamId(u)===teamId);
+      if(accounts.length>1)throw new Error('Multiple accounts match this team; an admin needs to check their team links.');
+      const user=accounts[0]||null,username=user?.username;
+      const raw=user?await sgetMany([...new Set(ids)].map(id=>'bilbbet2_bet:'+id)):[];
+      const matches=raw.filter(b=>b&&(profileAccountTeamId(b)===teamId||
+        (b.teamId==null&&b.team_id==null&&String(b.username).toLowerCase()===String(username).toLowerCase())));
+      const projected=matches.map(publicBetRecord),bets=projected.filter(Boolean);
+      const warning=raw.some(b=>!b)||projected.some(b=>!b)?'Some betting records are unavailable; this history may be incomplete.':'';
+      bets.sort((a,b)=>b.timestamp-a.timestamp||a.id.localeCompare(b.id));
+      let tipping=null;
+      if(user&&state.user&&state.currentRound>1){
+        try{
+          const totals=await computeTippingTotals('ALL',1,state.currentRound-1);
+          const record=Object.entries(totals).find(([name])=>String(name).toLowerCase()===String(username).toLowerCase());
+          tipping=record?.[1]||{correct:0,total:0,oddsPoints:0};
+        }catch(error){/* Tipping reads must not hide otherwise public bets. */}
+      }
+      if(state.viewingTeamProfile!==teamName)return;
+      state.teamProfileBilbbetData={forTeam:teamName,user,bets,tipping,warning};
+    }catch(error){
+      if(state.viewingTeamProfile!==teamName)return;
+      state.teamProfileBilbbetData={forTeam:teamName,error:error.message||'Could not read betting history.'};
+    }finally{profileHistoryLoads.delete(teamName);if(state.viewingTeamProfile===teamName)render();}
   }
 
   function renderRoundExtremeMarket(kind){
@@ -5315,9 +5422,8 @@
     // Finals brackets are entered when known. A conference may have no
     // fixture in a particular playoff week, so its absence is not an alert.
     const flagFixtures = currentCupFixtureGaps().length>0;
-    const resolvableSingles = bets.filter(b => b.selections.length===1 && betHasReviewableResult(b));
     const readyCount = bets.filter(b => betHasReviewableResult(b)).length;
-    const flagBets = resolvableSingles.length > 0 || readyCount > 0;
+    const flagBets = readyCount > 0;
     const flagSpecials = (state.suggestions||[]).filter(s => s.status === 'PENDING_REVIEW').length > 0;
     const flagPunters = pending.length > 0;
 
@@ -5347,6 +5453,8 @@
           Only override it for a genuine edge case that date isn't correct for (a real-world bye week or
           schedule slip round_dates.json doesn't reflect yet).
         </p>
+        <details id="admin-round-override" ${state.currentRoundOverride?'open':''}>
+          <summary style="cursor:pointer;padding:8px 0;">Manual round override</summary>
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
           <select class="bb-select" id="admin-current-round" style="width:140px;">
             ${Array.from({length:26},(_, i) => i+1).map(r => `<option value="${r}" ${r===state.currentRound?'selected':''}>Round ${r}</option>`).join('')}
@@ -5354,13 +5462,16 @@
           <button class="bb-btn ghost" id="save-current-round">Set override</button>
           ${state.currentRoundOverride ? `<button class="bb-btn ghost" id="clear-current-round-override" style="border-color:#8fc98f;color:#8fc98f;">Clear override, go back to automatic</button>` : ''}
         </div>
-        <span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;display:block;margin-top:8px;">Rounds before this are greyed out everywhere as already played. Changing this reopens betting fresh.</span>
+        <span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;display:block;margin-top:8px;">Rounds before this are treated as already played. Overrides pause automatic progression; check the betting status after changing one.</span>
+        </details>
       </div>
       <div class="bb-card" style="margin-bottom:1.5rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
         <span style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);color:#9a9a9a;">Refreshes Home match and median offers and their server quotes. Precomputed futures, leading-at and fixed specials require a separate simulation refresh.</span>
         <button class="bb-btn ghost" id="refresh-featured-fixtures" ${state.refreshingFeatured?'disabled':''}>${state.refreshingFeatured?'Refreshing\u2026':'Refresh Home offers for Round '+state.currentRound}</button>
         ${state.refreshedFeaturedInfo ? `<span style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#8fc98f;width:100%;">${esc(state.refreshedFeaturedInfo)}</span>` : ''}
       </div>
+      <details id="admin-season-archive" style="margin-bottom:16px;">
+        <summary style="cursor:pointer;padding:10px 0;font-weight:600;">Season label &amp; end-of-season archive</summary>
       <h3>End of season</h3>
       <div class="bb-card" style="margin-bottom:1.5rem;border-color:#a3402f;">
         <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-top:0;">
@@ -5383,6 +5494,9 @@
         </p>
         <button class="bb-btn ghost" id="end-season-btn" style="border-color:#a3402f;color:#c0604f;">End season &amp; archive</button>
       </div>
+      </details>
+      <details id="admin-season-prizes" style="margin-bottom:16px;" ${Object.values(state.seasonClosed).some(Boolean)?'open':''}>
+        <summary style="cursor:pointer;padding:10px 0;font-weight:600;">Seasonal tipping prize release</summary>
       <h3>Tipping season prizes</h3>
       <div class="bb-card" style="margin-bottom:1.5rem;">
         <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-top:0;">
@@ -5400,6 +5514,7 @@
           <span>Combined competition (all tipping) season closed</span>
         </label>
       </div>
+      </details>
       <h3>Round betting</h3>
       <div class="bb-card" style="margin-bottom:1.5rem;">
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
@@ -5432,15 +5547,8 @@
           <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin:6px 0 0;">Off (default): advancing to a new round always force-reopens betting, regardless of how last round was left. On: that automatic reopen is skipped -- betting only opens when you click "Reopen betting" yourself, even after the round ticks over.</p>
         </div>
       </div>
-      <h3>Division makeups &amp; fixtures</h3>
-      <div class="bb-card" style="margin-bottom:1.5rem;">
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
-          <span class="bb-pill" style="background:${state.divisionsAnnounced?'#1e3a2a':'#3a2a26'};color:${state.divisionsAnnounced?'#7fbf8f':'#c0604f'};">${state.divisionsAnnounced?'ANNOUNCED':'CURTAIN DOWN'}</span>
-          <span style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">${EARLY_DIV12_RELEASE?'Division 1 and 2 are public in H2H, Tipping and Futures. Division 3 and whole-league markets are held.':state.divisionsAnnounced?'Divisions are public \u2014 H2H, Tipping and Futures are visible to everyone.':'H2H, Tipping and Futures are hidden from non-admins (you still see them).'}</span>
-        </div>
-        <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin:0 0 10px;">Leave this down until the Eliza organisation has publicly announced the division makeups. While down, non-admins see only the election markets, Specials, Stats and My Bets \u2014 the featured fixtures/futures, boosted odds, tipping nudge and point projection are all hidden from the home page too.</p>
-        <button class="bb-btn ${state.divisionsAnnounced?'ghost':''}" id="toggle-divisions-announced-btn" style="padding:8px 14px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">${EARLY_DIV12_RELEASE?'Division 1 and 2 public (Division 3 held)':state.divisionsAnnounced?'Put the curtain back down':'Divisions are public \u2014 raise the curtain'}</button>
-      </div>
+      <details id="admin-launch-setup" style="margin-bottom:16px;">
+        <summary style="cursor:pointer;padding:10px 0;font-weight:600;">Archived launch setup — Round 1, schedule fallback &amp; election</summary>
       <h3>Import Round 1 fixtures (Eliza Cup)</h3>
       <div class="bb-card" style="margin-bottom:1.5rem;">
         <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin:0 0 8px;">One fixture per line, home team and away team separated by a comma (or "vs"). Saved as a runtime override \u2014 no redeploy needed \u2014 and used for Round 1 Eliza Cup in place of the projected schedule. Paste the CSV export straight in once the sheet's filled out; a header line naming the columns is ignored.</p>
@@ -5458,7 +5566,7 @@
           <span style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">Real H2H fixtures are ${state.h2hRealScheduleConfirmed && !FIXTURES_ARE_PLACEHOLDER?'confirmed and open for betting.':'not confirmed yet \u2014 the fixture-list tab shows the interim "to win" market instead. "Beat the league median" stays available either way.'}</span>
         </div>
         <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin:0 0 10px;">
-          The fantasy platform only generates real H2H fixtures once its own lockout is in place, which lands after this needs to be bettable. Leave this off until the real schedule is actually confirmed each round -- flipping it on shows real head-to-head fixtures for betting instead of the interim market. Custom Matchup is unaffected either way.
+          Published per-division fixture confirmations govern the official schedule. This legacy fallback is only for fixtures without a published confirmation; it does not need switching on every round. Custom Matchup is unaffected.
         </p>
         <button class="bb-btn ${state.h2hRealScheduleConfirmed?'ghost':''}" id="toggle-h2h-schedule-confirmed-btn" style="padding:8px 14px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">${state.h2hRealScheduleConfirmed?'Revert to interim market':'Mark real schedule as confirmed'}</button>
       </div>
@@ -5473,6 +5581,9 @@
         </p>
         <button class="bb-btn ${state.electionBettingOpen?'':'ghost'}" id="toggle-election-betting-btn" style="padding:8px 14px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">${state.electionBettingOpen?'Close election betting':'Reopen election betting'}</button>
       </div>
+      </details>
+      <details id="admin-simulation-reminder" style="margin-bottom:16px;" ${state.oddsRefreshRequested?'open':''}>
+        <summary style="cursor:pointer;padding:10px 0;font-weight:600;">Simulation refresh reminder</summary>
       <h3>Odds refresh</h3>
       <div class="bb-card" style="margin-bottom:1.5rem;">
         <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-top:0;">
@@ -5482,6 +5593,7 @@
           ? `<div style="display:flex;align-items:center;gap:10px;"><span class="bb-pill" style="background:#4a3a10;color:#ffdd00;">Requested</span><button class="bb-btn ghost" id="clear-odds-refresh-btn" style="padding:6px 12px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Clear</button></div>`
           : `<button class="bb-btn ghost" id="request-odds-refresh-btn" style="padding:8px 14px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Flag odds as needing a refresh</button>`}
       </div>
+      </details>
 `;
     const FIXTURES_HTML = `\n      <h3>Cup fixtures (FA Cup &amp; ECL)</h3>
       <div class="bb-card" style="margin-bottom:1.5rem;">
@@ -5518,6 +5630,8 @@
         }).join('')}
         <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-top:4px;">Set fixtures when there's an actual cup weekend; clear them once it's passed so the tab correctly shows "No fixtures scheduled yet" the rest of the time.</p>
       </div>
+      <details id="admin-finals-fixtures" style="margin-bottom:16px;" ${state.currentRound>=24?'open':''}>
+        <summary style="cursor:pointer;padding:10px 0;font-weight:600;">Finals fixture setup — Rounds 24–26</summary>
       <h3>Playoff fixtures (Division 2 &amp; 3, Rounds 24-26)</h3>
       <div class="bb-card" style="margin-bottom:1.5rem;">
         ${PLAYOFF_DIVS.map(div => `
@@ -5542,6 +5656,7 @@
           </div>`).join('')}
         <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-top:4px;">Rounds 24-26 are the playoff weeks for Division 2/3 (no regular H2H fixtures those weeks) -- set matchups here once the bracket's known.</p>
       </div>
+      </details>
       <h3>ECL group draw</h3>
       <div class="bb-card" style="margin-bottom:1.5rem;">
         <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-top:0;">12 confirmed qualifiers this season. Assign each to a group of 4 once the real draw's known -- betting for a group opens automatically once it has all 4.</p>
@@ -5562,7 +5677,8 @@
         </div>
       </div>
 `;
-    const BETS_HTML = renderAdminBetReviewQueue(bets) + `\n      <h3>All registered bets</h3>
+    const BETS_HTML = renderAdminBetReviewQueue(bets) + `\n      <h3>Bet moderation</h3>
+      <p style="color:var(--bb-text-muted);">For public browsing and filters, use <button class="bb-btn ghost" data-tab="BETTING LEDGER">Betting Ledger</button>. The controls below are admin-only.</p>
       ${!bets.length ? '<p style="color:#9a9a9a;">No bets placed by anyone yet.</p>' : (() => {
         // Filters combine with AND -- a username search plus a status
         // filter narrows to bets matching both, not either.
@@ -5672,7 +5788,7 @@
         after a mistaken override) reverses that credit automatically, so balances always stay consistent with the bet's current status.
         Kick (void) cancels the bet and refunds the stake, as if it had never been placed.
       </p>`;
-    const SPECIALS_HTML = `\n      ${renderJoinMarkets(true)}
+    const SPECIALS_HTML = `\n      ${renderAdminJoinMarkets()}
       <h3>Specials &amp; Novelty</h3>
       <div class="bb-card" style="margin-bottom:1.5rem;">
         <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px;">
@@ -6777,6 +6893,8 @@
       body = renderH2HTab();
     } else if(state.activeTab === 'MY BETS'){
       body = renderMyBetsTab();
+    } else if(state.activeTab === 'BETTING LEDGER'){
+      body = renderPublicBetLedger();
     } else if(state.activeTab === 'TIPPING'){
       body = renderTippingTab();
     } else if(state.activeTab === 'SPECIALS'){
@@ -7812,9 +7930,16 @@
     return m.status!=='OPEN'||Date.now()>=Date.parse(m.deadline)||
       m.contenders.some(c=>(c.id===state.user?.teamId||c.team.toLowerCase()===String(state.user?.username||'').toLowerCase()));
   }
-  function renderJoinMarkets(admin=false){
-    if(!joinMarkets.length)return '';
-    return '<h3>Last Through the Door</h3>'+joinMarkets.filter(m=>!m.archived).map(m=>{
+  function renderAdminJoinMarkets(){
+    const markets=joinMarkets.filter(m=>!m.archived);
+    const active=markets.filter(m=>!['SETTLED','VOID'].includes(m.status));
+    const finished=markets.filter(m=>['SETTLED','VOID'].includes(m.status));
+    return renderJoinMarkets(true,active)+(finished.length?
+      '<details id="admin-finished-join-markets" style="margin-bottom:16px;"><summary style="cursor:pointer;padding:10px 0;font-weight:600;">Completed Last to Join specials ('+finished.length+')</summary>'+renderJoinMarkets(true,finished)+'</details>':'');
+  }
+  function renderJoinMarkets(admin=false,markets=joinMarkets){
+    if(!markets.length)return '';
+    return '<h3>Last Through the Door</h3>'+markets.filter(m=>!m.archived).map(m=>{
       const blocked=joinMarketBlocked(m);
       const contender=m.contenders.some(c=>(c.id===state.user?.teamId||c.team.toLowerCase()===String(state.user?.username||'').toLowerCase()));
       return `<div class="bb-card"><h4>Last to Join — Division ${esc(m.division||m.code)}${m.archived?' (previous market)':''}</h4>
@@ -8823,11 +8948,20 @@
     const dismissTrashTalk = $('#dismiss-trash-talk'); if(dismissTrashTalk) dismissTrashTalk.onclick = () => { state.trashTalkBanner = null; render(); };
     const useAdminBtn = $('#use-admin-login'); if(useAdminBtn) useAdminBtn.onclick = () => { state.adminLoginMode = true; render(); };
     const retryStats=document.getElementById('retry-stats');if(retryStats)retryStats.onclick=()=>loadStats();
+    const retryProfileBets=document.getElementById('retry-profile-bets');if(retryProfileBets)retryProfileBets.onclick=()=>loadTeamProfileBilbbetHistory(state.viewingTeamProfile);
+    const ledgerFilters=document.getElementById('public-bets-filters');
+    if(ledgerFilters)ledgerFilters.onsubmit=e=>{
+      e.preventDefault();const values=new FormData(ledgerFilters);
+      state.publicBetsFilters=Object.fromEntries(['punter','status','type','round','sort'].map(key=>[key,String(values.get(key)||'').trim()]));state.publicBetsPage=1;render();
+    };
+    const refreshLedger=document.getElementById('refresh-public-bets');if(refreshLedger)refreshLedger.onclick=()=>loadPublicBetLedger();
+    document.querySelectorAll('[data-public-bets-page]').forEach(el=>el.onclick=()=>{state.publicBetsPage=Number(el.dataset.publicBetsPage);render();});
     document.querySelectorAll('[data-tab]').forEach(el => el.onclick = () => {
       state.activeTab = el.dataset.tab;
       state.mobileNavOpen = false; // picking a tab (desktop or mobile) always closes the mobile dropdown
       state.cupFixtureMarket = null;
       state.playoffFixtureMarket = null;
+      if(state.activeTab === 'BETTING LEDGER'){render();loadPublicBetLedger();return;}
       if(state.activeTab === 'FUTURES'){
         if(state.futuresSubTab === 'RODDY') state.futureMarketTab = Object.keys(FUTURES.roddy_labels)[0];
         else if(state.futuresSubTab === 'FA CUP') state.futureMarketTab = defaultCupFuturesMarket();
@@ -9312,13 +9446,6 @@
     if(toggleElectionBettingBtn) toggleElectionBettingBtn.onclick = async () => {
       state.electionBettingOpen = !state.electionBettingOpen;
       await sset('bilbbet2_election_betting_open', state.electionBettingOpen);
-      render();
-    };
-    const toggleDivisionsBtn = $('#toggle-divisions-announced-btn');
-    if(toggleDivisionsBtn) toggleDivisionsBtn.onclick = async () => {
-      if(EARLY_DIV12_RELEASE){ alert('Division 3 stays closed during the Division 1 and 2 release.'); return; }
-      state.divisionsAnnounced = !state.divisionsAnnounced;
-      await sset('bilbbet2_divisions_announced', state.divisionsAnnounced);
       render();
     };
     const r1ImportBox = $('#r1-fixture-import');

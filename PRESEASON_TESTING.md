@@ -1296,3 +1296,28 @@ Targeted follow-up 10 November 2026: six calendar dates aligned to the existing 
 - Existing admin single-bet and multi-leg review controls apply the result only after confirmation. No automatic settlement or changes to accepted prices, balances or results.
 - Trusted-board collection expands win_round/lose_round, matching the actual market renderer; the old win/lose keys skipped their full price lists.
 - Regression: `node tests/round-extreme-results.test.cjs` covers published Rounds 1–4, field membership, aliases, zero/missing scores, ties, round gating and review controls.
+
+## In-season admin menu cleanup — 11 November 2026
+
+- Removed the obsolete division-announcement curtain button and its dead handler. All divisions remain public.
+- Round 1 import, legacy H2H schedule fallback and election controls are grouped under Archived launch setup. Existing overrides and historical data are retained.
+- Manual round overrides, seasonal prize release, simulation reminders and end-of-season archiving are collapsible. Active overrides, closed prize sections and outstanding refresh reminders expand automatically.
+- Finals fixture setup is collapsed before Round 24 and opens during finals. Cup entries and ECL group setup remain directly available.
+- Settled/void Last to Join specials are collapsed under completed specials. Open and closed-but-unsettled markets remain visible for administration.
+- Weekly betting controls, Home-offer refresh, bet review, punter approvals and settlement controls remain available. Existing permission checks, deadline/fixture guards and quoted prices are unchanged.
+- Regression: `node tests/admin-menu-layout.test.cjs` runs the actual admin renderer across every tab and checks controls, collapsed/open states and render-only behaviour.
+
+## Public betting ledger — 11 November 2026
+
+- Betting Ledger is available without an admin login, with accepted single/multi selections, stakes, combined prices, potential returns, paid returns/refunds and recorded statuses.
+- Filters cover punter, round, status and single/multi; sorting supports newest, stake and potential return. Results are paginated in groups of 25; opening or refreshing reloads the snapshot.
+- Uses existing public bet/index reads in bounded batches. Admin accounts are excluded consistently with Stats. Public state keeps only betting display fields, not user profiles or internal account metadata.
+- No cash-out, bet-placement, account or settlement actions appear in the ledger. My Bets retains personal actions and Admin retains moderation. Loading performs no writes or price/reward sync.
+- Errors remain visible with retry and any previous snapshot clearly labelled. Regression: `node tests/public-bet-ledger.test.cjs` covers anonymous loading, escaping/projection, filters, pagination, actual void/cash-out returns and failure/retry.
+
+## Public profile betting history — 11 November 2026
+
+- Other punters' private per-account betting indexes are deliberately not public. Profile history now reads the public global index and filters safe betting records to the matched team/account instead of interpreting denied private reads as an empty history.
+- Match stable IDs when present, otherwise unique current/previous registry names and conservative punctuation/standalone-FC variants. Ambiguous or multiply matched accounts are flagged rather than guessed.
+- Public betting history loads even when tipping totals cannot be read. Failures offer a retry; incomplete reads are labelled and do not hide successfully loaded bets. Accepted selection labels are shown for multis as well as singles.
+- No account link, balance, carry correction, accepted odds, bet or settlement writes. Regression: `node tests/profile-betting-history.test.cjs` covers anonymous/other-user reads, aliases, IDs, case, missing records, retries, tipping failure and profile-navigation races.
