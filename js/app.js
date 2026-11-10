@@ -6402,7 +6402,57 @@
     }catch(error){return html+'<p role="alert">Prices need review: '+esc(error.message)+'</p></div>';}
   }
   function renderEclGroups(){
-    return '<h3>ECL live draw</h3><p>GW8, GW10 and GW13 · top two from each group qualify · two semifinal byes.</p>'+(state.eclDrawReadError?'<p role="status">Could not refresh the live draw. Showing the last published view; retrying automatically.</p>':'')+['A','B','C'].map(renderEclGroupBox).join('');
+    return '<h3>ECL live draw</h3><p>GW8, GW10 and GW13 · top two from each group qualify · two semifinal byes.</p><p><button class="bb-btn ghost" id="download-ecl-model">Download ECL calculator data</button><br><small>Latest published model inputs · timestamped JSON for the standalone draw sheet.</small></p>'+(state.eclDrawReadError?'<p role="status">Could not refresh the live draw. Showing the last published view; retrying automatically.</p>':'')+['A','B','C'].map(renderEclGroupBox).join('');
+  }
+  async function buildEclModelDownload(){
+    // Fetch published inputs rather than exporting a potentially old browser session.
+    // A second pass detects a deployment changing files during this download.
+    const names=['admin_teams','h2h_history','h2h_cup_shift','h2h_variance_widen','team_strength_tiers','roddy_results','real_results','roster_rules','futures'];
+    const readInputs=async()=>Object.fromEntries(await Promise.all(names.map(async name=>{
+      const response=await fetch('data/'+name+'.json',{cache:'no-store'});
+      if(!response.ok)throw new Error('Could not refresh '+name+' (HTTP '+response.status+').');
+      return [name,await response.json()];
+    })));
+    const first=await readInputs(),inputs=await readInputs();
+    if(JSON.stringify(first)!==JSON.stringify(inputs))throw new Error('Published data changed during the download. Please retry.');
+    const rules=inputs.roster_rules.ecl_rules;
+    if(!rules||!Array.isArray(rules.field_team_ids)||rules.field_team_ids.length!==12)throw new Error('The confirmed 12-team ECL field is missing.');
+    const ids=rules.field_team_ids.map(id=>String(id).padStart(3,'0'));
+    if(new Set(ids).size!==12)throw new Error('The ECL field contains duplicate IDs.');
+    const teams=ids.map(id=>{
+      const matches=inputs.admin_teams.filter(t=>String(t.id).padStart(3,'0')===id);
+      if(matches.length!==1||!matches[0].name)throw new Error('Ambiguous or missing ECL team ID '+id+'.');
+      const team=matches[0],name=team.name;
+      if(!inputs.futures.ecl_field.includes(name))throw new Error('Published ECL field and registry disagree.');
+      const aliases=String(team.prev_names||'').split(',').map(s=>s.trim()).filter(Boolean);
+      return {id,name,aliases,pot:rules.pot1_team_ids.includes(id)?1:2};
+    });
+    const view=await secureRpc('bilbbet_ecl_draw_view');
+    if(!Array.isArray(view.fixtures))throw new Error('Could not read the published ECL fixtures. Please retry.');
+    // Only public model data goes into this export, never session/user/betting data.
+    const data={h2h_history:inputs.h2h_history,h2h_cup_shift:inputs.h2h_cup_shift,
+      h2h_variance_widen:inputs.h2h_variance_widen,team_strength_tiers:inputs.team_strength_tiers,
+      roddy_results:inputs.roddy_results,real_results:inputs.real_results};
+    const model={model_version:BilbbetEcl.VERSION,season:rules.season,current_round:state.currentRound,
+      price_margin:0.05,market:'ecl_group_winner',rules,teams,data,fixtures:view.fixtures};
+    const encoded=new TextEncoder().encode(JSON.stringify(model));
+    const digest=await crypto.subtle.digest('SHA-256',encoded);
+    const fingerprint=Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
+    return {schema_version:1,exported_at_utc:new Date().toISOString(),source:'Bilbbet published ECL model inputs',
+      fingerprint,model,note:'Snapshot, not a live connection. Refresh this file before the draw. Group winner prices are not H2H win or advancement prices.'};
+  }
+  async function downloadEclModel(button){
+    if(button.disabled)return;
+    button.disabled=true;button.textContent='Refreshing calculator data…';
+    try{
+      const snapshot=await buildEclModelDownload();
+      const url=URL.createObjectURL(new Blob([JSON.stringify(snapshot,null,2)+'\n'],{type:'application/json'}));
+      const link=document.createElement('a');link.href=url;
+      link.download='bilbbet-ecl-calculator-'+snapshot.exported_at_utc.replace(/[:.]/g,'-')+'.json';
+      document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+      button.textContent='Downloaded latest calculator data';
+    }catch(error){button.textContent='Download ECL calculator data';alert('Download failed: '+error.message+' No older snapshot was substituted.');}
+    finally{button.disabled=false;}
   }
   async function refreshPublicEclDraw(){
     if(eclDrawPolling||eclDrawSaving||document.hidden||state.activeTab!=='FUTURES'||state.futuresSubTab!=='ECL'||state.futureMarketTab!=='groups')return;
@@ -9613,6 +9663,7 @@
     const clearEclGroupsBtn = $('#clear-ecl-groups-btn'); if(clearEclGroupsBtn) clearEclGroupsBtn.onclick = clearEclGroups;
     const retryEcl=document.getElementById('retry-ecl-publication');if(retryEcl)retryEcl.onclick=()=>saveEclDraw(JSON.parse(JSON.stringify(state.eclGroups)));
     const exportEcl=document.getElementById('export-ecl-draw');if(exportEcl)exportEcl.onclick=exportEclDraw;
+    const downloadEcl=document.getElementById('download-ecl-model');if(downloadEcl)downloadEcl.onclick=()=>downloadEclModel(downloadEcl);
     document.querySelectorAll('[data-set-cupoverride]').forEach(el => el.onclick = () => {
       const comp = el.dataset.setCupoverride;
       const input = document.getElementById('cup-override-stage-'+comp);
