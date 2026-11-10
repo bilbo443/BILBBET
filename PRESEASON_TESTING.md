@@ -1306,3 +1306,11 @@ Targeted follow-up 10 November 2026: six calendar dates aligned to the existing 
 - Settled/void Last to Join specials are collapsed under completed specials. Open and closed-but-unsettled markets remain visible for administration.
 - Weekly betting controls, Home-offer refresh, bet review, punter approvals and settlement controls remain available. Existing permission checks, deadline/fixture guards and quoted prices are unchanged.
 - Regression: `node tests/admin-menu-layout.test.cjs` runs the actual admin renderer across every tab and checks controls, collapsed/open states and render-only behaviour.
+
+## Public betting ledger — 11 November 2026
+
+- Betting Ledger is available without an admin login, with accepted single/multi selections, stakes, combined prices, potential returns, paid returns/refunds and recorded statuses.
+- Filters cover punter, round, status and single/multi; sorting supports newest, stake and potential return. Results are paginated in groups of 25; opening or refreshing reloads the snapshot.
+- Uses existing public bet/index reads in bounded batches. Admin accounts are excluded consistently with Stats. Public state keeps only betting display fields, not user profiles or internal account metadata.
+- No cash-out, bet-placement, account or settlement actions appear in the ledger. My Bets retains personal actions and Admin retains moderation. Loading performs no writes or price/reward sync.
+- Errors remain visible with retry and any previous snapshot clearly labelled. Regression: `node tests/public-bet-ledger.test.cjs` covers anonymous loading, escaping/projection, filters, pagination, actual void/cash-out returns and failure/retry.

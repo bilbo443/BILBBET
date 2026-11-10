@@ -770,7 +770,7 @@
   const K = 8;
 
   const FUTURE_DIVS = Object.keys(FUTURES.divisions);
-  const BASE_TABS = ['HOME', 'FUTURES', 'H2H', 'TIPPING', 'SPECIALS', 'STATS', 'MY BETS'];
+  const BASE_TABS = ['HOME', 'FUTURES', 'H2H', 'TIPPING', 'SPECIALS', 'STATS', 'BETTING LEDGER', 'MY BETS'];
   // The roster and every division are public. Keep the legacy query
   // functions for existing render callers, without obsolete launch switches.
   const CURTAINED_TABS = ['FUTURES', 'H2H', 'TIPPING'];
@@ -835,6 +835,8 @@
     tippingSubTab: 'PICKS', tippingSection: 'ELIZA', tippingRound: null, tippingViewRound: null, tippingData: null, tippingPending: {}, tippingAllPicks: null, round1LegacyTips: false,
     tippingRewardChecked: null, tippingRewardBanner: null, tipReminderStatus: null,
     perfectRoundStatus: {}, // cache keyed by `${username}|${round}|${sectionKey}` -- true only, never explicitly false/missed (see loadPerfectRoundStatus)
+    publicBets:null,publicBetsError:'',publicBetsUpdated:null,publicBetsSkipped:0,publicBetsPage:1,
+    publicBetsFilters:{punter:'',status:'ALL',type:'ALL',round:'ALL',sort:'newest'},
     preseasonData: null, preseasonPending: {}, preseasonLeaderboard: null, preseasonResults: null, preseasonAllPicks: null, openHelpTip: null, homeTippingNudge: null, txHistory: null, txHistoryExpanded: false, recentWinners: null, trashTalkBanner: null,
     tippingLeaderboardMode: 'OVERALL', tippingLeaderboardRound: null, tippingLeaderboard: null, leaderboardKind: 'WEEKLY',
     tippingLeaderboardSection: 'OVERALL', tippingLeaderboardSortBy: 'oddsPoints', tippingLeaderboardSortDir: 'desc',
@@ -2615,6 +2617,7 @@
     { tab: 'TIPPING', title: 'Tipping', body: 'A separate prediction game alongside the main betting \u2014 free to play, but topping it pays real clams (see the Prizes tab for the full breakdown). Tip a winner for this week\'s fixtures across whichever competitions you like, hit Confirm to lock them in, and see how you stack up on the leaderboard by correct picks, by the odds those picks were worth, or by accuracy. Get every fixture in a section right and you can turn those same tips into a real multi bet, or just enjoy the bragging rights.' },
     { tab: 'SPECIALS', title: 'Specials', body: 'Round-by-round and season-long novelty bets -- who\'ll be leading or trailing after a given round, most charity, most philanthropy, plus a spot to suggest your own bet for others to weigh in on.' },
     { tab: 'STATS', title: 'Stats', body: 'Leaderboards across the platform -- biggest stakes, best multis, most wins, and (once a handful of rounds are played) which teams are consistently beating or missing their own odds.' },
+    { tab: 'BETTING LEDGER', title: 'Betting Ledger', body: 'Browse everyone’s bets, accepted odds and outcomes. Filter by punter, round, status or single/multi. This is a read-only ledger; your personal bet actions stay in My Bets.' },
     { tab: 'MY BETS', title: 'My Bets', body: 'Every bet you\'ve placed, with its current status -- pending, won, lost, or void -- and your running record across the season.' },
   ];
   const TUTORIAL_STEPS_ADMIN = [
@@ -2901,7 +2904,7 @@
   // query, so this never depends on JS to detect screen size.
   function mainTabs(){
     const items = currentTabs().map(t => {
-      const label = t==='MY BETS'?'My Bets':(t==='ADMIN'?'Admin':(t==='H2H'?'H2H':(t==='HOME'?'Home':(t==='FUTURES'?'Futures':(t==='TIPPING'?'Tipping':t)))));
+      const label = t==='BETTING LEDGER'?'Betting Ledger':t==='MY BETS'?'My Bets':(t==='ADMIN'?'Admin':(t==='H2H'?'H2H':(t==='HOME'?'Home':(t==='FUTURES'?'Futures':(t==='TIPPING'?'Tipping':t)))));
       const adminFlag = (t==='ADMIN' && state.user && state.user.isAdmin && adminNeedsAttention())
         ? ' <span title="Needs attention" style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);">\u{1F6A9}</span>' : '';
       const tipFlag = (t==='TIPPING' && state.tipReminderStatus === true)
@@ -4447,6 +4450,78 @@
     finally{cashoutBusy=false;}
   }
 
+  // A separate read-only projection: never reuse the admin betting table.
+  function publicBetRecord(bet){
+    if(!bet||typeof bet.username!=='string'||!Array.isArray(bet.selections)||!bet.selections.length||bet.selections.some(s=>!s||typeof s!=='object'))return null;
+    const stake=Number(bet.stake),combinedOdds=Number(bet.combinedOdds);
+    if(!Number.isFinite(stake)||stake<0||!Number.isFinite(combinedOdds)||combinedOdds<1)return null;
+    const selections=bet.selections.map(s=>({id:String(s.id||''),label:typeof s.label==='string'?s.label:'',team:typeof s.team==='string'?s.team:'',odds:Number(s.odds),result:['WON','LOST','VOID'].includes(s.result)?s.result:'PENDING'}));
+    if(selections.some(s=>!s.id||!Number.isFinite(s.odds)||s.odds<1))return null;
+    const timestamp=Number(bet.timestamp)||Date.parse(bet.timestamp)||0;
+    return {id:String(bet.id||''),username:bet.username,timestamp,stake,combinedOdds,selections,
+      status:['WON','LOST','VOID','CASHED_OUT'].includes(bet.status)?bet.status:'PENDING',potentialReturn:bet.potentialReturn!=null&&Number.isFinite(Number(bet.potentialReturn))?Number(bet.potentialReturn):stake*combinedOdds,
+      ...(typeof bet.actualReturn==='number'&&Number.isFinite(bet.actualReturn)?{actualReturn:bet.actualReturn}:{}),
+      cashOut:{amount:Number.isFinite(Number(bet.cashOut?.amount))?Number(bet.cashOut.amount):0}};
+  }
+  let publicBetsLoading=false;
+  async function loadPublicBetLedger(){
+    if(publicBetsLoading)return;
+    publicBetsLoading=true;state.publicBetsError='';
+    try{
+      // These indexes/bets already have public read permission; no account,
+      // results, price publication or settlement writes belong in this loader.
+      const indexes=await secureRead(['bilbbet2_all_bets_index','bilbbet2_users_index']);
+      const ids=indexes.bilbbet2_all_bets_index??[],users=indexes.bilbbet2_users_index??[];
+      if(!Array.isArray(ids)||!Array.isArray(users))throw new Error('Betting indexes could not be read.');
+      const profiles=await sgetMany(users.map(u=>'bilbbet2_user:'+String(u).toLowerCase()));
+      const admins=new Set(['admin',...profiles.filter(u=>u?.isAdmin).map(u=>String(u.username).toLowerCase())]);
+      const bets=await sgetMany([...new Set(ids)].map(id=>'bilbbet2_bet:'+id));
+      const visible=bets.filter(b=>b&&!admins.has(String(b.username).toLowerCase()));
+      const projected=visible.map(publicBetRecord);
+      state.publicBetsSkipped=projected.filter(b=>!b).length+bets.filter(b=>!b).length;
+      state.publicBets=projected.filter(Boolean);state.publicBetsUpdated=Date.now();
+    }catch(error){state.publicBetsError=error.message||'Betting records could not be loaded.';}
+    finally{publicBetsLoading=false;render();}
+  }
+  function filteredPublicBets(){
+    const f=state.publicBetsFilters;
+    const rows=(state.publicBets||[]).filter(b=>
+      (!f.punter||b.username.toLowerCase().includes(f.punter.toLowerCase()))&&
+      (f.status==='ALL'||b.status===f.status)&&
+      (f.type==='ALL'||(f.type==='SINGLE'?b.selections.length===1:b.selections.length>1))&&
+      (f.round==='ALL'||b.selections.some(s=>{
+        let r;try{r=getPickRound(s.id);}catch(error){return false;}return f.round==='SEASON'?r===null:r===Number(f.round);
+      })));
+    const sort=f.sort==='stake'?(a,b)=>b.stake-a.stake:f.sort==='return'?(a,b)=>b.potentialReturn-a.potentialReturn:(a,b)=>b.timestamp-a.timestamp;
+    return rows.sort((a,b)=>sort(a,b)||b.timestamp-a.timestamp||a.id.localeCompare(b.id));
+  }
+  function renderPublicBetLedger(){
+    const f=state.publicBetsFilters,select=(name,items)=>`<label>${esc(name)}<select class="bb-select" name="${name.toLowerCase()}" style="display:block;min-width:125px;">${items.map(([value,label])=>`<option value="${esc(value)}" ${String(f[name.toLowerCase()])===String(value)?'selected':''}>${esc(label)}</option>`).join('')}</select></label>`;
+    let html=`<h3>Betting Ledger</h3><p style="color:var(--bb-text-muted);">Everyone’s bets, with the odds accepted when placed. Public viewing only. Manage your own bets in My Bets.</p>
+      <form id="public-bets-filters" class="bb-card" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;">
+      <label>Punter<input class="bb-input" name="punter" value="${esc(f.punter)}" placeholder="Search punter" style="display:block;max-width:200px;"></label>
+      ${select('Status',[['ALL','All statuses'],['PENDING','Pending'],['WON','Won'],['LOST','Lost'],['VOID','Void'],['CASHED_OUT','Cashed out']])}
+      ${select('Type',[['ALL','Singles and multis'],['SINGLE','Singles'],['MULTI','Multis']])}
+      ${select('Round',[['ALL','All rounds'],['SEASON','Season / untimed'],...Array.from({length:26},(_,i)=>[String(i+1),'Round '+(i+1)])])}
+      ${select('Sort',[['newest','Newest first'],['stake','Largest stake'],['return','Largest potential return']])}
+      <button class="bb-btn" type="submit">Apply filters</button><button class="bb-btn ghost" type="button" id="refresh-public-bets">Refresh</button></form>`;
+    if(state.publicBetsError)html+=`<p role="alert" style="color:#e5a18b;">Couldn’t refresh the ledger: ${esc(state.publicBetsError)}. Use Refresh to retry.${state.publicBets!==null?' The previous snapshot is shown below.':''}</p>`;
+    if(state.publicBets===null)return html+`<p>${state.publicBetsError?'No betting records loaded.':'Loading betting records…'}</p>`;
+    const rows=filteredPublicBets(),size=25,pages=Math.max(1,Math.ceil(rows.length/size)),page=Math.min(Math.max(1,state.publicBetsPage),pages);
+    html+=`<p style="color:var(--bb-text-muted);">${rows.length} matching bet${rows.length===1?'':'s'} · Updated ${esc(fmtDate(state.publicBetsUpdated))}</p>`;
+    if(state.publicBetsSkipped)html+=`<p role="status">${state.publicBetsSkipped} unavailable or incomplete record(s) could not be displayed.</p>`;
+    if(!rows.length)return html+'<p>No bets match these filters.</p>';
+    html+=rows.slice((page-1)*size,page*size).map(b=>{
+      const settled=['WON','LOST','VOID','CASHED_OUT'].includes(b.status);
+      return `<article class="bb-card" style="margin-bottom:12px;overflow-wrap:anywhere;">
+        <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;"><strong>${esc(b.username)}</strong>${statusPill(b.status)}</div>
+        <p style="color:var(--bb-text-muted);margin:6px 0;">${esc(fmtDate(b.timestamp))} · ${b.selections.length===1?'Single':b.selections.length+'-leg multi'}</p>
+        ${b.selections.map(s=>`<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:7px 0;border-bottom:1px solid var(--bb-border);"><span>${esc(betSelectionLabel(s))}</span><span>${formatOdds(s.odds)}${b.selections.length>1?' · '+statusPill(s.result):''}</span></div>`).join('')}
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;"><span>Stake <strong>${fmt(b.stake)}</strong></span><span>Accepted odds <strong>${formatOdds(b.combinedOdds)}</strong></span><span>Potential return <strong>${fmt(b.potentialReturn)}</strong></span>${settled?`<span>${b.status==='VOID'?'Refunded':'Paid return'} <strong>${fmt(displayedBetReturn(b))}</strong></span>`:''}</div>
+      </article>`;
+    }).join('');
+    return html+`<div style="display:flex;gap:12px;align-items:center;justify-content:center;"><button class="bb-btn ghost" data-public-bets-page="${page-1}" ${page===1?'disabled':''}>Previous</button><span>Page ${page} of ${pages}</span><button class="bb-btn ghost" data-public-bets-page="${page+1}" ${page===pages?'disabled':''}>Next</button></div>`;
+  }
   function renderMyBetsTab(){
     if(!state.user) return '<p style="color:#9a9a9a;">Log in to see your bets.</p>';
     const prefsCard = `<div class="bb-card" style="margin-bottom:1rem;">
@@ -5564,7 +5639,8 @@
         </div>
       </div>
 `;
-    const BETS_HTML = renderAdminBetReviewQueue(bets) + `\n      <h3>All registered bets</h3>
+    const BETS_HTML = renderAdminBetReviewQueue(bets) + `\n      <h3>Bet moderation</h3>
+      <p style="color:var(--bb-text-muted);">For public browsing and filters, use <button class="bb-btn ghost" data-tab="BETTING LEDGER">Betting Ledger</button>. The controls below are admin-only.</p>
       ${!bets.length ? '<p style="color:#9a9a9a;">No bets placed by anyone yet.</p>' : (() => {
         // Filters combine with AND -- a username search plus a status
         // filter narrows to bets matching both, not either.
@@ -6779,6 +6855,8 @@
       body = renderH2HTab();
     } else if(state.activeTab === 'MY BETS'){
       body = renderMyBetsTab();
+    } else if(state.activeTab === 'BETTING LEDGER'){
+      body = renderPublicBetLedger();
     } else if(state.activeTab === 'TIPPING'){
       body = renderTippingTab();
     } else if(state.activeTab === 'SPECIALS'){
@@ -8832,11 +8910,19 @@
     const dismissTrashTalk = $('#dismiss-trash-talk'); if(dismissTrashTalk) dismissTrashTalk.onclick = () => { state.trashTalkBanner = null; render(); };
     const useAdminBtn = $('#use-admin-login'); if(useAdminBtn) useAdminBtn.onclick = () => { state.adminLoginMode = true; render(); };
     const retryStats=document.getElementById('retry-stats');if(retryStats)retryStats.onclick=()=>loadStats();
+    const ledgerFilters=document.getElementById('public-bets-filters');
+    if(ledgerFilters)ledgerFilters.onsubmit=e=>{
+      e.preventDefault();const values=new FormData(ledgerFilters);
+      state.publicBetsFilters=Object.fromEntries(['punter','status','type','round','sort'].map(key=>[key,String(values.get(key)||'').trim()]));state.publicBetsPage=1;render();
+    };
+    const refreshLedger=document.getElementById('refresh-public-bets');if(refreshLedger)refreshLedger.onclick=()=>loadPublicBetLedger();
+    document.querySelectorAll('[data-public-bets-page]').forEach(el=>el.onclick=()=>{state.publicBetsPage=Number(el.dataset.publicBetsPage);render();});
     document.querySelectorAll('[data-tab]').forEach(el => el.onclick = () => {
       state.activeTab = el.dataset.tab;
       state.mobileNavOpen = false; // picking a tab (desktop or mobile) always closes the mobile dropdown
       state.cupFixtureMarket = null;
       state.playoffFixtureMarket = null;
+      if(state.activeTab === 'BETTING LEDGER'){render();loadPublicBetLedger();return;}
       if(state.activeTab === 'FUTURES'){
         if(state.futuresSubTab === 'RODDY') state.futureMarketTab = Object.keys(FUTURES.roddy_labels)[0];
         else if(state.futuresSubTab === 'FA CUP') state.futureMarketTab = defaultCupFuturesMarket();
