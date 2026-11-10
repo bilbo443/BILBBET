@@ -4901,43 +4901,81 @@
   const ECL_LABELS_FOR_PROFILE = { reach_knockout_pct: 'Reach Knockout Stage', reach_sf_pct: 'Reach Semi-Final', reach_final_pct: 'Reach Final', win_pct: 'Win the ECL' };
 
   function renderTeamProfileBilbbetHistory(teamName){
-    // The punter's username IS their Eliza Cup team name -- that's how
-    // registration works, so no separate link/mapping is needed. Direct
-    // lookup, same as any other username (getUser already lowercases).
     if(state.teamProfileBilbbetData === undefined || state.teamProfileBilbbetData === null || state.teamProfileBilbbetData.forTeam !== teamName){
       loadTeamProfileBilbbetHistory(teamName); // async -- fires off the fetch, this render shows a loading state
       return `<div class="bb-card"><p style="color:var(--bb-text-muted);margin:0;">Loading&hellip;</p></div>`;
     }
     const d = state.teamProfileBilbbetData;
+    if(d.error)return `<div class="bb-card" role="alert"><p>Betting history could not be loaded: ${esc(d.error)}</p><button class="bb-btn ghost" id="retry-profile-bets">Retry betting history</button></div>`;
     if(!d.user){
       return `<div class="bb-card"><p style="color:var(--bb-text-muted);margin:0;font-size:clamp(18px, calc(18px + 0.4vw), 21px);">No bilbbet account registered under "${esc(teamName)}" yet.</p></div>`;
     }
     return `<div class="bb-card" style="margin-bottom:10px;display:flex;gap:20px;flex-wrap:wrap;">
         <div><div style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:var(--bb-text-muted);text-transform:uppercase;">Clam balance</div><div style="font-size:clamp(23px, calc(23px + 0.4vw), 26px);font-weight:700;">${fmt(d.user.balance)}</div></div>
-        <div><div style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:var(--bb-text-muted);text-transform:uppercase;">Tips this season</div><div style="font-size:clamp(23px, calc(23px + 0.4vw), 26px);font-weight:700;">${fmtCorrect(d.tipping.correct)}/${d.tipping.total}</div></div>
-        <div><div style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:var(--bb-text-muted);text-transform:uppercase;">Odds points</div><div style="font-size:clamp(23px, calc(23px + 0.4vw), 26px);font-weight:700;">${d.tipping.oddsPoints.toFixed(2)}</div></div>
+        ${d.tipping?`<div><div style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:var(--bb-text-muted);text-transform:uppercase;">Tips this season</div><div style="font-size:clamp(23px, calc(23px + 0.4vw), 26px);font-weight:700;">${fmtCorrect(d.tipping.correct)}/${d.tipping.total}</div></div>
+        <div><div style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:var(--bb-text-muted);text-transform:uppercase;">Odds points</div><div style="font-size:clamp(23px, calc(23px + 0.4vw), 26px);font-weight:700;">${d.tipping.oddsPoints.toFixed(2)}</div></div>`:'<p style="color:var(--bb-text-muted);">Tipping totals are unavailable for this view.</p>'}
       </div>
       <div class="bb-card" style="padding:0;overflow:hidden;">
+        ${d.warning?`<p role="status" style="padding:8px 14px;">${esc(d.warning)}</p>`:''}
         <div style="padding:12px 14px 6px;"><strong style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);">Recent bets</strong></div>
-        ${!d.bets.length ? '<p style="color:var(--bb-text-muted);font-size:clamp(18px, calc(18px + 0.4vw), 21px);padding:0 14px 14px;">No bets placed yet.</p>' :
+        ${!d.bets.length ? `<p style="color:var(--bb-text-muted);font-size:clamp(18px, calc(18px + 0.4vw), 21px);padding:0 14px 14px;">${d.warning?'No matching bets in the available records.':'No bets placed yet.'}</p>` :
           d.bets.slice(0,10).map((b,i) => `<div style="padding:8px 14px;${i<Math.min(d.bets.length,10)-1?'border-bottom:1px solid var(--bb-border);':''}font-size:clamp(18px, calc(18px + 0.4vw), 21px);display:flex;justify-content:space-between;">
-            <span style="color:var(--bb-text-muted);">${b.selections.length>1?b.selections.length+'-leg multi':esc(b.selections[0]?.label||b.selections[0]?.team||'bet')}</span>
-            <span>${fmt(b.stake)} @ ${b.combinedOdds.toFixed(2)} <span style="color:var(--bb-text-muted);">(${b.status})</span></span>
+            <span style="color:var(--bb-text-muted);">${b.selections.map(s=>esc(betSelectionLabel(s))).join('<br>')}</span>
+            <span>${fmt(b.stake)} @ ${formatOdds(b.combinedOdds)} <span style="color:var(--bb-text-muted);">(${esc(b.status)})</span></span>
           </div>`).join('')}
       </div>`;
   }
+  function profileAccountTeamId(account){
+    const rows=DATA.admin_teams||[],id=value=>String(value).padStart(3,'0');
+    const explicit=account.teamId??account.team_id;
+    if(explicit!=null)return rows.some(t=>id(t.id)===id(explicit))?id(explicit):null;
+    const names=t=>[t.name,t.prev_names,...String(t.prev_names||'').split(',')].filter(Boolean);
+    const exact=s=>String(s||'').trim().toUpperCase();
+    let matches=rows.filter(t=>exact(t.name)===exact(account.username));
+    if(!matches.length)matches=rows.filter(t=>names(t).some(n=>exact(n)===exact(account.username)));
+    if(!matches.length){
+      // Legacy punctuation/case and an optional standalone FC suffix only.
+      // Check the entire registry; never guess between two teams.
+      const loose=s=>exact(s).normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Z0-9]+/g,' ').trim().replace(/\s+FC$/,'');
+      const key=loose(account.username);
+      if(key)matches=rows.filter(t=>names(t).some(n=>loose(n)===key));
+    }
+    const ids=[...new Set(matches.map(t=>id(t.id)))];return ids.length===1?ids[0]:null;
+  }
+  const profileHistoryLoads=new Set();
   async function loadTeamProfileBilbbetHistory(teamName){
-    const username = teamName; // the team name IS the punter username
-    const user = await getUser(username);
-    const ids = user ? await getIndex('bilbbet2_bets_index_' + username.toLowerCase()) : [];
-    const bets = (await Promise.all(ids.map(id => sget('bilbbet2_bet:'+id)))).filter(Boolean).sort((a,b) => b.timestamp - a.timestamp);
-    const lastPlayed = state.currentRound - 1;
-    const tipping = (user && lastPlayed >= 1)
-      ? (await computeTippingTotals('ALL', 1, lastPlayed))[username] || { correct: 0, total: 0, oddsPoints: 0 }
-      : { correct: 0, total: 0, oddsPoints: 0 };
-    if(state.viewingTeamProfile !== teamName) return; // navigated away while this was loading
-    state.teamProfileBilbbetData = { forTeam: teamName, user, bets, tipping };
-    render();
+    if(profileHistoryLoads.has(teamName))return;
+    profileHistoryLoads.add(teamName);
+    try{
+      const teamId=profileAccountTeamId({username:teamName});
+      if(!teamId)throw new Error('Team identity is ambiguous or unavailable.');
+      const indexes=await secureRead(['bilbbet2_users_index','bilbbet2_all_bets_index']);
+      const users=indexes.bilbbet2_users_index??[],ids=indexes.bilbbet2_all_bets_index??[];
+      if(!Array.isArray(users)||!Array.isArray(ids))throw new Error('Betting indexes could not be read.');
+      const profiles=(await sgetMany([...new Set(users.map(u=>String(u).toLowerCase()))].map(u=>'bilbbet2_user:'+u))).filter(Boolean);
+      const accounts=profiles.filter(u=>profileAccountTeamId(u)===teamId);
+      if(accounts.length>1)throw new Error('Multiple accounts match this team; an admin needs to check their team links.');
+      const user=accounts[0]||null,username=user?.username;
+      const raw=user?await sgetMany([...new Set(ids)].map(id=>'bilbbet2_bet:'+id)):[];
+      const matches=raw.filter(b=>b&&(profileAccountTeamId(b)===teamId||
+        (b.teamId==null&&b.team_id==null&&String(b.username).toLowerCase()===String(username).toLowerCase())));
+      const projected=matches.map(publicBetRecord),bets=projected.filter(Boolean);
+      const warning=raw.some(b=>!b)||projected.some(b=>!b)?'Some betting records are unavailable; this history may be incomplete.':'';
+      bets.sort((a,b)=>b.timestamp-a.timestamp||a.id.localeCompare(b.id));
+      let tipping=null;
+      if(user&&state.user&&state.currentRound>1){
+        try{
+          const totals=await computeTippingTotals('ALL',1,state.currentRound-1);
+          const record=Object.entries(totals).find(([name])=>String(name).toLowerCase()===String(username).toLowerCase());
+          tipping=record?.[1]||{correct:0,total:0,oddsPoints:0};
+        }catch(error){/* Tipping reads must not hide otherwise public bets. */}
+      }
+      if(state.viewingTeamProfile!==teamName)return;
+      state.teamProfileBilbbetData={forTeam:teamName,user,bets,tipping,warning};
+    }catch(error){
+      if(state.viewingTeamProfile!==teamName)return;
+      state.teamProfileBilbbetData={forTeam:teamName,error:error.message||'Could not read betting history.'};
+    }finally{profileHistoryLoads.delete(teamName);if(state.viewingTeamProfile===teamName)render();}
   }
 
   function renderRoundExtremeMarket(kind){
@@ -8910,6 +8948,7 @@
     const dismissTrashTalk = $('#dismiss-trash-talk'); if(dismissTrashTalk) dismissTrashTalk.onclick = () => { state.trashTalkBanner = null; render(); };
     const useAdminBtn = $('#use-admin-login'); if(useAdminBtn) useAdminBtn.onclick = () => { state.adminLoginMode = true; render(); };
     const retryStats=document.getElementById('retry-stats');if(retryStats)retryStats.onclick=()=>loadStats();
+    const retryProfileBets=document.getElementById('retry-profile-bets');if(retryProfileBets)retryProfileBets.onclick=()=>loadTeamProfileBilbbetHistory(state.viewingTeamProfile);
     const ledgerFilters=document.getElementById('public-bets-filters');
     if(ledgerFilters)ledgerFilters.onsubmit=e=>{
       e.preventDefault();const values=new FormData(ledgerFilters);

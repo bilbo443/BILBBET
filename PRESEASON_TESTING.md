@@ -1314,3 +1314,10 @@ Targeted follow-up 10 November 2026: six calendar dates aligned to the existing 
 - Uses existing public bet/index reads in bounded batches. Admin accounts are excluded consistently with Stats. Public state keeps only betting display fields, not user profiles or internal account metadata.
 - No cash-out, bet-placement, account or settlement actions appear in the ledger. My Bets retains personal actions and Admin retains moderation. Loading performs no writes or price/reward sync.
 - Errors remain visible with retry and any previous snapshot clearly labelled. Regression: `node tests/public-bet-ledger.test.cjs` covers anonymous loading, escaping/projection, filters, pagination, actual void/cash-out returns and failure/retry.
+
+## Public profile betting history — 11 November 2026
+
+- Other punters' private per-account betting indexes are deliberately not public. Profile history now reads the public global index and filters safe betting records to the matched team/account instead of interpreting denied private reads as an empty history.
+- Match stable IDs when present, otherwise unique current/previous registry names and conservative punctuation/standalone-FC variants. Ambiguous or multiply matched accounts are flagged rather than guessed.
+- Public betting history loads even when tipping totals cannot be read. Failures offer a retry; incomplete reads are labelled and do not hide successfully loaded bets. Accepted selection labels are shown for multis as well as singles.
+- No account link, balance, carry correction, accepted odds, bet or settlement writes. Regression: `node tests/profile-betting-history.test.cjs` covers anonymous/other-user reads, aliases, IDs, case, missing records, retries, tipping failure and profile-navigation races.
