@@ -10,7 +10,7 @@ const ctx={state:structuredClone(original),Object,Array,Number,Date,Set,Math,
  getCalendarDefault:()=>null,teamSearchInput:(id)=>'<input id="'+id+'">',idSafe:s=>s,
  PLAYOFF_DIVS:['DIVISION 2A','DIVISION 2B','DIVISION 3A','DIVISION 3B'],PLAYOFF_STAGES:['Quarter-Finals','Semi Finals','Final'],
  renderAdminBetReviewQueue:()=>'<section id="result-review">Resolve outstanding bets</section>',
- renderDiv3PoolPreview:()=>'',renderAdminJoinMarkets:()=>'',renderNoveltyCounterControls:()=>''};
+ renderDiv3PoolPreview:()=>'',renderAdminJoinMarkets:()=>'',renderEclDrawAdmin:()=>'<button data-assign-eclgroup="A">Commit</button>',renderNoveltyCounterControls:()=>''};
 vm.createContext(ctx);vm.runInContext(source.slice(start,end),ctx);
 const details=(html,id)=>{const m=html.match(new RegExp('<details id="'+id+'"([^>]*)>([\\s\\S]*?)</details>'));assert(m,'Missing '+id);return {open:/\bopen\b/.test(m[1]),body:m[2]};};
 const snapshot=JSON.stringify(ctx.state);let html=ctx.renderAdminTab();

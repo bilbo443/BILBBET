@@ -180,7 +180,7 @@
     }
   },
   "streak_team_tags": {
-    "101": "Sabotaging everyone else’s weekend.",
+    "101": "Sabotaging everyone else\u2019s weekend.",
     "104": "Father figures. Unfinished business.",
     "002": "Still searching for a winning stripe.",
     "026": "Big Wang energy.",
@@ -195,5 +195,49 @@
     "029": "Every dog has its matchday.",
     "047": "Would you like wins with that?",
     "097": "The sequel needs a redemption arc."
+  },
+  "ecl_rules": {
+    "season": "2026-27",
+    "field_team_ids": [
+      "002",
+      "020",
+      "021",
+      "022",
+      "026",
+      "030",
+      "041",
+      "050",
+      "056",
+      "069",
+      "075",
+      "085"
+    ],
+    "pot1_team_ids": [
+      "075",
+      "069",
+      "085"
+    ],
+    "group_matchdays": [
+      8,
+      10,
+      13
+    ],
+    "quarter_final_round": 15,
+    "semi_final_round": 18,
+    "final_round": 20,
+    "group_qualifiers": 2,
+    "total_qualifiers": 6,
+    "semi_final_byes": 2,
+    "win_points": 3,
+    "draw_points": 1,
+    "ranking": [
+      "match_points",
+      "fantasy_points_for"
+    ],
+    "groups": {
+      "A": [],
+      "B": [],
+      "C": []
+    }
   }
 }

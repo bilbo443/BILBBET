@@ -73,3 +73,7 @@ Fixture amendment:
 - Forecasts use current per-fixture H2H win/loss probabilities and the probability of surviving all earlier fixtures without that event, with the ordinary 5% margin. Weekly events are treated independently for forecasting. A no-event outcome completes each book.
 - Singles only; no multi combination with these specials. Existing negative own-team betting restrictions apply to a selected first-loss round or a “no win” season. Backing one's own team to remain unbeaten is positive, not a negative outcome.
 - Actual completed league results provide admin result suggestions. Draws do not void a streak selection. Missing scores, unconfirmed fixtures and retrospective changes that invalidate the original eligibility require manual review; they do not trigger automatic refunds or settlement.
+
+## ECL format confirmed 11 November 2026
+
+Twelve entrants form three groups of four. Pot 1 (AFC Big Red Port, Silverman's XI and Fully Scicluna) fills A4/B4/C4; the remaining nine fill A1/B1/C1/A2/B2/C2/A3/B3/C3. Groups play three H2H matchdays in GW8, GW10 and GW13, with 3 points for a win, 1 for a draw and fantasy points scored as the table tiebreaker. The top two in each group qualify. Rank those six by the same criteria: the best two receive semifinal byes and the other four play quarterfinals. Quarterfinals are GW15, semifinals GW18 and the final GW20. Official matchday pairings are entered separately. Completed group winner prices publish independently; overall ECL futures pause after draw changes until recalculated from the committed draw.

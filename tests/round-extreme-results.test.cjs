@@ -45,7 +45,7 @@ for(let round=1;round<=4;round++){
 
 // Price-board collection must expand the real renderer keys, not win/lose.
 const loop=app.match(/for\(const key of \['win_round','lose_round','charity','philanthropy'\]\)\{\s*state\.specialsExtremeExpanded=key;\s*htmlPrices\(renderSpecialsTab\(\)\);\s*\}/)?.[0];assert(loop);
-assert(app.includes("priceModelVersion:'full-season-h2h-and-round-specials-v2'"),'Old cached boards must refresh once for repaired special publication');
+assert(app.includes("priceModelVersion:'live-ecl-groups-v3'"),'Old cached boards must refresh once for repaired special/ECL publication');
 const expanded=[];vm.runInNewContext(loop,{state:{},renderSpecialsTab(){return '';},htmlPrices(){expanded.push('rendered');}});assert.equal(expanded.length,4);
 assert.equal(JSON.stringify(scores),JSON.stringify({A:[90,50],B:[30,40],C:[0,30],D:[999,20]}),'No scores changed by grading');
 console.log(`PASS: ${checked} published score outcomes; singles/multis, zero/missing scores, aliases, ties, scheduled field, current/future gating, manual override and price-board expansion.`);

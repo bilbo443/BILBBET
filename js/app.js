@@ -406,6 +406,7 @@
     if(parts[0]==='STREAK')return /^R\d+$/.test(parts[3]||'')?Number(parts[3].slice(1)):null;
     if(['H2H','H2H_MEDIAN','H2H_WIN'].includes(parts[0])) return /^R\d+$/.test(parts[2]||'') ? Number(parts[2].slice(1)) : null;
     if(parts[0]==='LEADAT') return parseInt(parts[2],10);
+    if(parts[0]==='ECLGROUP') return 13;
     if(parts[0]==='SPECIALFIX' && (parts[1]==='win_round'||parts[1]==='lose_round')) return parseInt(parts[2].replace('R',''),10);
     return null;
   }
@@ -5657,25 +5658,7 @@
         <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-top:4px;">Rounds 24-26 are the playoff weeks for Division 2/3 (no regular H2H fixtures those weeks) -- set matchups here once the bracket's known.</p>
       </div>
       </details>
-      <h3>ECL group draw</h3>
-      <div class="bb-card" style="margin-bottom:1.5rem;">
-        <p style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;margin-top:0;">12 confirmed qualifiers this season. Assign each to a group of 4 once the real draw's known -- betting for a group opens automatically once it has all 4.</p>
-        ${['A','B','C'].map(g => `
-          <div style="margin-bottom:10px;">
-            <div style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);font-weight:600;margin-bottom:4px;">Group ${g} (${(state.eclGroups[g]||[]).length}/4)</div>
-            ${(state.eclGroups[g]||[]).map(t => `
-              <span style="display:inline-flex;align-items:center;gap:6px;background:#262626;border:1px solid #3d3d3d;border-radius:14px;padding:3px 10px;margin:2px 4px 2px 0;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">
-                ${esc(t)} <span data-remove-eclteam="${g}|${esc(t)}" style="cursor:pointer;color:#9a9a9a;padding:10px;margin:-10px;display:inline-block;">&times;</span>
-              </span>`).join('')}
-          </div>`).join('')}
-        <div style="display:flex;gap:6px;align-items:flex-end;margin-top:8px;flex-wrap:wrap;">
-          <div style="flex:1;min-width:160px;">${teamSearchInput('ecl-group-pick', '', 'Team from the ECL field\u2026')}</div>
-          <button class="bb-btn" data-assign-eclgroup="A" style="padding:8px 14px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Add to A</button>
-          <button class="bb-btn" data-assign-eclgroup="B" style="padding:8px 14px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Add to B</button>
-          <button class="bb-btn" data-assign-eclgroup="C" style="padding:8px 14px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Add to C</button>
-          <button class="bb-btn ghost" id="clear-ecl-groups-btn" style="padding:8px 14px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Clear all</button>
-        </div>
-      </div>
+      ${renderEclDrawAdmin()}
 `;
     const BETS_HTML = renderAdminBetReviewQueue(bets) + `\n      <h3>Bet moderation</h3>
       <p style="color:var(--bb-text-muted);">For public browsing and filters, use <button class="bb-btn ghost" data-tab="BETTING LEDGER">Betting Ledger</button>. The controls below are admin-only.</p>
@@ -6299,91 +6282,148 @@
     await sset('bilbbet2_paused_categories', state.pausedCategories);
   }
 
-  async function assignEclGroup(group, team){
-    if(!team || !ALL_TEAMS.includes(team)){ alert('Pick a real team from the suggestions first.'); return; }
-    if(!FUTURES.ecl_field.includes(team)){ alert(team+' isn\'t part of this season\'s ECL field.'); return; }
-    const alreadyIn = Object.entries(state.eclGroups).find(([g,teams]) => teams.includes(team));
-    if(alreadyIn){ alert(team+' is already assigned to Group '+alreadyIn[0]+'.'); return; }
-    if(state.eclGroups[group].length >= 4){ alert('Group '+group+' already has 4 teams.'); return; }
-    state.eclGroups[group] = [...state.eclGroups[group], team];
-    await sset('bilbbet2_ecl_groups', state.eclGroups);
-    await autoPauseCupStageMarkets('ECL', 'ecl_markets');
-    render();
+  const eclProjectionCache=new Map();
+  let eclDrawSaving=false,eclDrawPolling=false;
+  function canonicalEclGroups(groups){
+    return Object.fromEntries(Object.entries(groups).map(([g,teams])=>[g,teams.map(t=>t?resolveTeamName(t):null)]));
   }
-
-  async function removeEclGroupTeam(group, team){
-    state.eclGroups[group] = state.eclGroups[group].filter(t => t !== team);
-    await sset('bilbbet2_ecl_groups', state.eclGroups);
-    await autoPauseCupStageMarkets('ECL', 'ecl_markets');
-    render();
+  function eclDrawField(){
+    const rules=ROSTER_RULES.ecl_rules;
+    if(!rules||rules.season!=='2026-27')throw new Error('Confirmed ECL draw rules are missing.');
+    const field=rules.field_team_ids.map(id=>{
+      const row=DATA.admin_teams.find(t=>String(t.id).padStart(3,'0')===id);
+      if(!row)throw new Error('Unknown ECL team ID '+id);return {id,name:row.name};
+    });
+    if(field.length!==12||new Set(FUTURES.ecl_field).size!==12||FUTURES.ecl_field.some(name=>!field.some(t=>sameTeam(t.name,name))))throw new Error('ECL field differs from the confirmed 12 entrants.');
+    return {rules,field,pot1:field.filter(t=>rules.pot1_team_ids.includes(t.id)).map(t=>t.name)};
   }
-
+  function eclGroupFingerprint(group,groups=state.eclGroups){
+    const {field,rules}=eclDrawField(),ids=(groups[group]||[]).filter(Boolean).map(t=>field.find(f=>f.name===t)?.id);
+    const inputs=ids.map(id=>{const name=field.find(t=>t.id===id).name,entry=DATA.team_strength_tiers?.teams?.[id];return [id,H2H_HISTORY[name],H2H_CUP_SHIFT[name],H2H_VARIANCE_WIDEN[name],DATA.roddy_results?.[name],entry,DATA.team_strength_tiers?.weekly_score_anchors?.[entry?.tier]];});
+    const fixtures=(state.cupFixtures.ECL||[]).filter(f=>rules.group_matchdays.includes(Number(f.round))).map(f=>[Number(f.round),field.find(t=>sameTeam(t.name,f.teamA))?.id,field.find(t=>sameTeam(t.name,f.teamB))?.id]).filter(f=>ids.includes(f[1])&&ids.includes(f[2])).map(([r,a,b])=>[r,...[a,b].sort()]).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)));
+    const known=rules.group_matchdays.filter(r=>r<state.currentRound).map(r=>[r,ids.map(id=>REAL_RESULTS[field.find(t=>t.id===id).name]?.[r-1])]);
+    const text=JSON.stringify([BilbbetEcl.VERSION,ids,inputs,allPool,DATA.team_strength_tiers?.enabled,rules.group_matchdays,known,fixtures]);
+    let hash=2166136261;for(const c of text){hash^=c.charCodeAt(0);hash=Math.imul(hash,16777619);}return (hash>>>0).toString(16);
+  }
+  function eclGroupProjection(group,groups=state.eclGroups){
+    const {field,pot1,rules}=eclDrawField();BilbbetEcl.validate(field.map(t=>t.name),pot1,groups);
+    const teams=BilbbetEcl.slots(groups[group]||[],pot1);
+    if(teams.some(t=>!t))return [];
+    const key=eclGroupFingerprint(group,groups);if(eclProjectionCache.has(key))return eclProjectionCache.get(key);
+    const byId=new Map(field.map(t=>[t.id,t.name])),ids=teams.map(t=>field.find(f=>f.name===t).id),fixtures={},scores={};
+    for(const round of rules.group_matchdays){
+      fixtures[round]=(state.cupFixtures.ECL||[]).filter(f=>Number(f.round)===round&&teams.includes(resolveTeamName(f.teamA))&&teams.includes(resolveTeamName(f.teamB)))
+        .map(f=>[field.find(t=>t.name===resolveTeamName(f.teamA)).id,field.find(t=>t.name===resolveTeamName(f.teamB)).id]);
+      if(round<state.currentRound)scores[round]=Object.fromEntries(ids.map(id=>[id,REAL_RESULTS[byId.get(id)]?.[round-1]]));
+    }
+    const sample=(id,n,random,round)=>{
+      const team=byId.get(id),info=teamInfoCup[team];let values;
+      if(tierH2HSamplers[team])values=tierH2HSamplers[team](n,random);
+      else if(info){values=Array.from({length:n},()=>info.own&&random()<info.w?info.own(1,random)[0]:info.baseline(1,random)[0]);}
+      else values=sampleTeam(team,n,random,Math.min(round,state.currentRound));
+      const form=h2hFormAdjustment(team,Math.min(round,state.currentRound));
+      const prior=tierH2HSamplers[team]?.mean??(info?.own?info.w*info.own.mean+(1-info.w)*info.baseline.mean:info?.baseline.mean);
+      const shift=form.played&&Number.isFinite(prior)?Math.max(-12,Math.min(12,form.played/(form.played+8)*(form.mean-prior))):0;
+      return values.map(v=>Math.max(0,Math.round(v+shift)));
+    };
+    const rows=BilbbetEcl.winnerProbabilities(ids,sample,{key,rounds:rules.group_matchdays,fixtures,scores}).map(row=>({team:byId.get(row.team),teamId:row.team,pct:row.pct,...toOdds(row.pct),fingerprint:key}));
+    if(eclProjectionCache.size>8)eclProjectionCache.clear();eclProjectionCache.set(key,rows);return rows;
+  }
+  function eclGroupQuotes(groups){
+    const {rules}=eclDrawField(),quotes=[];
+    for(const group of ['A','B','C'])for(const row of eclGroupProjection(group,groups)){
+      const odds=row.odds??1.01,id='ECLGROUP|'+group+'|'+row.team;
+      quotes.push({id,team:row.team,team_id:row.teamId,odds,baseOdds:odds,prices:[odds],label:row.team+' to win ECL Group '+group,
+        type:'ECLGROUP',category:'ECLGROUP|'+group,exclusive:'ECLGROUP|'+group,featured:false,round:rules.group_matchdays[2],bettable:!row.suspended,
+        safetyGroup:'ECLGROUP|'+group,safetyOutcome:row.team,safetySize:4,eclModelVersion:BilbbetEcl.VERSION,eclFingerprint:row.fingerprint});
+    }
+    return quotes;
+  }
+  async function saveEclDraw(groups){
+    if(!state.user?.isAdmin||eclDrawSaving)return;
+    let saved=false;
+    eclDrawSaving=true;state.error='';state.info='Saving ECL draw and publishing completed groups…';render();
+    try{
+      const {field,pot1}=eclDrawField();BilbbetEcl.validate(field.map(t=>t.name),pot1,groups);
+      const response=await secureRpc('bilbbet_commit_ecl_draw',{p_groups:groups,p_quotes:eclGroupQuotes(groups),p_field:field,p_expected_groups:state.eclDrawStoredGroups||state.eclGroups});
+      saved=true;state.eclDrawStoredGroups=response.groups;state.eclGroups=canonicalEclGroups(response.groups);state.eclGroupAdminPick='';
+      if(!await refreshSubmissionControls())throw new Error('Could not reload betting controls.');await loadTrustedPrices();
+      state.info='Draw saved. Live group prices: '+(response.published_groups.join(', ')||'none yet — awaiting four teams')+'. Overall ECL futures stay paused until regenerated from the confirmed draw.';
+    }catch(error){state.info='';state.error=(saved?'Draw saved and prices published, but this screen could not refresh. Retry the refresh: ':'Could not confirm the ECL draw save; refresh before retrying: ')+error.message;}
+    finally{eclDrawSaving=false;render();}
+  }
+  async function assignEclGroup(group,team){
+    try{const {field,pot1}=eclDrawField(),next=BilbbetEcl.commit(field.map(t=>t.name),pot1,state.eclGroups,team);
+      if(next.slot[0]!==group)throw new Error('The next official draw slot is '+next.slot+'.');
+      await saveEclDraw(next.groups);
+    }catch(error){state.error=error.message;render();}
+  }
+  async function removeEclGroupTeam(group,team){
+    if(!state.user?.isAdmin||!confirm('Correct this draw position? Group prices will be replaced; accepted bets keep their original odds.'))return;
+    const groups=JSON.parse(JSON.stringify(state.eclGroups));groups[group]=groups[group].map(t=>t===team?null:t);await saveEclDraw(groups);
+  }
   async function clearEclGroups(){
-    if(!confirm('Clear all ECL group assignments?')) return;
-    state.eclGroups = { A: [], B: [], C: [] };
-    await sset('bilbbet2_ecl_groups', state.eclGroups);
-    await autoPauseCupStageMarkets('ECL', 'ecl_markets');
-    render();
+    if(state.user?.isAdmin&&confirm('Clear the ECL draw? Existing accepted bets are retained and group betting will close.'))await saveEclDraw({A:[],B:[],C:[]});
   }
-
-  function computeGroupWinnerMarket(teams, nSim){
-    nSim = nSim || 10000;
-    const samples = {};
-    teams.forEach(t => { samples[t] = sampleTeamForCup(t, nSim); });
-    const wins = {}; teams.forEach(t => wins[t] = 0);
-    for(let i=0;i<nSim;i++){
-      let best = teams[0], bestScore = samples[teams[0]][i];
-      for(let j=1;j<teams.length;j++){
-        if(samples[teams[j]][i] > bestScore){ best = teams[j]; bestScore = samples[teams[j]][i]; }
-      }
-      wins[best]++;
-    }
-    return teams.map(t => ({ team: t, pct: 100*wins[t]/nSim }));
+  function renderEclDrawAdmin(){
+    if(typeof BilbbetEcl==='undefined')return '<p>Reload the site to load the ECL draw tools.</p>';
+    try{
+      const {field,pot1}=eclDrawField();BilbbetEcl.validate(field.map(t=>t.name),pot1,state.eclGroups);
+      const next=BilbbetEcl.nextSlot(state.eclGroups,pot1);
+      const assigned=Object.values(state.eclGroups).flat().filter(Boolean);
+      const eligible=next?field.filter(t=>!assigned.includes(t.name)&&pot1.includes(t.name)===(next[1]==='4')):[];
+      return `<h3>Live ECL draw</h3><div class="bb-card"><p>Next draw position: <strong>${next||'Draw complete'}</strong>${next?' · Pot '+(next[1]==='4'?'1 (non-D1)':'2 (D1)'):''}. Each completed group is priced and published when committed.</p>
+        ${['A','B','C'].map(g=>`<h4>Group ${g}</h4>`+BilbbetEcl.slots(state.eclGroups[g]||[],pot1).map((t,i)=>`<div style="padding:6px 0;display:flex;gap:8px;align-items:center;"><strong>${g}${i+1}</strong><span style="flex:1;">${t?teamLogo(t,22)+' '+esc(t):'Awaiting draw'}</span>${t?`<button class="bb-btn ghost" data-remove-eclteam="${g}|${esc(t)}" ${eclDrawSaving?'disabled':''}>Correct</button>`:''}</div>`).join('')).join('')}
+        ${next?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;"><select class="bb-select" id="ecl-group-pick"><option value="">Select drawn team…</option>${eligible.map(t=>`<option value="${esc(t.name)}">${esc(t.name)}</option>`).join('')}</select><button class="bb-btn" data-assign-eclgroup="${next[0]}" ${eclDrawSaving?'disabled':''}>Commit to ${next}</button></div>`:''}
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;"><button class="bb-btn ghost" id="retry-ecl-publication" ${eclDrawSaving?'disabled':''}>Retry / refresh group prices</button><button class="bb-btn ghost" id="clear-ecl-groups-btn" ${eclDrawSaving?'disabled':''}>Clear draw</button>${!next?'<button class="bb-btn" id="export-ecl-draw">Download confirmed draw for futures refresh</button>':''}</div>
+        <p style="color:var(--bb-text-muted);">3 points for a win, 1 for a draw; fantasy points scored break table ties. The top two qualify from each group, with the best two qualifiers earning semifinal byes. Official GW8 match fixtures are entered separately.</p></div>`;
+    }catch(error){return '<p role="alert">ECL draw needs review: '+esc(error.message)+'</p>';}
   }
-
+  function computeGroupWinnerMarket(teams,nSim){
+    const group=Object.keys(state.eclGroups).find(g=>(state.eclGroups[g]||[]).filter(Boolean).length===4&&teams.every(t=>state.eclGroups[g].includes(t)));
+    return group?eclGroupProjection(group):[];
+  }
   function renderEclGroupBox(group){
-    const teams = state.eclGroups[group] || [];
-    const complete = teams.length === 4;
-    let html = `<div class="bb-card" style="margin-bottom:14px;">
-      <div style="font-size:clamp(19px, calc(19px + 0.4vw), 22px);font-weight:600;margin-bottom:8px;">Group ${group}</div>`;
-    if(!complete){
-      html += `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">Not yet drawn &mdash; ${teams.length} of 4 teams assigned. Odds for this group will appear once the draw's confirmed.</p>`;
-      if(teams.length){
-        html += teams.map(t => `<div style="font-size:clamp(18px, calc(18px + 0.4vw), 21px);padding:3px 0;">${esc(t)}</div>`).join('');
+    const teams=(state.eclGroups[group]||[]).filter(Boolean),complete=teams.length===4;
+    let html=`<div class="bb-card" style="margin-bottom:14px;"><h3>Group ${esc(group)} · ${teams.length}/4</h3>`;
+    if(!complete)return html+teams.map(t=>`<p>${teamLogo(t,24)} ${esc(t)}</p>`).join('')+'<p>Awaiting the remaining teams. Betting opens after the group is committed and prices are published.</p></div>';
+    if(state.currentRound>13)return html+teams.map(t=>`<p>${teamLogo(t,24)} ${esc(t)}</p>`).join('')+'<p>Group stage complete · betting closed.</p></div>';
+    try{
+      const fingerprint=eclGroupFingerprint(group),quotes=teams.map(t=>trustedPrices.get('ECLGROUP|'+group+'|'+t));
+      const ready=quotes.every(q=>q&&q.eclModelVersion===BilbbetEcl.VERSION&&q.eclFingerprint===fingerprint);
+      if(!collectingTrustedPrices&&!ready)return html+'<p>Group complete · awaiting price publication.</p></div>';
+      const rows=collectingTrustedPrices?eclGroupProjection(group):quotes.map(q=>({team:q.team,odds:q.odds,suspended:q.bettable===false}));
+      html+='<p style="color:var(--bb-text-muted);">Group winner · three matchdays (GW8, GW10, GW13) · top two qualify.</p>';
+      for(const row of rows.sort((a,b)=>(a.odds??Infinity)-(b.odds??Infinity))){
+        const id='ECLGROUP|'+group+'|'+row.team,blocked=row.suspended||isPickBlocked(id);
+        html+=`<div class="bb-outcome ${state.slip.some(s=>s.id===id)?'selected':''}" ${blocked?'aria-disabled="true"':`data-pick="${esc(id)}" data-label="${esc(row.team+' to win ECL Group '+group)}" data-odds="${row.odds}"`} style="${blocked?'opacity:0.6;':''}"><span>${teamLogo(row.team,24)} ${esc(row.team)}</span><strong>${row.suspended?'Suspended':formatOdds(row.odds)}${blocked&&!row.suspended?' · closed':''}</strong></div>`;
       }
-    } else if(!state.roundBettingOpen && state.closeScope === 'all'){
-      html += `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);">\u{1F512} Betting is closed across all markets right now &mdash; hidden until it reopens.</p>`;
-    } else {
-      const category = 'ECLGROUP|'+group;
-      const categoryPaused = !!state.pausedCategories[category];
-      const market = computeGroupWinnerMarket(teams);
-      html += categoryPauseControl(category, 'Group '+group+' winner market');
-      html += market.sort((a,b)=>b.pct-a.pct).map(m => {
-        const oddsInfo = toOdds(m.pct);
-        const id = 'ECLGROUP|'+group+'|'+m.team;
-        const selected = state.slip.some(s=>s.id===id);
-        if(oddsInfo.suspended || categoryPaused){
-          return `<div style="display:flex;justify-content:space-between;padding:6px 0;opacity:0.5;"><span>${esc(m.team)}</span><span style="color:#9a9a9a;">${categoryPaused && !oddsInfo.suspended ? 'paused' : 'suspended'}</span></div>`;
-        }
-        return `<div class="bb-outcome ${selected?'selected':''}" data-pick="${esc(id)}" data-label="${esc(m.team)} to win Group ${group}" data-odds="${oddsInfo.odds}">
-          <span>${esc(m.team)}</span><span class="bb-odds">${formatOdds(oddsInfo.odds)}</span></div>`;
-      }).join('');
-    }
-    html += `</div>`;
-    return html;
+      return html+'</div>';
+    }catch(error){return html+'<p role="alert">Prices need review: '+esc(error.message)+'</p></div>';}
   }
-
   function renderEclGroups(){
-    const assignedCount = Object.values(state.eclGroups).reduce((s,t)=>s+t.length, 0);
-    const disclaimer = assignedCount < 12
-      ? `<div class="bb-card" style="text-align:center;padding:1.5rem 1rem;color:#9a9a9a;margin-bottom:14px;">
-          The group draw hasn't been confirmed yet &mdash; this is a placeholder template. Once the real draw's known, the admin
-          assigns each of the 12 qualifying teams to a group below, and betting opens automatically once a group has all 4.
-        </div>`
-      : '';
-    return disclaimer + ['A','B','C'].map(g => renderEclGroupBox(g)).join('');
+    return '<h3>ECL live draw</h3><p>GW8, GW10 and GW13 · top two from each group qualify · two semifinal byes.</p>'+(state.eclDrawReadError?'<p role="status">Could not refresh the live draw. Showing the last published view; retrying automatically.</p>':'')+['A','B','C'].map(renderEclGroupBox).join('');
   }
-
+  async function refreshPublicEclDraw(){
+    if(eclDrawPolling||eclDrawSaving||document.hidden||state.activeTab!=='FUTURES'||state.futuresSubTab!=='ECL'||state.futureMarketTab!=='groups')return;
+    eclDrawPolling=true;
+    try{
+      const data=await secureRpc('bilbbet_ecl_draw_view');
+      const groups=data.groups||{A:[],B:[],C:[]},list=data.quotes;
+      const before=JSON.stringify([state.eclGroups,state.pausedCategories,state.cupFixtures.ECL,[...trustedPrices.values()].filter(q=>q.id.startsWith('ECLGROUP|'))]);
+      state.eclDrawStoredGroups=groups;state.eclGroups=canonicalEclGroups(groups);if(data.paused_categories)state.pausedCategories=data.paused_categories;
+      state.cupFixtures.ECL=data.fixtures;
+      trustedPrices=new Map([...trustedPrices].filter(([id])=>!id.startsWith('ECLGROUP|')));for(const q of list)trustedPrices.set(q.id,q);
+      const after=JSON.stringify([state.eclGroups,state.pausedCategories,state.cupFixtures.ECL,list.filter(q=>q.id.startsWith('ECLGROUP|'))]);
+      const wasError=state.eclDrawReadError;state.eclDrawReadError=false;if(before!==after||wasError)render();
+    }catch(error){if(!state.eclDrawReadError){state.eclDrawReadError=true;render();}}
+    finally{eclDrawPolling=false;}
+  }
+  function exportEclDraw(){
+    const {rules,field,pot1}=eclDrawField();if(BilbbetEcl.nextSlot(state.eclGroups,pot1))throw new Error('Finish the draw before exporting.');
+    const value={...rules,groups:Object.fromEntries(['A','B','C'].map(g=>[g,state.eclGroups[g].map(name=>field.find(t=>t.name===name).id)]))};
+    const url=URL.createObjectURL(new Blob([JSON.stringify(value,null,2)+'\n'],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='official_ecl_draw.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
   async function saveCupOverrides(){
     await sset('bilbbet2_cup_overrides', state.cupCalendarOverrides);
     render();
@@ -6918,7 +6958,7 @@
         body = stripe + futuresSubTabBar() + futuresPriceToggle() + cupMarketTabs('ecl_labels') + sectionRibbon() +
           (state.futureMarketTab === 'fixtures' ? renderCupFixtures('ECL') :
            state.futureMarketTab === 'groups' ? renderEclGroups() :
-            `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:10px;">12 confirmed qualifiers for the 26/27 ECL, group draw not yet assigned (see the Groups tab). Stage odds below assume the field regardless of group -- they'll sharpen once groups are confirmed.</p>` +
+            `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:10px;">${Object.values(state.eclGroups).flat().some(Boolean)?'Overall ECL futures stay paused until regenerated from the confirmed draw; completed groups publish their own winner prices immediately.':'12 confirmed ECL entrants. Pre-draw forecasts respect one Pot 1 and three Pot 2 teams per group. Matchdays: GW8, GW10 and GW13; six teams qualify, with two semifinal byes.'}</p>` +
             `<div id="outcomes-list">${cupOutcomesList('ecl_markets', state.futureMarketTab)}</div>`);
       } else {
         body = stripe + futuresSubTabBar() + futuresPriceToggle() + futuresMarketTabs() + (state.futureMarketTab === 'leading_at'
@@ -7071,7 +7111,7 @@
   // from the places-based blocking/odds-adjustment logic below, now that
   // there's a genuine, verified entrant count and stage sizes to check a
   // multi against.
-  const ECL_PLACES = { reach_knockout_pct: 8, reach_sf_pct: 4, reach_final_pct: 2 };
+  const ECL_PLACES = { reach_knockout_pct: 6, reach_sf_pct: 4, reach_final_pct: 2 };
   const ECL_TOTAL_ENTRANTS = 12;
   // promotion_pct's places are shared across BOTH conferences of a division
   // (2A and 2B teams compete for the same 4 promotion spots via the shared
@@ -7100,6 +7140,7 @@
       return { type:'h2h', kind: isRes ? 'res' : 'hcap', side, favTag, roundTag, teamA, teamB,
         group: (isRes?'H2H-RES|':'H2H-HCAP|')+roundTag+'|'+teamA+'|'+teamB };
     }
+    if(parts[0]==='ECLGROUP') return {type:'eclgroup',team:parts[2],group:'ECLGROUP|'+parts[1]};
     if(parts[0]==='FUT'){
       const [, div, marketKey, team] = parts;
       return { type:'fut', div, marketKey, team,
@@ -8017,7 +8058,7 @@
   async function priceSyncFingerprint(){
     const data=Object.fromEntries(Object.entries(DATA).filter(([key])=>!['real_results','carry_balances'].includes(key)));
     const input={
-      priceModelVersion:'full-season-h2h-and-round-specials-v2',
+      priceModelVersion:'live-ecl-groups-v3',
       season:seasonKeyPart(),round:state.currentRound,data,
       controls:{
         cupFixtures:state.cupFixtures,
@@ -8210,6 +8251,9 @@
         q.negative=p.kind==='LOSS'?parts[4]!=='NEVER':parts[4]==='NEVER';
       }else if(p.type==='h2h'){
         q.event='MATCH|'+p.roundTag+'|'+p.teamA+'|'+p.teamB;
+      }else if(p.type==='eclgroup'){
+        q.exclusive=p.group;q.safetyGroup=p.group;q.safetyOutcome=p.team;q.safetySize=4;
+        q.eclModelVersion=BilbbetEcl.VERSION;q.eclFingerprint=eclGroupFingerprint(parts[1]);
       }else if(p.type==='leadat'){
         q.exclusive=p.group;
         if(p.scope==='RODDY')q.type='HELD';
@@ -9567,6 +9611,8 @@
       removeEclGroupTeam(group, team);
     });
     const clearEclGroupsBtn = $('#clear-ecl-groups-btn'); if(clearEclGroupsBtn) clearEclGroupsBtn.onclick = clearEclGroups;
+    const retryEcl=document.getElementById('retry-ecl-publication');if(retryEcl)retryEcl.onclick=()=>saveEclDraw(JSON.parse(JSON.stringify(state.eclGroups)));
+    const exportEcl=document.getElementById('export-ecl-draw');if(exportEcl)exportEcl.onclick=exportEclDraw;
     document.querySelectorAll('[data-set-cupoverride]').forEach(el => el.onclick = () => {
       const comp = el.dataset.setCupoverride;
       const input = document.getElementById('cup-override-stage-'+comp);
@@ -9906,7 +9952,7 @@
     state.playoffAdminEntry[div] ||= {teamA:'',teamB:'',stage:'Finals fixture'};
   }
   const savedEclGroups = await sget('bilbbet2_ecl_groups');
-  if(savedEclGroups){ state.eclGroups = savedEclGroups; }
+  if(savedEclGroups){ state.eclDrawStoredGroups=savedEclGroups;state.eclGroups = canonicalEclGroups(savedEclGroups); }
   const savedCupOverrides = await sget('bilbbet2_cup_overrides');
   if(savedCupOverrides){ state.cupCalendarOverrides = savedCupOverrides; }
 
@@ -9957,6 +10003,7 @@
   await loadTrustedPrices();
   render();
   setInterval(refreshNoveltyCounters,60000); // Refresh only tracker text; preserve slips and typed inputs.
+  setInterval(refreshPublicEclDraw,8000); // Read-only polling only while the public ECL groups tab is visible.
   loadHomeStats(); // not awaited -- the initial render shows a loading state, this fills it in once ready
   if(EMBED_MODE){
     // loadAllData only runs once at boot -- a periodic full reload is the

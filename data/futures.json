@@ -6466,73 +6466,73 @@
     "reach_knockout_pct": [
       {
         "team": "BC UNITED ZEBRAS",
-        "probability_pct": 58.96666666666667,
+        "probability_pct": 58.90555555555556,
         "odds": 1.62,
         "suspended": false
       },
       {
-        "team": "SILVERMAN'S XI",
-        "probability_pct": 57.89722222222222,
-        "odds": 1.64,
-        "suspended": false
-      },
-      {
         "team": "HARVEY FREKES",
-        "probability_pct": 57.60277777777778,
+        "probability_pct": 57.75277777777777,
         "odds": 1.65,
         "suspended": false
       },
       {
+        "team": "SILVERMAN'S XI",
+        "probability_pct": 56.81944444444445,
+        "odds": 1.68,
+        "suspended": false
+      },
+      {
         "team": "SAUCE FC",
-        "probability_pct": 53.34166666666667,
-        "odds": 1.79,
+        "probability_pct": 54.025,
+        "odds": 1.76,
         "suspended": false
       },
       {
         "team": "ALASKAN BULL WORMS",
-        "probability_pct": 52.16111111111112,
-        "odds": 1.83,
+        "probability_pct": 52.93611111111111,
+        "odds": 1.8,
         "suspended": false
       },
       {
         "team": "GIVE US WANG",
-        "probability_pct": 52.06944444444445,
-        "odds": 1.83,
+        "probability_pct": 52.638888888888886,
+        "odds": 1.81,
         "suspended": false
       },
       {
         "team": "NANISTATE",
-        "probability_pct": 51.74166666666667,
+        "probability_pct": 51.800000000000004,
         "odds": 1.84,
         "suspended": false
       },
       {
         "team": "JARVIS ZEBRAS",
-        "probability_pct": 51.03333333333333,
-        "odds": 1.87,
+        "probability_pct": 50.705555555555556,
+        "odds": 1.88,
         "suspended": false
       },
       {
         "team": "AFC BIG RED PORT",
-        "probability_pct": 47.824999999999996,
-        "odds": 1.99,
+        "probability_pct": 47.169444444444444,
+        "odds": 2.02,
         "suspended": false
       },
       {
         "team": "VICTORYRULES",
-        "probability_pct": 45.46944444444444,
-        "odds": 2.09,
+        "probability_pct": 45.044444444444444,
+        "odds": 2.11,
         "suspended": false
       },
       {
         "team": "FULLY SCICLUNA",
-        "probability_pct": 36.81388888888889,
-        "odds": 2.59,
+        "probability_pct": 37.18611111111111,
+        "odds": 2.56,
         "suspended": false
       },
       {
         "team": "BIG MAC FC",
-        "probability_pct": 35.077777777777776,
+        "probability_pct": 35.016666666666666,
         "odds": 2.72,
         "suspended": false
       }
@@ -6540,222 +6540,222 @@
     "reach_sf_pct": [
       {
         "team": "BC UNITED ZEBRAS",
-        "probability_pct": 42.830555555555556,
-        "odds": 2.22,
-        "suspended": false
-      },
-      {
-        "team": "SILVERMAN'S XI",
-        "probability_pct": 41.42777777777778,
-        "odds": 2.3,
+        "probability_pct": 43.15833333333333,
+        "odds": 2.21,
         "suspended": false
       },
       {
         "team": "HARVEY FREKES",
-        "probability_pct": 41.036111111111104,
-        "odds": 2.32,
+        "probability_pct": 41.31666666666667,
+        "odds": 2.31,
+        "suspended": false
+      },
+      {
+        "team": "SILVERMAN'S XI",
+        "probability_pct": 40.43333333333333,
+        "odds": 2.36,
         "suspended": false
       },
       {
         "team": "SAUCE FC",
-        "probability_pct": 36.96944444444444,
-        "odds": 2.58,
-        "suspended": false
-      },
-      {
-        "team": "ALASKAN BULL WORMS",
-        "probability_pct": 35.60833333333333,
-        "odds": 2.67,
-        "suspended": false
-      },
-      {
-        "team": "NANISTATE",
-        "probability_pct": 35.202777777777776,
-        "odds": 2.71,
+        "probability_pct": 37.13333333333333,
+        "odds": 2.56,
         "suspended": false
       },
       {
         "team": "GIVE US WANG",
-        "probability_pct": 35.00555555555555,
+        "probability_pct": 35.84166666666667,
+        "odds": 2.66,
+        "suspended": false
+      },
+      {
+        "team": "ALASKAN BULL WORMS",
+        "probability_pct": 35.55555555555555,
+        "odds": 2.68,
+        "suspended": false
+      },
+      {
+        "team": "NANISTATE",
+        "probability_pct": 34.955555555555556,
         "odds": 2.72,
         "suspended": false
       },
       {
         "team": "JARVIS ZEBRAS",
-        "probability_pct": 34.166666666666664,
+        "probability_pct": 34.18611111111111,
         "odds": 2.79,
         "suspended": false
       },
       {
         "team": "AFC BIG RED PORT",
-        "probability_pct": 30.516666666666666,
-        "odds": 3.12,
+        "probability_pct": 29.894444444444446,
+        "odds": 3.19,
         "suspended": false
       },
       {
         "team": "VICTORYRULES",
-        "probability_pct": 28.33611111111111,
-        "odds": 3.36,
+        "probability_pct": 28.522222222222222,
+        "odds": 3.34,
         "suspended": false
       },
       {
         "team": "FULLY SCICLUNA",
-        "probability_pct": 20.022222222222222,
-        "odds": 4.76,
+        "probability_pct": 20.394444444444446,
+        "odds": 4.67,
         "suspended": false
       },
       {
         "team": "BIG MAC FC",
-        "probability_pct": 18.87777777777778,
-        "odds": 5.04,
+        "probability_pct": 18.608333333333334,
+        "odds": 5.12,
         "suspended": false
       }
     ],
     "reach_final_pct": [
       {
         "team": "BC UNITED ZEBRAS",
-        "probability_pct": 23.447222222222223,
+        "probability_pct": 23.480555555555554,
         "odds": 4.06,
         "suspended": false
       },
       {
-        "team": "SILVERMAN'S XI",
-        "probability_pct": 22.558333333333334,
-        "odds": 4.22,
+        "team": "HARVEY FREKES",
+        "probability_pct": 22.005555555555556,
+        "odds": 4.33,
         "suspended": false
       },
       {
-        "team": "HARVEY FREKES",
-        "probability_pct": 22.208333333333332,
-        "odds": 4.29,
+        "team": "SILVERMAN'S XI",
+        "probability_pct": 21.852777777777778,
+        "odds": 4.36,
         "suspended": false
       },
       {
         "team": "SAUCE FC",
-        "probability_pct": 18.625,
-        "odds": 5.11,
-        "suspended": false
-      },
-      {
-        "team": "ALASKAN BULL WORMS",
-        "probability_pct": 18.033333333333335,
-        "odds": 5.28,
-        "suspended": false
-      },
-      {
-        "team": "NANISTATE",
-        "probability_pct": 17.711111111111112,
-        "odds": 5.38,
+        "probability_pct": 19.01388888888889,
+        "odds": 5.01,
         "suspended": false
       },
       {
         "team": "GIVE US WANG",
-        "probability_pct": 17.319444444444443,
-        "odds": 5.5,
+        "probability_pct": 18.194444444444443,
+        "odds": 5.23,
+        "suspended": false
+      },
+      {
+        "team": "ALASKAN BULL WORMS",
+        "probability_pct": 17.98888888888889,
+        "odds": 5.29,
+        "suspended": false
+      },
+      {
+        "team": "NANISTATE",
+        "probability_pct": 17.572222222222223,
+        "odds": 5.42,
         "suspended": false
       },
       {
         "team": "JARVIS ZEBRAS",
-        "probability_pct": 16.905555555555555,
-        "odds": 5.63,
+        "probability_pct": 16.772222222222222,
+        "odds": 5.68,
         "suspended": false
       },
       {
         "team": "AFC BIG RED PORT",
-        "probability_pct": 14.813888888888888,
-        "odds": 6.43,
+        "probability_pct": 14.105555555555554,
+        "odds": 6.75,
         "suspended": false
       },
       {
         "team": "VICTORYRULES",
-        "probability_pct": 12.877777777777778,
-        "odds": 7.4,
+        "probability_pct": 13.194444444444445,
+        "odds": 7.22,
         "suspended": false
       },
       {
         "team": "FULLY SCICLUNA",
-        "probability_pct": 8.119444444444445,
-        "odds": 11.73,
+        "probability_pct": 8.447222222222223,
+        "odds": 11.27,
         "suspended": false
       },
       {
         "team": "BIG MAC FC",
-        "probability_pct": 7.3805555555555555,
-        "odds": 12.9,
+        "probability_pct": 7.372222222222223,
+        "odds": 12.92,
         "suspended": false
       }
     ],
     "win_pct": [
       {
         "team": "BC UNITED ZEBRAS",
-        "probability_pct": 12.808333333333332,
-        "odds": 7.44,
-        "suspended": false
-      },
-      {
-        "team": "SILVERMAN'S XI",
-        "probability_pct": 12.194444444444443,
-        "odds": 7.81,
+        "probability_pct": 12.691666666666668,
+        "odds": 7.5,
         "suspended": false
       },
       {
         "team": "HARVEY FREKES",
-        "probability_pct": 11.911111111111111,
-        "odds": 8.0,
+        "probability_pct": 11.955555555555556,
+        "odds": 7.97,
+        "suspended": false
+      },
+      {
+        "team": "SILVERMAN'S XI",
+        "probability_pct": 11.755555555555555,
+        "odds": 8.1,
         "suspended": false
       },
       {
         "team": "SAUCE FC",
-        "probability_pct": 9.519444444444444,
-        "odds": 10.0,
-        "suspended": false
-      },
-      {
-        "team": "ALASKAN BULL WORMS",
-        "probability_pct": 8.958333333333334,
-        "odds": 10.63,
+        "probability_pct": 9.625,
+        "odds": 9.89,
         "suspended": false
       },
       {
         "team": "NANISTATE",
-        "probability_pct": 8.838888888888889,
-        "odds": 10.77,
+        "probability_pct": 9.022222222222222,
+        "odds": 10.56,
+        "suspended": false
+      },
+      {
+        "team": "ALASKAN BULL WORMS",
+        "probability_pct": 9.011111111111111,
+        "odds": 10.57,
         "suspended": false
       },
       {
         "team": "GIVE US WANG",
-        "probability_pct": 8.458333333333334,
-        "odds": 11.26,
+        "probability_pct": 8.758333333333333,
+        "odds": 10.87,
         "suspended": false
       },
       {
         "team": "JARVIS ZEBRAS",
-        "probability_pct": 8.205555555555556,
-        "odds": 11.61,
+        "probability_pct": 8.191666666666666,
+        "odds": 11.63,
         "suspended": false
       },
       {
         "team": "AFC BIG RED PORT",
-        "probability_pct": 6.961111111111111,
-        "odds": 13.68,
+        "probability_pct": 6.644444444444445,
+        "odds": 14.33,
         "suspended": false
       },
       {
         "team": "VICTORYRULES",
-        "probability_pct": 5.847222222222221,
-        "odds": 16.29,
+        "probability_pct": 5.966666666666666,
+        "odds": 15.96,
         "suspended": false
       },
       {
         "team": "FULLY SCICLUNA",
-        "probability_pct": 3.477777777777778,
-        "odds": 27.38,
+        "probability_pct": 3.452777777777778,
+        "odds": 27.58,
         "suspended": false
       },
       {
         "team": "BIG MAC FC",
-        "probability_pct": 2.8194444444444446,
-        "odds": 33.78,
+        "probability_pct": 2.9250000000000003,
+        "odds": 32.56,
         "suspended": false
       }
     ]

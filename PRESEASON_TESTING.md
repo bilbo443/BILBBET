@@ -1321,3 +1321,11 @@ Targeted follow-up 10 November 2026: six calendar dates aligned to the existing 
 - Match stable IDs when present, otherwise unique current/previous registry names and conservative punctuation/standalone-FC variants. Ambiguous or multiply matched accounts are flagged rather than guessed.
 - Public betting history loads even when tipping totals cannot be read. Failures offer a retry; incomplete reads are labelled and do not hide successfully loaded bets. Accepted selection labels are shown for multis as well as singles.
 - No account link, balance, carry correction, accepted odds, bet or settlement writes. Regression: `node tests/profile-betting-history.test.cjs` covers anonymous/other-user reads, aliases, IDs, case, missing records, retries, tipping failure and profile-navigation races.
+
+## Live ECL draw — 11 November 2026
+
+- Confirmed 12-team field/pots, official draw slots, six qualifiers/two semifinal byes and GW8/10/13/15/18/20 calendar wired into client and forecasts.
+- Completed group odds are generated from three matchdays with deterministic cup/form sampling, then committed atomically with the draw. Public groups refresh every eight seconds; incomplete or unpublished groups cannot be bet through the display.
+- Overall stage markets pause while the draw changes. A stable-ID draw export feeds the existing futures refresh; no GitHub changes are needed between group announcements.
+- `supabase/live-ecl-draw.sql` installed; rollback-only backend regressions passed without live group/financial changes. Details and operator steps: `reports/ecl-live-draw-2026-11-11.md`.
+- Regressions: `tests/ecl-draw.test.cjs`, `tests/test_ecl_draw.py`, `supabase/live-ecl-draw-test.sql`.
