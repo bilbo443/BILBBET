@@ -3302,6 +3302,49 @@
     return futuresSortControl(div) + explanation + control + list;
   }
 
+  const matchupContextCache = new Map();
+  function matchupContext(m){
+    if(typeof BilbbetMatchupNotes==='undefined'||collectingTrustedPrices)return null;
+    const a=resolveTeamName(m.teamA),b=resolveTeamName(m.teamB);
+    const throughRound=Math.max(0,Math.min(Number(m.round)-1,state.currentRound-1));
+    const key=JSON.stringify([a,b,m.round,throughRound,Math.floor(Date.now()/60000),DATA.roddy_results,REAL_RESULTS,DATA.h2h_record,H2H_SCHEDULE,ROSTER_RULES]);
+    if(matchupContextCache.has(key))return matchupContextCache.get(key);
+    const source=Object.keys(DATA.roddy_results||{}).length?DATA.roddy_results:REAL_RESULTS;
+    const completedRounds={},rules={};
+    for(const [div,teams]of Object.entries(H2H_DIVISIONS)){
+      completedRounds[div]=Array.from({length:throughRound},(_,i)=>i+1).filter(r=>ROUND_DATES[r]&&Date.now()>=sydneyKickoffUTC(ROUND_DATES[r])&&teams.every(t=>Number.isFinite(source[t]?.[r-1])));
+      const promotion=ROSTER_RULES.promotion_rules_confirmed?ROSTER_RULES.promotion_rules?.[div]:null;
+      // Regular-season endpoints match the confirmed official rotation, not
+      // the last date for which somebody happened to upload scores.
+      const isD1=div==='ELIZA CUP (D1)',isLower=div.startsWith('DIVISION 2')||div.startsWith('DIVISION 3');
+      const ecl=ROSTER_RULES.matchup_ecl_qualification?.[div];
+      rules[div]={confirmed:isD1||isLower,firstRound:isD1?1:2,lastRound:isD1?26:23,
+        automaticPlaces:promotion?.automatic_places,finalsPlaces:promotion?.finals_qualifiers,
+        relegationPlaces:isD1?4:div.startsWith('DIVISION 2')?3:0,
+        eclConfirmed:ecl?.confirmed===true&&ecl.season===ROSTER_RULES.season,eclPlaces:ecl?.places};
+    }
+    const result=BilbbetMatchupNotes.analyse({a,b,round:Number(m.round),throughRound,
+      record:getH2HRecord(a,b)?.rec,seasonStart:Number(String(ROSTER_RULES.season||'').slice(0,4)),
+      divisions:H2H_DIVISIONS,schedules:H2H_SCHEDULE,scores:source,leagueScores:REAL_RESULTS,
+      confirmedRounds:ROSTER_RULES.confirmed_division_fixture_rounds,completedRounds,rules});
+    if(matchupContextCache.size>=40)matchupContextCache.clear();matchupContextCache.set(key,result);return result;
+  }
+  function renderMatchupNotes(m,details=false){
+    const context=matchupContext(m);if(!context||(!context.notes.length&&!details))return '';
+    const notes=context.notes.map(note=>`<div style="margin:6px 0;padding:8px 10px;background:${note.priority===0?'#30301b':'#20262d'};border-left:3px solid ${note.priority===0?'#ffdd00':'#6f879c'};font-size:16px;line-height:1.45;">${note.priority===0?'<strong>Guaranteed outcome</strong><br>':''}${esc(note.text)}</div>`).join('');
+    if(!details)return notes?`<div aria-label="Matchup notes">${notes}</div>`:'';
+    const profiles=context.profiles.filter(p=>p.recent.length||p.results.length).map(p=>{
+      const n=p.recent.length,margin=p.medianMargin==null?'':`${p.medianMargin>=0?'+':''}${p.medianMargin.toFixed(1)}`;
+      return `<div style="flex:1 1 220px;min-width:0;padding:10px;background:#20262d;border-radius:6px;overflow-wrap:anywhere;">
+        <strong>${esc(p.team)}</strong>
+        ${p.results.length?`<div style="margin-top:5px;">Last ${p.results.length} league results: <strong>${p.results.map(r=>r.result).join(' · ')}</strong> <span style="color:#aaa;">(oldest first)</span></div>`:''}
+        ${n?`<div style="margin-top:5px;">Last ${n} completed scores: ${p.recent.map(r=>r.score).join(' · ')}</div><div>Recent average ${p.average.toFixed(1)} · season average ${p.seasonAverage.toFixed(1)}</div><div>Division median beaten: ${p.aboveMedian}/${n}${p.equalMedian?` · level: ${p.equalMedian}`:''} · average margin ${margin}</div>`:''}
+        ${p.played?`<div>League position ${p.rank} · ${p.points} points${p.roddyRank?` · Roddy ${p.roddyRank}/${p.roddySize}`:''}</div>`:''}
+      </div>`;
+    }).join('');
+    if(!profiles&&!notes)return '';
+    return `<section aria-label="Matchup context" style="margin:12px 0;"><h4 style="margin:0 0 8px;">Matchup context</h4>${notes}<div style="display:flex;flex-wrap:wrap;gap:8px;">${profiles}</div></section>`;
+  }
   function renderH2HMarket(m){
     const winOdds = { a: toOdds(m.aWinPct), b: toOdds(m.bWinPct), draw: toOdds(m.drawPct) };
     const hcapOdds = { a: toOdds(m.aCoversPct), b: toOdds(m.bCoversPct) };
@@ -3322,13 +3365,14 @@
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
         <span class="bb-pill" style="background:#4a3a10;color:#ffdd00;">Round ${m.round}</span>
       </div>
+      ${renderMatchupNotes(m,true)}
       <div style="display:flex;justify-content:space-between;margin-bottom:12px;">
         <div><div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">${esc(m.teamA)} viable range</div><div style="font-size:clamp(23px, calc(23px + 0.4vw), 26px);font-weight:600;">${m.aRange[0]}&ndash;${m.aRange[1]}</div></div>
         <div style="text-align:right;"><div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">${esc(m.teamB)} viable range</div><div style="font-size:clamp(23px, calc(23px + 0.4vw), 26px);font-weight:600;">${m.bRange[0]}&ndash;${m.bRange[1]}</div></div>
       </div>
       ${(() => {
         const found = getH2HRecord(m.teamA, m.teamB);
-        if(!found) return `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:12px;">\u{1F195} First time these two have played each other \u2014 no history to show.</p>`;
+        if(!found) return `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:12px;">No previous meeting recorded for these teams.</p>`;
         const r = found.rec;
         const aWins = found.flipped ? r.aLosses : r.aWins;
         const aLosses = found.flipped ? r.aWins : r.aLosses;
@@ -4291,6 +4335,7 @@
             <div style="display:flex;align-items:center;gap:6px;font-weight:600;cursor:pointer;" data-show-form="${esc(m.teamA)}" title="See ${esc(m.teamA)}'s results">${teamLogo(m.teamA,18)}${esc(m.teamA)}</div>
             <div style="display:flex;align-items:center;gap:6px;font-weight:600;cursor:pointer;" data-show-form="${esc(m.teamB)}" title="See ${esc(m.teamB)}'s results"><span style="color:#9a9a9a;font-weight:400;">vs</span> ${teamLogo(m.teamB,18)}${esc(m.teamB)}</div>
             ${div==='ELIZA CUP (D1)'?renderD1DroughtTracker(m.teamA,m.teamB,m.round):''}
+            ${renderMatchupNotes(m)}
             <span class="bb-btn ghost" data-fixture-expand="${esc(div)}|${i}" style="align-self:flex-start;padding:3px 9px;font-size:clamp(15px, calc(15px + 0.4vw), 18px);margin-top:2px;">Full market (draw &amp; handicap)</span>
           </div>
           <div style="width:88px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;justify-content:center;">
