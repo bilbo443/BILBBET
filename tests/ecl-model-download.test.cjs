@@ -7,13 +7,13 @@ assert(source.startsWith('  async function buildEclModelDownload('));
 const fixtures=[{round:8,teamA:'SAUCE FC',teamB:'BC UNITED ZEBRAS'}];
 let requests=[],mode='ok',rpcCalls=0;
 const context={TextEncoder,crypto:webcrypto,Date,Uint8Array,JSON,Blob,
-  BilbbetEcl:require('../js/ecl-draw.js'),state:{currentRound:5,user:{secret:'must not leak'},bets:['must not leak']},
+  sydneyKickoffUTC:date=>Date.parse(date+'T19:00:00+11:00'),BilbbetEcl:require('../js/ecl-draw.js'),state:{currentRound:5,user:{secret:'must not leak'},bets:['must not leak']},
   fetch:async(path,options)=>{
     assert.equal(options.cache,'no-store');requests.push(path);
     const name=path.match(/^data\/(.+)\.json$/)[1];
     if(mode==='http'&&name==='h2h_history')return {ok:false,status:503};
     const value=read(name);
-    if(mode==='mixed'&&requests.length>9&&name==='roddy_results')value.changed=true;
+    if(mode==='mixed'&&requests.length>11&&name==='roddy_results')value.changed=true;
     if(mode==='duplicate'&&name==='roster_rules')value.ecl_rules.field_team_ids[1]=value.ecl_rules.field_team_ids[0];
     if(mode==='missing'&&name==='admin_teams')value.splice(value.findIndex(t=>String(t.id).padStart(3,'0')==='002'),1);
     return {ok:true,json:async()=>value};
@@ -21,7 +21,7 @@ const context={TextEncoder,crypto:webcrypto,Date,Uint8Array,JSON,Blob,
 vm.createContext(context);vm.runInContext(source,context);
 (async()=>{
   const snapshot=await context.buildEclModelDownload();
-  assert.equal(requests.length,18);assert.equal(rpcCalls,1);
+  assert.equal(requests.length,22);assert.equal(rpcCalls,1);
   assert.equal(snapshot.model.teams.length,12);assert.equal(new Set(snapshot.model.teams.map(t=>t.id)).size,12);
   assert.equal(snapshot.model.teams.filter(t=>t.pot===1).length,3);
   assert.equal(snapshot.model.price_margin,.05);assert.equal(snapshot.model.market,'ecl_group_winner');

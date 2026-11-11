@@ -2,9 +2,9 @@ name: Platform consistency and regression checks
 on:
   push:
     branches: [main]
-    paths: ['index.html', 'fixtures.html', 'sw.js', 'js/**', 'css/**', 'data/**', 'pipeline/**', 'tests/**', '.github/workflows/platform-checks.yml']
+    paths: ['index.html', 'fixtures.html', 'sw.js', 'js/**', 'sheets/**', 'css/**', 'data/**', 'pipeline/**', 'tests/**', '.github/workflows/platform-checks.yml']
   pull_request:
-    paths: ['index.html', 'fixtures.html', 'sw.js', 'js/**', 'css/**', 'data/**', 'pipeline/**', 'tests/**', '.github/workflows/platform-checks.yml']
+    paths: ['index.html', 'fixtures.html', 'sw.js', 'js/**', 'sheets/**', 'css/**', 'data/**', 'pipeline/**', 'tests/**', '.github/workflows/platform-checks.yml']
   workflow_dispatch:
 permissions:
   contents: read
