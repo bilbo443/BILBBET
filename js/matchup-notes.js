@@ -14,7 +14,7 @@
     const rows=Object.fromEntries(teams.map(team=>[team,{team,points:0,scoreFor:0,results:[]}])) ;
     for(let r=1;r<=input.throughRound;r++){
       const pairs=schedule[r-1];
-      if(!confirmed.has(r)||!validPairs(pairs,teams)||!pairs.every(([a,b])=>Number.isFinite(league[a]?.[r-1])&&Number.isFinite(league[b]?.[r-1])))continue;
+      if((input.resultRounds&&!input.resultRounds.includes(r))||!confirmed.has(r)||!validPairs(pairs,teams)||!pairs.every(([a,b])=>Number.isFinite(league[a]?.[r-1])&&Number.isFinite(league[b]?.[r-1])))continue;
       for(const [a,b]of pairs){const sa=league[a][r-1],sb=league[b][r-1];for(const [t,o,s,against]of [[a,b,sa,sb],[b,a,sb,sa]]){
         const result=s>against?'W':s<against?'L':'D';rows[t].points+=result==='W'?3:result==='D'?1:0;rows[t].scoreFor+=s;
         rows[t].results.push({round:r,result,score:s,against,opponent:o,margin:s-against});
@@ -39,7 +39,7 @@
     // No inference from incomplete schedules, partial historic rounds or unresolved tie-breaks.
     for(let r=start;r<=end;r++){
       if(!data.confirmed.has(r)||!validPairs(data.schedule[r-1],data.teams))return [];
-      if(r<=input.throughRound&&!data.schedule[r-1].every(([x,y])=>Number.isFinite(input.leagueScores?.[x]?.[r-1])&&Number.isFinite(input.leagueScores?.[y]?.[r-1])))return [];
+      if(r<=input.throughRound&&((input.resultRounds&&!input.resultRounds.includes(r))||!data.schedule[r-1].every(([x,y])=>Number.isFinite(input.leagueScores?.[x]?.[r-1])&&Number.isFinite(input.leagueScores?.[y]?.[r-1]))))return [];
     }
     if(!data.schedule[round-1].some(p=>p.includes(a)&&p.includes(b)))return [];
     const bounds=(team,winner)=>{
@@ -67,12 +67,97 @@
     }
     return notes;
   }
+  function leagueRaces(input,division,p,data,policy){
+    const cfg=input.rules?.[division],start=cfg?.firstRound,end=cfg?.lastRound;
+    if(input.round<16||input.throughRound<15||!cfg?.confirmed||!Number.isInteger(start)||!Number.isInteger(end))return [];
+    for(let r=start;r<=end;r++)if(!data.confirmed.has(r)||!validPairs(data.schedule[r-1],data.teams)||(r<=input.throughRound&&((input.resultRounds&&!input.resultRounds.includes(r))||!data.schedule[r-1].every(pair=>pair.every(t=>Number.isFinite(input.leagueScores?.[t]?.[r-1]))))))return [];
+    const ordered=Object.values(data.rows).sort((a,b)=>b.points-a.points||b.scoreFor-a.scoreFor);
+    if(input.throughRound>=end){
+      const better=(a,b)=>a.points>b.points||(a.points===b.points&&a.scoreFor>b.scoreFor);
+      const best=1+ordered.filter(t=>t.team!==p.team&&better(t,p)).length,worst=1+ordered.filter(t=>t.team!==p.team&&!better(p,t)).length;
+      if(worst===1)return [{key:'title-secured',text:cfg.automaticPlaces?'Title and automatic promotion secured':'Division title secured',guaranteed:true}];
+      if(cfg.relegationPlaces>0&&best>ordered.length-cfg.relegationPlaces)return [{key:'relegated',text:'Relegation confirmed',guaranteed:true}];
+      if(cfg.automaticPlaces>0&&worst<=cfg.automaticPlaces)return [{key:'promotion-secured',text:'Automatic promotion secured',guaranteed:true}];
+      if(cfg.finalsPlaces>0&&worst<=cfg.finalsPlaces)return [{key:'finals-qualified',text:'Qualified for the finals from the regular-season table',guaranteed:true}];
+      return [];
+    }
+    const remaining=t=>data.schedule.slice(input.throughRound,end).filter(pairs=>pairs.some(pair=>pair.includes(t))).length;
+    const bounds=t=>({best:1+ordered.filter(o=>o.team!==t&&o.points>data.rows[t].points+3*remaining(t)).length,
+      worst:1+ordered.filter(o=>o.team!==t&&o.points+3*remaining(o.team)>=data.rows[t].points).length});
+    const {best,worst}=bounds(p.team),n=ordered.length,safe=n-(cfg.relegationPlaces||0),tags=[];
+    if(cfg.relegationPlaces>0&&best>safe)return [{key:'relegated',text:'Relegation confirmed',guaranteed:true}];
+    if(worst===1)return [{key:'title-secured',text:cfg.automaticPlaces?'Title and automatic promotion secured':'Division title secured',guaranteed:true}];
+    const titleGap=ordered[0].points-p.points;
+    if(best===1&&titleGap<=Math.min(policy.titleGap,3*remaining(p.team)))tags.push({key:'title',text:`${cfg.automaticPlaces===1?'Title / automatic promotion hunt':'Title hunt'} · ${titleGap?titleGap+' league points behind first':'level on first-place league points'}`});
+    const qualification=(places,key,label)=>{
+      if(!Number.isInteger(places)||places<=0||places>=n)return;
+      if(worst<=places){tags.push({key:key+'-secured',text:label+' secured',guaranteed:true});return;}
+      if(best>places)return;
+      const inside=p.rank<=places,gap=inside?p.points-ordered[places].points:ordered[places-1].points-p.points;
+      if(gap>=0&&gap<=Math.min(policy.cutoffGap,3*remaining(p.team)))tags.push({key,text:`${label} race · ${gap?gap+' points '+(inside?'above':'below')+' the cutoff':'level on cutoff points'}`});
+    };
+    if(!(cfg.automaticPlaces===1&&tags.some(t=>t.key==='title')))qualification(cfg.automaticPlaces,'promotion','Automatic promotion');
+    if(cfg.relegationPlaces>0&&best<=safe&&worst>safe){const inZone=p.rank>safe,gap=inZone?ordered[safe-1].points-p.points:p.points-ordered[safe].points;
+      if(gap>=0&&gap<=Math.min(policy.cutoffGap,3*remaining(p.team)))tags.unshift({key:'relegation',text:`Relegation battle · ${gap} points ${inZone?'from safety':'clear of the zone'}`});
+    }
+    qualification(cfg.finalsPlaces,'finals','Finals place');
+    if(cfg.eclConfirmed)qualification(cfg.eclPlaces,'ecl','ECL qualification');
+    const unique=tags.filter((t,i)=>tags.findIndex(x=>x.key===t.key)===i);
+    return unique.sort((a,b)=>Number(!!b.guaranteed)-Number(!!a.guaranteed)).slice(0,2);
+  }
+  function competitionStatus(input,competition,team){
+    if(!competition?.entrants?.includes(team))return competition?.entrantsComplete===true?{status:'Not entered',fixtures:[]}:{status:'Status unconfirmed',fixtures:[]};
+    const fixtures=(competition.fixtures||[]).filter(f=>Array.isArray(f.teams)&&f.teams.length===2&&f.teams.every(t=>competition.entrants.includes(t))&&f.teams[0]!==f.teams[1]&&Number.isInteger(f.round));
+    const eliminated=new Set();let champion=null,pending=false;
+    if(competition.kind==='ECL'&&input.throughRound<competition.groupEndRound){
+      for(const group of Object.values(competition.groups||{})){
+        if(!Array.isArray(group)||group.length!==4||new Set(group).size!==4||!group.includes(team))continue;
+        const matches=fixtures.filter(f=>f.group&&f.round<=input.throughRound&&(!input.resultRounds||input.resultRounds.includes(f.round))&&f.teams.every(t=>group.includes(t))&&f.teams.every(t=>Number.isFinite(input.scores[t]?.[f.round-1])));
+        if(new Set(matches.map(f=>[...f.teams].sort().join('|'))).size!==matches.length||group.some(t=>matches.filter(f=>f.teams.includes(t)).length>3))break;
+        const points=Object.fromEntries(group.map(t=>[t,0]));
+        for(const f of matches){const [a,b]=f.teams,sa=input.scores[a][f.round-1],sb=input.scores[b][f.round-1];points[a]+=sa>sb?3:sa===sb?1:0;points[b]+=sb>sa?3:sa===sb?1:0;}
+        const maximum=points[team]+3*(3-matches.filter(f=>f.teams.includes(team)).length);
+        if(group.filter(t=>t!==team&&points[t]>maximum).length>=2)eliminated.add(team);
+      }
+    }
+    if(competition.kind==='ECL'&&input.throughRound>=competition.groupEndRound){
+      let resolved=false;
+      for(const group of Object.values(competition.groups||{})){
+        if(!Array.isArray(group)||group.length!==4||new Set(group).size!==4||!group.includes(team))continue;
+        const matches=fixtures.filter(f=>f.group&&f.round<=input.throughRound&&(!input.resultRounds||input.resultRounds.includes(f.round))&&f.teams.every(t=>group.includes(t)));
+        const pairs=new Set(matches.map(f=>[...f.teams].sort().join('|')));
+        if(matches.length!==6||pairs.size!==6||group.some(t=>matches.filter(f=>f.teams.includes(t)).length!==3)||matches.some(f=>f.teams.some(t=>!Number.isFinite(input.scores[t]?.[f.round-1])))){pending=true;break;}
+        const rows=Object.fromEntries(group.map(t=>[t,{points:0,for:0}]));
+        for(const f of matches){const [a,b]=f.teams,sa=input.scores[a][f.round-1],sb=input.scores[b][f.round-1];rows[a].for+=sa;rows[b].for+=sb;rows[a].points+=sa>sb?3:sa===sb?1:0;rows[b].points+=sb>sa?3:sa===sb?1:0;}
+        const better=(a,b)=>rows[a].points>rows[b].points||(rows[a].points===rows[b].points&&rows[a].for>rows[b].for);
+        const best=1+group.filter(t=>t!==team&&better(t,team)).length,worst=1+group.filter(t=>t!==team&&!better(team,t)).length;
+        if(best>2)eliminated.add(team);else if(worst>2)pending=true;
+        resolved=true;break;
+      }
+      if(!resolved)pending=true;
+    }
+    // Official advancement overrides take precedence over provisional score totals.
+    for(const f of fixtures.filter(f=>!f.group&&f.knockout!==false&&f.round<=input.throughRound&&(!input.resultRounds||input.resultRounds.includes(f.round))).sort((a,b)=>a.round-b.round)){
+      const [a,b]=f.teams;if(eliminated.has(a)||eliminated.has(b))continue;
+      const sa=input.scores[a]?.[f.round-1],sb=input.scores[b]?.[f.round-1];
+      const winner=f.winner&&f.teams.includes(f.winner)?f.winner:Number.isFinite(sa)&&Number.isFinite(sb)&&sa!==sb?(sa>sb?a:b):null;
+      if(!winner){if(f.teams.includes(team))pending=true;continue;}
+      eliminated.add(winner===a?b:a);if(winner===team)pending=false;
+      if(f.final)champion=winner;
+    }
+    if(eliminated.has(team))return {status:'Eliminated',fixtures:[]};
+    if(champion)return {status:champion===team?'Winner':'Eliminated',fixtures:[]};
+    const current=fixtures.filter(f=>f.round===input.round&&f.teams.includes(team));
+    return {status:pending?'Advancement unconfirmed':'Still in',fixtures:current.map(f=>({opponent:f.teams.find(t=>t!==team),stage:f.stage||'',round:f.round}))};
+  }
   function analyse(input){
     const {a,b}=input;if(a===b)return {profiles:[],notes:[]};
     const divisionFor=t=>Object.keys(input.divisions).find(d=>input.divisions[d].includes(t));
     const da=divisionFor(a),db=divisionFor(b);if(!da||!db)return {profiles:[],notes:[]};
     const cache={};const get=d=>cache[d]||(cache[d]=divisionData(input,d));
     const pa=get(da).profiles[a],pb=get(db).profiles[b],notes=[];
+    const config=input.reportingRules||{},positive=(v,fallback)=>Number.isFinite(v)&&v>0?v:fallback;
+    const policy={roddyGap:positive(config.roddy_gap_per_remaining_round,5),roddyForm:positive(config.roddy_recent_tolerance,5),titleGap:positive(config.league_title_gap_points,9),cutoffGap:positive(config.league_cutoff_gap_points,6)};
     const add=(priority,family,text)=>notes.push({priority,family,text});
     if(da===db)notes.push(...guarantees(input,da,a,b,input.round,get(da)));
     // Raw positions compare only within the same conference and after at least three league games.
@@ -125,16 +210,36 @@
     // Roddy positions use only whole-league complete scoring rounds, never partial exports.
     const all=Object.values(input.divisions).flat(),common=Array.from({length:input.throughRound},(_,i)=>i+1).filter(r=>Object.keys(input.divisions).every(d=>get(d).scoreRounds.includes(r)));
     if(common.length){const totals=Object.fromEntries(all.map(t=>[t,common.reduce((sum,r)=>sum+input.scores[t][r-1],0)]));
-      for(const p of [pa,pb]){p.roddyRank=1+all.filter(t=>totals[t]>totals[p.team]).length;p.roddySize=all.length;
+      const leaderPoints=Math.max(...Object.values(totals)),leaders=all.filter(t=>totals[t]===leaderPoints),last=common.at(-1),remaining=26-last;
+      const recent=common.slice(-5),leaderAverage=Math.max(...leaders.map(t=>mean(recent.map(r=>input.scores[t][r-1]))));
+      for(const p of [pa,pb]){p.roddyRank=1+all.filter(t=>totals[t]>totals[p.team]).length;p.roddySize=all.length;p.roddyPoints=totals[p.team];p.roddyGap=leaderPoints-totals[p.team];p.roddyAsOf=last;
+        if(input.round>=16&&input.throughRound>=15&&common.length===input.throughRound&&remaining>0){
+          if(p.roddyGap===0)p.roddyHunt={leader:true,text:leaders.length>1?'Joint Roddy leader':'Roddy leader'};
+          else if(p.roddyGap/remaining<=policy.roddyGap&&mean(recent.map(r=>input.scores[p.team][r-1]))>=leaderAverage-policy.roddyForm){
+            p.roddyHunt={leader:false,text:`Within the Roddy title hunt · ${p.roddyGap} points behind · needs ${ (p.roddyGap/remaining).toFixed(1)} points per remaining round to draw level`};
+            add(3,'roddy-hunt',`${p.team}: ${p.roddyHunt.text}.`);
+          }
+        }
         const divSize=input.divisions[divisionFor(p.team)].length;
         if(p.played>=3&&Math.abs((p.rank-1)/(divSize-1)-(p.roddyRank-1)/(all.length-1))>=.4)add(8,'ladder',`${p.team} is ${ordinal(p.rank)} in its division and ${ordinal(p.roddyRank)} of ${all.length} in the Roddy.`);
       }
     }
+    for(const p of [pa,pb]){
+      p.races=leagueRaces(input,divisionFor(p.team),p,get(divisionFor(p.team)),policy);
+      p.competitions=Object.fromEntries(Object.entries(input.competitions||{}).map(([name,competition])=>[name,competitionStatus(input,competition,p.team)]));
+      if(p.races.length)add(p.races.some(r=>r.guaranteed)?0:3,'league-race',`${p.team}: ${p.races.map(r=>r.text).join('; ')}.`);
+    }
+    const leagueMatch=da===db&&(get(da).schedule[input.round-1]||[]).some(pair=>pair.includes(a)&&pair.includes(b));
+    if(leagueMatch){
+      const commitments=[];
+      for(const p of [pa,pb])for(const [competition,info]of Object.entries(p.competitions))for(const fixture of info.fixtures)commitments.push(`${p.team} — ${competition} vs ${fixture.opponent}${fixture.stage?' ('+fixture.stage+')':''}`);
+      if(commitments.length)add(1,'cup-commitments','Cup fixtures this GW: '+commitments.join('; ')+'.');
+    }
     const selected=[],families=new Set();
     for(const note of notes.sort((x,y)=>x.priority-y.priority||x.text.localeCompare(y.text))){if(families.has(note.family)||(note.family==='form'&&selected.some(n=>n.family==='results'&&n.priority===2)))continue;families.add(note.family);selected.push(note);if(selected.length===2)break;}
-    return {profiles:[pa,pb],notes:selected};
+    return {profiles:[pa,pb],notes:selected,policy};
   }
-  const api={analyse,guarantees,divisionData};
+  const api={analyse,guarantees,divisionData,competitionStatus,leagueRaces};
   if(typeof module==='object'&&module.exports)module.exports=api;
   root.BilbbetMatchupNotes=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

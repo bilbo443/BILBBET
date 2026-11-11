@@ -3303,11 +3303,43 @@
   }
 
   const matchupContextCache = new Map();
+  function matchupCompetitionInputs(){
+    const registry=DATA.admin_teams||[],byId=new Map(registry.map(t=>[String(t.id).padStart(3,'0'),t.name]));
+    const canonical=name=>name==null?'':byId.get(String(name).padStart(3,'0'))||resolveTeamName(name);
+    const validNames=new Set(Object.values(H2H_DIVISIONS).flat());
+    const normalise=(comp,list)=>list.filter(f=>f&&typeof f==='object').map(f=>{
+      const stage=f.stage||getCupRoundInfo(comp,Number(f.round))?.stage||'';
+      return {round:Number(f.round),teams:[canonical(f.teamA_id??f.teamA),canonical(f.teamB_id??f.teamB)],stage,winner:f.winner?canonical(f.winner):null,
+        group:comp==='ECL'&&/matchday|group/i.test(stage),knockout:comp==='FA CUP'||/quarter|semi|^final$/i.test(stage.trim()),final:/^final$/i.test(stage.trim())};
+    }).filter(f=>Number.isInteger(f.round)&&f.round>=1&&f.round<=26&&f.teams.every(t=>validNames.has(t))&&f.teams[0]!==f.teams[1]);
+    const official=DATA.official_fa_cup_draw?.season===ROSTER_RULES.season?DATA.official_fa_cup_draw:{};
+    const fa=[];
+    const addStage=(pairs,round,stage,winners,confirmed)=>{
+      for(const [i,pair]of (pairs||[]).entries())if(Array.isArray(pair)&&pair.length===2)fa.push({round,teamA:pair[0],teamB:pair[1],stage,winner:confirmed?winners?.[i]:null});
+    };
+    addStage(official.preliminary,official.preliminary_round,'Preliminary Round',official.preliminary_winners,official.preliminary_results_final);
+    if(official.r64_draw_confirmed)addStage(official.r64_matches,official.round_of_64_round,'Round Of 64',official.r64_winners,official.r64_results_final);
+    if(official.r32_draw_confirmed)addStage(official.r32_matches,official.round_of_32_round,'Round Of 32',official.r32_winners,Array.isArray(official.r32_winners));
+    for(const replay of official.r32_replays||[])fa.push({...replay,stage:'Round Of 32 replay'});
+    const initialNames=[...(official.preliminary||[]).flat(),...(official.r64_draw_confirmed?official.r64_matches||[]:[]).flat()].map(canonical);
+    const deduplicate=list=>{
+      const result=new Map();for(const f of list){const key=f.round+'|'+[...f.teams].sort().join('|'),old=result.get(key);result.set(key,{...f,winner:old?.winner||f.winner});}return [...result.values()];
+    };
+    const ecl=ROSTER_RULES.ecl_rules||{},groups=Object.fromEntries(Object.entries(state.eclGroups||{}).filter(([,teams])=>Array.isArray(teams)).map(([g,teams])=>[g,teams.filter(Boolean).map(canonical)]));
+    const faEntrants=[...new Set(initialNames)],eclEntrants=(ecl.field_team_ids||[]).map(canonical);
+    const eclFieldComplete=eclEntrants.length===12&&new Set(eclEntrants).size===12&&eclEntrants.every(t=>validNames.has(t));
+    return {
+      'FA Cup':{kind:'FA CUP',entrants:faEntrants,entrantsComplete:official.r64_draw_confirmed===true&&official.r64_matches?.length===32&&faEntrants.length===64+(official.preliminary||[]).length&&faEntrants.every(t=>validNames.has(t)),
+        fixtures:deduplicate([...normalise('FA CUP',fa),...normalise('FA CUP',state.cupFixtures?.['FA CUP']||[])])},
+      ECL:{kind:'ECL',entrants:eclFieldComplete?eclEntrants:[],entrantsComplete:eclFieldComplete,
+        fixtures:deduplicate(normalise('ECL',state.cupFixtures?.ECL||[])),groups,groupEndRound:Math.max(...(ecl.group_matchdays||[13]))}
+    };
+  }
   function matchupContext(m){
     if(typeof BilbbetMatchupNotes==='undefined'||collectingTrustedPrices)return null;
     const a=resolveTeamName(m.teamA),b=resolveTeamName(m.teamB);
     const throughRound=Math.max(0,Math.min(Number(m.round)-1,state.currentRound-1));
-    const key=JSON.stringify([a,b,m.round,throughRound,Math.floor(Date.now()/60000),DATA.roddy_results,REAL_RESULTS,DATA.h2h_record,H2H_SCHEDULE,ROSTER_RULES]);
+    const key=JSON.stringify([a,b,m.round,throughRound,Math.floor(Date.now()/60000),DATA.roddy_results,REAL_RESULTS,DATA.h2h_record,H2H_SCHEDULE,ROSTER_RULES,DATA.official_fa_cup_draw,state.cupFixtures,state.cupCalendarOverrides,state.eclGroups]);
     if(matchupContextCache.has(key))return matchupContextCache.get(key);
     const source=Object.keys(DATA.roddy_results||{}).length?DATA.roddy_results:REAL_RESULTS;
     const completedRounds={},rules={};
@@ -3324,26 +3356,36 @@
         eclConfirmed:ecl?.confirmed===true&&ecl.season===ROSTER_RULES.season,eclPlaces:ecl?.places};
     }
     const result=BilbbetMatchupNotes.analyse({a,b,round:Number(m.round),throughRound,
+      resultRounds:Array.from({length:throughRound},(_,i)=>i+1).filter(r=>ROUND_DATES[r]&&Date.now()>=sydneyKickoffUTC(ROUND_DATES[r])),
       record:getH2HRecord(a,b)?.rec,seasonStart:Number(String(ROSTER_RULES.season||'').slice(0,4)),
+      reportingRules:ROSTER_RULES.matchup_reporting,competitions:matchupCompetitionInputs(),
       divisions:H2H_DIVISIONS,schedules:H2H_SCHEDULE,scores:source,leagueScores:REAL_RESULTS,
       confirmedRounds:ROSTER_RULES.confirmed_division_fixture_rounds,completedRounds,rules});
     if(matchupContextCache.size>=40)matchupContextCache.clear();matchupContextCache.set(key,result);return result;
   }
   function renderMatchupNotes(m,details=false){
-    const context=matchupContext(m);if(!context||(!context.notes.length&&!details))return '';
+    const context=matchupContext(m);if(!context)return '';
     const notes=context.notes.map(note=>`<div style="margin:6px 0;padding:8px 10px;background:${note.priority===0?'#30301b':'#20262d'};border-left:3px solid ${note.priority===0?'#ffdd00':'#6f879c'};font-size:16px;line-height:1.45;">${note.priority===0?'<strong>Guaranteed outcome</strong><br>':''}${esc(note.text)}</div>`).join('');
-    if(!details)return notes?`<div aria-label="Matchup notes">${notes}</div>`:'';
+    if(!details){
+      const [a,b]=context.profiles,positions=a?.played&&b?.played?`<div style="color:#aaa;font-size:14px;">Table: ${a.rank} vs ${b.rank}${a.roddyRank&&b.roddyRank?` · Roddy: ${a.roddyRank} vs ${b.roddyRank}`:''}</div>`:'';
+      return positions||notes?`<div aria-label="Matchup context">${positions}${notes}</div>`:'';
+    }
     const profiles=context.profiles.filter(p=>p.recent.length||p.results.length).map(p=>{
       const n=p.recent.length,margin=p.medianMargin==null?'':`${p.medianMargin>=0?'+':''}${p.medianMargin.toFixed(1)}`;
       return `<div style="flex:1 1 220px;min-width:0;padding:10px;background:#20262d;border-radius:6px;overflow-wrap:anywhere;">
         <strong>${esc(p.team)}</strong>
         ${p.results.length?`<div style="margin-top:5px;">Last ${p.results.length} league results: <strong>${p.results.map(r=>r.result).join(' · ')}</strong> <span style="color:#aaa;">(oldest first)</span></div>`:''}
         ${n?`<div style="margin-top:5px;">Last ${n} completed scores: ${p.recent.map(r=>r.score).join(' · ')}</div><div>Recent average ${p.average.toFixed(1)} · season average ${p.seasonAverage.toFixed(1)}</div><div>Division median beaten: ${p.aboveMedian}/${n}${p.equalMedian?` · level: ${p.equalMedian}`:''} · average margin ${margin}</div>`:''}
-        ${p.played?`<div>League position ${p.rank} · ${p.points} points${p.roddyRank?` · Roddy ${p.roddyRank}/${p.roddySize}`:''}</div>`:''}
+        ${p.played?`<div>League position ${p.rank} · ${p.points} points</div>`:''}
+        ${p.roddyRank?`<div>Roddy ${p.roddyRank}/${p.roddySize} · ${p.roddyPoints} points · ${p.roddyGap} behind first</div>`:''}
+        ${p.roddyHunt?`<div style="color:#ffdd00;margin-top:5px;">${esc(p.roddyHunt.text)}</div>`:''}
+        ${(p.races||[]).map(r=>`<div style="margin-top:5px;">${esc(r.text)}</div>`).join('')}
+        ${Object.entries(p.competitions||{}).map(([name,info])=>`<div style="margin-top:5px;">${esc(name)}: ${esc(info.status)}${info.fixtures.map(f=>` · this GW vs ${esc(f.opponent)}${f.stage?' ('+esc(f.stage)+')':''}`).join('')}</div>`).join('')}
       </div>`;
     }).join('');
     if(!profiles&&!notes)return '';
-    return `<section aria-label="Matchup context" style="margin:12px 0;"><h4 style="margin:0 0 8px;">Matchup context</h4>${notes}<div style="display:flex;flex-wrap:wrap;gap:8px;">${profiles}</div></section>`;
+    const raceRules=context.profiles.some(p=>p.roddyHunt||p.races?.length)?`<details style="font-size:14px;color:#aaa;margin-top:8px;"><summary>How the GW16+ race indicators work</summary><p>Indicative race context is separate from guaranteed outcomes. Roddy title hunt: within ${context.policy.roddyGap} points per remaining round of first, with a recent average within ${context.policy.roddyForm} points of the leader. League title gap: up to ${context.policy.titleGap} points; other table cutoffs: up to ${context.policy.cutoffGap} points, subject to remaining fixtures. Cup fixtures are factual context; no distraction penalty is assumed.</p></details>`:'';
+    return `<section aria-label="Matchup context" style="margin:12px 0;"><h4 style="margin:0 0 8px;">Matchup context</h4>${notes}<div style="display:flex;flex-wrap:wrap;gap:8px;">${profiles}</div>${raceRules}</section>`;
   }
   function renderH2HMarket(m){
     const winOdds = { a: toOdds(m.aWinPct), b: toOdds(m.bWinPct), draw: toOdds(m.drawPct) };

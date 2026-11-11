@@ -239,5 +239,11 @@
       "B": [],
       "C": []
     }
+  },
+  "matchup_reporting": {
+    "roddy_gap_per_remaining_round": 5,
+    "roddy_recent_tolerance": 5,
+    "league_title_gap_points": 9,
+    "league_cutoff_gap_points": 6
   }
 }
