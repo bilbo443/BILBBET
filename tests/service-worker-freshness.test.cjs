@@ -24,5 +24,8 @@ async function request(path,method='GET'){
  console.log('PASS: shell-only cache, reload revalidation, no result-data interception, method guards and explicit offline fallback.');
 })().catch(error=>{console.error(error);process.exitCode=1;});
 
-for(const page of ['index.html','fixtures.html'])assert(fs.readFileSync(page,'utf8').includes('js/app.js?v=20261110-cache2'));
-assert(fs.readFileSync('index.html','utf8').includes("register('sw.js?v=20261110-cache2')"));
+for(const page of ['index.html','fixtures.html']){
+ const html=fs.readFileSync(page,'utf8');assert(html.includes('js/app.js?v=20261111-matchup-notes'));
+ assert(html.indexOf('js/matchup-notes.js')<html.indexOf('js/app.js'));
+}
+assert(fs.readFileSync('index.html','utf8').includes("register('sw.js?v=20261111-matchup-notes')"));
