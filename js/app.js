@@ -6489,12 +6489,12 @@
     }catch(error){return html+'<p role="alert">Prices need review: '+esc(error.message)+'</p></div>';}
   }
   function renderEclGroups(){
-    return '<h3>ECL live draw</h3><p>GW8, GW10 and GW13 · top two from each group qualify · two semifinal byes.</p><p><button class="bb-btn ghost" id="download-ecl-model">Download ECL calculator data</button><br><small>Latest published model inputs · timestamped JSON for the standalone draw sheet.</small></p>'+(state.eclDrawReadError?'<p role="status">Could not refresh the live draw. Showing the last published view; retrying automatically.</p>':'')+['A','B','C'].map(renderEclGroupBox).join('');
+    return '<h3>ECL live draw</h3><p>GW8, GW10 and GW13 · top two from each group qualify · two semifinal byes.</p><p><button class="bb-btn ghost" id="download-ecl-model">Download ECL calculator data</button><br><small>Latest published model inputs · timestamped JSON for the standalone draw sheet. <a href="sheets/BilbbetEcl.gs.txt" download="BilbbetEcl.gs">Download sheet installer</a></small></p>'+(state.eclDrawReadError?'<p role="status">Could not refresh the live draw. Showing the last published view; retrying automatically.</p>':'')+['A','B','C'].map(renderEclGroupBox).join('');
   }
   async function buildEclModelDownload(){
     // Fetch published inputs rather than exporting a potentially old browser session.
     // A second pass detects a deployment changing files during this download.
-    const names=['admin_teams','h2h_history','h2h_cup_shift','h2h_variance_widen','team_strength_tiers','roddy_results','real_results','roster_rules','futures'];
+    const names=['admin_teams','h2h_history','h2h_cup_shift','h2h_variance_widen','team_strength_tiers','roddy_results','real_results','roster_rules','futures','h2h_divisions','round_dates'];
     const readInputs=async()=>Object.fromEntries(await Promise.all(names.map(async name=>{
       const response=await fetch('data/'+name+'.json',{cache:'no-store'});
       if(!response.ok)throw new Error('Could not refresh '+name+' (HTTP '+response.status+').');
@@ -6519,13 +6519,16 @@
     // Only public model data goes into this export, never session/user/betting data.
     const data={h2h_history:inputs.h2h_history,h2h_cup_shift:inputs.h2h_cup_shift,
       h2h_variance_widen:inputs.h2h_variance_widen,team_strength_tiers:inputs.team_strength_tiers,
-      roddy_results:inputs.roddy_results,real_results:inputs.real_results};
+      roddy_results:inputs.roddy_results,real_results:inputs.real_results,h2h_divisions:inputs.h2h_divisions};
+    const source=Object.keys(inputs.roddy_results||{}).length?inputs.roddy_results:inputs.real_results;
+    const active=Object.values(inputs.h2h_divisions).flat();
+    const form_rounds=Array.from({length:26},(_,i)=>i+1).filter(r=>inputs.round_dates[r]&&Date.now()>=sydneyKickoffUTC(inputs.round_dates[r])&&active.every(t=>Number.isFinite(source[t]?.[r-1])));
     const model={model_version:BilbbetEcl.VERSION,season:rules.season,current_round:state.currentRound,
-      price_margin:0.05,market:'ecl_group_winner',rules,teams,data,fixtures:view.fixtures};
+      price_margin:0.05,market:'ecl_group_winner',rules,teams,data,form_rounds,fixtures:view.fixtures};
     const encoded=new TextEncoder().encode(JSON.stringify(model));
     const digest=await crypto.subtle.digest('SHA-256',encoded);
     const fingerprint=Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
-    return {schema_version:1,exported_at_utc:new Date().toISOString(),source:'Bilbbet published ECL model inputs',
+    return {schema_version:2,exported_at_utc:new Date().toISOString(),source:'Bilbbet published ECL model inputs',
       fingerprint,model,note:'Snapshot, not a live connection. Refresh this file before the draw. Group winner prices are not H2H win or advancement prices.'};
   }
   async function downloadEclModel(button){

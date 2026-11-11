@@ -1,0 +1,271 @@
+/* Bilbbet ECL sheet installer. Paste this complete file into a NEW bound Apps Script file. Run BILBBET_ECL_INSTALL once. */
+(function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.BilbbetEcl=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){
+  'use strict';
+  const VERSION='ecl-three-matchdays-v1';
+  const ORDER=['A4','B4','C4','A1','B1','C1','A2','B2','C2','A3','B3','C3'];
+  function validate(field,pot1,groups){
+    if(field.length!==12||new Set(field).size!==12||pot1.length!==3||new Set(pot1).size!==3||pot1.some(t=>!field.includes(t)))throw Error('ECL needs 12 unique entrants and three Pot 1 teams.');
+    if(Object.keys(groups).some(g=>!['A','B','C'].includes(g)))throw Error('Only Groups A, B and C are valid.');
+    const seen=new Set();
+    for(const g of ['A','B','C']){
+      const teams=groups[g]||[];
+      if(!Array.isArray(teams)||teams.length>4)throw Error('Each group holds four teams.');
+      for(const [i,t]of teams.entries()){if(t==null)continue;if(!field.includes(t)||seen.has(t))throw Error('Unknown or duplicate ECL entrant.');if((i===0)!==pot1.includes(t))throw Error('Pot 1 fills slot 4; Pot 2 fills slots 1–3.');seen.add(t);}
+    }
+    return true;
+  }
+  function nextSlot(groups,pot1){
+    return ORDER.find(slot=>!(groups[slot[0]]||[])[slot[1]==='4'?0:Number(slot[1])])||null;
+  }
+  function commit(field,pot1,groups,team){
+    validate(field,pot1,groups);const slot=nextSlot(groups,pot1);
+    if(!slot)throw Error('All 12 draw positions are filled.');
+    if((slot[1]==='4')!==pot1.includes(team))throw Error('Draw '+slot+' from Pot '+(slot[1]==='4'?'1':'2')+'.');
+    const result={A:[...(groups.A||[])],B:[...(groups.B||[])],C:[...(groups.C||[])]};const index=slot[1]==='4'?0:Number(slot[1]);while(result[slot[0]].length<=index)result[slot[0]].push(null);result[slot[0]][index]=team;validate(field,pot1,result);return {groups:result,slot};
+  }
+  function slots(teams,pot1){return [teams[1]||null,teams[2]||null,teams[3]||null,teams[0]||null];}
+  function rng(key){let seed=2166136261;for(const c of String(key)){seed^=c.charCodeAt(0);seed=Math.imul(seed,16777619);}return ()=>{seed+=0x6D2B79F5;let x=seed;x=Math.imul(x^x>>>15,x|1);x^=x+Math.imul(x^x>>>7,x|61);return ((x^x>>>14)>>>0)/4294967296;};}
+  function winnerProbabilities(teams,sample,options={}){
+    if(teams.length!==4||new Set(teams).size!==4)throw Error('A complete four-team group is required.');
+    const n=options.n||6000,rounds=options.rounds||[8,10,13],key=options.key||VERSION;
+    const random=rng(key+'|'+teams.join('|')),counts=Object.fromEntries(teams.map(t=>[t,0])),qualified=Object.fromEntries(teams.map(t=>[t,0]));
+    const base=[[[0,3],[1,2]],[[0,2],[3,1]],[[0,1],[2,3]]];
+    const pairKey=pairs=>pairs.map(([a,b])=>[a,b].sort().join('|')).sort().join(';');
+    const fixed=rounds.map(round=>{const pairs=options.fixtures?.[round];if(!pairs?.length)return null;const index=base.findIndex(layout=>pairKey(layout.map(([a,b])=>[teams[a],teams[b]]))===pairKey(pairs));if(index<0)throw Error('Official ECL matchday needs two distinct group fixtures.');return index;});
+    if(new Set(fixed.filter(i=>i!==null)).size!==fixed.filter(i=>i!==null).length)throw Error('ECL group fixtures repeat an opponent.');
+    const samples=rounds.map((round,d)=>{
+      const scores=options.scores?.[round]||{},known=teams.filter(t=>Number.isFinite(scores[t]));
+      if(known.length&&(known.length!==4||fixed[d]===null))throw Error('ECL results need complete scores and official matchday pairings.');
+      return Object.fromEntries(teams.map(t=>[t,known.length?Array(n).fill(scores[t]):sample(t,n,rng(key+'|'+t+'|'+round),round)]));
+    });
+    if(samples.some(day=>teams.some(t=>day[t].length!==n||!day[t].every(Number.isFinite))))throw Error('ECL sampling produced invalid scores.');
+    // Each team plays every other team once; match-order uncertainty is
+    // averaged until official matchday pairings are entered. Never fixtures.
+    for(let i=0;i<n;i++){
+      const pts=[0,0,0,0],scoreFor=[0,0,0,0];
+      const remaining=base.map((_,i)=>i).filter(i=>!fixed.includes(i));for(let j=remaining.length-1;j>0;j--){const k=Math.floor(random()*(j+1));[remaining[j],remaining[k]]=[remaining[k],remaining[j]];}
+      const matchdays=fixed.map(index=>base[index===null?remaining.pop():index]);
+      for(let d=0;d<3;d++)for(const [a,b]of matchdays[d]){const sa=samples[d][teams[a]][i],sb=samples[d][teams[b]][i];scoreFor[a]+=sa;scoreFor[b]+=sb;if(sa>sb)pts[a]+=3;else if(sb>sa)pts[b]+=3;else{pts[a]++;pts[b]++;}}
+      const rank=teams.map((t,j)=>({t,points:pts[j],score:scoreFor[j],tie:random()})).sort((a,b)=>b.points-a.points||b.score-a.score||a.tie-b.tie);counts[rank[0].t]++;qualified[rank[0].t]++;qualified[rank[1].t]++;
+    }
+    return teams.map(team=>({team,pct:100*counts[team]/n,qualifyPct:100*qualified[team]/n}));
+  }
+  return {VERSION,ORDER,rng,validate,nextSlot,commit,slots,winnerProbabilities};
+});
+
+(function(root,factory){const api=factory(typeof module==='object'&&module.exports?require('./ecl-draw.js'):root.BilbbetEcl);if(typeof module==='object'&&module.exports)module.exports=api;else root.BilbbetEclSheet=api;})(typeof globalThis!=='undefined'?globalThis:this,function(Ecl){
+  'use strict';
+  const norm=value=>String(value||'').trim().replace(/\s+/g,' ').toUpperCase();
+  function validate(snapshot){
+    const m=snapshot.model;
+    if(snapshot.schema_version!==2||!m||m.model_version!==Ecl.VERSION||m.season!=='2026-27'||m.price_margin!==.05)throw Error('Download fresh ECL calculator data from Bilbbet (schema 2 required).');
+    if(!Number.isFinite(Date.parse(snapshot.exported_at_utc))||!Array.isArray(m.form_rounds)||!Number.isInteger(m.current_round))throw Error('Missing snapshot date or form rounds.');
+    if(!Array.isArray(m.teams)||m.teams.length!==12||new Set(m.teams.map(t=>t.id)).size!==12||m.teams.some(t=>!/^\d{3}$/.test(t.id)||!t.name||![1,2].includes(t.pot)))throw Error('Invalid ECL team registry.');
+    Ecl.validate(m.teams.map(t=>t.id),m.teams.filter(t=>t.pot===1).map(t=>t.id),{});
+    if(!Array.isArray(m.rules?.group_matchdays)||m.rules.group_matchdays.join(',')!=='8,10,13'||!Array.isArray(m.fixtures))throw Error('Unsupported ECL schedule.');
+    const d=m.data;
+    for(const key of ['h2h_history','h2h_cup_shift','h2h_variance_widen','team_strength_tiers','roddy_results','real_results','h2h_divisions'])if(!d?.[key]||typeof d[key]!=='object')throw Error('Missing model input: '+key);
+    const active=Object.values(d.h2h_divisions).flat();
+    for(const t of m.teams)if(!active.includes(t.name))throw Error('ECL entrant missing from division roster: '+t.name);
+    for(const values of Object.values(d.h2h_history))if(!Array.isArray(values)||!values.length||!values.every(Number.isFinite))throw Error('Invalid scoring history.');
+    return m;
+  }
+  function resolver(m){
+    const map=new Map();
+    for(const t of m.teams)for(const name of [t.name,...t.aliases||[]]){
+      const key=norm(name);if(!key)continue;
+      if(map.has(key)&&map.get(key)!==t.id)throw Error('Ambiguous team alias: '+name);
+      map.set(key,t.id);
+    }
+    return value=>{const key=norm(value);if(!key)return null;if(!map.has(key))throw Error('Unknown ECL team: '+value);return map.get(key);};
+  }
+  function readDraw(m,blocks){
+    const resolve=resolver(m),groups={};
+    for(const g of ['A','B','C']){
+      if(!Array.isArray(blocks[g])||blocks[g].length!==4)throw Error('Group '+g+' needs four input rows.');
+      const rows=blocks[g].map((cells,i)=>{
+        const texts=cells.filter(v=>typeof v==='string'&&v.trim());
+        const ids=texts.map(resolve);
+        if(ids.length>1)throw Error('Group '+g+', slot '+(i+1)+': enter one team only.');
+        return ids[0]||null;
+      });
+      groups[g]=[rows[3],rows[0],rows[1],rows[2]];
+    }
+    Ecl.validate(m.teams.map(t=>t.id),m.teams.filter(t=>t.pot===1).map(t=>t.id),groups);
+    return groups;
+  }
+  function shifted(values,shift,widen,wide){
+    let pool=values.map(v=>Math.round(v+shift));
+    const random=Ecl.rng(['h2h-wide-v2',values.length,shift,widen,wide?.length||0].join('|'));
+    if(widen>0&&wide?.length){const n=Math.max(1,Math.min(Math.round(pool.length*widen/Math.max(1-widen,.05)),wide.length));pool=pool.concat(Array.from({length:n},()=>wide[Math.floor(random()*wide.length)]));}
+    const sample=(n,rng)=>Array.from({length:n},()=>pool[Math.floor(rng()*pool.length)]);
+    sample.mean=pool.reduce((a,b)=>a+b,0)/pool.length;return sample;
+  }
+  function odds(pct){if(pct<=0)return 1001;let raw=1/(pct/100*1.05);if(raw<1.0025)return null;return Math.max(1.005,Math.min(1001,Math.round(Math.max(1.005,Math.min(1001,raw))*100)/100));}
+  function project(m,groups,g){
+    const ids=Ecl.slots(groups[g]||[]),byId=new Map(m.teams.map(t=>[t.id,t]));
+    if(ids.some(t=>!t))return [];
+    const d=m.data,h=d.h2h_history,all=Object.values(h).flat(),tiers=d.team_strength_tiers;
+    const resolve=resolver(m),fixtures={},scores={};
+    const fixtureRows=m.fixtures.filter(f=>m.rules.group_matchdays.includes(Number(f.round))).map(f=>{
+      try{return [Number(f.round),resolve(f.teamA),resolve(f.teamB)];}catch(e){throw Error('Unknown team in official ECL fixture.');}
+    }).filter(f=>ids.includes(f[1])&&ids.includes(f[2])).map(([r,a,b])=>[r,...[a,b].sort()]).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)));
+    const stored=groups[g].filter(Boolean);
+    const inputs=stored.map(id=>{const name=byId.get(id).name,entry=tiers.teams?.[id];return [id,h[name],d.h2h_cup_shift[name],d.h2h_variance_widen[name],d.roddy_results?.[name],entry,tiers.weekly_score_anchors?.[entry?.tier]];});
+    const known=m.rules.group_matchdays.filter(r=>r<m.current_round).map(r=>[r,stored.map(id=>d.real_results[byId.get(id).name]?.[r-1])]);
+    const text=JSON.stringify([Ecl.VERSION,stored,inputs,all,tiers.enabled,m.rules.group_matchdays,known,fixtureRows]);
+    let hash=2166136261;for(const c of text){hash^=c.charCodeAt(0);hash=Math.imul(hash,16777619);}const key=(hash>>>0).toString(16);
+    for(const round of m.rules.group_matchdays){fixtures[round]=fixtureRows.filter(f=>f[0]===round).map(f=>f.slice(1));if(round<m.current_round)scores[round]=Object.fromEntries(ids.map(id=>[id,d.real_results[byId.get(id).name]?.[round-1]]));}
+    const samplers=new Map();
+    for(const id of ids){
+      const name=byId.get(id).name,values=h[name],entry=tiers.enabled&&tiers.teams?.[id];let sample,prior;
+      if(entry){
+        if(tiers.season!==m.season)throw Error('Strength tier season differs.');
+        const target=Number(tiers.weekly_score_anchors[entry.tier]);if(!Number.isFinite(target)||!values?.length)throw Error('Invalid tier for '+name);
+        sample=shifted(values,target-values.reduce((a,b)=>a+b,0)/values.length);prior=sample.mean;
+      }else{
+        const division=Object.values(d.h2h_divisions).find(teams=>teams.includes(name));
+        const wide=division.flatMap(t=>h[t]||[]),shift=d.h2h_cup_shift[name]||0,widen=d.h2h_variance_widen[name]||0;
+        const baseline=shifted(all,shift),own=values?shifted(values,shift,widen,wide.length?wide:all):null,w=values?values.length/(values.length+8):0;
+        sample=(n,random)=>Array.from({length:n},()=>own&&random()<w?own(1,random)[0]:baseline(1,random)[0]);prior=own?w*own.mean+(1-w)*baseline.mean:baseline.mean;
+      }
+      samplers.set(id,{sample,prior});
+    }
+    const source=Object.keys(d.roddy_results).length?d.roddy_results:d.real_results;
+    const sample=(id,n,random,round)=>{
+      const {sample,prior}=samplers.get(id),name=byId.get(id).name;
+      const played=m.form_rounds.filter(r=>r<Math.min(round,m.current_round)).map(r=>source[name]?.[r-1]);
+      if(!played.every(Number.isFinite))throw Error('Incomplete form scores for '+name);
+      const mean=played.length?played.reduce((a,b)=>a+b,0)/played.length:prior;
+      const shift=played.length?Math.max(-12,Math.min(12,played.length/(played.length+8)*(mean-prior))):0;
+      return sample(n,random).map(v=>Math.max(0,Math.round(v+shift)));
+    };
+    return Ecl.winnerProbabilities(ids,sample,{key,rounds:m.rules.group_matchdays,fixtures,scores}).map(r=>({...r,name:byId.get(r.team).name,winOdds:odds(r.pct),qualifyOdds:odds(r.qualifyPct),fingerprint:key})).sort((a,b)=>(a.winOdds??Infinity)-(b.winOdds??Infinity));
+  }
+  return {validate,resolver,readDraw,project,odds};
+});
+
+/* Bound Google Sheets installer. No network, accounts, bets or database access. */
+var BILBBET_ECL_CONFIG={tab:'ECL',output:'AM65:AS89',modelTab:'_BilbbetEclModel',marker:'BILBBET ECL SHEET v1',blocks:{A:'U9:Y12',B:'Z9:AD12',C:'AE9:AI12'}};
+function BILBBET_ECL_MENU(){
+  SpreadsheetApp.getUi().createMenu('Bilbbet ECL')
+    .addItem('Import current calculator data','BILBBET_ECL_IMPORT_DIALOG')
+    .addItem('Recalculate odds','BILBBET_ECL_REFRESH')
+    .addToUi();
+}
+function bilbbetEclSheet_(){
+  var sheet=SpreadsheetApp.getActive().getSheetByName(BILBBET_ECL_CONFIG.tab);
+  if(!sheet)throw Error('Missing ECL tab. Update BILBBET_ECL_CONFIG.tab to its exact name.');
+  return sheet;
+}
+function bilbbetEclAssertOwned_(sheet){
+  var range=sheet.getRange(BILBBET_ECL_CONFIG.output);
+  var named=SpreadsheetApp.getActive().getRangeByName('BILBBET_ECL_ODDS');
+  if(!named||named.getSheet().getSheetId()!==sheet.getSheetId()||named.getA1Notation()!==range.getA1Notation()||range.getCell(1,1).getNote()!==BILBBET_ECL_CONFIG.marker)throw Error('Run BILBBET_ECL_INSTALL first. Output range is not owned by this installer.');
+  return range;
+}
+function BILBBET_ECL_INSTALL(){
+  var lock=LockService.getDocumentLock();lock.waitLock(30000);
+  try{
+    var book=SpreadsheetApp.getActive(),sheet=bilbbetEclSheet_();
+    if(sheet.getMaxRows()<89)sheet.insertRowsAfter(sheet.getMaxRows(),89-sheet.getMaxRows());
+    if(sheet.getMaxColumns()<45)sheet.insertColumnsAfter(sheet.getMaxColumns(),45-sheet.getMaxColumns());
+    var range=sheet.getRange(BILBBET_ECL_CONFIG.output),named=book.getRangeByName('BILBBET_ECL_ODDS');
+    if(!named){
+      if(range.getMergedRanges().length||range.getValues().flat().some(v=>v!=='')||range.getFormulas().flat().some(Boolean)||range.getNotes().flat().some(Boolean))throw Error('AM65:AS89 contains content or merged cells. Nothing was overwritten. Choose an empty output range.');
+      book.setNamedRange('BILBBET_ECL_ODDS',range);
+      range.getCell(1,1).setNote(BILBBET_ECL_CONFIG.marker);
+    }
+    bilbbetEclAssertOwned_(sheet);
+    var model=book.getSheetByName(BILBBET_ECL_CONFIG.modelTab);
+    if(model&&model.getRange('A1').getValue()!==BILBBET_ECL_CONFIG.marker)throw Error('Model tab name is already in use. Rename the existing tab before installing.');
+    if(!model){model=book.insertSheet(BILBBET_ECL_CONFIG.modelTab);model.getRange('A1').setValue(BILBBET_ECL_CONFIG.marker);model.hideSheet();}
+    var handlers=['BILBBET_ECL_EDIT','BILBBET_ECL_MENU'];
+    var existing=ScriptApp.getProjectTriggers();
+    if(!existing.some(t=>t.getHandlerFunction()===handlers[0]))ScriptApp.newTrigger(handlers[0]).forSpreadsheet(book).onEdit().create();
+    if(!existing.some(t=>t.getHandlerFunction()===handlers[1]))ScriptApp.newTrigger(handlers[1]).forSpreadsheet(book).onOpen().create();
+    BILBBET_ECL_MENU();
+    bilbbetEclRender_(sheet,null,'Import current calculator data from the Bilbbet ECL page.');
+  }finally{lock.releaseLock();}
+}
+function BILBBET_ECL_IMPORT_DIALOG(){
+  var html='<p>Download current ECL calculator data from Bilbbet, then select that JSON file.</p><input type="file" id="file" accept=".json,application/json"><p id="status"></p><script>document.getElementById("file").onchange=function(){var f=this.files[0];if(!f)return;document.getElementById("status").textContent="Importing…";var r=new FileReader();r.onload=function(){google.script.run.withSuccessHandler(function(message){document.getElementById("status").textContent=message;}).withFailureHandler(function(error){document.getElementById("status").textContent=error.message;}).BILBBET_ECL_IMPORT_JSON(r.result);};r.readAsText(f);};</script>';
+  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(460).setHeight(240),'Import Bilbbet calculator data');
+}
+function BILBBET_ECL_IMPORT_JSON(text){
+  if(typeof text!=='string'||text.length>2000000)throw Error('Choose the calculator JSON download (maximum 2 MB).');
+  var snapshot=JSON.parse(text);BilbbetEclSheet.validate(snapshot);
+  var digest=Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256,JSON.stringify(snapshot.model),Utilities.Charset.UTF_8).map(b=>(b+256).toString(16).slice(-2)).join('');
+  if(digest!==snapshot.fingerprint)throw Error('Calculator checksum differs. Download the file again.');
+  BilbbetEclSheet.resolver(snapshot.model);
+  var lock=LockService.getDocumentLock();lock.waitLock(30000);
+  try{
+    var sheet=bilbbetEclSheet_();bilbbetEclAssertOwned_(sheet);
+    var model=SpreadsheetApp.getActive().getSheetByName(BILBBET_ECL_CONFIG.modelTab);
+    if(!model||model.getRange('A1').getValue()!==BILBBET_ECL_CONFIG.marker)throw Error('Run the installer first.');
+    var chunks=[];for(var i=0;i<text.length;i+=8000)chunks.push([text.slice(i,i+8000)]);
+    if(model.getMaxRows()<chunks.length+1)model.insertRowsAfter(model.getMaxRows(),chunks.length+1-model.getMaxRows());
+    model.getRange(2,1,chunks.length,1).setNumberFormat('@').setValues(chunks);
+    model.getRange('B1').setValue(chunks.length);
+    model.hideSheet();bilbbetEclRefreshUnlocked_(sheet);
+    return 'Imported '+snapshot.exported_at_utc+'. Complete groups now update as names are entered.';
+  }finally{lock.releaseLock();}
+}
+function BILBBET_ECL_EDIT(event){
+  if(!event||!event.range||event.range.getSheet().getName()!==BILBBET_ECL_CONFIG.tab)return;
+  var r=event.range;if(r.getLastRow()<9||r.getRow()>12||r.getLastColumn()<21||r.getColumn()>35)return;
+  BILBBET_ECL_REFRESH();
+}
+function BILBBET_ECL_REFRESH(){
+  var lock=LockService.getDocumentLock();lock.waitLock(30000);
+  try{bilbbetEclRefreshUnlocked_(bilbbetEclSheet_());}finally{lock.releaseLock();}
+}
+function bilbbetEclRefreshUnlocked_(sheet){
+  bilbbetEclAssertOwned_(sheet);
+  try{
+    var model=SpreadsheetApp.getActive().getSheetByName(BILBBET_ECL_CONFIG.modelTab);
+    if(!model||model.getRange('A1').getValue()!==BILBBET_ECL_CONFIG.marker)throw Error('Install and import calculator data first.');
+    var count=Number(model.getRange('B1').getValue());if(!Number.isInteger(count)||count<1||count>250)throw Error('Import current calculator data first.');
+    var snapshot=JSON.parse(model.getRange(2,1,count,1).getValues().flat().join(''));
+    var m=BilbbetEclSheet.validate(snapshot),blocks={};
+    for(var g of ['A','B','C'])blocks[g]=sheet.getRange(BILBBET_ECL_CONFIG.blocks[g]).getValues();
+    var groups=BilbbetEclSheet.readDraw(m,blocks),rows={};
+    for(var g of ['A','B','C'])rows[g]=BilbbetEclSheet.project(m,groups,g);
+    bilbbetEclRender_(sheet,{snapshot:snapshot,groups:groups,rows:rows});
+  }catch(error){bilbbetEclRender_(sheet,null,'Odds unavailable: '+error.message);}
+}
+function bilbbetEclRender_(sheet,result,error){
+  var range=bilbbetEclAssertOwned_(sheet);
+  // Only this named, marked panel is ever cleared. Draw cells are read-only.
+  range.breakApart().clearContent().setBackground('#101827').setFontColor('#ffffff').setFontFamily('Arial').setFontSize(11).setVerticalAlignment('middle');
+  var matrix=Array.from({length:25},()=>Array(7).fill(''));
+  matrix[0][0]='BILBBET ECL GROUP ODDS';
+  matrix[1][0]=result?'Model downloaded: '+result.snapshot.exported_at_utc:'Awaiting valid calculator data / draw';
+  matrix[2][0]=error||'Three matchdays · top two qualify · 5% price margin';
+  for(var j=0;j<3;j++){
+    var g=['A','B','C'][j],offset=4+j*7,rows=result?.rows[g]||[];
+    matrix[offset][0]='GROUP '+g+(rows.length?'':' — awaiting four valid teams');
+    matrix[offset+1][0]='TEAM';matrix[offset+1][3]='WIN GROUP';matrix[offset+1][5]='QUALIFY TOP 2';
+    for(var i=0;i<4;i++){
+      var row=rows[i];matrix[offset+2+i][0]=row?row.name:'';
+      matrix[offset+2+i][3]=row?(row.winOdds??'Suspended'):'';
+      matrix[offset+2+i][5]=row?(row.qualifyOdds??'Suspended'):'';
+    }
+  }
+  matrix[24][0]='Forecasts only. No groups or betting markets are published by this sheet.';
+  range.setValues(matrix);range.getCell(1,1).setNote(BILBBET_ECL_CONFIG.marker);
+  for(var index of [0,1,2,24,4,11,18])range.offset(index,0,1,7).merge().setWrap(true);
+  for(var j=0;j<3;j++){
+    var offset=5+j*7;
+    for(var i=offset;i<offset+5;i++){
+      range.offset(i,0,1,3).merge().setWrap(true);
+      range.offset(i,3,1,2).merge().setHorizontalAlignment('center').setNumberFormat('0.00');
+      range.offset(i,5,1,2).merge().setHorizontalAlignment('center').setNumberFormat('0.00');
+    }
+    range.offset(offset-1,0,1,7).setBackground('#ffdd00').setFontColor('#111111').setFontWeight('bold');
+    range.offset(offset,0,1,7).setFontWeight('bold');
+  }
+  range.getCell(1,1).setFontSize(15).setFontWeight('bold');
+  sheet.setRowHeights(65,25,34);
+  if(error)range.offset(2,0,1,7).setFontColor('#ffbb80');
+}

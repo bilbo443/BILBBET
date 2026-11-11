@@ -27,7 +27,7 @@
   function winnerProbabilities(teams,sample,options={}){
     if(teams.length!==4||new Set(teams).size!==4)throw Error('A complete four-team group is required.');
     const n=options.n||6000,rounds=options.rounds||[8,10,13],key=options.key||VERSION;
-    const random=rng(key+'|'+teams.join('|')),counts=Object.fromEntries(teams.map(t=>[t,0]));
+    const random=rng(key+'|'+teams.join('|')),counts=Object.fromEntries(teams.map(t=>[t,0])),qualified=Object.fromEntries(teams.map(t=>[t,0]));
     const base=[[[0,3],[1,2]],[[0,2],[3,1]],[[0,1],[2,3]]];
     const pairKey=pairs=>pairs.map(([a,b])=>[a,b].sort().join('|')).sort().join(';');
     const fixed=rounds.map(round=>{const pairs=options.fixtures?.[round];if(!pairs?.length)return null;const index=base.findIndex(layout=>pairKey(layout.map(([a,b])=>[teams[a],teams[b]]))===pairKey(pairs));if(index<0)throw Error('Official ECL matchday needs two distinct group fixtures.');return index;});
@@ -45,9 +45,9 @@
       const remaining=base.map((_,i)=>i).filter(i=>!fixed.includes(i));for(let j=remaining.length-1;j>0;j--){const k=Math.floor(random()*(j+1));[remaining[j],remaining[k]]=[remaining[k],remaining[j]];}
       const matchdays=fixed.map(index=>base[index===null?remaining.pop():index]);
       for(let d=0;d<3;d++)for(const [a,b]of matchdays[d]){const sa=samples[d][teams[a]][i],sb=samples[d][teams[b]][i];scoreFor[a]+=sa;scoreFor[b]+=sb;if(sa>sb)pts[a]+=3;else if(sb>sa)pts[b]+=3;else{pts[a]++;pts[b]++;}}
-      const rank=teams.map((t,j)=>({t,points:pts[j],score:scoreFor[j],tie:random()})).sort((a,b)=>b.points-a.points||b.score-a.score||a.tie-b.tie);counts[rank[0].t]++;
+      const rank=teams.map((t,j)=>({t,points:pts[j],score:scoreFor[j],tie:random()})).sort((a,b)=>b.points-a.points||b.score-a.score||a.tie-b.tie);counts[rank[0].t]++;qualified[rank[0].t]++;qualified[rank[1].t]++;
     }
-    return teams.map(team=>({team,pct:100*counts[team]/n}));
+    return teams.map(team=>({team,pct:100*counts[team]/n,qualifyPct:100*qualified[team]/n}));
   }
-  return {VERSION,ORDER,validate,nextSlot,commit,slots,winnerProbabilities};
+  return {VERSION,ORDER,rng,validate,nextSlot,commit,slots,winnerProbabilities};
 });
