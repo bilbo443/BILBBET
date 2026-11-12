@@ -60,7 +60,8 @@ assert(!/secureRpc\(|sset\(|computeH2HMarket\(/.test(block),'Reporting must not 
 const read=n=>JSON.parse(fs.readFileSync('data/'+n+'.json','utf8'));
 const ctx={BilbbetMatchupNotes:N,DATA:{roddy_results:read('roddy_results'),admin_teams:read('admin_teams'),official_fa_cup_draw:read('official_fa_cup_draw')},REAL_RESULTS:read('real_results'),H2H_DIVISIONS:read('h2h_divisions'),H2H_SCHEDULE:read('h2h_schedule'),ROSTER_RULES:read('roster_rules'),ROUND_DATES:read('round_dates'),state:{currentRound:5,cupFixtures:{'FA CUP':[],ECL:[]},eclGroups:{}},collectingTrustedPrices:false,resolveTeamName:t=>t,Date,
  getCupRoundInfo:()=>null,sydneyKickoffUTC:d=>new Date(d.includes('T')?d:d+'T08:00:00Z'),getH2HRecord:()=>null,esc:s=>String(s).replaceAll('&','&amp;').replaceAll('<','&lt;')};
-vm.createContext(ctx);vm.runInContext(block,ctx);let fixtureCount=0;
+ctx.BilbbetTeamAbbreviations=require('../js/team-abbreviations.js');
+vm.createContext(ctx);vm.runInContext(app.slice(app.indexOf('  let abbreviationRegistry'),app.indexOf('  function renderFormModal(')),ctx);vm.runInContext(block,ctx);let fixtureCount=0;
 for(const pairs of Object.values(ctx.H2H_SCHEDULE))for(const [a,b]of pairs[4]){
  const report=ctx.matchupContext({teamA:a,teamB:b,round:5});assert(report.notes.length<=2);assert(!report.notes.some(n=>n.priority===0),'No title or relegation claim this early');
  assert(report.profiles.every(p=>p.recent.length===4));assert(ctx.renderMatchupNotes({teamA:a,teamB:b,round:5},true).includes('Division median beaten'));fixtureCount++;

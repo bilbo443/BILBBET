@@ -2634,6 +2634,34 @@
   // the season has real data, shows last season's history instead of an
   // empty modal, clearly labelled as historical so it's never confused
   // with genuine current-season form.
+  let abbreviationRegistry, abbreviationLookup;
+  function clubAbbreviations(){
+    if(typeof BilbbetTeamAbbreviations==='undefined'||!Array.isArray(DATA.admin_teams))return null;
+    if(abbreviationRegistry!==DATA.admin_teams){
+      abbreviationRegistry=DATA.admin_teams;
+      abbreviationLookup=BilbbetTeamAbbreviations.create(abbreviationRegistry);
+    }
+    return abbreviationLookup;
+  }
+  function shortTeamName(team){return clubAbbreviations()?.label(team)||team;}
+  function compactTeamLabel(team){
+    const full=clubAbbreviations()?.fullName(team)||team;
+    return `<button type="button" class="bb-btn ghost" data-show-form="${esc(full)}" title="${esc(full)}" aria-label="${esc(full)} — view results" style="padding:3px 6px;font-size:14px;">${esc(shortTeamName(team))}</button>`;
+  }
+  function renderAbbreviationKey(){
+    const rows=clubAbbreviations()?.key()||[];
+    return `<details style="margin-top:10px;"><summary style="cursor:pointer;">Club abbreviation key</summary><div style="max-height:280px;overflow:auto;"><table class="bb-table"><thead><tr><th>Code</th><th>Club</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.abbreviation)}</td><td>${esc(r.team)}</td></tr>`).join('')}</tbody></table></div></details>`;
+  }
+  function renderCompactFixtureCalendar(div){
+    const schedule=H2H_SCHEDULE[div]||[];
+    if(!schedule.length)return '';
+    const rows=schedule.map((pairs,i)=>{
+      const round=i+1,confirmed=divisionFixtureConfirmed(div,round);
+      const matches=confirmed&&pairs?.length?pairs.map(([a,b])=>`<span style="display:inline-flex;align-items:center;gap:4px;white-space:nowrap;">${compactTeamLabel(a)}<span style="color:#999;">v</span>${compactTeamLabel(b)}</span>`).join(' '):'<span style="color:#aaa;">'+(confirmed?'No league fixtures':'Awaiting confirmed fixtures')+'</span>';
+      return `<tr><th scope="row" style="padding:8px;text-align:left;">GW${round}</th><td style="padding:8px;display:flex;flex-wrap:wrap;gap:8px;">${matches}</td></tr>`;
+    }).join('');
+    return `<details class="bb-card" style="margin-top:14px;"><summary style="cursor:pointer;font-weight:700;">Season fixture calendar · club abbreviations</summary><p style="color:#aaa;font-size:14px;">Tap a club code for its full name and results. Only confirmed league fixtures are shown.</p><table style="width:100%;border-collapse:collapse;">${rows}</table>${renderAbbreviationKey()}</details>`;
+  }
   function renderFormModal(){
     const team = state.formModalTeam;
     if(!team) return '';
@@ -3374,7 +3402,7 @@
       const n=p.recent.length,margin=p.medianMargin==null?'':`${p.medianMargin>=0?'+':''}${p.medianMargin.toFixed(1)}`;
       return `<div style="flex:1 1 220px;min-width:0;padding:10px;background:#20262d;border-radius:6px;overflow-wrap:anywhere;">
         <strong>${esc(p.team)}</strong>
-        ${p.results.length?`<div style="margin-top:5px;">Last ${p.results.length} league results: <strong>${p.results.map(r=>r.result).join(' · ')}</strong> <span style="color:#aaa;">(oldest first)</span></div>`:''}
+        ${p.results.length?`<div style="margin-top:5px;">Last ${p.results.length} league results: <strong>${p.results.map(r=>`${esc(r.result)} vs ${compactTeamLabel(r.opponent)}`).join(' · ')}</strong> <span style="color:#aaa;">(oldest first)</span></div>`:''}
         ${n?`<div style="margin-top:5px;">Last ${n} completed scores: ${p.recent.map(r=>r.score).join(' · ')}</div><div>Recent average ${p.average.toFixed(1)} · season average ${p.seasonAverage.toFixed(1)}</div><div>Division median beaten: ${p.aboveMedian}/${n}${p.equalMedian?` · level: ${p.equalMedian}`:''} · average margin ${margin}</div>`:''}
         ${p.played?`<div>League position ${p.rank} · ${p.points} points</div>`:''}
         ${p.roddyRank?`<div>Roddy ${p.roddyRank}/${p.roddySize} · ${p.roddyPoints} points · ${p.roddyGap} behind first</div>`:''}
@@ -3496,7 +3524,8 @@
       return {a:'UNAVAILABLE',b:'UNAVAILABLE',source:'unavailable'};
     return {a:h2hCsvOdds(prices[0]),b:h2hCsvOdds(prices[1]),source:'published'};
   }
-  async function buildH2HMatrixCsv(teams,round,quotes,onProgress=()=>{},cancelled=()=>false,snapshot=h2hCsvTimestamp()){
+  async function buildH2HMatrixCsv(teams,round,quotes,onProgress=()=>{},cancelled=()=>false,snapshot=h2hCsvTimestamp(),labels=teams){
+    if(labels.length!==teams.length||new Set(labels).size!==labels.length)throw new Error('Matrix labels must be unique and match the teams.');
     const cells=teams.map(()=>teams.map(()=>''));
     const total=teams.length*(teams.length-1)/2;
     const counts={published:0,model:0,unavailable:0};let done=0;
@@ -3512,9 +3541,15 @@
       if(done%8===0 || done===total){onProgress(done,total);await new Promise(resolve=>setTimeout(resolve,0));}
     }
     if(cancelled())throw new Error('Export cancelled');
-    const header=[h2hCsvCell('Home / Away — Round '+round+' ordinary win odds — Snapshot: '+snapshot.label,true),...teams.map(t=>h2hCsvCell(t,true))];
-    const lines=[header.join(','),...teams.map((team,i)=>[h2hCsvCell(team,true),...cells[i].map(v=>h2hCsvCell(v))].join(','))];
+    const header=[h2hCsvCell('Home / Away — Round '+round+' ordinary win odds — Snapshot: '+snapshot.label,true),...labels.map(t=>h2hCsvCell(t,true))];
+    const lines=[header.join(','),...teams.map((team,i)=>[h2hCsvCell(labels[i],true),...cells[i].map(v=>h2hCsvCell(v))].join(','))];
     return {csv:'\uFEFF'+lines.join('\r\n')+'\r\n',counts,teams:teams.length,snapshot};
+  }
+  function exportH2HAbbreviationKey(){
+    const rows=clubAbbreviations()?.key()||[];
+    const csv='\uFEFF'+[['Abbreviation','Team'],...rows.map(r=>[r.abbreviation,r.team])].map(row=>row.map(v=>h2hCsvCell(v,true)).join(',')).join('\r\n')+'\r\n';
+    const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'})),link=document.createElement('a');
+    link.href=url;link.download='bilbbet-club-abbreviations.csv';document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
   }
   async function exportCustomH2HCsv(){
     if(state.h2hCsvJob)return;
@@ -3529,7 +3564,7 @@
         job.done=done;job.total=total;
         const progress=document.getElementById('h2h-csv-progress');
         if(progress)progress.textContent='Preparing Round '+round+': '+done+' / '+total+' matchups';
-      },()=>job.cancelled,snapshot);
+      },()=>job.cancelled,snapshot,teams.map(shortTeamName));
       const blob=new Blob([result.csv],{type:'text/csv;charset=utf-8;'});
       const url=URL.createObjectURL(blob),link=document.createElement('a');
       link.href=url;link.download='bilbbet-h2h-win-odds-R'+round+'-'+result.snapshot.filename+'.csv';document.body.appendChild(link);link.click();link.remove();
@@ -4430,7 +4465,8 @@
       </div><div class="bb-card" style="margin-bottom:1rem;">
         <button class="bb-btn ghost" id="export-custom-h2h-csv" ${state.h2hCsvJob?'disabled':''}>${state.h2hCsvJob?'Preparing CSV…':'Download all matchup odds (CSV)'}</button>
         ${state.h2hCsvJob?'<button class="bb-btn ghost" id="cancel-h2h-csv" style="margin-left:8px;">Cancel</button>':''}
-        <p style="color:#9a9a9a;font-size:14px;">Row team to win against the column team, for the selected round. Ordinary decimal win odds, without boosts; a draw is a separate outcome. Published prices are used where available, otherwise current model previews. Self-matchups are blank; unavailable markets are labelled. This is not a record of historical accepted odds.</p>
+        <p style="color:#9a9a9a;font-size:14px;">Row club to win against the column club, for the selected round. CSV headings use club abbreviations; download the key below to match full names. Ordinary decimal win odds, without boosts; a draw is a separate outcome. Published prices are used where available, otherwise current model previews. Self-matchups are blank; unavailable markets are labelled. This is not a record of historical accepted odds.</p>
+        <button type="button" class="bb-btn ghost" id="export-h2h-abbreviation-key" style="margin-bottom:8px;">Download club abbreviation key (CSV)</button>${renderAbbreviationKey()}
         <div id="h2h-csv-progress" role="status" style="color:#9a9a9a;font-size:14px;">${state.h2hCsvJob?'Preparing Round '+state.h2hCsvJob.round+': '+state.h2hCsvJob.done+' / '+state.h2hCsvJob.total+' matchups':esc(state.h2hCsvMessage)}</div>
       </div>${state.h2hMarket ? renderH2HMarket(state.h2hMarket) : ''}`;
     }
@@ -4440,7 +4476,7 @@
     if(state.h2hSubTab === 'PLAYOFFS'){
       return h2hSubTabBar() + renderPlayoffsTab();
     }
-    return stripe + roundBar + h2hSubTabBar() + sectionRibbon() + renderFixtureList(state.h2hSubTab);
+    return stripe + roundBar + h2hSubTabBar() + sectionRibbon() + renderFixtureList(state.h2hSubTab) + renderCompactFixtureCalendar(state.h2hSubTab);
   }
 
   function statusPill(status){
@@ -4944,7 +4980,7 @@
           </tr></thead>
           <tbody>${rows.slice().reverse().map((r,i) => `<tr style="border-bottom:1px solid var(--bb-border);${i%2===1?'background:var(--bb-card-bg-alt);':''}">
               <td style="padding:8px 14px;color:var(--bb-text-muted);">${r.round}</td>
-              <td style="padding:8px 8px;">${esc(r.opponent)}</td>
+              <td style="padding:8px 8px;">${compactTeamLabel(r.opponent)}</td>
               <td style="padding:8px 8px;text-align:right;font-variant-numeric:tabular-nums;">${r.yourScore} &ndash; ${r.oppScore}</td>
               <td style="padding:8px 14px;text-align:center;font-weight:700;color:${outcomeColor(r.outcome)};">${r.outcome}</td>
             </tr>`).join('')}</tbody>
@@ -9512,6 +9548,7 @@
       updateRegistrationStatus(username, status);
     });
     const approveAllBtn = $('#approve-all-btn'); if(approveAllBtn) approveAllBtn.onclick = approveAllPending;
+    const abbreviationKeyBtn=$('#export-h2h-abbreviation-key');if(abbreviationKeyBtn)abbreviationKeyBtn.onclick=exportH2HAbbreviationKey;
     const customCsvBtn=$('#export-custom-h2h-csv');if(customCsvBtn)customCsvBtn.onclick=exportCustomH2HCsv;
     const cancelCsvBtn=$('#cancel-h2h-csv');if(cancelCsvBtn)cancelCsvBtn.onclick=()=>{if(state.h2hCsvJob)state.h2hCsvJob.cancelled=true;};
     const exportCsvBtn = $('#export-bets-csv'); if(exportCsvBtn) exportCsvBtn.onclick = exportBetsToCSV;
