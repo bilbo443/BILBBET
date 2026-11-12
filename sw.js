@@ -1,8 +1,8 @@
 // Cache only the static application shell as an offline fallback.
 // Scores and other data must never enter the service-worker cache.
-const CACHE_NAME = 'bilbbet-shell-v3';
+const CACHE_NAME = 'bilbbet-shell-v4';
 const SHELL_FILES = ['./index.html', './css/styles.css', './js/app.js',
-  './fixtures.html', './css/fixture-share.css', './js/fixture-share.js', './js/streak-specials.js', './js/ecl-draw.js', './js/matchup-notes.js'];
+  './fixtures.html', './css/fixture-share.css', './js/fixture-share.js', './js/streak-specials.js', './js/ecl-draw.js', './js/matchup-notes.js', './js/team-abbreviations.js'];
 const SHELL_PATHS = new Set(SHELL_FILES.map(path => new URL(path, self.location.href).pathname));
 SHELL_PATHS.add(new URL('./', self.location.href).pathname);
 
