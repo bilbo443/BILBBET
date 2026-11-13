@@ -732,6 +732,15 @@
     const pool = (DATA.admin_teams || []).filter(t => String(t.status).startsWith('DIVISION 3')).map(t => t.name);
     return parts.some(part => part.startsWith('DIVISION 3') || pool.includes(resolveTeamName(part)));
   }
+  function adminParticipationBlocked(){return !!state.user?.isAdmin;}
+  function rejectAdminParticipation(){
+    if(!adminParticipationBlocked())return false;
+    alert('Admin accounts cannot bet or submit tips. Use a separate player account to participate.');
+    return true;
+  }
+  function adminParticipationNotice(){
+    return '<div class="bb-card" role="status" style="padding:12px;color:#ddd;">Admin account: betting and tipping are disabled. Management tools and public results remain available.</div>';
+  }
   function isPickBlocked(id){
     if(id.startsWith('FACUP|') &&
        (DATA.official_fa_cup_draw?.eliminated_teams || [])
@@ -3631,7 +3640,7 @@
     if(oddsInfo.suspended){
       return `<span class="bb-btn ghost" style="padding:8px 14px;font-size:clamp(18px, calc(18px + 0.4vw), 21px);opacity:0.5;cursor:default;width:100%;text-align:center;">susp.</span>`;
     }
-    if(EMBED_MODE) return `<span class="bb-btn ghost" style="display:block;padding:8px 14px;font-size:clamp(18px, calc(18px + 0.4vw), 21px);font-weight:700;width:100%;box-sizing:border-box;text-align:center;cursor:default;">${formatOdds(oddsInfo.odds)}</span>`;
+    if(EMBED_MODE||(!collectingTrustedPrices&&adminParticipationBlocked())) return `<span class="bb-btn ghost" style="display:block;padding:8px 14px;font-size:clamp(18px, calc(18px + 0.4vw), 21px);font-weight:700;width:100%;box-sizing:border-box;text-align:center;cursor:default;">${formatOdds(oddsInfo.odds)}</span>`;
     const selected = state.slip.some(s=>s.id===pickId);
     return `<button class="bb-btn ${selected?'':'ghost'}" data-pick="${esc(pickId)}" data-label="${esc(label)}" data-odds="${oddsInfo.odds}" style="padding:8px 14px;font-size:clamp(18px, calc(18px + 0.4vw), 21px);font-weight:700;width:100%;text-align:center;">${formatOdds(oddsInfo.odds)}</button>`;
   }
@@ -3807,7 +3816,7 @@
 
   function renderTippingTab(){
     const round = state.tippingViewRound || state.currentRound;
-    const locked = isRoundBlocked(round);
+    const locked = isRoundBlocked(round)||adminParticipationBlocked();
     const viewingPast = round !== state.currentRound;
     const subTabs = `<div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
         <div class="bb-tab ${state.tippingSubTab==='PICKS'?'active':''}" data-tippingtab="PICKS" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;display:flex;align-items:center;gap:5px;">This week's tips${state.tipReminderStatus===true ? ' <span title="You haven\'t submitted your tips for this week yet" style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);">\u{1F6A9}</span>' : ''}</div>
@@ -3815,7 +3824,7 @@
         <div class="bb-tab ${state.tippingSubTab==='LEADERBOARD'?'active':''}" data-tippingtab="LEADERBOARD" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;">Leaderboard</div>
         <div class="bb-tab ${state.tippingSubTab==='PRIZES'?'active':''}" data-tippingtab="PRIZES" style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);padding:6px 10px;">Prizes</div>
       </div>`;
-    const intro = `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:10px;">Free to play, but topping it pays real clams \u2014 see the Prizes tab for the full breakdown. Correct tips score two ways: a straight tally, and what a 1-clam bet on that tip would have paid (upsets are worth more). A drawn fixture pays half credit either way \u2014 half the tally, half the odds \u2014 and never counts against a perfect round. Nothing saves until you hit Confirm, and you can come back and change your tips right up until this round locks.</p>` +
+    const intro = (adminParticipationBlocked()?adminParticipationNotice():'') + `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:10px;">Free to play, but topping it pays real clams \u2014 see the Prizes tab for the full breakdown. Correct tips score two ways: a straight tally, and what a 1-clam bet on that tip would have paid (upsets are worth more). A drawn fixture pays half credit either way \u2014 half the tally, half the odds \u2014 and never counts against a perfect round. Nothing saves until you hit Confirm, and you can come back and change your tips right up until this round locks.</p>` +
       (FIXTURES_ARE_PLACEHOLDER && round !== 1 && !divisionFixtureConfirmed('ELIZA CUP (D1)',round) ? `<div class="bb-card" style="background:#173326;border:1px solid #348255;margin-bottom:10px;padding:10px 12px;font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#c8ebd0;">Regular division tipping opens when the official fixture draw is published after lockout. Pre-season predictions and available cup tips remain open.</div>` : '') +
       (round === 1 && state.round1LegacyTips ? `<div class="bb-card" style="background:#3a3320;margin-bottom:10px;padding:10px 12px;color:#e0d090;">Your earlier Round 1 fixture tips are saved separately. They do not count for Mr Median. Please select and confirm your Round 1 tips again.</div>` : '');
 
@@ -3886,7 +3895,7 @@
         </div>` : '';
       const confirmedKeys = Object.keys(state.tippingData.picks).filter(k => activeSection.divs.includes(k.split('|')[0]));
       if(!confirmedKeys.length){
-        return subTabs + intro + roundBrowser + sectionBar + mrMedianNote + rewardBanner + `<div class="bb-card" style="text-align:center;padding:2rem 1rem;color:#9a9a9a;">\u{1F512} ${viewingPast?`Round ${round} is over`:`Tipping is closed for Round ${round}`} \u2014 no confirmed tips in ${esc(activeSection.label)} that round.</div>` + renderAllTipstersTable(round, activeSection);
+        return subTabs + intro + roundBrowser + sectionBar + mrMedianNote + rewardBanner + `<div class="bb-card" style="text-align:center;padding:2rem 1rem;color:#9a9a9a;">\u{1F512} ${adminParticipationBlocked()?'Admin account — read-only':viewingPast?`Round ${round} is over`:`Tipping is closed for Round ${round}`} \u2014 no confirmed tips in ${esc(activeSection.label)} that round.</div>` + renderAllTipstersTable(round, activeSection);
       }
       const byDiv = {};
       for(const key of confirmedKeys){
@@ -3903,7 +3912,7 @@
       const perfectBadge = (state.user && !state.user.isAdmin && state.perfectRoundStatus[state.user.username.toLowerCase() + '|' + round + '|' + activeSection.key])
         ? `<div class="bb-card" style="margin-bottom:1rem;background:#2a3a20;text-align:center;padding:10px;font-size:clamp(18px, calc(18px + 0.4vw), 21px);color:#8fc98f;">\u2705 Perfect round in ${esc(activeSection.label)} for Round ${round}!</div>`
         : '';
-      return subTabs + intro + roundBrowser + sectionBar + mrMedianNote + rewardBanner + perfectBadge + `<div class="bb-card" style="text-align:center;padding:1rem;color:#9a9a9a;margin-bottom:1rem;">\u{1F512} ${viewingPast?`Round ${round} is over`:`Tipping is closed for Round ${round}`} \u2014 here's what you confirmed:</div>` + readOnly + renderAllTipstersTable(round, activeSection);
+      return subTabs + intro + roundBrowser + sectionBar + mrMedianNote + rewardBanner + perfectBadge + `<div class="bb-card" style="text-align:center;padding:1rem;color:#9a9a9a;margin-bottom:1rem;">\u{1F512} ${adminParticipationBlocked()?'Admin account — read-only':viewingPast?`Round ${round} is over`:`Tipping is closed for Round ${round}`} \u2014 here's what you confirmed:</div>` + readOnly + renderAllTipstersTable(round, activeSection);
     }
 
     const divsWithFixtures = activeSection.divs.filter(d => divisionFixtureCount(d, round) > 0);
@@ -4033,7 +4042,7 @@
   }
 
   function renderPreseasonTab(){
-    const locked = isRoundBlocked(1);
+    const locked = isRoundBlocked(1)||adminParticipationBlocked();
     if(!state.preseasonData){
       if(!state.user){
         // Nothing personal to fetch for a guest -- same reasoning as the
@@ -4046,7 +4055,7 @@
         return '<p style="color:#9a9a9a;">Loading your pre-season picks&hellip;</p>';
       }
     }
-    const intro = `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:10px;">One-time, season-long predictions \u2014 free to enter, but genuinely pays real clams (see the Prizes tab for the full breakdown). ${locked ? 'Locked now that the season has started.' : 'Locks the moment Round 1 kicks off, so get your picks in before then.'}</p>`;
+    const intro = (adminParticipationBlocked()?adminParticipationNotice():'') + `<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-bottom:10px;">One-time, season-long predictions \u2014 free to enter, but genuinely pays real clams (see the Prizes tab for the full breakdown). ${adminParticipationBlocked()?'Admin accounts can view predictions and manage results, but cannot enter picks.':locked ? 'Locked now that the season has started.' : 'Locks the moment Round 1 kicks off, so get your picks in before then.'}</p>`;
 
     const adminResultsSection = (state.user && state.user.isAdmin && state.preseasonResults !== null) ? renderPreseasonAdminResults() : '';
     if(state.user && state.user.isAdmin && state.preseasonResults === null){
@@ -6665,6 +6674,7 @@
   }
 
   function surpriseMe(){
+    if(rejectAdminParticipation())return;
     if(!state.user){
       alert('You must log in first to place a bet.');
       state.loginModalOpen = true;
@@ -7550,6 +7560,7 @@
   }
 
   function slipBar(){
+    if(adminParticipationBlocked())return adminParticipationNotice();
     if(!state.slip.length) return `<div class="bb-slip"><div class="bb-slip-inner" style="color:#9a9a9a;font-size:clamp(14px, calc(14px + 0.4vw), 17px);">Tap any outcome to build a bet slip.</div></div>`;
     const modeToggle = `
       <div style="display:flex;gap:6px;margin-bottom:6px;">
@@ -7712,6 +7723,7 @@
   // multi-select -- picking toggles membership, up to the slot's count;
   // once full, picking a new team is a no-op until one is removed.
   function togglePreseasonPick(slotKey, team, odds, count){
+    if(rejectAdminParticipation())return;
     odds=trustedOdds('PRES|'+slotKey+'|'+team,odds);
     const current = state.preseasonPending[slotKey] || [];
     const already = current.some(p => sameTeam(p.team, team));
@@ -7730,6 +7742,7 @@
   }
 
   async function confirmPreseasonPicks(){
+    if(rejectAdminParticipation())return;
     if(!state.user) return;
     // Defense in depth -- the button shouldn't render once Round 1 locks,
     // but a stale page (open in a tab from before the lock moment) could
@@ -7766,6 +7779,7 @@
   // punter explicitly hits Confirm, per direct instruction: a tip isn't
   // "real" just because a radio button was clicked.
   function setPendingTip(div, fixtureIdx, team, odds){
+    if(rejectAdminParticipation())return;
     odds=trustedOdds('TIP|'+state.tippingRound+'|'+div+'|'+fixtureIdx+'|'+team,odds);
     if(!state.user || !state.tippingData) return;
     state.tippingPending = { ...state.tippingPending, [div+'|'+fixtureIdx]: { team, odds } };
@@ -7776,6 +7790,7 @@
   // shared across all its conferences; the old fixed 12 was impossible to
   // achieve in Division 3 after its field shrank to 18 teams.
   function toggleMrMedianPick(div, fixtureIdx, team, odds){
+    if(rejectAdminParticipation())return;
     odds=trustedOdds('TIP|'+state.tippingRound+'|'+div+'|'+fixtureIdx+'|'+team,odds);
     if(!state.user || !state.tippingData) return;
     const key = div + '|' + fixtureIdx;
@@ -7800,6 +7815,7 @@
   }
 
   async function confirmTips(){
+    if(rejectAdminParticipation())return;
     if(!state.user || !state.tippingData) return;
     if(!await refreshSubmissionControls()) return;
     if(isRoundBlocked(state.tippingRound)){ alert('This round has locked. Your changes were not submitted.'); render(); return; }
@@ -8685,6 +8701,7 @@
   // ECL, FA Cup) and a combined one (Div 2 A+B, Div 3 conferences) identically --
   // and, for the "entire field" option, every section at once.
   function makeMultiFromTips(divs, stake){
+    if(rejectAdminParticipation())return;
     if(!state.user || !state.tippingData) return; // defensive -- shouldn't be reachable via the UI (the button only renders once tips are confirmed, which itself requires login), but don't crash or silently proceed if it somehow is
     const round = state.tippingRound;
     stake = stake || 10;
@@ -9381,6 +9398,7 @@
         render();
         return;
       }
+      if(rejectAdminParticipation())return;
       const id = el.dataset.pick;
       const existing = state.slip.findIndex(s=>s.id===id);
       if(existing>=0){ state.slip.splice(existing,1); render(); return; }
@@ -9899,6 +9917,7 @@
 
   function pendingPlacementKey(){ return 'bilbbet_pending_placement_' + state.user.username.toLowerCase(); }
   async function sendPlacementRequest(request, recoverOnly = false){
+    if(adminParticipationBlocked()&&!recoverOnly)throw new Error('Admin accounts cannot place bets.');
     if(!supabaseClient) throw new Error('The live connection is required to place a bet.');
     const {data,error} = await supabaseClient.rpc('bilbbet_place_bets', {
       p_request_id: request.id, p_username: request.username, p_bets: request.bets,
@@ -9934,6 +9953,7 @@
     return true;
   }
   async function submitBetsAtomically(bets){
+    if(adminParticipationBlocked())throw new Error('Admin accounts cannot place bets.');
     if(!await refreshSubmissionControls() || bets.some(b => b.selections.some(s => isPickBlocked(s.id)))) throw new Error('Betting has closed. No stake was deducted.');
     const rounds = bets.flatMap(b => b.selections.map(s => getPickRound(s.id))).filter(r => r !== null);
     if(state.closeScope === 'all') rounds.push(state.currentRound);
@@ -9946,6 +9966,7 @@
   }
 
   async function placeBet(){
+    if(rejectAdminParticipation())return;
     if(!state.user){ alert('You must log in first to place a bet.'); state.loginModalOpen=true; render(); return; }
     if(state.betSubmissionInProgress || document.getElementById('bilbbet-placement-receipt')) return;
     state.betSubmissionInProgress=true;
@@ -9976,6 +9997,7 @@
   }
 
   async function placeBetsAsSingles(){
+    if(rejectAdminParticipation())return;
     if(!state.user){ alert('You must log in first to place a bet.'); state.loginModalOpen=true; render(); return; }
     if(state.betSubmissionInProgress || document.getElementById('bilbbet-placement-receipt')) return;
     state.betSubmissionInProgress=true;

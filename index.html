@@ -27,11 +27,11 @@
 <script src="js/ecl-draw.js"></script>
 <script src="js/matchup-notes.js?v=20261111"></script>
 <script src="js/team-abbreviations.js?v=20261113"></script>
-<script src="js/app.js?v=20261113-abbreviations"></script>
+<script src="js/app.js?v=20261113-admin-no-participation"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js?v=20261113-abbreviations').catch((err) => {
+      navigator.serviceWorker.register('sw.js?v=20261113-admin-no-participation').catch((err) => {
         console.warn('Service worker registration failed (non-fatal):', err);
       });
     });
