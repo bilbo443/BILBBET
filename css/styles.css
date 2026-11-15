@@ -223,3 +223,12 @@ table.bb-table td{padding:8px;border-bottom:1px solid #333;vertical-align:top;co
   .bb-h2h-row .bb-h2h-price-wide .bb-btn{font-size:11px!important;padding-left:1px!important;padding-right:1px!important;}
   .bb-h2h-unavailable{font-size:11px!important;}
 }
+
+/* Keep desktop names close to their prices rather than the card edges. */
+@media(min-width:601px){
+  .bb-h2h-header{max-width:760px;margin-left:auto;margin-right:auto;}
+  .bb-h2h-team-home{justify-content:flex-end;text-align:right;}
+  .bb-h2h-team-away{justify-content:flex-end;text-align:left;}
+  .bb-h2h-headings>span:first-child{text-align:right;}
+  .bb-h2h-headings>span:last-child{text-align:left;}
+}
