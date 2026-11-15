@@ -1,0 +1,24 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const source=fs.readFileSync('js/app.js','utf8'),css=fs.readFileSync('css/styles.css','utf8');
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const quotes=new Map(),state={slip:[]};
+const ctx={state,esc,collectingTrustedPrices:false,teamLogo:()=>'<img alt="" width="24" height="24">',shortTeamName:n=>n==='HOME TEAM'?'HOM':'AWY',toOdds:p=>({odds:p?100/(p*1.05):1001,suspended:false}),trustedOdds:(id,n)=>quotes.get(id)??n,formatOdds:n=>Number(n).toFixed(2),isPickBlocked:()=>false,
+ priceOnlyButton:(id,label,info)=>`<button data-pick="${esc(id)}" data-label="${esc(label)}" data-odds="${ctx.trustedOdds(id,info.odds)}">${ctx.formatOdds(ctx.trustedOdds(id,info.odds))}</button>`};
+vm.createContext(ctx);vm.runInContext(source.slice(source.indexOf('  function renderAlignedH2HRow('),source.indexOf('  function cupFixtureRoundView(')),ctx);
+const match={round:6,teamA:'HOME TEAM',teamB:'AWAY TEAM',aWinPct:50,drawPct:5,bWinPct:45};
+const suffix='|R6|HOME TEAM|AWAY TEAM';quotes.set('H2H|res-a'+suffix,1.83);quotes.set('H2H|res-draw'+suffix,21);quotes.set('H2H|res-b'+suffix,2.13);
+const html=ctx.renderAlignedH2HRow(match);
+const row=html.slice(html.indexOf('class="bb-h2h-row"'));
+const order=['data-show-form="HOME TEAM"','data-pick="H2H|res-a','data-pick="H2H|res-draw','data-pick="H2H|res-b','data-show-form="AWAY TEAM"'].map(s=>row.indexOf(s));
+assert(order.every(i=>i>=0));assert(order.every((i,n)=>!n||i>order[n-1]));
+assert.equal((html.match(/data-pick=/g)||[]).length,3);assert(html.includes('1.83'));assert(html.includes('21.00'));assert(html.includes('2.13'));assert(html.includes('data-label="R6: Draw"'));assert(html.includes('aria-label="HOME TEAM — view results"'));
+const closed=ctx.renderAlignedH2HRow(match,{closed:true});assert(!closed.includes('data-pick='));assert.equal((closed.match(/>Closed</g)||[]).length,3);
+const noDraw=ctx.renderAlignedH2HRow(match,{prices:{a:{odds:2},b:{odds:2}}});assert.equal((noDraw.match(/data-pick=/g)||[]).length,2);assert(noDraw.includes('Odds unavailable'));
+ctx.isPickBlocked=()=>true;assert(!ctx.renderAlignedH2HRow(match).includes('data-pick='));ctx.collectingTrustedPrices=true;assert.equal((ctx.renderAlignedH2HRow(match).match(/data-pick=/g)||[]).length,3,'Role/view controls must not remove publisher quotes');
+const fixtures=source.slice(source.indexOf('  function renderFixtureList('),source.indexOf('  function div3PoolPreviewTeams('));
+assert(fixtures.indexOf('${renderAlignedH2HRow(m)}')<fixtures.indexOf('${renderMatchupNotes(m)}'));
+const detail=source.slice(source.indexOf('  function renderH2HMarket('),source.indexOf('  function roundOptions('));
+assert(detail.indexOf('${renderAlignedH2HRow(m,{prices:winOdds})}')<detail.indexOf('${renderMatchupNotes(m,true)}'));
+assert(detail.includes("'H2H|hcap-a-'"));assert(detail.includes("'H2H|hcap-b-'"));assert(!detail.includes("row('H2H|res-a|'"),'No duplicate result picks below the aligned header');
+assert(css.includes('grid-template-columns:minmax(0,1fr) repeat(3,var(--h2h-price)) minmax(0,1fr)'));assert(css.includes('align-items:center'));assert(css.includes('.bb-h2h-name{display:none;}'));
+console.log('PASS: home/1/X/2/away order, trusted odds and labels, closed/missing/blocked outcomes, publishing compatibility, context below and retained handicap markets.');

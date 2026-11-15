@@ -3145,6 +3145,22 @@
       ).join('') + '</div>';
   }
 
+  function renderAlignedH2HRow(m,options={}){
+    const prices=options.prices||{a:toOdds(m.aWinPct),draw:toOdds(m.drawPct),b:toOdds(m.bWinPct)};
+    const suffix='|R'+Number(m.round)+'|'+m.teamA+'|'+m.teamB;
+    const team=(name,side)=>`<button type="button" class="bb-h2h-team bb-h2h-team-${side}" data-show-form="${esc(name)}" title="${esc(name)} — view results" aria-label="${esc(name)} — view results">${teamLogo(name,24)}<span class="bb-h2h-name">${esc(name)}</span><span class="bb-h2h-code" aria-hidden="true">${esc(shortTeamName(name))}</span></button>`;
+    const outcome=(side,name)=>{
+      const id='H2H|res-'+(side==='draw'?'draw':side)+suffix,info=prices[side];
+      if(options.closed)return '<span class="bb-h2h-unavailable" aria-disabled="true">Closed</span>';
+      if(!info)return '<span class="bb-h2h-unavailable" aria-disabled="true">—<span class="bb-sr-only"> Odds unavailable</span></span>';
+      const label='R'+Number(m.round)+': '+(side==='draw'?'Draw':name+' to win');
+      if(!collectingTrustedPrices&&isPickBlocked(id))return `<span class="bb-h2h-unavailable" aria-disabled="true">${info.suspended?'Susp.':formatOdds(trustedOdds(id,info.odds))}</span>`;
+      const wide=formatOdds(trustedOdds(id,info.odds)).length>5;
+      return `<div class="bb-h2h-price-cell${wide?' bb-h2h-price-wide':''}">${priceOnlyButton(id,label,info)}</div>`;
+    };
+    return `<div class="bb-h2h-header"><div class="bb-h2h-headings" aria-hidden="true"><span>Home</span><span>Home win</span><span>Draw</span><span>Away win</span><span>Away</span></div><div class="bb-h2h-row" role="group" aria-label="Round ${Number(m.round)}: ${esc(m.teamA)} versus ${esc(m.teamB)} — match result">${team(m.teamA,'home')}${outcome('a',m.teamA)}${outcome('draw')}${outcome('b',m.teamB)}${team(m.teamB,'away')}</div></div>`;
+  }
+
   function cupFixtureRoundView(fixtures, currentRound, selectedRound){
     const valid=fixtures.map((fixture,index)=>({fixture,index}))
       .filter(({fixture:f})=>Number.isInteger(Number(f.round))&&Number(f.round)>=1&&Number(f.round)<=26);
@@ -3163,12 +3179,12 @@
   }
   function cupFixtureWinPrices(f){
     const prefix='H2H|',suffix='|R'+Number(f.round)+'|'+f.teamA+'|'+f.teamB;
-    const a=trustedPrices.get(prefix+'res-a'+suffix),b=trustedPrices.get(prefix+'res-b'+suffix);
+    const a=trustedPrices.get(prefix+'res-a'+suffix),b=trustedPrices.get(prefix+'res-b'+suffix),draw=trustedPrices.get(prefix+'res-draw'+suffix);
     // Normal browsing needs no new simulation when the price board already has both sides.
     if(Number.isFinite(Number(a?.odds))&&Number(a.odds)>0&&Number.isFinite(Number(b?.odds))&&Number(b.odds)>0)
-      return {a:{odds:Number(a.odds),suspended:false},b:{odds:Number(b.odds),suspended:false}};
+      return {a:{odds:Number(a.odds),suspended:false},b:{odds:Number(b.odds),suspended:false},draw:Number.isFinite(Number(draw?.odds))&&Number(draw.odds)>0?{odds:Number(draw.odds),suspended:false}:null};
     const market=getCupFixtureMarket(f);
-    return {a:toOdds(market.aWinPct),b:toOdds(market.bWinPct)};
+    return {a:toOdds(market.aWinPct),b:toOdds(market.bWinPct),draw:Number.isFinite(market.drawPct)?toOdds(market.drawPct):null};
   }
   function openCupFixture(compKey,index){
     const f=(state.cupFixtures[compKey]||[])[Number(index)];
@@ -3200,21 +3216,9 @@
       <span style="color:#9a9a9a;">GW${view.round} · ${view.fixtures.length} match${view.fixtures.length===1?'':'es'}${closed?' · Betting closed':''}</span></div>`;
     const cards=view.fixtures.map(({fixture:f,index},position)=>{
       const prices=closed?null:cupFixtureWinPrices(f);
-      const outcome=(side,team)=>{
-        const id='H2H|res-'+side+'|R'+view.round+'|'+f.teamA+'|'+f.teamB;
-        const info=prices?.[side];
-        const blocked=closed||!info||info.suspended||isPickBlocked(id);
-        const price=info&&!info.suspended?trustedOdds(id,info.odds):null;
-        const selected=state.slip.some(s=>s.id===id);
-        return `<button type="button" class="bb-outcome ${selected?'selected':''}" ${blocked?'disabled':`data-pick="${esc(id)}" data-label="${esc('R'+view.round+': '+team+' to win')}" data-odds="${price}"`}
-          style="display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:10px;width:100%;min-width:0;padding:12px;text-align:left;color:inherit;${blocked?'cursor:default;opacity:0.7;':''}">
-          <span style="display:flex;gap:7px;align-items:center;font-weight:600;min-height:44px;min-width:0;overflow-wrap:anywhere;">${teamLogo(team,24)}<span>${esc(team)}</span></span>
-          <span class="bb-odds" style="font-size:25px;line-height:1.2;">${closed?'Closed':price===null?'Unavailable':formatOdds(price)}</span>
-        </button>`;
-      };
       return `<div class="bb-card" style="padding:14px;margin-bottom:12px;">
         <div style="color:#9a9a9a;font-size:13px;margin-bottom:9px;">Match ${position+1}</div>
-        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;">${outcome('a',f.teamA)}${outcome('b',f.teamB)}</div>
+        ${renderAlignedH2HRow({...f,round:view.round},{prices:prices||{},closed})}
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:10px;">
           <span style="color:#9a9a9a;font-size:13px;">${closed?'Past or locked fixture':'Match win odds'}</span>
           <button type="button" class="bb-btn ghost" data-cupfixture="${esc(compKey)}|${index}" style="padding:6px 10px;">Match details</button>
@@ -3444,7 +3448,8 @@
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
         <span class="bb-pill" style="background:#4a3a10;color:#ffdd00;">Round ${m.round}</span>
       </div>
-      ${renderMatchupNotes(m,true)}
+      ${renderAlignedH2HRow(m,{prices:winOdds})}
+      <div class="bb-h2h-support"><p style="color:#9a9a9a;font-size:14px;">Model chances: ${esc(m.teamA)} ${m.aWinPct.toFixed(1)}% · Draw ${m.drawPct.toFixed(1)}% · ${esc(m.teamB)} ${m.bWinPct.toFixed(1)}%.</p>${renderMatchupNotes(m,true)}</div>
       <div style="display:flex;justify-content:space-between;margin-bottom:12px;">
         <div><div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">${esc(m.teamA)} viable range</div><div style="font-size:clamp(23px, calc(23px + 0.4vw), 26px);font-weight:600;">${m.aRange[0]}&ndash;${m.aRange[1]}</div></div>
         <div style="text-align:right;"><div style="font-size:clamp(17px, calc(17px + 0.4vw), 20px);color:#9a9a9a;">${esc(m.teamB)} viable range</div><div style="font-size:clamp(23px, calc(23px + 0.4vw), 26px);font-weight:600;">${m.bRange[0]}&ndash;${m.bRange[1]}</div></div>
@@ -3462,10 +3467,6 @@
           ${m.edge && m.edge.applied ? `<div style="font-size:clamp(16px, calc(16px + 0.4vw), 19px);color:#ffdd00;margin-top:6px;">\u26A1 ${esc(m.edge.favored)} carries a${m.edge.decay<1?' reduced':' slight'} edge here from a considerably lopsided head-to-head record (${m.edge.winMargin>0?aWins:aLosses}W-${m.edge.winMargin>0?aLosses:aWins}L across ${r.played} meetings)${m.edge.decay<1?`, weighted down since the last meeting was a while ago`:''}.</div>` : ''}
         </div>`;
       })()}
-      <h4 style="margin:0 0 8px;font-size:clamp(18px, calc(18px + 0.4vw), 21px);color:#9a9a9a;">Match result</h4>
-      ${row('H2H|res-a|'+roundTag+'|'+m.teamA+'|'+m.teamB, 'R'+m.round+': '+m.teamA+' to win', m.aWinPct, winOdds.a)}
-      ${row('H2H|res-draw|'+roundTag+'|'+m.teamA+'|'+m.teamB, 'R'+m.round+': Draw', m.drawPct, winOdds.draw)}
-      ${row('H2H|res-b|'+roundTag+'|'+m.teamA+'|'+m.teamB, 'R'+m.round+': '+m.teamB+' to win', m.bWinPct, winOdds.b)}
       <h4 style="margin:14px 0 8px;font-size:clamp(18px, calc(18px + 0.4vw), 21px);color:#9a9a9a;">Handicap${helpTip('handicap', 'A virtual head start or deficit applied to level the odds \u2014 pick a team to "cover the line," meaning win by more than (or lose by less than) the handicap.')}</h4>
       ${row('H2H|hcap-a-'+(m.line>=0?'fav':'dog')+'|'+roundTag+'|'+m.teamA+'|'+m.teamB, 'R'+m.round+': '+m.teamA+' '+(m.line>=0?'-':'+')+Math.abs(m.line).toFixed(1), m.aCoversPct, hcapOdds.a)}
       ${row('H2H|hcap-b-'+(m.line>=0?'dog':'fav')+'|'+roundTag+'|'+m.teamA+'|'+m.teamB, 'R'+m.round+': '+m.teamB+' '+(m.line>=0?'+':'-')+Math.abs(m.line).toFixed(1), m.bCoversPct, hcapOdds.b)}
@@ -4413,25 +4414,17 @@
     const markets = getFixtureMarkets(div, state.h2hRound);
     return '<div class="bb-card" style="padding:0;overflow:hidden;">' +
       markets.map((m, i) => {
-        const roundTag = 'R' + m.round;
-        const aId = 'H2H|res-a|'+roundTag+'|'+m.teamA+'|'+m.teamB;
-        const bId = 'H2H|res-b|'+roundTag+'|'+m.teamA+'|'+m.teamB;
-        return `<div style="display:flex;align-items:stretch;gap:12px;padding:12px 16px;${i<markets.length-1?'border-bottom:1px solid #3d3d3d;':''}">
-          <div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:3px;">
-            <div style="display:flex;align-items:center;gap:6px;font-weight:600;cursor:pointer;" data-show-form="${esc(m.teamA)}" title="See ${esc(m.teamA)}'s results">${teamLogo(m.teamA,18)}${esc(m.teamA)}</div>
-            <div style="display:flex;align-items:center;gap:6px;font-weight:600;cursor:pointer;" data-show-form="${esc(m.teamB)}" title="See ${esc(m.teamB)}'s results"><span style="color:#9a9a9a;font-weight:400;">vs</span> ${teamLogo(m.teamB,18)}${esc(m.teamB)}</div>
+        return `<article class="bb-h2h-fixture" style="padding:14px 16px;${i<markets.length-1?'border-bottom:1px solid #3d3d3d;':''}">
+          ${renderAlignedH2HRow(m)}
+          <div class="bb-h2h-support">
             ${div==='ELIZA CUP (D1)'?renderD1DroughtTracker(m.teamA,m.teamB,m.round):''}
             ${renderMatchupNotes(m)}
-            <span class="bb-btn ghost" data-fixture-expand="${esc(div)}|${i}" style="align-self:flex-start;padding:3px 9px;font-size:clamp(15px, calc(15px + 0.4vw), 18px);margin-top:2px;">Full market (draw &amp; handicap)</span>
+            <button type="button" class="bb-btn ghost" data-fixture-expand="${esc(div)}|${i}" style="padding:6px 10px;font-size:15px;margin-top:6px;">Full market &amp; handicap</button>
           </div>
-          <div style="width:88px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;justify-content:center;">
-            ${priceOnlyButton(aId, roundTag+': '+m.teamA+' to win', toOdds(m.aWinPct))}
-            ${priceOnlyButton(bId, roundTag+': '+m.teamB+' to win', toOdds(m.bWinPct))}
-          </div>
-        </div>`;
+        </article>`;
       }).join('') +
       '</div>' +
-      '<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-top:10px;">Odds are projected from real strength data, not a guarantee \u2014 tap either team\'s price to back the moneyline directly, or open the full market for the draw and handicap.</p>' +
+      '<p style="color:#9a9a9a;font-size:clamp(17px, calc(17px + 0.4vw), 20px);margin-top:10px;">Odds are projected from real strength data, not a guarantee \u2014 tap Home win, Draw or Away win to add that result, or open the full market for handicaps.</p>' +
       renderBeatMedianSection(div, state.h2hRound);
   }
 

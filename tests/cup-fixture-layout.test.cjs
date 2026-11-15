@@ -1,13 +1,13 @@
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict');
 const source=fs.readFileSync(path.join(__dirname,'../js/app.js'),'utf8');
-const functions=source.slice(source.indexOf('  function cupFixtureRoundView('),source.indexOf('  const PLAYOFF_DIVS'));
+const functions=source.slice(source.indexOf('  function renderAlignedH2HRow('),source.indexOf('  const PLAYOFF_DIVS'));
 const prelim=[{round:1,stage:'Preliminary Round',teamA:'BORATVERYNICE',teamB:'GALUCTASARY'},{round:1,stage:'Preliminary Round',teamA:'SABITEURS',teamB:'QUINTASENTIAL FC'}];
 const pairs=JSON.parse(fs.readFileSync(path.join(__dirname,'../data/official_fa_cup_draw.json'))).r64_matches;
 const current=pairs.map(([teamA,teamB])=>({round:2,stage:'Round Of 64',teamA,teamB}));
 const state={currentRound:2,cupFixtures:{'FA CUP':[...prelim,...current],ECL:[]},cupFixtureMarket:null,slip:[]};
 let computations=0;
 const prices=new Map();for(const f of current){const suffix='|R2|'+f.teamA+'|'+f.teamB;prices.set('H2H|res-a'+suffix,{odds:1.75});prices.set('H2H|res-b'+suffix,{odds:2.25});}
-const ctx={state,Number,Set,Map,openingHubCupMarkets:{},trustedPrices:prices,
+const ctx={state,Number,Set,Map,collectingTrustedPrices:false,shortTeamName:t=>t,priceOnlyButton:(id,label,info)=>`<button data-pick="${id}" data-label="${label}">${info.odds.toFixed(2)}</button>`,openingHubCupMarkets:{},trustedPrices:prices,
  computeH2HMarket:(teamA,teamB,round)=>{computations++;return{teamA,teamB,round,aWinPct:60,bWinPct:38};},
  render:()=>{},isRoundBlocked:r=>r<2,isPickBlocked:id=>Number(id.split('|')[2].slice(1))<2,
  getCupRoundInfo:(c,r)=>({stage:r===1?'Preliminary Round':'Round Of 64'}),

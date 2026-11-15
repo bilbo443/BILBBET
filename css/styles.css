@@ -195,3 +195,31 @@ table.bb-table td{padding:8px;border-bottom:1px solid #333;vertical-align:top;co
    on a phone, roomier on a wide screen. */
 .bb-featured-card{ padding-right:clamp(12px, 4vw, 32px) !important; }
 .bb-outcome{ padding-right:clamp(12px, 4vw, 32px) !important; }
+
+/* The five columns share one horizontal centre line. Context never occupies
+   the name/price grid, so a long report cannot move an opponent's odds. */
+.bb-h2h-header{--h2h-price:72px;--h2h-gap:8px;margin-bottom:10px;}
+.bb-h2h-row,.bb-h2h-headings{display:grid;grid-template-columns:minmax(0,1fr) repeat(3,var(--h2h-price)) minmax(0,1fr);gap:var(--h2h-gap);align-items:center;}
+.bb-h2h-headings{margin-bottom:6px;color:var(--bb-text-muted);font-size:11px;text-align:center;line-height:1.3;}
+.bb-h2h-team{appearance:none;display:flex;align-items:center;justify-content:flex-start;gap:6px;min-width:0;min-height:44px;padding:4px 0;border:0;background:transparent;color:var(--bb-text);font:inherit;font-size:16px;font-weight:700;text-align:left;cursor:pointer;overflow-wrap:anywhere;}
+.bb-h2h-team img{flex:none;width:24px;height:24px;object-fit:contain;}
+.bb-h2h-team-away{flex-direction:row-reverse;text-align:right;}
+.bb-h2h-team:focus-visible{outline:2px solid var(--bb-accent);outline-offset:3px;border-radius:4px;}
+.bb-h2h-code{display:none;}
+.bb-h2h-price-cell{min-width:0;}
+.bb-h2h-row .bb-btn,.bb-h2h-unavailable{box-sizing:border-box;width:100%;min-width:0;min-height:44px;padding:7px 4px!important;font-size:17px!important;line-height:1.2;text-align:center;font-variant-numeric:tabular-nums;}
+.bb-h2h-row .bb-btn{white-space:normal;overflow-wrap:anywhere;}
+.bb-h2h-unavailable{display:flex;align-items:center;justify-content:center;color:var(--bb-text-muted);border:1px solid var(--bb-border-light);border-radius:8px;font-size:13px!important;}
+.bb-h2h-support{margin-top:12px;padding-top:10px;border-top:1px solid var(--bb-border);}
+.bb-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+@media(max-width:600px){
+  .bb-h2h-header{--h2h-price:46px;--h2h-gap:4px;}
+  .bb-h2h-name{display:none;}
+  .bb-h2h-code{display:inline;}
+  .bb-h2h-team{gap:4px;font-size:14px;}
+  .bb-h2h-team img{width:20px;height:20px;}
+  .bb-h2h-headings{font-size:10px;}
+  .bb-h2h-row .bb-btn{font-size:14px!important;}
+  .bb-h2h-row .bb-h2h-price-wide .bb-btn{font-size:11px!important;padding-left:1px!important;padding-right:1px!important;}
+  .bb-h2h-unavailable{font-size:11px!important;}
+}
