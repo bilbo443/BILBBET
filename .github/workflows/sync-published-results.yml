@@ -1,0 +1,21 @@
+name: Sync published results and advance round
+on:
+  push:
+    branches: [main]
+    paths: ['data/real_results.json', 'data/roddy_results.json', 'data/futures.json', 'data/round_dates.json', 'pipeline/sync_published_results.cjs', '.github/workflows/sync-published-results.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: published-results-sync
+  cancel-in-progress: false
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Sync validated public snapshot without settlements
+        run: node pipeline/sync_published_results.cjs

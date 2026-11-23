@@ -1113,6 +1113,15 @@
     if(data?.error) throw new Error(data.error);
     return data;
   }
+  async function refreshPublishedResultContext(){
+    try{
+      const response=await fetch(SUPABASE_URL+'/functions/v1/sync-published-results',{
+        method:'POST',headers:{apikey:SUPABASE_ANON_KEY,'Content-Type':'application/json'},body:'{}',signal:AbortSignal.timeout(12000)
+      });
+      if(!response.ok)throw new Error('Published results sync unavailable');
+      return await response.json();
+    }catch(error){console.warn('Keeping the existing server round:',error.message);return null;}
+  }
   async function secureRead(keys){ return await secureRpc('bilbbet_read',{p_keys:keys}); }
   async function secureSignIn(username,pin){
     const data=await secureRpc('bilbbet_login',{p_username:username,p_pin:pin});
@@ -10120,6 +10129,7 @@
     return;
   }
 
+  await refreshPublishedResultContext();
   const savedOverride = await sget('bilbbet2_current_round_override');
   const resolvedRound = Number(await secureRpc('bilbbet_current_round'));
   state.currentRoundOverride = savedOverride || null;
@@ -10205,3 +10215,4 @@
     setInterval(() => window.location.reload(), 3 * 60 * 1000);
   }
 })();
+
