@@ -1,6 +1,10 @@
 -- Worker-only write path. The public browser cannot supply result payloads to it.
-CREATE OR REPLACE FUNCTION public.bilbbet_apply_published_scores(p_league jsonb,p_dates jsonb,p_fingerprint text,p_fixtures jsonb)
-RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $function$
+CREATE OR REPLACE FUNCTION public.bilbbet_apply_published_scores(p_league jsonb, p_dates jsonb, p_fingerprint text, p_fixtures jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'pg_catalog'
+AS $function$
 DECLARE ctx jsonb; result_fixtures jsonb; projected jsonb:='[]'; item jsonb; schedule jsonb; dates jsonb; finished integer:=0;
  existing integer:=0; expected integer; teams integer; total integer; r integer; n integer; amount jsonb; rec record;
 BEGIN
@@ -46,6 +50,9 @@ BEGIN
  existing:=coalesce(existing,0);
  IF finished<existing THEN RETURN jsonb_build_object('status','stale_publication','current_round',bilbbet_private.current_round(),'finalised_round',existing); END IF;
  IF finished=0 THEN RETURN jsonb_build_object('status','no_completed_round','current_round',bilbbet_private.current_round()); END IF;
+ -- Preserve the same validated official fixtures for betting eligibility.
+ INSERT INTO bilbbet_private.settings(key,value) VALUES('confirmed_division_fixtures',p_fixtures)
+ ON CONFLICT(key) DO UPDATE SET value=excluded.value;
  -- Write only completed league rounds; all unrelated context fields/fixtures remain unchanged.
  SELECT jsonb_agg(CASE WHEN (old->>'round')::integer<=finished AND old->>'section' IN('ELIZA','DIV2','DIV3') AND NOT coalesce((old->>'median')::boolean,false)
   THEN old||jsonb_build_object('sa',p_league->(old->>'a')->((old->>'round')::integer-1),'sb',p_league->(old->>'b')->((old->>'round')::integer-1)) ELSE old END ORDER BY ordinal)
@@ -54,6 +61,7 @@ BEGIN
  INSERT INTO bilbbet_private.settings(key,value) VALUES('confirmed_finalised_round',jsonb_build_object('round',finished,'round_date',dates->>finished::text,'reason','Validated published main-branch scores and complete futures snapshot','fingerprint',p_fingerprint)) ON CONFLICT(key) DO UPDATE SET value=excluded.value;
  INSERT INTO bilbbet_private.settings(key,value) VALUES('published_result_sync',jsonb_build_object('checked_at',now(),'finalised_round',finished,'fingerprint',p_fingerprint)) ON CONFLICT(key) DO UPDATE SET value=excluded.value;
  RETURN jsonb_build_object('status','synced','finalised_round',finished,'current_round',bilbbet_private.current_round());
-END $function$;
+END $function$
+;
 REVOKE ALL ON FUNCTION public.bilbbet_apply_published_scores(jsonb,jsonb,text,jsonb) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.bilbbet_apply_published_scores(jsonb,jsonb,text,jsonb) TO service_role;
