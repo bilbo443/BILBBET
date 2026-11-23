@@ -20,6 +20,9 @@ assert.equal(engine.forecast('WIN','A',schedule,1,4,()=>NaN).length,0);
 const app=fs.readFileSync('js/app.js','utf8'),part=(a,b)=>app.slice(app.indexOf(a),app.indexOf(b,app.indexOf(a)));
 const read=n=>JSON.parse(fs.readFileSync('data/'+n+'.json','utf8'));
 const roster=read('h2h_divisions'),real=read('real_results'),registry=read('admin_teams'),fixtures=read('h2h_schedule');
+// This scenario offers streak bets at the start of GW5. Later published scores
+// must not leak into the deliberately unplayed portion of this test fixture.
+for(const values of Object.values(real)) values.fill(null,4);
 const ctx={window:{BilbbetStreaks:engine},DATA:{admin_teams:registry,roster_rules:read('roster_rules')},REAL_RESULTS:real,H2H_DIVISIONS:roster,H2H_SCHEDULE:fixtures,
  state:{currentRound:5,slip:[]},Number,Date,ROUND_DATES:read('round_dates'),sydneyKickoffUTC:()=>0,availableDivision:()=>true,divisionFixtureConfirmed:()=>true,
  findTeamDivision:team=>Object.keys(roster).find(d=>roster[d].includes(team)),getFixtureMarkets:(div,r)=>fixtures[div][r-1].map(([teamA,teamB])=>({teamA,teamB,aWinPct:45,bWinPct:53})),
