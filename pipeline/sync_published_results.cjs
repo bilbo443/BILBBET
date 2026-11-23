@@ -12,7 +12,7 @@ const latest=Math.max(0,...Array.from({length:26},(_,i)=>Object.values(scores).e
     method:'POST',headers:{apikey:key,'Content-Type':'application/json'},body:'{}',signal:AbortSignal.timeout(40000)
    });
    const result=await response.json();
-   if(!response.ok||result.finalised_round<latest)throw Error('Published snapshot is not synced yet');
+   if(!response.ok||!Number.isInteger(result.finalised_round)||result.finalised_round<latest)throw Error('Published snapshot is not synced yet');
    console.log('Published results synced through GW'+result.finalised_round+'; active round '+result.current_round);return;
   }catch(error){if(attempt===7)throw error;console.log('Waiting for the matching published snapshot; retrying.');await new Promise(resolve=>setTimeout(resolve,10000));}
  }
