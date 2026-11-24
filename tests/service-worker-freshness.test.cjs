@@ -25,7 +25,8 @@ async function request(path,method='GET'){
 })().catch(error=>{console.error(error);process.exitCode=1;});
 
 for(const page of ['index.html','fixtures.html']){
- const html=fs.readFileSync(page,'utf8');assert(html.includes('js/app.js?v=20261116-h2h-layout'));
+ const html=fs.readFileSync(page,'utf8');assert(html.includes('js/app.js?v=20261124-futures-review'));
  assert(html.indexOf('js/matchup-notes.js')<html.indexOf('js/app.js'));
 }
-assert(fs.readFileSync('index.html','utf8').includes("register('sw.js?v=20261116-h2h-layout')"));
+assert(fs.readFileSync('index.html','utf8').includes("register('sw.js?v=20261124-futures-review')"));
+

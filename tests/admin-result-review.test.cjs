@@ -9,6 +9,7 @@ const ctx={Date:class extends Date{static now(){return Date.parse('2026-11-10T08
  hasNoFixtures:(d,r)=>d!=='ELIZA CUP (D1)'&&(r===1||r>=24),fixtureScore:(t,o,r)=>scores[t]?.[r-1]??null,
  sydneyKickoffUTC:d=>new Date(d+'T19:00:00+11:00'),betSelectionLabel:s=>s.label||s.id,
  esc:v=>String(v).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('"','&quot;'),fmt:v=>String(v),formatOdds:v=>Number(v).toFixed(2)};
+ctx.futuresSettlementProof=()=>null;ctx.suggestedBetResult=()=>null; // Futures proofs have their own integration coverage.
 vm.createContext(ctx);vm.runInContext(part('  function getPickRound(','  // Suggests WON/LOST')+part('  function computeSuggestedResult(','  // Derives the pausable')+part('  function computeDivisionStandings(','  function findTeamDivision(')+part('  function renderAdminBetReviewQueue(','  async function loadAdminData('),ctx);
 const pick=(scope,r,team)=>`LEADAT|${scope}|${r}|${team}`;
 const stair={id:'old-leader',status:'PENDING',username:'test admin review',stake:50,selections:[{id:pick('ELIZA CUP (D1)',2,'STAIRWAY TO EVANS'),label:'Stairway leading R2',odds:7.93}]};
@@ -35,3 +36,4 @@ const max=ctx.DATA.roddy_results[top][0],other=teams.find(t=>t!==top);ctx.DATA.r
 assert.equal(ctx.computeSuggestedResult(pick('RODDY',1,top)),null,'Equal leader requires manual policy');
 assert(app.includes('renderAdminBetReviewQueue(bets)'));
 console.log('PASS: real historical R2 leader result, visible mobile actions, overdue/manual queue, future exclusion, all-pending overrides, multi legs, tied leaders and settled/cashed-out exclusions.');
+

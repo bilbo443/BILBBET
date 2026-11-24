@@ -8,6 +8,7 @@ const ctx={Number,Math,Date:class extends Date{static now(){return Date.parse('2
  ALL_TEAMS:['A','B','C','D'],AVERAGE_TEAM:'AVERAGE TEAM',REAL_RESULTS:scores,
  H2H_SCHEDULE:{D1:[[['A','B'],['C','AVERAGE TEAM']],[['A','B'],['C','D']]]},
  state:{currentRound:2},esc:String,fmt:String,formatOdds:n=>Number(n).toFixed(2),betSelectionLabel:s=>s.label||s.id};
+ctx.futuresSettlementProof=()=>null;ctx.suggestedBetResult=()=>null; // Futures proofs have their own integration coverage.
 vm.createContext(ctx);
 vm.runInContext(part('  function getPickRound(','  // Suggests WON/LOST')+part('  function computeSuggestedResult(','  // Derives the pausable')+part('  function roundExtremeTeams(','  function computeRoundExtremes(')+part('  function renderAdminBetReviewQueue(','  async function loadAdminData('),ctx);
 const pick=(kind,team,round=1)=>`SPECIALFIX|${kind}|R${round}|${team}`;
@@ -49,3 +50,4 @@ assert(app.includes("priceModelVersion:'live-ecl-groups-v3'"),'Old cached boards
 const expanded=[];vm.runInNewContext(loop,{state:{},renderSpecialsTab(){return '';},htmlPrices(){expanded.push('rendered');}});assert.equal(expanded.length,4);
 assert.equal(JSON.stringify(scores),JSON.stringify({A:[90,50],B:[30,40],C:[0,30],D:[999,20]}),'No scores changed by grading');
 console.log(`PASS: ${checked} published score outcomes; singles/multis, zero/missing scores, aliases, ties, scheduled field, current/future gating, manual override and price-board expansion.`);
+
