@@ -416,10 +416,8 @@
   // picks only for now (regular division matches, FA Cup, ECL, and
   // Playoffs all share this exact pick format, so one function covers all
   // four). End-of-round leader bets also use their actual historical table.
-  // Season-long futures and unsupported picks
-  // return null -- no suggestion, stay fully manual -- not
-  // because they're impossible to resolve automatically, just not yet
-  // built out.
+  // Season futures use conservative proofs from a verified published score snapshot.
+  // Unsupported or inconclusive outcomes remain pending; suggestions never pay bets.
   // Actual final board election results (17 voters; top 7 by votes seated
   // on the board) -- once known, this lets the existing "ready to review"
   // grading assistance (see computeSuggestedResult below) auto-suggest
@@ -434,8 +432,40 @@
     'Jarvis Zebras': 9, 'Justiceformoon FC': 9, 'Dinkin CRFC': 8,
   };
   const ELECTION_TURNOUT_ACTUAL = 17;
+  let futuresSettlementCache=null;
+  function futuresSettlementProof(id){
+    if(typeof BilbbetFuturesSettlement==='undefined')return null;
+    const parts=id.split('|');
+    if(!['FUT','FACUP','ECL','ECLGROUP'].includes(parts[0]))return null;
+    const index=parts[0]==='FUT'?3:2;
+    if(parts[index])parts[index]=resolveTeamName(parts[index]);
+    if(!futuresSettlementCache){
+      const teams=Object.values(H2H_DIVISIONS).flat();
+      const source=teams.slice().sort().map(t=>[t,REAL_RESULTS[t],DATA.roddy_results?.[t]]);
+      const publicationVerified=teams.length>0&&new Set(teams).size===teams.length&&
+        JSON.stringify(source)===JSON.stringify(FUTURES.futures_refresh?.source_scores);
+      const normalise=value=>Array.isArray(value)?value.map(normalise):value&&typeof value==='object'?
+        Object.fromEntries(Object.entries(value).map(([k,v])=>[k,normalise(v)])):typeof value==='string'?resolveTeamName(value):value;
+      futuresSettlementCache={publicationVerified,scores:REAL_RESULTS,roddy:DATA.roddy_results||{},
+        divisions:H2H_DIVISIONS,schedule:H2H_SCHEDULE,rules:ROSTER_RULES,
+        confirmed:divisionFixtureConfirmed,faCup:normalise(DATA.official_fa_cup_draw||{}),
+        groups:state.eclGroups,eclFixtures:state.cupFixtures.ECL||[],
+        isFinal:round=>Number.isInteger(round)&&round>=1&&round<=26&&round<state.currentRound&&
+          !!ROUND_DATES[round]&&Date.now()>=sydneyKickoffUTC(ROUND_DATES[round])&&
+          teams.every(t=>Number.isFinite(DATA.roddy_results?.[t]?.[round-1]))};
+    }
+    return BilbbetFuturesSettlement.suggest(parts.join('|'),futuresSettlementCache);
+  }
+  function suggestedBetResult(bet){
+    if(typeof BilbbetFuturesSettlement==='undefined')return null;
+    return BilbbetFuturesSettlement.aggregate(bet.selections||[],id=>{
+      const result=computeSuggestedResult(id,(bet.selections||[]).find(s=>s.id===id));
+      return result?{result}:null;
+    });
+  }
   function computeSuggestedResult(pickId, selection = null){
     const parts = pickId.split('|');
+    if(['FUT','FACUP','ECL','ECLGROUP'].includes(parts[0])&&typeof futuresSettlementProof==='function')return futuresSettlementProof(pickId)?.result||null;
     if(parts[0] === 'STREAK')return streakResult(pickId);
     if(parts[0] === 'LEADAT')return computeLeaderAfterResult(parts);
     if(parts[0] === 'SPECIALFIX' && ['win_round','lose_round'].includes(parts[1]))return computeRoundExtremeResult(parts);
@@ -2378,6 +2408,7 @@
 
   // ---------- rendering ----------
   function render(){
+    futuresSettlementCache=null; // Recheck each results refresh; never persist or apply a suggestion.
     if(FIXTURE_SHARE_MODE)return; // Dedicated read-only page mounts once after its public snapshot loads.
     if(EMBED_MODE){
       document.getElementById('app').innerHTML = renderEmbedHome();
@@ -5874,7 +5905,8 @@
                 <td>${b.selections.map((s,i)=>{
                   const label = esc(betSelectionLabel(s))+' <span style="color:#8a8a8a;">('+formatOdds(s.odds)+')</span>';
                   const suggestion = !s.result || s.result==='PENDING' ? computeSuggestedResult(s.id,s) : null;
-                  const suggestionTag = suggestion ? ` <span style="color:#ffdd00;font-size:clamp(15px, calc(15px + 0.4vw), 18px);font-weight:600;">&#9889; suggested: ${suggestion}</span>` : '';
+                  const evidence=futuresSettlementProof(s.id);
+                  const suggestionTag = suggestion ? ` <span style="color:#ffdd00;font-size:clamp(15px, calc(15px + 0.4vw), 18px);font-weight:600;" title="${esc(evidence?.reason||'Confirmed result available for admin review')}">&#9889; suggested: ${suggestion}</span>` : '';
                   if(b.selections.length===1) return label + suggestionTag;
                   const legStatus = s.result || 'PENDING';
                   return `<div style="margin-bottom:4px;">${label} ${statusPill(legStatus)}${suggestionTag}<br/>
@@ -6056,22 +6088,24 @@
     return `<section style="margin-bottom:20px;">
       <h3>Resolve outstanding bets (${due.length})</h3>
       <label>Show <select class="bb-select" id="admin-bet-review-scope"><option value="due" ${!all?'selected':''}>Needs result review</option><option value="all" ${all?'selected':''}>All pending bets — manual override</option></select></label>
-      <p style="color:#9a9a9a;">Completed-round bets stay here even when a score is missing or automatic grading is unavailable. Confirm final results before resolving. Won credits the return; Void refunds the stake. Upcoming bets appear only under All pending bets.</p>
+      <p style="color:#9a9a9a;">Completed-round bets stay here even when a score is missing or automatic grading is unavailable. Confirm final results before resolving. Won credits the return; Void refunds the stake. Conclusive futures also appear here after confirmed published results, with the mathematical or elimination reason. No settlement or payout occurs until you approve it. Upcoming unresolved bets appear only under All pending bets.</p>
       ${visible.length?visible.map(b=>`<article class="bb-card" style="margin-bottom:10px;min-width:0;overflow-wrap:anywhere;">
         <strong>${esc(b.username)}</strong> · stake ${fmt(b.stake)} · ${esc(b.id)}
+        ${suggestedBetResult(b)?'<p style="color:#ffdd00;">Suggested overall bet: '+esc(suggestedBetResult(b))+' — admin approval required. A losing leg loses the multi; pending legs prevent a winning payout.</p>':''}
         ${b.selections.map((selection,index)=>{
           const unresolved=!selection.result||selection.result==='PENDING';
           const suggestion=unresolved?computeSuggestedResult(selection.id,selection):null;
           const parts=selection.id.split('|');
           const round=parts[0]==='STREAK'?(parts[4]==='NEVER'?(findTeamDivision(streakTeam(parts[2])?.name)==='ELIZA CUP (D1)'?26:23):Number(parts[4]?.slice(1))):getPickRound(selection.id);
-          const note=suggestion?'Suggested: '+suggestion:unresolved?(Number.isInteger(round)&&round<state.currentRound?'Manual review required — missing data, tied outcome or unsupported grading.':'Manual override — outcome not yet determined.'):'Already graded: '+selection.result;
+          const evidence=unresolved?futuresSettlementProof(selection.id):null;
+          const note=suggestion?'Suggested: '+suggestion+(evidence?' — '+evidence.reason:''):unresolved?(Number.isInteger(round)&&round<state.currentRound?'Manual review required — missing data, tied outcome or unsupported grading.':'Manual override — outcome not yet determined.'):'Already graded: '+selection.result;
           return `<div style="margin-top:12px;">
             <div>${esc(betSelectionLabel(selection))} · accepted odds ${formatOdds(selection.odds)}</div>
             <div style="margin:6px 0;color:${suggestion?'#ffdd00':'#b0b0b0'};">${esc(note)}</div>
             ${unresolved?'<div style="display:flex;gap:8px;flex-wrap:wrap;">'+actions(b,selection,index)+'</div>':''}
           </div>`;
         }).join('')}
-      </article>`).join(''):'<p>No pending completed-round bets need review. All pending bets remain accessible using the selector above.</p>'}
+      </article>`).join(''):'<p>No pending bets have a conclusive result or completed-round review flag. All pending bets remain accessible using the selector above.</p>'}
     </section>`;
   }
   async function loadAdminData(){
