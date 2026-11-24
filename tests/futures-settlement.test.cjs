@@ -58,4 +58,18 @@ assert(app.includes('futuresSettlementProof(pickId)?.result'));
 assert(app.includes('evidence.reason'));
 assert(app.includes('futuresSettlementCache=null; // Recheck each results refresh'));
 assert(!fs.readFileSync('js/futures-settlement.js','utf8').includes('secureRpc'));
+// Exercise the actual app adapter, including score-publication provenance and
+// previous-name resolution, rather than only its pure mathematical helper.
+const vm=require('node:vm'),roddy=structuredClone(c.scores);
+const sourceScores=teams.slice().sort().map(t=>[t,c.scores[t],roddy[t]]);
+const adapter={BilbbetFuturesSettlement:F,DATA:{roddy_results:roddy,official_fa_cup_draw:cup.faCup},
+ FUTURES:{futures_refresh:{source_scores:sourceScores}},REAL_RESULTS:structuredClone(c.scores),
+ H2H_DIVISIONS:c.divisions,H2H_SCHEDULE:c.schedule,ROSTER_RULES:c.rules,
+ ROUND_DATES:Object.fromEntries(Array.from({length:26},(_,i)=>[i+1,'2020-01-01'])),
+ state:{currentRound:26,eclGroups:{},cupFixtures:{ECL:[]}},resolveTeamName:t=>t==='OLD B'?'B':t,
+ divisionFixtureConfirmed:()=>true,sydneyKickoffUTC:()=>0};
+vm.createContext(adapter);vm.runInContext(app.slice(app.indexOf('  let futuresSettlementCache='),app.indexOf('  function computeSuggestedResult(')),adapter);
+assert.equal(adapter.futuresSettlementProof(pick('top_half_pct','OLD B')).result,'LOST');
+adapter.REAL_RESULTS.B[0]=1;vm.runInContext('futuresSettlementCache=null;',adapter);
+assert.equal(adapter.futuresSettlementProof(pick('top_half_pct','B')),null,'Unsynced local edits cannot grade futures');
 console.log('PASS: exhaustive point bounds, table cutoffs/ties, negative markets, finals paths, missing/stale data, cup replay/conflict/stage precedence, ECL groups, multi aggregation and read-only admin integration.');
