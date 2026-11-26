@@ -6,12 +6,17 @@ const engine=require('../js/streak-specials.js'),div='ELIZA CUP (D1)',roster=rea
 const ctx={Number,Date,Intl,DATA:{roster_rules:read('roster_rules')},ROUND_DATES:read('round_dates'),state:{currentRound:5},streakTeam:()=>({name:'JARVIS ZEBRAS'}),H2H_SCHEDULE:schedule,REAL_RESULTS:real,esc:String,
  streakHistory:(d,r)=>engine.history(roster[d],schedule[d],real,r,1,26)};
 vm.createContext(ctx);vm.runInContext(code,ctx);
-assert.match(ctx.renderD1DroughtTracker('JARVIS ZEBRAS','X',5),/4 games without a win/);
+assert.match(ctx.renderD1DroughtTracker('JARVIS ZEBRAS','X',5),/12 D1 games without a win/);
 assert.equal(ctx.renderD1DroughtTracker('A','B',5),'');
 assert.match(ctx.renderD1DroughtTracker('JARVIS ZEBRAS','X',12),/Through Round 4/,'Future viewing must not count unplayed weeks');
+ctx.state.currentRound=6;
+assert.match(ctx.renderD1DroughtTracker('JARVIS ZEBRAS','X',6),/13 D1 games without a win/);
+assert.match(ctx.renderD1DroughtTracker('JARVIS ZEBRAS','X',6),/4 losses, 1 draw/);
+assert(!ctx.renderD1DroughtTracker('JARVIS ZEBRAS','X',6).includes('13 straight'));
+ctx.state.currentRound=5;
 const pair=schedule[div][3].find(p=>p.includes('JARVIS ZEBRAS')),opp=pair.find(t=>t!=='JARVIS ZEBRAS');
 real['JARVIS ZEBRAS'][3]=real[opp][3];
-assert.match(ctx.renderD1DroughtTracker('JARVIS ZEBRAS','X',5),/4 games without a win/);
+assert.match(ctx.renderD1DroughtTracker('JARVIS ZEBRAS','X',5),/12 D1 games without a win/);
 assert(!ctx.renderD1DroughtTracker('JARVIS ZEBRAS','X',5).includes('straight losses'));
 real['JARVIS ZEBRAS'][3]=real[opp][3]+1;
 assert.match(ctx.renderD1DroughtTracker('JARVIS ZEBRAS','X',5),/drought broken/);
@@ -20,6 +25,9 @@ real['JARVIS ZEBRAS'][3]=null;
 assert.equal(ctx.renderD1DroughtTracker('JARVIS ZEBRAS','X',5),'');
 console.log('PASS: Jarvis ID tracker, verified winless run, draw/win reset, missing scores and future cutoff.');
 
+ctx.REAL_RESULTS['JARVIS ZEBRAS'][3]=ctx.REAL_RESULTS[opp][3]+1;
+ctx.state.currentRound=6;
+assert.match(ctx.renderD1DroughtTracker('JARVIS ZEBRAS','X',6),/1 D1 game without a win/,'A current-season win must reset the historical carry-in');
 const history=ctx.DATA.roster_rules.d1_drought_history['002'];
 assert.deepEqual(JSON.parse(JSON.stringify(ctx.d1DroughtDays(history,'2026-11-20'))),{min:657,max:658});
 assert.equal(ctx.d1DroughtDays(history,'2024-01-01'),null);
