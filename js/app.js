@@ -5258,7 +5258,7 @@
     if(through<1)return '';
     const records=streakHistory(div,through),rec=records?.[team];
     if(!rec)return ''; // Never extend a drought across missing/unconfirmed results.
-    let winless=0,losses=0;
+    let winless=0;
     for(let r=through;r>=1;r--){
       const pair=(H2H_SCHEDULE[div]?.[r-1]||[]).find(p=>p.includes(team));
       if(!pair)return '';
@@ -5267,21 +5267,19 @@
       if(own>other)break;
       winless++;
     }
-    for(let r=through;r>=1;r--){
-      const pair=H2H_SCHEDULE[div][r-1].find(p=>p.includes(team));
-      const opponent=pair.find(t=>t!==team);
-      if(REAL_RESULTS[team][r-1]>=REAL_RESULTS[opponent][r-1])break;
-      losses++;
-    }
-    const message=winless ? winless+' games without a win'+(losses?' · '+losses+' straight losses':'') : 'D1 drought broken';
     const history=DATA.roster_rules?.d1_drought_history?.['002'];
+    const carry=history?.carry_into_season===DATA.roster_rules?.season&&rec.won===0&&rec.played===through&&
+      Number.isInteger(history.carry_in_winless_games)&&history.carry_in_winless_games>=0?history.carry_in_winless_games:0;
+    const message=winless ? (winless+carry)+' D1 '+(winless+carry===1?'game':'games')+' without a win' : 'D1 drought broken';
+    const seasonRecord=rec.lost+' '+(rec.lost===1?'loss':'losses')+', '+rec.drawn+' '+(rec.drawn===1?'draw':'draws')+
+      (rec.won?', '+rec.won+' '+(rec.won===1?'win':'wins'):'');
     let historical='';
     if(history&&rec.won===0){
       const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Sydney',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
       const days=d1DroughtDays(history,today);
       if(days)historical='<div style="font-size:1.1em;font-weight:700;margin:4px 0;">'+days.min+'+ days since last D1 win</div>';
     }
-    return '<div style="background:#172536;border:1px solid #40566c;border-radius:8px;padding:10px;margin:8px 0;color:#e1eaf3;"><strong>'+esc(team)+' · D1 win drought</strong>'+historical+'<div>'+(winless?'This season: ':'')+esc(message)+'</div><small>Through Round '+through+'</small></div>';
+    return '<div style="background:#172536;border:1px solid #40566c;border-radius:8px;padding:10px;margin:8px 0;color:#e1eaf3;"><strong>'+esc(team)+' · D1 win drought</strong>'+historical+'<div>'+esc(message)+'</div><div>This season: '+esc(seasonRecord)+'</div><small>Through Round '+through+'</small></div>';
   }
 
   function streakTeam(teamId){
