@@ -5273,17 +5273,15 @@
       if(REAL_RESULTS[team][r-1]>=REAL_RESULTS[opponent][r-1])break;
       losses++;
     }
-    const message=winless ? winless+' consecutive D1 games without a win this season'+(losses?' · '+losses+' straight losses':'') : 'D1 drought broken: latest completed league game was a win';
+    const message=winless ? winless+' games without a win'+(losses?' · '+losses+' straight losses':'') : 'D1 drought broken';
     const history=DATA.roster_rules?.d1_drought_history?.['002'];
     let historical='';
     if(history&&rec.won===0){
       const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Sydney',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
-      const days=d1DroughtDays(history,today),future=d1DroughtDays(history,ROUND_DATES[round]);
-      const range=value=>value.min===value.max?String(value.min):value.min+'–'+value.max;
-      if(days)historical='<div>Last recorded D1 win: '+esc(history.team_score+'–'+history.opponent_score+' vs '+history.opponent)+' · '+esc(history.last_win_window_start+' to '+history.last_win_window_end)+'. <strong>'+range(days)+' days without a D1 win</strong> as of '+esc(today)+' (Sydney).</div>';
-      if(future&&Number(round)>=Number(state.currentRound))historical+='<div>If still winless at Round '+Number(round)+"'s scheduled start ("+esc(ROUND_DATES[round])+'): '+range(future)+' days. This is a projection, not a result.</div>';
+      const days=d1DroughtDays(history,today);
+      if(days)historical='<div style="font-size:1.1em;font-weight:700;margin:4px 0;">'+days.min+'+ days since last D1 win</div>';
     }
-    return '<div style="background:#172536;border:1px solid #40566c;border-radius:8px;padding:10px;margin:8px 0;color:#e1eaf3;"><strong>'+esc(team)+' · D1 drought watch</strong><div>'+esc(message)+'</div>'+historical+'<small>Through Round '+through+'. Draws extend the winless run but end a losing streak. Historical dates use the supplied round window, not an exact match day. Prices use scoring form and opponent strength; no extra drought penalty.</small></div>';
+    return '<div style="background:#172536;border:1px solid #40566c;border-radius:8px;padding:10px;margin:8px 0;color:#e1eaf3;"><strong>'+esc(team)+' · D1 win drought</strong>'+historical+'<div>'+(winless?'This season: ':'')+esc(message)+'</div><small>Through Round '+through+'</small></div>';
   }
 
   function streakTeam(teamId){
